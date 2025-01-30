@@ -5,7 +5,8 @@ import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import AdminPanel from "./pages/AdminPanel";
-import StudentDashboard from "./pages/StudentDashboard";  // Import Student Dashboard
+import StudentDashboard from "./pages/StudentDashboard";
+import ManageStudents from "./pages/ManageStudents";
 import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
@@ -18,7 +19,8 @@ function App() {
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
         <Route path="/admin" element={<AdminPanel />} />
-        <Route path="/student-dashboard" element={<StudentDashboard />} /> {/* Add Student Dashboard Route */}
+        <Route path="/student-dashboard" element={<StudentDashboard />} />
+        <Route path ="/admin/manage-students"element = {<ManageStudents />} />
       </Routes>
     </Router>
   );

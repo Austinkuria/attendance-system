@@ -12,9 +12,8 @@ ChartJS.register(
 );
 
 const AttendanceChart = ({ data }) => {
-  if (!data) {
-    return <p>Loading data...</p>;
-  }
+  // Default to zero values if no data
+  const { present = 0, absent = 0 } = data || {};
 
   // Chart data and options
   const chartData = {
@@ -22,7 +21,7 @@ const AttendanceChart = ({ data }) => {
     datasets: [
       {
         label: 'Number of Students',
-        data: [data.present, data.absent],
+        data: [present, absent],
         backgroundColor: [
           'rgba(75, 192, 192, 0.6)',
           'rgba(255, 99, 132, 0.6)'
@@ -51,7 +50,7 @@ const AttendanceChart = ({ data }) => {
         },
         title: {
           display: true,
-          text: 'Number of Students'
+          text: 'Percentage of Students'
         }
       },
       x: {
@@ -73,9 +72,13 @@ const AttendanceChart = ({ data }) => {
 
 AttendanceChart.propTypes = {
   data: PropTypes.shape({
-    present: PropTypes.number.isRequired,
-    absent: PropTypes.number.isRequired,
-  }).isRequired,
+    present: PropTypes.number,
+    absent: PropTypes.number,
+  }),
+};
+
+AttendanceChart.defaultProps = {
+  data: null,
 };
 
 export default AttendanceChart;

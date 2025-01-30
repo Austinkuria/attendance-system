@@ -1,7 +1,7 @@
 import axios from "axios";
-
+const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // Replace with your backend URL
+  baseURL: "http://localhost:5000/api", // backend URL
 });
 
 // Fetch units for a student based on their course, year, and semester
@@ -44,7 +44,7 @@ export const getStudents = () => api.get("/students");
 export const addStudent = (student) => api.post("/students", student);
 
 // Delete a student
-export const deleteStudent = (id) => api.delete(`/students/${id}`);
+// export const deleteStudent = (id) => api.delete(`/students/${id}`);
 
 // Fetch all lecturers
 export const getLecturers = () => api.get("/lecturers");
@@ -141,6 +141,29 @@ export const getCourseAttendanceRate = async (courseId) => {
     console.error("Error fetching course attendance rate:", error);
     return { present: 0, absent: 0 };
   }
+};
+
+export const deleteStudent = async (studentId) => {
+  return await axios.delete(`${API_URL}/students/${studentId}`);
+};
+
+export const importStudents = async (file) => {
+  const formData = new FormData();
+  formData.append("csvFile", file);
+
+  return await axios.post(`${API_URL}/students/upload`, formData, {
+    headers: { "Content-Type": "multipart/form-data" },
+  });
+};
+
+export const downloadStudents = async () => {
+  const response = await axios.get(`${API_URL}/students/download`, { responseType: "blob" });
+  const url = window.URL.createObjectURL(new Blob([response.data]));
+  const link = document.createElement("a");
+  link.href = url;
+  link.setAttribute("download", "students.csv");
+  document.body.appendChild(link);
+  link.click();
 };
 
 // Mark attendance for a student

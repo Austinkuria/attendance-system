@@ -9,7 +9,7 @@ const AdminPanel = () => {
   const [lecturers, setLecturers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [attendanceRates, setAttendanceRates] = useState({});
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Memoize data fetching functions
   const fetchStudents = useCallback(async () => {
@@ -137,7 +137,9 @@ const AdminPanel = () => {
                 <div className="card-body">
                   <h5 className="card-title"><FaUsers /> Total Students</h5>
                   <p className="card-text">{students.length}</p>
-                  <button className="btn btn-primary" onClick={() => alert('View Students')}>Manage</button>
+                  <button className="btn btn-primary" onClick={() => window.location.href='admin/manage-students'}>
+                    Manage
+                  </button>
                 </div>
               </div>
             </div>
@@ -176,24 +178,20 @@ const AdminPanel = () => {
             </div>
           </div>
 
-          {/* Charts/Graphs for each course */}
+        {/* Charts/Graphs for each course */}
           <div className="row">
             {courses.map((course) => (
-              <div className="col-md-6 mb-4" key={course.id}>
+              <div className="col-md-6 mb-4" key={course._id}> {/* Use _id instead of id */}
                 <div className="card">
                   <div className="card-body">
                     <h5 className="card-title">{course.name} Attendance Trends</h5>
-                    {attendanceRates[course.id] ? (
-                      <AttendanceChart data={attendanceRates[course.id]} />
-                    ) : (
-                      <p>Loading data...</p>
-                    )}
+                    {/* Always render chart with fallback to zero values */}
+                    <AttendanceChart data={attendanceRates[course._id]} />
                   </div>
                 </div>
               </div>
             ))}
           </div>
-
           {/* Interactive Table for detailed view */}
           <div className="row">
             {/* Add interactive table here */}
