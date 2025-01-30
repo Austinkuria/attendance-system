@@ -85,14 +85,14 @@ const StudentDashboard = () => {
                   <p className="card-text">{unit.code}</p>
                   <div className="d-flex justify-content-between">
                     <button
-                      className="btn btn-outline-primary transition-all"
+                      className="btn btn-outline-primary transition-all mb-2 mx-2"
                       data-bs-toggle="collapse"
                       data-bs-target={`#collapseAttendance-${unit._id}`}
                     >
                       <FaEye /> View Attendance Rate
                     </button>
                     <button
-                      className="btn btn-outline-success transition-all"
+                      className="btn btn-outline-success transition-all mb-2 "
                       onClick={() => window.location.href = `/qr-scanner/${unit._id}`}
                     >
                       <FaQrcode /> Mark Attendance

@@ -38,7 +38,33 @@ export const generateQRCode = (unitId) => api.post("/attendance/generateQR", { u
 // ** New Methods for Admin Panel **
 
 // Fetch all students
-export const getStudents = () => api.get("/students");
+// Update getStudents with proper headers and course handling
+export const getStudents = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    console.error("No authentication token found");
+    return [];
+  }
+
+  try {
+    const response = await axios.get(`${API_URL}/students`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    
+    // Transform course data for frontend
+    return response.data.map(student => ({
+      ...student,
+      course: student.course?.name || student.course || 'N/A'
+    }));
+    
+  } catch (error) {
+    console.error("Error fetching students:", error.response?.data || error.message);
+    return [];
+  }
+};
 
 // Add a new student
 export const addStudent = (student) => api.post("/students", student);
@@ -144,26 +170,64 @@ export const getCourseAttendanceRate = async (courseId) => {
 };
 
 export const deleteStudent = async (studentId) => {
-  return await axios.delete(`${API_URL}/students/${studentId}`);
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.delete(`${API_URL}/students/${studentId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting student:", error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export const importStudents = async (file) => {
+  const token = localStorage.getItem("token");
   const formData = new FormData();
   formData.append("csvFile", file);
 
-  return await axios.post(`${API_URL}/students/upload`, formData, {
-    headers: { "Content-Type": "multipart/form-data" },
-  });
+  try {
+    const response = await axios.post(`${API_URL}/students/upload`, formData, {
+      headers: { 
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Import error:", error.response?.data || error.message);
+    throw error;
+  }
 };
 
 export const downloadStudents = async () => {
-  const response = await axios.get(`${API_URL}/students/download`, { responseType: "blob" });
-  const url = window.URL.createObjectURL(new Blob([response.data]));
-  const link = document.createElement("a");
-  link.href = url;
-  link.setAttribute("download", "students.csv");
-  document.body.appendChild(link);
-  link.click();
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/students/download`, {
+      responseType: "blob",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    
+    // Create temporary download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "students.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    return true;
+  } catch (error) {
+    console.error("Export error:", error.response?.data || error.message);
+    throw error;
+  }
 };
 
 // Mark attendance for a student

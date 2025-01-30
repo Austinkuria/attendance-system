@@ -12,41 +12,42 @@ const AdminPanel = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
   // Memoize data fetching functions
-  const fetchStudents = useCallback(async () => {
-    try {
-      const response = await getStudents();
-      setStudents(response.data || []);
-    } catch (error) {
-      console.error('Error fetching students:', error);
-    }
-  }, []);
+  // Updated data fetching functions
+const fetchStudents = useCallback(async () => {
+  try {
+    const response = await getStudents();
+    // Remove .data since the API returns the array directly
+    setStudents(response || []); 
+  } catch (error) {
+    console.error('Error fetching students:', error);
+  }
+}, []);
 
-  const fetchLecturers = useCallback(async () => {
-    try {
-      const response = await getLecturers();
-      setLecturers(response.data || []);
-    } catch (error) {
-      console.error('Error fetching lecturers:', error);
-    }
-  }, []);
+const fetchLecturers = useCallback(async () => {
+  try {
+    const response = await getLecturers();
+    // Remove .data here too
+    setLecturers(response || []); 
+  } catch (error) {
+    console.error('Error fetching lecturers:', error);
+  }
+}, []);
 
-  const fetchCourses = useCallback(async () => {
-    try {
-      const response = await getCourses();
-      // Remove .data from the response since your API returns the array directly
-      setCourses(response || []); 
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-    }
-  }, []);
-
+const fetchCourses = useCallback(async () => {
+  try {
+    const response = await getCourses();
+    setCourses(response || []);
+  } catch (error) {
+    console.error('Error fetching courses:', error);
+  }
+}, []);
   // Memoize attendance rate fetcher with course dependency
   const fetchCourseAttendanceRates = useCallback(async () => {
     try {
       const attendanceData = await Promise.all(
         courses.map(async (course) => {
-          // Use _id instead of id (Mongoose uses _id by default)
           const response = await getCourseAttendanceRate(course._id);
+          // Ensure response contains valid data
           return { 
             courseId: course._id, 
             data: response || { present: 0, absent: 0 } 
@@ -64,7 +65,7 @@ const AdminPanel = () => {
       console.error('Error fetching course attendance rates:', error);
     }
   }, [courses]);
-
+  
   // Initial data fetch
   useEffect(() => {
     const fetchInitialData = async () => {
