@@ -57,13 +57,16 @@ const signup = async (req, res) => {
 };
 
 // getStudents
+// In your userController.js
 const getStudents = async (req, res) => {
   try {
-    const students = await User.find({ role: 'student' }); // Find all students
+    const students = await User.find({ role: 'student' })
+      .populate('course', 'name') // Add this line to populate course names
+      .select('firstName lastName email regNo year semester course');
     res.json(students);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error fetching students' });
+    res.status(500).json([]);
   }
 };
 
@@ -90,7 +93,6 @@ const deleteStudent = async (req, res) => {
   }
 };
 
-
 // Import students
 const importStudents = async (req, res) => {
   try {
@@ -99,9 +101,16 @@ const importStudents = async (req, res) => {
 
     fs.createReadStream(filePath)
       .pipe(csv.parse({ headers: true }))
-      .on("data", (row) => students.push(row))
+      .on("data", (row) => {
+        // Add role and map CSV fields
+        students.push({
+          ...row,
+          role: 'student',
+          password: bcrypt.hashSync('defaultpassword', 10)
+        });
+      })
       .on("end", async () => {
-        await Student.insertMany(students);
+        await User.insertMany(students); // Use User model instead of Student
         fs.unlinkSync(filePath);
         res.json({ message: "Students imported successfully" });
       });

@@ -41,4 +41,7 @@ router.post("/upload", upload.single("csvFile"), importStudents);
 router.get("/download", downloadStudents);
 router.delete("/students/:id", deleteStudent);
 
+// Update import route to use correct path
+router.post('/students/upload', upload.single("csvFile"), importStudents);
+
 module.exports = router;
