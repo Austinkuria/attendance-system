@@ -6,6 +6,7 @@ import Dashboard from "./pages/Dashboard";
 import LecturerDashboard from "./pages/LecturerDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import StudentDashboard from "./pages/StudentDashboard";  // Import Student Dashboard
+import 'bootstrap/dist/css/bootstrap.min.css';
 
 function App() {
   return (
