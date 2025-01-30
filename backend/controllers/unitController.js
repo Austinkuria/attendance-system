@@ -80,5 +80,15 @@ const getStudentUnits = async (req, res) => {
   };
   
 
+// Get all units (for admin)
+const getUnits = async (req, res) => {
+    try {
+        const units = await Unit.find();  // Ensure Unit model exists
+        res.json(units);
+    } catch (error) {
+        console.error("Error fetching units:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
+    }
+};
 
-module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits };
+module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits };

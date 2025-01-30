@@ -92,7 +92,7 @@ const StudentDashboard = () => {
                       <FaEye /> View Attendance Rate
                     </button>
                     <button
-                      className="btn btn-outline-success transition-all ms-2"
+                      className="btn btn-outline-success transition-all"
                       onClick={() => window.location.href = `/qr-scanner/${unit._id}`}
                     >
                       <FaQrcode /> Mark Attendance

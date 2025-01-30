@@ -54,4 +54,28 @@ const signup = async (req, res) => {
   }
 };
 
-module.exports = { login, signup };
+// getStudents
+const getStudents = async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' }); // Find all students
+    res.json(students);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching students' });
+  }
+};
+
+
+//get all lecturers
+const getLecturers = async (req, res) => {
+  try {
+    const lecturers = await User.find({ role: 'lecturer' }); // Find all lecturers
+    res.json(lecturers);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Error fetching lecturers' });
+  }
+};
+
+module.exports = { login, signup, getStudents, getLecturers };
+

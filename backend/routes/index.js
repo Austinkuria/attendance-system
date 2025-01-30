@@ -1,5 +1,5 @@
 const express = require("express");
-const { login, signup } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -26,6 +26,12 @@ router.use("/course", courseRoutes);
 // Unit routes
 router.use("/unit", unitRoutes);
 
+
+// Define the /api/students route
+router.get('/students', getStudents);
+
+// Define the  route for lecture
+router.get('/lecturers', getLecturers);
 
 // Admin routes (admin only)
 router.post("/user", authenticate, authorize(["admin"]), createUser);
