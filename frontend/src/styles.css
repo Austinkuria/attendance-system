@@ -179,7 +179,7 @@ form {
 }
 
 .sidebar.collapsed + .main-content .sidebar-toggle {
-  left: 20px;
+  left: 0;
 }
 
 .header-section {

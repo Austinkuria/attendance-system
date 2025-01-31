@@ -129,6 +129,19 @@ export const getUnits = async () => {
   }
 };
 
+// export const getUnitsByCourse = async (courseId) => {
+//   const token = localStorage.getItem("token");
+//   try {
+//     const response = await axios.get(`${API_URL}/course/${courseId}/units`, {
+//       headers: { Authorization: `Bearer ${token}` }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error fetching units:", error);
+//     return [];
+//   }
+// };
+
 // Fetch all courses (new API endpoint)
 export const getCourses = async () => {
   const token = localStorage.getItem("token");
@@ -250,6 +263,142 @@ export const downloadStudents = async () => {
   }
 };
 
+// create a new course
+export const createCourse = async (courseData) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.post(`${API_URL}/course/create`, courseData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error creating course:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// update a course
+export const updateCourse = async (id, courseData) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.put(`${API_URL}/course/${id}`, courseData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating course:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// delete a course
+export const deleteCourse = async (id) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.delete(`${API_URL}/course/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting course:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// Fetch departments
+export const getDepartments = async () => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/department`, {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching departments:", error.response?.data || error.message);
+    return [];
+  }
+};
+
+// Fetch courses by department
+// export const addUnitToCourse = async (courseId, unitData) => {
+//   const token = localStorage.getItem("token");
+//   try {
+//     const response = await axios.post(
+//       `${API_URL}/course/${courseId}/units`,
+//       unitData,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//           "Content-Type": "application/json"
+//         }
+//       }
+//     );
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error adding unit:", error.response?.data || error.message);
+//     throw error;
+//   }
+// };
+
+// Remove a unit from a course
+export const removeUnitFromCourse = async (courseId, unitId) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.delete(
+      `${API_URL}/course/${courseId}/units/${unitId}`,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error removing unit:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+  // getUnitsByCourse function
+  export const getUnitsByCourse = async (courseId) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.get(`${API_URL}/course/${courseId}/units`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching units:", error);
+      throw error;
+    }
+  };
+  
+  // addUnitToCourse
+  export const addUnitToCourse = async (courseId, unitData) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.post(
+        `${API_URL}/course/${courseId}/units`,
+        unitData,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data;
+    } catch (error) {
+      console.error("Error adding unit:", error);
+      throw error;
+    }
+  };
 // Mark attendance for a student
 export const markAttendance = (attendance) => api.post("/attendance", attendance);
 

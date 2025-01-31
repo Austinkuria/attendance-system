@@ -1,14 +1,24 @@
-const express = require("express");
-const { createCourse, getCoursesByDepartment, getAllCourses } = require("../controllers/courseController");
+const express = require('express');
 const router = express.Router();
+const {
+  createCourse,
+  getCoursesByDepartment,
+  getAllCourses,
+  updateCourse,
+  deleteCourse,
+  getUnitsByCourse,
+  addUnitToCourse,
+  removeUnitFromCourse
+} = require('../controllers/courseController');
 
-// Route to create a new course
+// Existing routes
 router.post("/create", createCourse);
-
-// Get all courses
 router.get("/", getAllCourses);
-
-// Route to get courses by department
 router.get("/:departmentId", getCoursesByDepartment);
+
+// Unit management routes
+router.get('/:courseId/units', getUnitsByCourse);
+router.post('/:courseId/units', addUnitToCourse);
+router.delete('/:courseId/units/:unitId', removeUnitFromCourse);
 
 module.exports = router;

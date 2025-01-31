@@ -10,6 +10,7 @@ import LecturerDashboard from "./pages/LecturerDashboard";
 import AdminPanel from "./pages/AdminPanel";
 import StudentDashboard from "./pages/StudentDashboard";
 import ManageStudents from "./pages/ManageStudents";
+import ManageCourses from "./pages/ManageCourses";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import InstallButton from './InstallButton';
 
@@ -62,6 +63,7 @@ function App() {
         <Route path="/admin" element={<AdminPanel />} />
         <Route path="/student-dashboard" element={<StudentDashboard />} />
         <Route path="/admin/manage-students" element={<ManageStudents />} />
+        <Route path="/admin/manage-courses" element={<ManageCourses />} />
       </Routes>
     </Router>
   );

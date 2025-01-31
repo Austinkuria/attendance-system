@@ -110,7 +110,7 @@ const AdminPanel = () => {
 
   const HeaderSection = () => (
     <div className="header-section">
-      <h2 className="text-center mb-0">Admin Panel</h2>
+      <h2 className="text-center mb-0 mx-3">Admin Panel</h2>
       <div className="position-relative">
         <button 
           className="btn btn-link text-dark p-0" 
@@ -225,7 +225,7 @@ const AdminPanel = () => {
         <div className="sidebar-menu">
           <ul className="list-unstyled">
             <li>
-              <a href="#" className="d-flex align-items-center">
+              <a href="" className="d-flex align-items-center">
                 <FaUsers className="me-2" /> Students
               </a>
             </li>
