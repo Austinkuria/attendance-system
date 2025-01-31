@@ -101,14 +101,24 @@ const getUnitsByCourse = async (req, res) => {
   // Add unit to course
   const addUnitToCourse = async (req, res) => {
     try {
+      const { name, code } = req.body;
+      
+      if (!name || !code) {
+        return res.status(400).json({ message: "Name and code are required" });
+      }
+  
       const course = await Course.findById(req.params.courseId);
       if (!course) {
         return res.status(404).json({ message: 'Course not found' });
       }
   
       const unit = new Unit({
-        ...req.body,
-        course: req.params.courseId
+        name,
+        code,
+        course: course._id,
+        // Add default values or additional fields as needed
+        year: req.body.year || 1,
+        semester: req.body.semester || 1
       });
   
       await unit.save();
@@ -121,7 +131,6 @@ const getUnitsByCourse = async (req, res) => {
       res.status(500).json({ message: 'Server Error', error: error.message });
     }
   };
-  
   // Remove unit from course
   const removeUnitFromCourse = async (req, res) => {
     try {

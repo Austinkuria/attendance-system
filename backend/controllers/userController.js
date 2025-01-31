@@ -57,7 +57,6 @@ const signup = async (req, res) => {
 };
 
 // getStudents
-// In your userController.js
 const getStudents = async (req, res) => {
   try {
     const students = await User.find({ role: 'student' })

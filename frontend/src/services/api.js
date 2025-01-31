@@ -390,7 +390,11 @@ export const removeUnitFromCourse = async (courseId, unitId) => {
     try {
       const response = await axios.post(
         `${API_URL}/course/${courseId}/units`,
-        unitData,
+        {
+          ...unitData,
+          year: 1, // Add default year
+          semester: 1 // Add default semester
+        },
         { headers: { Authorization: `Bearer ${token}` } }
       );
       return response.data;
