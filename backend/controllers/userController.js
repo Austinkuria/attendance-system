@@ -70,15 +70,15 @@ const getStudents = async (req, res) => {
   }
 };
 
-
-//get all lecturers
+// getLecturers
 const getLecturers = async (req, res) => {
   try {
-    const lecturers = await User.find({ role: 'lecturer' }); // Find all lecturers
+    const lecturers = await User.find({ role: 'lecturer' })
+      .select('firstName lastName email department assignedUnits');
     res.json(lecturers);
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Error fetching lecturers' });
+    res.status(500).json([]);
   }
 };
 

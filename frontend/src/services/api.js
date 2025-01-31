@@ -73,7 +73,27 @@ export const addStudent = (student) => api.post("/students", student);
 // export const deleteStudent = (id) => api.delete(`/students/${id}`);
 
 // Fetch all lecturers
-export const getLecturers = () => api.get("/lecturers");
+// Update getLecturers to handle response properly
+export const getLecturers = async () => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    console.error("No authentication token found");
+    return [];
+  }
+
+  try {
+    const response = await axios.get(`${API_URL}/lecturers`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching lecturers:", error.response?.data || error.message);
+    return [];
+  }
+};
 
 // Add a new lecturer
 export const addLecturer = (lecturer) => api.post("/lecturers", lecturer);
