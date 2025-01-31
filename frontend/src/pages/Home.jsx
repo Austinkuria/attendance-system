@@ -3,7 +3,7 @@ const Home = () => {
   return (
     <div>
       <h1>Welcome to the Attendance System</h1>
-      <p>Login to access your dashboard.</p>
+      <p> <a href="/login">Login</a> to access your dashboard.</p>
     </div>
   );
 };
