@@ -11,13 +11,13 @@ const {
   removeUnitFromCourse
 } = require('../controllers/courseController');
 
-// Existing routes
+// Correct route order
 router.post("/create", createCourse);
 router.get("/", getAllCourses);
-router.get("/:departmentId", getCoursesByDepartment);
+router.get('/:courseId/units', getUnitsByCourse);
+router.get("/:departmentId", getCoursesByDepartment); 
 
 // Unit management routes
-router.get('/:courseId/units', getUnitsByCourse);
 router.post('/:courseId/units', addUnitToCourse);
 router.delete('/:courseId/units/:unitId', removeUnitFromCourse);
 
