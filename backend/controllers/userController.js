@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 const User = require('../models/User');
 const csv = require("fast-csv");
 const fs = require("fs");
+const { parse } = require('json2csv'); 
 
 // Login API
 const login = async (req, res) => {
@@ -23,7 +24,7 @@ const login = async (req, res) => {
     res.json({ token });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -52,7 +53,7 @@ const signup = async (req, res) => {
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -60,8 +61,8 @@ const signup = async (req, res) => {
 const getStudents = async (req, res) => {
   try {
     const students = await User.find({ role: 'student' })
-      .populate('course', 'name') // Add this line to populate course names
-      .select('firstName lastName email regNo year semester course');
+      .populate('course', 'name') 
+      .select('firstName lastName email regNo year department semester course');
     res.json(students);
   } catch (error) {
     console.error(error);
@@ -73,6 +74,8 @@ const getStudents = async (req, res) => {
 const getLecturers = async (req, res) => {
   try {
     const lecturers = await User.find({ role: 'lecturer' })
+      .populate('department', 'name')
+      .populate('assignedUnits', 'name code')
       .select('firstName lastName email department assignedUnits');
     res.json(lecturers);
   } catch (error) {
@@ -80,7 +83,6 @@ const getLecturers = async (req, res) => {
     res.status(500).json([]);
   }
 };
-
 
 // Delete student
 const deleteStudent = async (req, res) => {
@@ -101,7 +103,6 @@ const importStudents = async (req, res) => {
     fs.createReadStream(filePath)
       .pipe(csv.parse({ headers: true }))
       .on("data", (row) => {
-        // Add role and map CSV fields
         students.push({
           ...row,
           role: 'student',
@@ -109,7 +110,7 @@ const importStudents = async (req, res) => {
         });
       })
       .on("end", async () => {
-        await User.insertMany(students); // Use User model instead of Student
+        await User.insertMany(students);
         fs.unlinkSync(filePath);
         res.json({ message: "Students imported successfully" });
       });
@@ -118,18 +119,73 @@ const importStudents = async (req, res) => {
   }
 };
 
-// Export students
-const downloadStudents = async (req, res) => {
+// registerUser
+const registerUser = async (req, res) => {
+  const { firstName, lastName, email, password, role, regNo, course, department, year, semester } = req.body;
+
   try {
-    const students = await Student.find();
-    res.setHeader("Content-Disposition", "attachment; filename=students.csv");
-    res.setHeader("Content-Type", "text/csv");
-    
-    csv.write(students, { headers: true }).pipe(res);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    // Validate department
+    const departments = await Department.find(); // Fetch departments from the database
+    if (role === 'student' && !departments.includes(department)) {
+      return res.status(400).json({ message: 'Invalid department' });
+    }
+
+    const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: existingUser.email === email 
+          ? 'Email already in use' 
+          : 'Registration number already exists'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      role,
+      ...(role === 'student' && { regNo, course, department, year, semester })
+    });
+
+    await newUser.save();
+    res.status(201).json({ message: 'User created successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
-module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents };
+// Download students
+const downloadStudents = async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' })
+      .populate('course', 'name')
+      .select('firstName lastName email regNo course year semester');
+
+    const csvData = students.map(student => ({
+      firstName: student.firstName,
+      lastName: student.lastName,
+      email: student.email,
+      regNo: student.regNo,
+      course: student.course?.name || '',
+      department: student.department?.name || '',
+      year: student.year,
+      semester: student.semester
+    }));
+
+    const csv = parse(csvData, { header: true });
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=students.csv');
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser };
 

@@ -12,16 +12,13 @@ ChartJS.register(
 );
 
 const AttendanceChart = ({ data }) => {
-  // Default to zero values if no data
-  const { present = 0, absent = 0 } = data || {};
-
-  // Chart data and options
+  // Chart data configuration
   const chartData = {
     labels: ['Present', 'Absent'],
     datasets: [
       {
-        label: 'Number of Students',
-        data: [present, absent],
+        label: 'Sessions',
+        data: [data?.present || 0, data?.absent || 0],
         backgroundColor: [
           'rgba(75, 192, 192, 0.6)',
           'rgba(255, 99, 132, 0.6)'
@@ -35,22 +32,28 @@ const AttendanceChart = ({ data }) => {
     ],
   };
 
+  // Chart options configuration
   const options = {
     responsive: true,
     plugins: {
       legend: {
         position: 'top',
       },
+      tooltip: {
+        callbacks: {
+          label: (context) => `${context.dataset.label}: ${context.raw} sessions`
+        }
+      }
     },
     scales: {
       y: {
         beginAtZero: true,
-        ticks: {
-          stepSize: 1
-        },
         title: {
           display: true,
-          text: 'Percentage of Students'
+          text: 'Number of Sessions'
+        },
+        ticks: {
+          stepSize: 1
         }
       },
       x: {
@@ -64,8 +67,10 @@ const AttendanceChart = ({ data }) => {
 
   return (
     <div className="attendance-chart">
-      <h5>Attendance Overview</h5>
-      <Bar data={chartData} options={options} />
+      <h4 className="mb-4">Attendance Distribution</h4>
+      <div style={{ height: '400px' }}>
+        <Bar data={chartData} options={options} />
+      </div>
     </div>
   );
 };

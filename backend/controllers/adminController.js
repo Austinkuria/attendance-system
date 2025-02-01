@@ -27,41 +27,79 @@ const createUser = async (req, res) => {
     }
 };
 
-// Bulk upload students via CSV
+// adminController.js
 const bulkUploadStudents = async (req, res) => {
     try {
-        const students = [];
-        fs.createReadStream(req.file.path)
-            .pipe(csv())
-            .on("data", (row) => {
-                students.push(row);
-            })
-            .on("end", async () => {
-                for (let student of students) {
-                    const { firstName, lastName, regNo, email, password, departmentId, courseId } = student;
-
-                    const department = await Department.findById(departmentId);
-                    const course = await Course.findById(courseId);
-
-                    const newUser = new User({
-                        role: "student",
-                        firstName,
-                        lastName,
-                        regNo,
-                        email,
-                        password,
-                        department,
-                        course
-                    });
-
-                    await newUser.save();
-                }
-
-                res.status(200).json({ message: "Students uploaded successfully" });
+      if (!req.file) {
+        return res.status(400).json({ message: 'No CSV file uploaded' });
+      }
+  
+      const results = [];
+      const errors = [];
+  
+      // Process CSV
+      const parser = parse({
+        columns: true,
+        skip_empty_lines: true,
+        trim: true
+      });
+  
+      parser.on('readable', async () => {
+        let record;
+        while ((record = parser.read())) {
+          try {
+            const existingUser = await User.findOne({ 
+              $or: [{ email: record.email }, { regNo: record.regNo }] 
             });
-    } catch (err) {
-        res.status(500).json({ message: "Error uploading students", error: err.message });
+  
+            if (existingUser) {
+              errors.push({
+                row: record,
+                error: existingUser.email === record.email 
+                  ? 'Email already exists' 
+                  : 'Registration number already exists'
+              });
+              continue;
+            }
+  
+            const hashedPassword = await bcrypt.hash(record.password, 10);
+            
+            const newStudent = new User({
+              firstName: record.firstName,
+              lastName: record.lastName,
+              email: record.email,
+              password: hashedPassword,
+              role: 'student',
+              regNo: record.regNo,
+              course: record.course,
+              year: parseInt(record.year),
+              semester: parseInt(record.semester)
+            });
+  
+            await newStudent.save();
+            results.push(newStudent);
+          } catch (error) {
+            errors.push({ row: record, error: error.message });
+          }
+        }
+      });
+  
+      parser.on('end', () => {
+        res.status(200).json({
+          message: 'Bulk upload completed',
+          successCount: results.length,
+          errorCount: errors.length,
+          errors
+        });
+      });
+  
+      parser.write(req.file.buffer.toString());
+      parser.end();
+  
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: 'Server error during bulk upload' });
     }
-};
+  };
 
 module.exports = { createUser, bulkUploadStudents };

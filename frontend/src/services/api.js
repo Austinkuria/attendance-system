@@ -38,7 +38,6 @@ export const generateQRCode = (unitId) => api.post("/attendance/generateQR", { u
 // ** New Methods for Admin Panel **
 
 // Fetch all students
-// Update getStudents with proper headers and course handling
 export const getStudents = async () => {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -73,7 +72,6 @@ export const addStudent = (student) => api.post("/students", student);
 // export const deleteStudent = (id) => api.delete(`/students/${id}`);
 
 // Fetch all lecturers
-// Update getLecturers to handle response properly
 export const getLecturers = async () => {
   const token = localStorage.getItem("token");
   if (!token) {
@@ -403,6 +401,33 @@ export const removeUnitFromCourse = async (courseId, unitId) => {
       throw error;
     }
   };
+
+  export const getStudentProfile = async (studentId) => {
+    try {
+      const response = await api.get(`/students/${studentId}`);
+      return response.data;
+    } catch (error) {
+      throw error.response.data;
+    }
+  };
+
+  // update lecturer
+  export const updateLecturer = async (id, lecturerData) => {
+    const token = localStorage.getItem("token");
+    try {
+      const response = await axios.put(`${API_URL}/lecturers/${id}`, lecturerData, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating lecturer:", error.response?.data || error.message);
+      throw error;
+    }
+  };
+  
 // Mark attendance for a student
 export const markAttendance = (attendance) => api.post("/attendance", attendance);
 
