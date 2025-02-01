@@ -24,19 +24,6 @@ const addUnit = async (req, res) => {
     }
 };
 
-// Fetch units for a specific student
-const getUnit = async (req, res) => {
-    try {
-        const units = await Unit.find({ studentsEnrolled: req.user.userId }).populate("course lecturer");
-        if (!units) {
-            return res.status(404).json({ message: "No units found for this student" });
-        }
-        res.status(200).json(units);
-    } catch (err) {
-        res.status(500).json({ message: "Error fetching units", error: err.message });
-    }
-};
-
 // Update unit details by ID
 const updateUnit = async (req, res) => {
     try {
@@ -81,14 +68,22 @@ const getStudentUnits = async (req, res) => {
   
 
 // Get all units (for admin)
-const getUnits = async (req, res) => {
-    try {
-        const units = await Unit.find();  // Ensure Unit model exists
-        res.json(units);
-    } catch (error) {
-        console.error("Error fetching units:", error);
-        res.status(500).json({ message: "Server error", error: error.message });
+const getUnits = async () => {
+    const token = localStorage.getItem("token");
+    if (!token) {
+      throw new Error("No token found");
     }
-};
+    const response = await fetch("http://localhost:5000/api/unit", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    if (!response.ok) {
+      throw new Error("Failed to fetch units");
+    }
+    return response.json();
+  };
 
 module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits };

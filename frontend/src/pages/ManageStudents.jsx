@@ -429,7 +429,7 @@ const ManageStudents = () => {
                 <input
                   type="text"
                   className="form-control"
-                  placeholder="Search students name ..."
+                  placeholder="Search students by name ..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                 />
