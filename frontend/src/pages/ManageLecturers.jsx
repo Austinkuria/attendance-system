@@ -12,7 +12,9 @@ import {
   FaTrash,
   FaIdBadge,
   FaBook,
+  FaListUl,
   FaCheckCircle,
+  FaUniversity,
 } from "react-icons/fa";
 import { Modal, Button, Form, Alert } from "react-bootstrap";
 import {
@@ -261,25 +263,36 @@ const ManageLecturers = () => {
     if (!newUnit || !selectedLecturerForUnits) return;
     try {
       setLoading(true);
-      const updatedUnits = Array.isArray(selectedLecturerForUnits.assignedUnits)
-        ? [...selectedLecturerForUnits.assignedUnits]
-        : [];
-      if (!updatedUnits.includes(newUnit)) {
-        updatedUnits.push(newUnit);
-      }
-      const updatedLecturer = {
-        ...selectedLecturerForUnits,
-        assignedUnits: updatedUnits,
-      };
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/login");
         return;
       }
+  
+      // Find the unit object from the `units` array
+      const unitToAdd = units.find((unit) => unit._id === newUnit);
+      if (!unitToAdd) {
+        throw new Error("Unit not found");
+      }
+  
+      // Update the assignedUnits array
+      const updatedUnits = [
+        ...(Array.isArray(selectedLecturerForUnits.assignedUnits)
+          ? selectedLecturerForUnits.assignedUnits
+          : []),
+        unitToAdd,
+      ];
+  
+      const updatedLecturer = {
+        ...selectedLecturerForUnits,
+        assignedUnits: updatedUnits,
+      };
+  
       const response = await updateLecturer(
         selectedLecturerForUnits._id,
         updatedLecturer
       );
+  
       if (response?.message === "User updated successfully") {
         const updated = await getLecturers();
         setLecturers(updated || []);
@@ -293,7 +306,6 @@ const ManageLecturers = () => {
       setLoading(false);
     }
   };
-
   // ---------------------------
   // Render Loading
   // ---------------------------
@@ -409,8 +421,12 @@ const ManageLecturers = () => {
                 <FaIdBadge className="me-2" />
                 Name
               </th>
-              <th>Email</th>
-              <th>Department</th>
+              <th>
+                Email</th>
+              <th>
+                <FaUniversity className="me-2" />
+                Department
+                </th>
               <th>Assigned Units</th>
               <th style={{ minWidth: "150px" }}>Actions</th>
             </tr>
@@ -423,20 +439,20 @@ const ManageLecturers = () => {
                     {lecturer.firstName} {lecturer.lastName}
                   </td>
                   <td>{lecturer.email}</td>
+                  <td>{lecturer.department?.name || "N/A"}</td>
                   <td>
-                    {departments.find((d) => d._id === lecturer.department)?.name || "N/A"}
-                  </td>
-                  <td>
-                    <Button
-                      variant="link"
-                      onClick={() => openUnitsModal(lecturer)}
-                    >
-                      {Array.isArray(lecturer.assignedUnits)
-                        ? lecturer.assignedUnits.length
-                        : 0}{" "}
-                      unit(s)
-                    </Button>
-                  </td>
+                      <Button
+                        variant="outline-info"
+                        size="sm"
+                        onClick={() => openUnitsModal(lecturer)}
+                        className="unit-button hover-info text-hover-white"
+                      >
+                        <FaListUl className="text-info me-1 hover-white" />
+                        <span className="d-none d-md-inline text-info hover-white">
+                          Units
+                        </span>
+                      </Button>
+                    </td>
                   <td>
                     <div className="d-flex gap-2">
                       <Button
@@ -680,6 +696,7 @@ const ManageLecturers = () => {
       </Modal>
 
       {/* Units Management Modal */}
+          
       <Modal show={showUnitsModal} onHide={() => setShowUnitsModal(false)}>
         <Modal.Header closeButton>
           <Modal.Title>
@@ -695,13 +712,13 @@ const ManageLecturers = () => {
                 <div>
                   {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
                   selectedLecturerForUnits.assignedUnits.length > 0 ? (
-                    selectedLecturerForUnits.assignedUnits.map((unit, idx) => (
-                      <span key={idx} className="badge bg-secondary me-1 mb-1">
-                        {unit}
+                    selectedLecturerForUnits.assignedUnits.map((unit) => (
+                      <span key={unit._id} className="badge bg-secondary me-1 mb-1">
+                        {unit.name || unit.code}
                       </span>
                     ))
                   ) : (
-                    <span className="text-muted">None assigned</span>
+                    <span className="text-muted">No units assigned</span>
                   )}
                 </div>
               </div>
@@ -718,19 +735,22 @@ const ManageLecturers = () => {
                   {units
                     .filter(
                       (unit) =>
-                        !(
-                          Array.isArray(selectedLecturerForUnits.assignedUnits) &&
-                          selectedLecturerForUnits.assignedUnits.includes(unit.code)
+                        !selectedLecturerForUnits.assignedUnits.some(
+                          (assignedUnit) => assignedUnit._id === unit._id
                         )
                     )
                     .map((unit) => (
-                      <option key={unit.code} value={unit.code}>
-                        {unit.code} – {unit.name}
+                      <option key={unit._id} value={unit._id}>
+                        {unit.name} – {unit.code}
                       </option>
                     ))}
                 </Form.Select>
               </Form.Group>
-              <Button variant="primary" onClick={handleAssignUnit} disabled={loading || !newUnit}>
+              <Button
+                variant="primary"
+                onClick={handleAssignUnit}
+                disabled={loading || !newUnit}
+              >
                 {loading ? <FaSpinner className="fa-spin me-2" /> : "Assign Unit"}
               </Button>
             </>

@@ -253,4 +253,15 @@ form {
   background: white;
   z-index: 1;
   box-shadow: inset 0 -1px 0 #dee2e6;
+  
+}
+
+/* manage-lecturers */
+.unit-button:hover .text-info,
+.unit-button:hover .text-info:hover {
+  color: white !important;
+}
+
+.unit-button:hover .me-1 {
+  color: white !important;
 }
