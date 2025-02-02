@@ -1,51 +1,149 @@
 import { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
-import { Select } from "antd";
-const { Option } = Select;
-import { getAttendanceTrends } from "../services/api";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from "chart.js";
+import { Select, Card, Spin, Typography, Grid } from "antd";
+import { getAttendanceTrends, getLecturerUnits } from "../services/api";
+import { 
+  Chart as ChartJS, 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  Title, 
+  Tooltip, 
+  Legend,
+  Filler
+} from 'chart.js';
 
-ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  PointElement,
+  LineElement,
+  Title,
+  Tooltip,
+  Legend,
+  Filler
+);
+
+const { Option } = Select;
+const { useBreakpoint } = Grid;
+const { Title: AntTitle } = Typography;
 
 const Analytics = () => {
+  const screens = useBreakpoint();
   const [trends, setTrends] = useState({ labels: [], data: [] });
-  const [selectedUnit, setSelectedUnit] = useState("unit1");
+  const [units, setUnits] = useState([]);
+  const [selectedUnit, setSelectedUnit] = useState(null);
+  const [loading, setLoading] = useState({ units: true, trends: false });
 
+  // Fetch lecturer's units
   useEffect(() => {
-    const fetchData = async () => {
-      const trendsRes = await getAttendanceTrends(selectedUnit);
-      setTrends(trendsRes);
+    const fetchUnits = async () => {
+      try {
+        const unitsData = await getLecturerUnits();
+        setUnits(unitsData);
+        if(unitsData.length > 0) setSelectedUnit(unitsData[0].id);
+      } catch (error) {
+        console.error('Failed to fetch units:', error);
+      } finally {
+        setLoading(prev => ({ ...prev, units: false }));
+      }
     };
-    fetchData();
+    
+    fetchUnits();
+  }, []);
+
+  // Fetch attendance trends
+  useEffect(() => {
+    let isMounted = true;
+    const fetchTrends = async () => {
+      if(!selectedUnit) return;
+      
+      try {
+        setLoading(prev => ({ ...prev, trends: true }));
+        const trendsRes = await getAttendanceTrends(selectedUnit);
+        if(isMounted) setTrends(trendsRes);
+      } catch (error) {
+        console.error('Failed to fetch trends:', error);
+      } finally {
+        if(isMounted) setLoading(prev => ({ ...prev, trends: false }));
+      }
+    };
+
+    fetchTrends();
+    return () => { isMounted = false };
   }, [selectedUnit]);
 
-  const data = {
+  const chartData = {
     labels: trends.labels,
     datasets: [
       {
-        label: "Attendance Rate",
+        label: 'Attendance Rate (%)',
         data: trends.data,
-        fill: false,
-        borderColor: "rgba(75,192,192,1)",
+        borderColor: '#1890ff',
+        backgroundColor: 'rgba(24, 144, 255, 0.2)',
+        fill: true,
+        tension: 0.4,
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }
+    ]
+  };
+
+  const options = {
+    responsive: true,
+    plugins: {
+      legend: {
+        position: 'top',
       },
-    ],
+      title: {
+        display: true,
+        text: 'Attendance Trend Over Time',
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false
+      }
+    },
+    scales: {
+      y: {
+        min: 0,
+        max: 100,
+        ticks: {
+          callback: value => `${value}%`
+        }
+      }
+    },
+    maintainAspectRatio: false
   };
 
   return (
-    <div className="p-4">
-      <h2>Attendance Trends</h2>
-      <Select
-        placeholder="Select Unit"
-        style={{ width: 200, marginBottom: 16 }}
-        onChange={(value) => setSelectedUnit(value)}
-        value={selectedUnit}
-      >
-        <Option value="unit1">Unit 1</Option>
-        <Option value="unit2">Unit 2</Option>
-        <Option value="unit3">Unit 3</Option>
-      </Select>
-      <Line data={data} />
-    </div>
+    <Card 
+      title={<AntTitle level={4} style={{ margin: 0 }}>Attendance Analytics</AntTitle>}
+      style={{ marginTop: 24 }}
+      extra={
+        <Select
+          placeholder="Select Unit"
+          style={{ width: screens.md ? 240 : 180 }}
+          onChange={setSelectedUnit}
+          value={selectedUnit}
+          loading={loading.units}
+          disabled={loading.units}
+        >
+          {units.map(unit => (
+            <Option key={unit.id} value={unit.id}>
+              {unit.name}
+            </Option>
+          ))}
+        </Select>
+      }
+    >
+      <Spin spinning={loading.trends} tip="Loading trends...">
+        <div style={{ height: screens.md ? 400 : 300, position: 'relative' }}>
+          <Line data={chartData} options={options} />
+        </div>
+      </Spin>
+    </Card>
   );
 };
 

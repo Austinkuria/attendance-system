@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'; 
+import { useState, useEffect, useMemo } from 'react';
 import { 
   Button, 
   Table, 
@@ -27,7 +27,6 @@ import {
   PercentageOutlined,
   ScheduleOutlined
 } from '@ant-design/icons';
-// import { QRCode } from 'qrcode.react';
 import {
   generateQRCode,
   getAttendanceData,
@@ -60,7 +59,7 @@ const AttendanceManagement = () => {
     status: null
   });
 
-  // Fetch lecturer's units and enrollments
+  // Fetch initial data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -80,22 +79,6 @@ const AttendanceManagement = () => {
     fetchData();
   }, []);
 
-  // fetch lecturer's assignedunits 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const unitsData = await getLecturerUnits();
-        setUnits(unitsData);
-      } catch {
-        message.error('Failed to fetch initial data');
-      } finally {
-        setLoading(prev => ({ ...prev, units: false }));
-      }
-    };
-
-    fetchData();
-  }, []);
-  
   // Calculate statistics
   const { totalAssignedUnits, attendanceRate, totalEnrolledStudents } = useMemo(() => {
     const presentCount = attendance.filter(a => a.status === 'present').length;
@@ -104,37 +87,46 @@ const AttendanceManagement = () => {
     
     return {
       totalAssignedUnits: units.length,
-      attendanceRate: ((presentCount / totalStudents) * 100).toFixed(1),
+      attendanceRate: totalStudents > 0 ? 
+        Number(((presentCount / totalStudents) * 100).toFixed(1)) : 0,
       totalEnrolledStudents: unitEnrollments.length
     };
   }, [units, attendance, enrollments, selectedUnit]);
 
-  // Process attendance with automatic absent marking
+  // Process attendance data
   const processedAttendance = useMemo(() => {
     if (!selectedUnit) return [];
     
-    const unitEnrollments = enrollments.filter(e => e.unitId === selectedUnit);
-    return unitEnrollments.map(enrollment => {
-      const existing = attendance.find(a => a.studentId === enrollment.studentId);
-      return existing || { 
-        ...enrollment, 
-        status: 'absent',
-        regNo: enrollment.studentId,
-        student: enrollment.studentName,
-        course: enrollment.courseName
-      };
-    });
+    return enrollments
+      .filter(e => e.unitId === selectedUnit)
+      .map(enrollment => {
+        const existing = attendance.find(a => 
+          a.student === enrollment._id && 
+          a.unit === selectedUnit
+        );
+        
+        return existing || {
+          _id: enrollment._id,
+          regNo: enrollment.regNo,
+          student: `${enrollment.firstName} ${enrollment.lastName}`,
+          course: enrollment.course?.name || 'N/A',
+          year: enrollment.year,
+          semester: enrollment.semester,
+          status: 'absent',
+          unit: selectedUnit
+        };
+      });
   }, [attendance, enrollments, selectedUnit]);
 
   // Filtered attendance data
   const filteredAttendance = useMemo(() => {
     return processedAttendance.filter(record => {
-      const matchesSearch = record.student.toLowerCase().includes(filters.search.toLowerCase());
-      const matchesYear = filters.year ? record.year === filters.year : true;
-      const matchesSemester = filters.semester ? record.semester === filters.semester : true;
-      const matchesStatus = filters.status ? record.status === filters.status : true;
+      const searchMatch = record.student.toLowerCase().includes(filters.search.toLowerCase());
+      const yearMatch = filters.year ? record.year === filters.year : true;
+      const semesterMatch = filters.semester ? record.semester === filters.semester : true;
+      const statusMatch = filters.status ? record.status === filters.status : true;
       
-      return matchesSearch && matchesYear && matchesSemester && matchesStatus;
+      return searchMatch && yearMatch && semesterMatch && statusMatch;
     });
   }, [processedAttendance, filters]);
 
@@ -298,7 +290,7 @@ const AttendanceManagement = () => {
               loading={loading.units}
               options={units.map(unit => ({
                 label: unit.name,
-                value: unit.id
+                value: unit._id
               }))}
             />
             
@@ -361,7 +353,7 @@ const AttendanceManagement = () => {
             <Table
               columns={columns}
               dataSource={filteredAttendance}
-              rowKey="regNo"
+              rowKey="_id"
               scroll={{ x: true }}
               pagination={{
                 pageSize: 8,
@@ -386,6 +378,7 @@ const AttendanceManagement = () => {
         <div style={{ textAlign: 'center', padding: 24 }}>
           {qrData && (
             <>
+              {/* Uncomment when you have QR code library installed */}
               {/* <QRCode 
                 value={qrData} 
                 size={256}

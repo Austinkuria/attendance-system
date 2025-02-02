@@ -45,6 +45,6 @@ router.delete("/students/:id", deleteStudent);
 router.post('/students/upload', upload.single("csvFile"), importStudents);
 
 // leecturerbyid
-router.get("/lecturer/:id", getLecturerById);
+// router.get("/lecturer/:id", getLecturerById);
 
 module.exports = router;

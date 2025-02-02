@@ -19,7 +19,7 @@ import InstallButton from './InstallButton';
 import BackToTop from "./components/BackToTop";
 import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/Analytics";
-import QuizManagement from "./components/QuizManagement";
+import QuizPage from "./pages/QuizPage";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -103,7 +103,7 @@ function App() {
           <Route path="/admin/manage-lecturers" element={<ManageLecturers />} />
           <Route path="/lecturer/attendance" element={<AttendanceManagement />} />
           <Route path="/lecturer/analytics" element={<Analytics />} />
-          <Route path="/lecturer/quizzes" element={<QuizManagement />} />
+          <Route path="/quizzes" element={<QuizPage/>} />
         </Routes>
       </div>
     </Router>
