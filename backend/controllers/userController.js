@@ -21,7 +21,10 @@ const login = async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
-    res.json({ token });
+    res.json({
+      token, 
+      user: { id: user._id, role: user.role }
+    });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error', error: error.message });
@@ -187,14 +190,14 @@ const downloadStudents = async (req, res) => {
   }
 };
 
-// getLecturersUnit
-const getLecturersUnit = async (req, res) => {
-  try {
-    const units = await Unit.find({ lecturer: req.user.userId }).populate("course");
-    res.status(200).json(units);
-  } catch (err) {
-    res.status(500).json({ message: "Error fetching units", error: err.message });
-  }
-};
+// getLecturerUnits
+// const getLecturerUnits = async (req, res) => {
+//   try {
+//     const units = await Unit.find({ lecturer: req.user.userId }).populate("course");
+//     res.status(200).json(units);
+//   } catch (err) {
+//     res.status(500).json({ message: "Error fetching units", error: err.message });
+//   }
+// };
 
-module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser };
+module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser};

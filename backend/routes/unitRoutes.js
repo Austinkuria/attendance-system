@@ -15,6 +15,6 @@ router.put("/update/:id", updateUnit); // Update unit details
 router.delete("/delete/:id", deleteUnit); // Delete a unit
 
 // lecturer units
-router.get("/lecturer/units", authenticate, getLecturerUnits);
+router.get("/lecturer/units/:lecturerId", authenticate, getLecturerUnits);
 
 module.exports = router;

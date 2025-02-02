@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react'; 
 import { 
   Button, 
   Table, 
@@ -11,7 +11,10 @@ import {
   Skeleton,
   message,
   Grid,
-  Typography
+  Typography,
+  Statistic,
+  Row,
+  Col
 } from 'antd';
 import { 
   QrcodeOutlined, 
@@ -19,31 +22,36 @@ import {
   SearchOutlined, 
   FilterOutlined,
   CalendarOutlined,
-  BookOutlined 
+  BookOutlined,
+  TeamOutlined,
+  PercentageOutlined,
+  ScheduleOutlined
 } from '@ant-design/icons';
-// Update the import to use named export instead of default
 // import { QRCode } from 'qrcode.react';
 import {
   generateQRCode,
   getAttendanceData,
   downloadAttendanceReport,
-  getLecturerUnits
+  getLecturerUnits,
+  getUnitEnrollments
 } from '../services/api';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
-const { Title } = Typography;
+const { Title, Text } = Typography;
 
 const AttendanceManagement = () => {
   const screens = useBreakpoint();
   const [attendance, setAttendance] = useState([]);
   const [units, setUnits] = useState([]);
+  const [enrollments, setEnrollments] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [qrData, setQrData] = useState('');
   const [loading, setLoading] = useState({
     units: true,
-    attendance: false
+    attendance: false,
+    stats: false
   });
   const [filters, setFilters] = useState({
     search: '',
@@ -52,25 +60,59 @@ const AttendanceManagement = () => {
     status: null
   });
 
-  // Fetch lecturer's units on mount
+  // Fetch lecturer's units and enrollments
   useEffect(() => {
-    const fetchUnits = async () => {
+    const fetchData = async () => {
       try {
-        const units = await getLecturerUnits();
-        setUnits(units);
+        const [unitsData, enrollmentsData] = await Promise.all([
+          getLecturerUnits(),
+          getUnitEnrollments()
+        ]);
+        setUnits(unitsData);
+        setEnrollments(enrollmentsData);
       } catch {
-        message.error('Failed to fetch units');
+        message.error('Failed to fetch initial data');
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
       }
     };
     
-    fetchUnits();
+    fetchData();
   }, []);
 
-  // Memoized filtered attendance data
+  // Calculate statistics
+  const { totalAssignedUnits, attendanceRate, totalEnrolledStudents } = useMemo(() => {
+    const presentCount = attendance.filter(a => a.status === 'present').length;
+    const unitEnrollments = enrollments.filter(e => e.unitId === selectedUnit);
+    const totalStudents = unitEnrollments.length || 1;
+    
+    return {
+      totalAssignedUnits: units.length,
+      attendanceRate: ((presentCount / totalStudents) * 100).toFixed(1),
+      totalEnrolledStudents: unitEnrollments.length
+    };
+  }, [units, attendance, enrollments, selectedUnit]);
+
+  // Process attendance with automatic absent marking
+  const processedAttendance = useMemo(() => {
+    if (!selectedUnit) return [];
+    
+    const unitEnrollments = enrollments.filter(e => e.unitId === selectedUnit);
+    return unitEnrollments.map(enrollment => {
+      const existing = attendance.find(a => a.studentId === enrollment.studentId);
+      return existing || { 
+        ...enrollment, 
+        status: 'absent',
+        regNo: enrollment.studentId,
+        student: enrollment.studentName,
+        course: enrollment.courseName
+      };
+    });
+  }, [attendance, enrollments, selectedUnit]);
+
+  // Filtered attendance data
   const filteredAttendance = useMemo(() => {
-    return attendance.filter(record => {
+    return processedAttendance.filter(record => {
       const matchesSearch = record.student.toLowerCase().includes(filters.search.toLowerCase());
       const matchesYear = filters.year ? record.year === filters.year : true;
       const matchesSemester = filters.semester ? record.semester === filters.semester : true;
@@ -78,7 +120,7 @@ const AttendanceManagement = () => {
       
       return matchesSearch && matchesYear && matchesSemester && matchesStatus;
     });
-  }, [attendance, filters]);
+  }, [processedAttendance, filters]);
 
   const handleGenerateQR = async () => {
     if (!selectedUnit) {
@@ -90,7 +132,7 @@ const AttendanceManagement = () => {
       const { qrCode } = await generateQRCode(selectedUnit);
       setQrData(qrCode);
       setIsQRModalOpen(true);
-    } catch{
+    } catch {
       message.error('Failed to generate QR code');
     }
   };
@@ -102,13 +144,13 @@ const AttendanceManagement = () => {
     }
     
     try {
-      setLoading(prev => ({ ...prev, attendance: true }));
+      setLoading(prev => ({ ...prev, attendance: true, stats: true }));
       const data = await getAttendanceData(selectedUnit);
       setAttendance(data);
     } catch {
       message.error('Failed to fetch attendance data');
     } finally {
-      setLoading(prev => ({ ...prev, attendance: false }));
+      setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
   };
 
@@ -170,6 +212,42 @@ const AttendanceManagement = () => {
     }
   ];
 
+  const summaryCards = (
+    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+      <Col xs={24} sm={12} md={8}>
+        <Card>
+          <Statistic
+            title="Assigned Units"
+            value={totalAssignedUnits}
+            prefix={<TeamOutlined />}
+            loading={loading.stats}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={12} md={8}>
+        <Card>
+          <Statistic
+            title="Attendance Rate"
+            value={attendanceRate}
+            suffix="%"
+            prefix={<PercentageOutlined />}
+            loading={loading.stats}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={12} md={8}>
+        <Card>
+          <Statistic
+            title="Enrolled Students"
+            value={totalEnrolledStudents}
+            prefix={<ScheduleOutlined />}
+            loading={loading.stats}
+          />
+        </Card>
+      </Col>
+    </Row>
+  );
+
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
       <Card
@@ -216,6 +294,8 @@ const AttendanceManagement = () => {
               View Attendance
             </Button>
           </Space>
+
+          {summaryCards}
 
           <Space wrap style={{ width: '100%' }}>
             <Input
@@ -265,7 +345,7 @@ const AttendanceManagement = () => {
             <Table
               columns={columns}
               dataSource={filteredAttendance}
-              rowKey="id"
+              rowKey="regNo"
               scroll={{ x: true }}
               pagination={{
                 pageSize: 8,
@@ -296,9 +376,9 @@ const AttendanceManagement = () => {
                 level="H"
                 includeMargin
               /> */}
-              <p style={{ marginTop: 16, color: 'rgba(0,0,0,0.45)' }}>
+              <Text type="secondary" style={{ marginTop: 16, display: 'block' }}>
                 Scan this QR code to mark attendance
-              </p>
+              </Text>
             </>
           )}
         </div>

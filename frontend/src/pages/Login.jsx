@@ -23,13 +23,16 @@ const Login = () => {
       // Store token in localStorage
       const token = response.data.token;
       localStorage.setItem('token', token);
+      localStorage.setItem("userId", response.data.user.id);
 
       // Decode token to get user role
       const decodedToken = jwtDecode(token);
       const role = decodedToken.role;
+      console.log("Decoded Token:", decodedToken);
 
       // Store role in localStorage
       localStorage.setItem('role', role);
+      console.log("Navigating to:", role);
 
       // Redirect based on role
       switch (role) {
@@ -45,6 +48,9 @@ const Login = () => {
         default:
           navigate('/dashboard'); // Fallback
       }
+      console.log("Token:", token);
+      console.log("Decoded Token:", decodedToken);
+      console.log("Role:", role);
     } catch {
       setError('Invalid email or password');
     }

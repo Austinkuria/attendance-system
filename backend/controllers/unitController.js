@@ -1,4 +1,5 @@
 const Unit = require("../models/Unit");
+const User = require("../models/User");
 const authenticate = require("../middleware/authMiddleware");
 const router = require("express").Router();
 
@@ -94,14 +95,25 @@ const getUnits = async (req, res) => {
 // Fetch units for a specific lecturer
 const getLecturerUnits = async (req, res) => {
     try {
-        const units = await Unit.find({ lecturer: req.user.userId }).populate("course");
-        if (!units) {
-            return res.status(404).json({ message: "No units found for this lecturer" });
-        }
-        res.status(200).json(units);
-    } catch (err) {
-        res.status(500).json({ message: "Error fetching units", error: err.message });
+      const { lecturerId } = req.params;
+  
+      // Ensure a lecturer ID is provided
+      if (!lecturerId) {
+        return res.status(400).json({ message: "Lecturer ID is required" });
+      }
+  
+      // Fetch the lecturer from the database
+      const lecturer = await User.findById(lecturerId).populate("assignedUnits");
+  
+      if (!lecturer) {
+        return res.status(404).json({ message: "Lecturer not found" });
+      }
+  
+      // Return the assigned units
+      res.status(200).json(lecturer.assignedUnits);
+    } catch (error) {
+      res.status(500).json({ message: "Error fetching lecturer units", error: error.message });
     }
-};
-
+  };
+  
 module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits, getLecturerUnits };

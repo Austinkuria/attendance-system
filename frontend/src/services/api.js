@@ -29,16 +29,23 @@ export const getStudentAttendance = (unitId) => api.get(`/attendance/student/${u
 // Fetch units assigned to the lecturer
 export const getLecturerUnits = async () => {
   const token = localStorage.getItem("token");
+  const lecturerId = localStorage.getItem("userId"); // Ensure this is stored at login
+
+  if (!token || !lecturerId) {
+    console.error("Missing token or lecturer ID");
+    return [];
+  }
+
   try {
-    const response = await axios.get(`${API_URL}/unit/lecturer/units`, {
-      headers: { Authorization: `Bearer ${token}` }
+    const response = await axios.get(`${API_URL}/unit/lecturer/units/${lecturerId}`, {
+      headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching units:", error);
+    console.error("Error fetching assigned units:", error.response?.data || error.message);
     return [];
   }
-}
+};
 
 // Fetch attendance data for a unit
 export const getAttendanceData = (unitId) => api.get(`/attendance/unit/${unitId}`);
@@ -461,5 +468,6 @@ export const downloadAttendanceReport = (courseId, semester, year) =>
   // getquizresults
   export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 
-
+// enrolled students units
+export const getUnitEnrollments = (unitId) => api.get(`/unit/${unitId}/students`);
 export default api;
