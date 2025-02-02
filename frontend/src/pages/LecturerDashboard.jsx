@@ -13,7 +13,7 @@ const LecturerDashboard = () => {
       <Sidebar />
       <Layout>
         <Content style={{ padding: "24px" }}>
-          <h1>Lecturer Dashboard</h1>
+          {/* <h1>Lecturer Dashboard</h1> */}
           <AttendanceManagement />
           <Analytics />
           <QuizManagement />

@@ -1,17 +1,34 @@
+import  { useState } from "react";
 import { Link } from "react-router-dom";
-import { Layout, Menu } from "antd";
+import { Layout, Menu, Button } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
   LineChartOutlined,
   FormOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
 } from "@ant-design/icons";
 
 const { Sider } = Layout;
 
 const Sidebar = () => {
+  const [collapsed, setCollapsed] = useState(false);
+
   return (
-    <Sider width={200} theme="light">
+    <Sider
+      collapsible
+      collapsed={collapsed}
+      onCollapse={(value) => setCollapsed(value)}
+      theme="light"
+      width={200}
+    >
+      <Button
+        type="text"
+        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+        onClick={() => setCollapsed(!collapsed)}
+        style={{ margin: "16px 0", width: "100%" }}
+      />
       <Menu mode="inline" defaultSelectedKeys={["1"]}>
         <Menu.Item key="1" icon={<DashboardOutlined />}>
           <Link to="/dashboard">Dashboard</Link>

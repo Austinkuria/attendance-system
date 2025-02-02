@@ -17,6 +17,9 @@ import ManageLecturers from "./pages/ManageLecturers";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import InstallButton from './InstallButton';
 import BackToTop from "./components/BackToTop";
+import AttendanceManagement from "./components/AttendanceManagement";
+import Analytics from "./pages/Analytics";
+import QuizManagement from "./components/QuizManagement";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -98,6 +101,9 @@ function App() {
           <Route path="/admin/manage-students" element={<ManageStudents />} />
           <Route path="/admin/manage-courses" element={<ManageCourses />} />
           <Route path="/admin/manage-lecturers" element={<ManageLecturers />} />
+          <Route path="/lecturer/attendance" element={<AttendanceManagement />} />
+          <Route path="/lecturer/analytics" element={<Analytics />} />
+          <Route path="/lecturer/quizzes" element={<QuizManagement />} />
         </Routes>
       </div>
     </Router>
