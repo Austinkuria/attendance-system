@@ -427,66 +427,28 @@ export const removeUnitFromCourse = async (courseId, unitId) => {
       throw error;
     }
   };
-
-  //  downloadAttendanceReport
-  export const downloadAttendanceReport = async (courseId, year, semester) => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await axios.get(`${API_URL}/attendance/report/${courseId}/${year}/${semester}`, {
-        responseType: "blob",
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
-      });
-      const url = window.URL.createObjectURL(response.data);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `attendance-report-${courseId}-${year}-${semester}.pdf`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-      return true;
-    }
-    catch (error) {
-      console.error("Error downloading report:", error.response?.data || error.message);
-      throw error;
-    }
-  };
-
-  // getAttendanceTrends
-  export const getAttendanceTrends = async () => {
-    try {
-      const response = await api.get("/attendance/trends");
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching attendance trends:", error);
-      throw error;
-    }
-  };
-
-  // getQuizResults
-  export const getQuizResults = async (quizId) => {
-    try {
-      const response = await api.get(`/quiz/${quizId}/results`);
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching quiz results:", error);
-      throw error;
-    }
-  };
-
-  // sendQuiz
-  export const sendQuiz = async (quizData) => {
-    try {
-      const response = await api.post("/quiz", quizData);
-      return response.data;
-    } catch (error) {
-      console.error("Error sending quiz:", error);
-      throw error;
-    }
-  };
   
 // Mark attendance for a student
 export const markAttendance = (attendance) => api.post("/attendance", attendance);
+
+// downloadattendancereport
+export const downloadAttendanceReport = (courseId, semester, year) =>
+  api.get(`/attendance/report/${courseId}/${semester}/${year}`, {
+    responseType: "blob",
+  });
+
+  // attendance trends
+  export const getAttendanceTrends = (courseId) =>
+  api.get(`/attendance/trends/${courseId}`);
+
+  // getquiz
+  export const getQuiz = (unitId) => api.get(`/quiz/${unitId}`);
+  
+  // sendquiz
+  export const sendQuiz = (quizData) => api.post("/quiz", quizData);
+
+  // getquizresults
+  export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
+
 
 export default api;
