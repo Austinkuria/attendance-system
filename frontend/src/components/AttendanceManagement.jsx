@@ -1,9 +1,11 @@
-// src/components/AttendanceManagement.jsx
-import  { useState } from 'react';
-import { Button, Table, Modal, Select, Input } from 'antd';
-// import QRCode from 'qrcode.react';
-// import QRCodeGenerator from './QRCodeGenerator';
-import {  getAttendanceData, downloadAttendanceReport } from '../services/api';
+import { useState } from "react";
+import { Button, Table, Modal, Select, Input, Space } from "antd";
+// import QRCode from "qrcode.react";
+import {
+//   generateQRCode,
+  getAttendanceData,
+  downloadAttendanceReport,
+} from "../services/api";
 
 const { Option } = Select;
 
@@ -12,122 +14,76 @@ const AttendanceManagement = () => {
   const [attendance, setAttendance] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchText, setSearchText] = useState("");
 
-  // Helper function to show error modals
-  const showError = (msg) => {
-    Modal.error({
-      title: 'Error',
-      content: msg,
-    });
+  const handleGenerateQR = async () => {
+    if (!selectedUnit) {
+      Modal.error({ title: "Error", content: "Please select a unit first." });
+      return;
+    }
+    // const qrRes = await generateQRCode(selectedUnit);
+    // setQRCode(qrRes.qrCode);
+    setIsQRModalOpen(true);
   };
-
-//   const handleGenerateQR = async () => {
-//     if (!selectedUnit) {
-//       showError("Please select a unit first.");
-//       return;
-//     }
-//     try {
-//       const qrRes = await generateQRCode(selectedUnit);
-//       setQRCode(qrRes.qrCode);
-//       setIsQRModalOpen(true);
-//     } catch  {
-//       showError("Failed to generate QR code.");
-//     }
-//   };
 
   const handleViewAttendance = async () => {
     if (!selectedUnit) {
-      showError("Please select a unit first.");
+      Modal.error({ title: "Error", content: "Please select a unit first." });
       return;
     }
-    try {
-      const attendanceRes = await getAttendanceData(selectedUnit);
-      setAttendance(attendanceRes);
-    } catch {
-      showError("Failed to fetch attendance data.");
-    }
+    const attendanceRes = await getAttendanceData(selectedUnit);
+    setAttendance(attendanceRes);
   };
 
   const handleDownloadReport = async () => {
     if (!selectedUnit) {
-      showError("Please select a unit first.");
+      Modal.error({ title: "Error", content: "Please select a unit first." });
       return;
     }
-    try {
-      await downloadAttendanceReport(selectedUnit);
-    } catch {
-      showError("Failed to download report.");
-    }
+    await downloadAttendanceReport(selectedUnit);
   };
 
-  const handleUnitChange = (value) => {
-    setSelectedUnit(value);
-  };
-
-  // Filter attendance based on search query (e.g., by student name)
-  const filteredAttendance = attendance.filter(item =>
-    item.student?.name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAttendance = attendance.filter((record) =>
+    record.student.toLowerCase().includes(searchText.toLowerCase())
   );
 
   return (
     <div className="p-4">
       <h2>Attendance Management</h2>
-      <div style={{ marginBottom: "16px" }}>
+      <Space style={{ marginBottom: 16 }}>
         <Select
           placeholder="Select Unit"
-          style={{ width: 200, marginRight: "16px" }}
-          onChange={handleUnitChange}
+          style={{ width: 200 }}
+          onChange={(value) => setSelectedUnit(value)}
           value={selectedUnit}
         >
           <Option value="unit1">Unit 1</Option>
           <Option value="unit2">Unit 2</Option>
           <Option value="unit3">Unit 3</Option>
         </Select>
-        <Input
-          placeholder="Search by student name"
-          style={{ width: 200 }}
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-      </div>
-
-      {/* QRCodeGenerator triggers QR code generation */}
-      {/* <QRCodeGenerator onGenerate={handleGenerateQR} /> */}
-
-      <div style={{ marginTop: "16px" }}>
-        <Button onClick={handleViewAttendance} style={{ marginRight: "8px" }}>
-          View Attendance
-        </Button>
+        <Button onClick={handleGenerateQR}>Generate QR Code</Button>
+        <Button onClick={handleViewAttendance}>View Attendance</Button>
         <Button onClick={handleDownloadReport}>Download Report</Button>
-      </div>
-
+      </Space>
+      <Input
+        placeholder="Search by student name"
+        value={searchText}
+        onChange={(e) => setSearchText(e.target.value)}
+        style={{ marginBottom: 16, width: 200 }}
+      />
       <Table
-        style={{ marginTop: "16px" }}
         columns={[
-          { title: "Student", dataIndex: ["student", "name"], key: "student" },
+          { title: "Student", dataIndex: "student", key: "student" },
           { title: "Status", dataIndex: "status", key: "status" },
-          {
-            title: "Timestamp",
-            dataIndex: "timestamp",
-            key: "timestamp",
-            render: (text) => new Date(text).toLocaleString(),
-          },
+          { title: "Timestamp", dataIndex: "timestamp", key: "timestamp" },
         ]}
         dataSource={filteredAttendance}
-        rowKey={(record) => record.student?.id || record.timestamp}
       />
-
-      {/* Modal to display the generated QR code */}
       <Modal
         title="QR Code"
-        visible={isQRModalOpen}
+        open={isQRModalOpen}
         onCancel={() => setIsQRModalOpen(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsQRModalOpen(false)}>
-            Close
-          </Button>,
-        ]}
+        footer={null}
       >
         {/* {qrCode && <QRCode value={qrCode} size={256} />} */}
       </Modal>

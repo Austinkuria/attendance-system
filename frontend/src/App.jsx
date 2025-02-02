@@ -16,6 +16,7 @@ import ManageCourses from "./pages/ManageCourses";
 import ManageLecturers from "./pages/ManageLecturers";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import InstallButton from './InstallButton';
+import BackToTop from "./components/BackToTop";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -51,7 +52,7 @@ function App() {
     <Router>
       <ToastContainer />
       <InstallButton />
-
+      <BackToTop />
       {/* Online/Offline Banner with Close Button */}
       {showBanner && (
         <div

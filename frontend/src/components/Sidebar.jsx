@@ -1,49 +1,32 @@
-import { Menu } from "antd";
+import { Link } from "react-router-dom";
+import { Layout, Menu } from "antd";
 import {
-  FaHome,
-  FaQrcode,
-  FaChartLine,
-  FaQuestionCircle,
-} from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
+  DashboardOutlined,
+  UserOutlined,
+  LineChartOutlined,
+  FormOutlined,
+} from "@ant-design/icons";
+
+const { Sider } = Layout;
 
 const Sidebar = () => {
-  const navigate = useNavigate();
-
-  const menuItems = [
-    {
-      key: "home",
-      icon: <FaHome />,
-      label: "Home",
-      onClick: () => navigate("/lecturer-dashboard"),
-    },
-    {
-      key: "attendance",
-      icon: <FaQrcode />,
-      label: "Attendance",
-      onClick: () => navigate("/attendance"),
-    },
-    {
-      key: "analytics",
-      icon: <FaChartLine />,
-      label: "Analytics",
-      onClick: () => navigate("/analytics"),
-    },
-    {
-      key: "quizzes",
-      icon: <FaQuestionCircle />,
-      label: "Quizzes",
-      onClick: () => navigate("/quizzes"),
-    },
-  ];
-
   return (
-    <Menu
-      theme="dark"
-      mode="inline"
-      defaultSelectedKeys={["home"]}
-      items={menuItems}
-    />
+    <Sider width={200} theme="light">
+      <Menu mode="inline" defaultSelectedKeys={["1"]}>
+        <Menu.Item key="1" icon={<DashboardOutlined />}>
+          <Link to="/dashboard">Dashboard</Link>
+        </Menu.Item>
+        <Menu.Item key="2" icon={<UserOutlined />}>
+          <Link to="/attendance">Attendance</Link>
+        </Menu.Item>
+        <Menu.Item key="3" icon={<LineChartOutlined />}>
+          <Link to="/analytics">Analytics</Link>
+        </Menu.Item>
+        <Menu.Item key="4" icon={<FormOutlined />}>
+          <Link to="/quizzes">Quizzes</Link>
+        </Menu.Item>
+      </Menu>
+    </Sider>
   );
 };
 

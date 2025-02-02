@@ -3,6 +3,7 @@ import Sidebar from "../components/Sidebar";
 import AttendanceManagement from "../components/AttendanceManagement";
 import Analytics from "../pages/Analytics";
 import QuizManagement from "../components/QuizManagement";
+import BackToTop from "../components/BackToTop";
 
 const { Content } = Layout;
 
@@ -16,6 +17,7 @@ const LecturerDashboard = () => {
           <AttendanceManagement />
           <Analytics />
           <QuizManagement />
+          <BackToTop /> 
         </Content>
       </Layout>
     </Layout>
