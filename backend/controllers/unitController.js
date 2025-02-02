@@ -91,4 +91,17 @@ const getUnits = async (req, res) => {
     }
 };
 
-module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits };
+// Fetch units for a specific lecturer
+const getLecturerUnits = async (req, res) => {
+    try {
+        const units = await Unit.find({ lecturer: req.user.userId }).populate("course");
+        if (!units) {
+            return res.status(404).json({ message: "No units found for this lecturer" });
+        }
+        res.status(200).json(units);
+    } catch (err) {
+        res.status(500).json({ message: "Error fetching units", error: err.message });
+    }
+};
+
+module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits, getLecturerUnits };

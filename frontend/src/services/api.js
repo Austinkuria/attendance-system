@@ -27,7 +27,18 @@ export const getStudentCourses = () => api.get("/student/courses");
 export const getStudentAttendance = (unitId) => api.get(`/attendance/student/${unitId}`);
 
 // Fetch units assigned to the lecturer
-export const getLecturerUnits = () => api.get("/lecturer/units");
+export const getLecturerUnits = async () => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/unit/lecturer/units`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching units:", error);
+    return [];
+  }
+}
 
 // Fetch attendance data for a unit
 export const getAttendanceData = (unitId) => api.get(`/attendance/unit/${unitId}`);
