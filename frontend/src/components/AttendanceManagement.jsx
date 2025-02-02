@@ -21,7 +21,8 @@ import {
   CalendarOutlined,
   BookOutlined 
 } from '@ant-design/icons';
-import QRCode from 'qrcode.react';
+// Update the import to use named export instead of default
+// import { QRCode } from 'qrcode.react';
 import {
   generateQRCode,
   getAttendanceData,
@@ -289,12 +290,12 @@ const AttendanceManagement = () => {
         <div style={{ textAlign: 'center', padding: 24 }}>
           {qrData && (
             <>
-              <QRCode 
+              {/* <QRCode 
                 value={qrData} 
                 size={256}
                 level="H"
                 includeMargin
-              />
+              /> */}
               <p style={{ marginTop: 16, color: 'rgba(0,0,0,0.45)' }}>
                 Scan this QR code to mark attendance
               </p>

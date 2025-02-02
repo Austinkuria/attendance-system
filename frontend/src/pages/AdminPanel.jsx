@@ -1,3 +1,4 @@
+// src/pages/AdminPanel.jsx
 import { useState, useEffect, useCallback } from 'react';
 import { 
   UserOutlined, 
@@ -27,22 +28,21 @@ import {
   Skeleton,
   Divider
 } from 'antd';
-const { Option } = Select;
 import '../styles.css';
 import { 
   getStudents, 
   getLecturers, 
   getCourses, 
-  getCourseAttendanceRate 
+  getCourseAttendanceRate,
+  getUnitsByCourse
 } from '../services/api';
 import AttendanceChart from '../components/AttendanceChart';
-// import useAuth from '../hooks/useAuth.js';
 
+const { Option } = Select;
 const { Header, Sider, Content } = Layout;
 
 const AdminPanel = () => {
   const { token: { colorBgContainer }, theme: currentTheme } = theme.useToken();
-  // const { logout, checkAuth } = useAuth();
   const [collapsed, setCollapsed] = useState(false);
   const [students, setStudents] = useState([]);
   const [lecturers, setLecturers] = useState([]);
@@ -51,25 +51,46 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  
-  // Filter states
+  // Filter states – using hard-coded academic years and semesters
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
 
+  // Hard-coded options for academic years and semesters
+  const hardCodedYears = [1, 2, 3, 4];
+  const hardCodedSemesters = [1, 2, 3];
 
-  // Get unique filter options from courses
-  const uniqueYears = [...new Set(courses.map(c => c.year))].sort();
-  const uniqueUnits = [...new Set(courses.map(c => c.unit))].sort();
-  const uniqueSemesters = [...new Set(courses.map(c => c.semester))].sort();
+  // When no course is selected, extract unique unit names from all courses (filtering out null/undefined)
+  const uniqueUnits = [...new Set(
+    courses
+      .map(c => c.unit)
+      .filter(unit => unit != null)
+  )].sort();
+
+  // New state for storing the real units for a selected course
+  const [courseUnits, setCourseUnits] = useState([]);
+
+  // Fetch real units for the selected course
+  useEffect(() => {
+    if (selectedCourse) {
+      getUnitsByCourse(selectedCourse)
+        .then(units => {
+          // Expecting each unit to be an object with _id and name
+          setCourseUnits(units.filter(u => u && u._id && u.name));
+        })
+        .catch(() => message.error('Failed to fetch course units'));
+    } else {
+      setCourseUnits([]);
+    }
+  }, [selectedCourse]);
 
   // Filtered courses based on selections
   const filteredCourses = courses.filter(course => {
     return (
       (!selectedCourse || course._id === selectedCourse) &&
       (!selectedYear || course.year === selectedYear) &&
-      (!selectedUnit || course.unit === selectedUnit) &&
+      (!selectedUnit || course.unit === (selectedCourse ? selectedUnit : selectedUnit)) &&
       (!selectedSemester || course.semester === selectedSemester)
     );
   });
@@ -112,7 +133,7 @@ const AdminPanel = () => {
     };
   }, []);
 
-  // Logout handlers
+  // Logout handler
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
@@ -166,7 +187,7 @@ const AdminPanel = () => {
     if (courses.length > 0) fetchCourseAttendanceRates();
   }, [courses, fetchCourseAttendanceRates]);
 
-  // Dropdown menu items
+  // Dropdown menu items for profile/settings/logout
   const profileItems = [
     {
       key: '1',
@@ -338,75 +359,91 @@ const AdminPanel = () => {
           </Row>
 
           <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-            {courses.map(course => (
-              <Col key={course._id} xs={24} md={12}>
-                <Card 
-                  title={
-                    <Space>
-                      <FilterOutlined />
-                      <span>Filter Attendance Data</span>
-                    </Space>
-                  }
-                  style={{ marginBottom: 24 }}
-                >
-                  <Row gutter={[16, 16]}>
-                    <Col xs={24} sm={12} md={6}>
-                      <Select
-                        placeholder="Select Course"
-                        allowClear
-                        onChange={setSelectedCourse}
-                        style={{ width: '100%' }}
-                      >
-                        {courses.map(course => (
-                          <Option key={course._id} value={course._id}>
-                            {course.name}
+            <Col xs={24} md={12}>
+              <Card 
+                title={
+                  <Space>
+                    <FilterOutlined />
+                    <span>Filter Attendance Data</span>
+                  </Space>
+                }
+                style={{ marginBottom: 24 }}
+              >
+                <Row gutter={[16, 16]}>
+                  <Col xs={24} sm={12} md={6}>
+                    <Select
+                      placeholder="Select Course"
+                      allowClear
+                      onChange={value => {
+                        setSelectedCourse(value);
+                        // Also clear the unit filter when a course is selected
+                        setSelectedUnit(null);
+                      }}
+                      style={{ width: '100%' }}
+                    >
+                      {courses.map(course => (
+                        <Option key={course._id} value={course._id}>
+                          {course.name}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} md={6}>
+                    <Select
+                      placeholder="Select Academic Year"
+                      allowClear
+                      onChange={setSelectedYear}
+                      style={{ width: '100%' }}
+                    >
+                      {hardCodedYears.map(year => (
+                        <Option key={year} value={year}>Year {year}</Option>
+                      ))}
+                    </Select>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} md={6}>
+                    <Select
+                      placeholder="Select Unit"
+                      allowClear
+                      onChange={setSelectedUnit}
+                      style={{ width: '100%' }}
+                      value={selectedUnit}
+                    >
+                      {(selectedCourse ? courseUnits : uniqueUnits).map(unit => {
+                        // If the unit is an object (real unit), use its _id and name;
+                        // Otherwise, assume it's a string
+                        if (typeof unit === 'object' && unit !== null) {
+                          return (
+                            <Option key={unit._id} value={unit._id}>
+                              {unit.name}
+                            </Option>
+                          );
+                        }
+                        return (
+                          <Option key={unit} value={unit}>
+                            {`Unit ${unit}`}
                           </Option>
-                        ))}
-                      </Select>
-                    </Col>
-                    
-                    <Col xs={24} sm={12} md={6}>
-                      <Select
-                        placeholder="Select Academic Year"
-                        allowClear
-                        onChange={setSelectedYear}
-                        style={{ width: '100%' }}
-                      >
-                        {uniqueYears.map(year => (
-                          <Option key={year} value={year}>Year {year}</Option>
-                        ))}
-                      </Select>
-                    </Col>
-                    
-                    <Col xs={24} sm={12} md={6}>
-                      <Select
-                        placeholder="Select Unit"
-                        allowClear
-                        onChange={setSelectedUnit}
-                        style={{ width: '100%' }}
-                      >
-                        {uniqueUnits.map(unit => (
-                          <Option key={unit} value={unit}>Unit {unit}</Option>
-                        ))}
-                      </Select>
-                    </Col>
-                    
-                    <Col xs={24} sm={12} md={6}>
-                      <Select
-                        placeholder="Select Semester"
-                        allowClear
-                        onChange={setSelectedSemester}
-                        style={{ width: '100%' }}
-                      >
-                        {uniqueSemesters.map(semester => (
-                          <Option key={semester} value={semester}>Semester {semester}</Option>
-                        ))}
-                      </Select>
-                    </Col>
-                  </Row>
-                </Card>
-              </Col>
-            ))}
+                        );
+                      })}
+                    </Select>
+                  </Col>
+                  
+                  <Col xs={24} sm={12} md={6}>
+                    <Select
+                      placeholder="Select Semester"
+                      allowClear
+                      onChange={setSelectedSemester}
+                      style={{ width: '100%' }}
+                    >
+                      {hardCodedSemesters.map(semester => (
+                        <Option key={semester} value={semester}>Semester {semester}</Option>
+                      ))}
+                    </Select>
+                  </Col>
+                </Row>
+              </Card>
+            </Col>
           </Row>
 
           <Divider orientation="left" style={{ fontSize: 18 }}>Attendance Charts</Divider>
@@ -429,10 +466,6 @@ const AdminPanel = () => {
                       {!loading && (
                         <AttendanceChart 
                           data={attendanceRates[course._id]} 
-                          meta={{
-                            unit: course.unit,
-                            code: course.code
-                          }}
                         />
                       )}
                     </div>
