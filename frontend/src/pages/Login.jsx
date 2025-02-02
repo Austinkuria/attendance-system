@@ -1,33 +1,36 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+// import * as jwtDecode from 'jwt-decode';
 import { jwtDecode } from 'jwt-decode';
+import { Form, Input, Button, Alert, Typography } from 'antd';
 import '../styles.css';
 
+const { Title, Text } = Typography;
+
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
-
+  // Called when the form is submitted successfully
+  const onFinish = async (values) => {
     try {
-      const response = await axios.post('/api//login', { email, password });
-
+      // Make the login API call using the form values
+      const response = await axios.post('/api/login', {
+        email: values.email,
+        password: values.password,
+      });
+      
       // Store token in localStorage
       const token = response.data.token;
       localStorage.setItem('token', token);
 
-      // Decode token to get user role
+      // Decode token to extract the user role
       const decodedToken = jwtDecode(token);
       const role = decodedToken.role;
-
-      // Store role in localStorage
       localStorage.setItem('role', role);
 
-      // Redirect based on role
+      // Redirect based on user role
       switch (role) {
         case 'student':
           navigate('/student-dashboard');
@@ -47,27 +50,52 @@ const Login = () => {
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      {error && <p className="error-message">{error}</p>}
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
+    <div className="login-container" style={{ maxWidth: 400, margin: '50px auto', padding: 24, border: '1px solid #f0f0f0', borderRadius: 8 }}>
+      <Title level={2} style={{ textAlign: 'center' }}>Login</Title>
+      {error && (
+        <Alert
+          message={error}
+          type="error"
+          closable
+          onClose={() => setError(null)}
+          style={{ marginBottom: 24 }}
         />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Login</button>
-        <p>Don&apos;t have an account? <a href="/signup">Signup</a></p>
-      </form>
+      )}
+      <Form
+        name="login"
+        layout="vertical"
+        onFinish={onFinish}
+      >
+        <Form.Item
+          label="Email"
+          name="email"
+          rules={[
+            { required: true, message: 'Please input your email!' },
+            { type: 'email', message: 'Please enter a valid email!' }
+          ]}
+        >
+          <Input placeholder="Email" />
+        </Form.Item>
+
+        <Form.Item
+          label="Password"
+          name="password"
+          rules={[
+            { required: true, message: 'Please input your password!' }
+          ]}
+        >
+          <Input.Password placeholder="Password" />
+        </Form.Item>
+
+        <Form.Item>
+          <Button type="primary" htmlType="submit" block>
+            Login
+          </Button>
+        </Form.Item>
+      </Form>
+      <Text>
+        Don&apos;t have an account? <a href="/signup">Signup</a>
+      </Text>
     </div>
   );
 };

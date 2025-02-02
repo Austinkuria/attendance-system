@@ -293,7 +293,7 @@ const StudentDashboard = () => {
                           width: `${calculateAttendanceRate(unit._id)}%`,
                           background: '#1890ff',
                           padding: '4px 0',
-                          color: '#fff',
+                          color: '#18ff',
                           textAlign: 'center',
                         }}
                       >
