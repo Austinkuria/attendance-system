@@ -111,6 +111,23 @@ export const getLecturers = async () => {
   }
 };
 
+// Fetch a lecturer by ID
+export const getLecturerById = async (id) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/lecturer/${id}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching lecturer:", error.response?.data || error.message);
+    return null;
+  }
+};
+
 // Add a new lecturer
 export const addLecturer = (lecturer) => api.post("/lecturers", lecturer);
 

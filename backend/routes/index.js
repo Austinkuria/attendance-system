@@ -1,5 +1,5 @@
 const express = require("express");
-const { login, signup, getStudents, getLecturers, downloadStudents,deleteStudent, importStudents } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents,deleteStudent, importStudents,getLecturerById } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -44,5 +44,7 @@ router.delete("/students/:id", deleteStudent);
 // Update import route to use correct path
 router.post('/students/upload', upload.single("csvFile"), importStudents);
 
+// leecturerbyid
+router.get("/lecturer/:id", getLecturerById);
 
 module.exports = router;

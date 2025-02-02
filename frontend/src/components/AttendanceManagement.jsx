@@ -80,6 +80,22 @@ const AttendanceManagement = () => {
     fetchData();
   }, []);
 
+  // fetch lecturer's assignedunits 
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const unitsData = await getLecturerUnits();
+        setUnits(unitsData);
+      } catch {
+        message.error('Failed to fetch initial data');
+      } finally {
+        setLoading(prev => ({ ...prev, units: false }));
+      }
+    };
+
+    fetchData();
+  }, []);
+  
   // Calculate statistics
   const { totalAssignedUnits, attendanceRate, totalEnrolledStudents } = useMemo(() => {
     const presentCount = attendance.filter(a => a.status === 'present').length;

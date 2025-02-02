@@ -51,7 +51,8 @@ const Login = () => {
       console.log("Token:", token);
       console.log("Decoded Token:", decodedToken);
       console.log("Role:", role);
-    } catch {
+    } catch (error) {
+      console.error("Login error:", error.response ? error.response.data : error.message);
       setError('Invalid email or password');
     }
   };
