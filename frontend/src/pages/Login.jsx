@@ -2,7 +2,11 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
+import { Card, Input, Button, Typography, Alert } from 'antd';
+import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import '../styles.css';
+
+const { Title, Text } = Typography;
 
 const Login = () => {
   const [email, setEmail] = useState('');
@@ -47,27 +51,40 @@ const Login = () => {
   };
 
   return (
-    <div>
-      <h2>Login</h2>
-      {error && <p className="error-message">{error}</p>}
-      <form onSubmit={handleLogin}>
-        <input
-          type="email"
-          placeholder="Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-        <input
-          type="password"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-        <button type="submit">Login</button>
-        <p>Don&apos;t have an account? <a href="/signup">Signup</a></p>
-      </form>
+    <div className="login-container">
+      <Card className="login-card" bordered={false}>
+        <Title level={2} style={{ textAlign: 'center' }}>Login</Title>
+        {error && <Alert message={error} type="error" showIcon style={{ marginBottom: '15px' }} />}
+        
+        <form onSubmit={handleLogin}>
+          <Input
+            prefix={<MailOutlined />}
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            size="large"
+            style={{ marginBottom: '10px' }}
+          />
+          <Input.Password
+            prefix={<LockOutlined />}
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            size="large"
+            style={{ marginBottom: '15px' }}
+          />
+          <Button type="primary" htmlType="submit" size="large" block>
+            Login
+          </Button>
+        </form>
+        
+        <Text style={{ display: 'block', textAlign: 'center', marginTop: '10px' }}>
+          Don&apos;t have an account? <a href="/signup">Signup</a>
+        </Text>
+      </Card>
     </div>
   );
 };
