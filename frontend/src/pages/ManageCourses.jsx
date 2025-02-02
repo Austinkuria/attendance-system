@@ -1,45 +1,68 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Form, Button, Table, Alert, Modal, InputGroup, Badge } from 'react-bootstrap';
-import { 
-  FaArrowUp,
-  FaChevronLeft,
-  FaPlus,
-  FaEdit,
-  FaTrash,
-  FaListUl,
-  FaBook,
-  FaFilter,
-  FaIdBadge,
-  FaUniversity,
-  FaSpinner,
-  FaExclamationTriangle
-} from 'react-icons/fa';
-import { 
-  getCourses, 
-  createCourse, 
-  deleteCourse, 
+import {
+  Layout,
+  Table,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Button,
+  Alert,
+  Row,
+  Col,
+  Tag,
+  message,
+} from 'antd';
+import {
+  ArrowUpOutlined,
+  LeftOutlined,
+  PlusOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  UnorderedListOutlined,
+  BookOutlined,
+  FilterOutlined,
+  IdcardOutlined,
+  ApartmentOutlined,
+  LoadingOutlined,
+  ExclamationCircleOutlined,
+} from '@ant-design/icons';
+import {
+  getCourses,
+  createCourse,
+  deleteCourse,
   getDepartments,
   updateCourse,
   addUnitToCourse,
   removeUnitFromCourse,
-  getUnitsByCourse
+  getUnitsByCourse,
 } from '../services/api';
+
+const { Content } = Layout;
+const { Option } = Select;
 
 const ManageCourses = () => {
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [showModal, setShowModal] = useState(false);
+  const [showCourseModal, setShowCourseModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showUnitsModal, setShowUnitsModal] = useState(false);
   const [showUnitDeleteModal, setShowUnitDeleteModal] = useState(false);
+  const [form] = Form.useForm();
+  const [unitForm] = Form.useForm();
   const [formData, setFormData] = useState({
     name: '',
     code: '',
-    department: ''
+    department: '',
   });
-  const [unitInput, setUnitInput] = useState({ name: '', code: '', year: '', semester: '' });
+  const [unitInput, setUnitInput] = useState({
+    name: '',
+    code: '',
+    year: '',
+    semester: '',
+  });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -50,16 +73,17 @@ const ManageCourses = () => {
   const [units, setUnits] = useState([]);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Scroll handler
+  // Scroll handler for "Back to Top" button
   useEffect(() => {
     const handleScroll = () => setShowBackToTop(window.scrollY > 200);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Extract unique course codes
+  // Extract unique course codes from courses
   const courseCodes = [...new Set(courses.map(course => course.code))];
 
+  // Fetch courses and departments on mount
   useEffect(() => {
     fetchData();
   }, []);
@@ -69,10 +93,11 @@ const ManageCourses = () => {
       setLoading(true);
       const [coursesRes, deptsRes] = await Promise.all([
         getCourses(),
-        getDepartments()
+        getDepartments(),
       ]);
       setCourses(coursesRes);
       setDepartments(deptsRes);
+      setError('');
     } catch (err) {
       setError(`Failed to load data: ${err.message}`);
     } finally {
@@ -80,34 +105,39 @@ const ManageCourses = () => {
     }
   };
 
+  // Filter courses based on selected code and department
   const filteredCourses = courses.filter(course => {
     const matchesCode = selectedCode ? course.code === selectedCode : true;
-    const matchesDepartment = selectedDepartment ? course.department?._id === selectedDepartment : true;
+    const matchesDepartment = selectedDepartment
+      ? course.department?._id === selectedDepartment
+      : true;
     return matchesCode && matchesDepartment;
   });
 
-  const handleInputChange = (e) => {
-    setFormData({
-      ...formData,
-      [e.target.name]: e.target.value
-    });
+  // Called when the course form fields change
+  const handleCourseFormChange = (changedValues, allValues) => {
+    setFormData(allValues);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
+  const handleCourseSubmit = async () => {
     try {
       setLoading(true);
       if (selectedCourse) {
+        // Update existing course
         await updateCourse(selectedCourse._id, formData);
       } else {
+        // Create new course
         await createCourse(formData);
       }
-      setShowModal(false);
+      setShowCourseModal(false);
+      message.success('Operation successful');
       await fetchData();
       setFormData({ name: '', code: '', department: '' });
       setSelectedCourse(null);
+      form.resetFields();
     } catch (err) {
       setError(err.message || 'Operation failed');
+      message.error('Operation failed');
     } finally {
       setLoading(false);
     }
@@ -122,6 +152,7 @@ const ManageCourses = () => {
       setShowUnitsModal(true);
     } catch (err) {
       setError(`Failed to load units: ${err.message}`);
+      message.error(`Failed to load units`);
     } finally {
       setLoading(false);
     }
@@ -132,14 +163,16 @@ const ManageCourses = () => {
       setError('Unit name and code are required');
       return;
     }
-    
     try {
       setLoading(true);
       const newUnit = await addUnitToCourse(selectedCourseForUnits._id, unitInput);
-      setUnits([...units, newUnit]);
+      setUnits(prevUnits => [...prevUnits, newUnit]);
       setUnitInput({ name: '', code: '', year: '', semester: '' });
+      unitForm.resetFields();
+      message.success('Unit added successfully');
     } catch (err) {
       setError(`Failed to add unit: ${err.message}`);
+      message.error('Failed to add unit');
     } finally {
       setLoading(false);
     }
@@ -156,8 +189,10 @@ const ManageCourses = () => {
       await removeUnitFromCourse(selectedCourseForUnits._id, selectedUnitId);
       const unitsRes = await getUnitsByCourse(selectedCourseForUnits._id);
       setUnits(unitsRes);
+      message.success('Unit removed successfully');
     } catch (err) {
       setError(`Failed to remove unit: ${err.message}`);
+      message.error('Failed to remove unit');
     } finally {
       setLoading(false);
       setShowUnitDeleteModal(false);
@@ -173,396 +208,461 @@ const ManageCourses = () => {
   const handleDelete = async () => {
     try {
       await deleteCourse(selectedCourse);
+      message.success('Course deleted successfully');
       await fetchData();
       setShowDeleteModal(false);
     } catch (err) {
       setError(`Failed to delete course: ${err.message}`);
+      message.error('Failed to delete course');
     }
   };
 
-  return (
-    <div className="container mt-4">
-      {/* Back to Top Button */}
-      {showBackToTop && (
-        <button
-          className="btn btn-primary shadow-lg d-flex align-items-center justify-content-center"
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          style={{ 
-            position: 'fixed', 
-            bottom: '20px', 
-            right: '20px', 
-            width: '50px', 
-            height: '50px',
-            borderRadius: '50%',
-            padding: 0
-          }}
-        >
-          <FaArrowUp size={18} />
-        </button>
-      )}
-
-      {/* Header Section */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <button 
-          className="btn btn-outline-primary d-flex align-items-center"
-          onClick={() => navigate('/admin')}
-        >
-          <FaChevronLeft className="me-2" />
-          Back to Admin
-        </button>
-        <h2 className="mb-0 d-flex align-items-center">
-          <FaBook className="me-2" />
-          Course Management
-        </h2>
-        <button 
-          className="btn btn-primary d-flex align-items-center"
-          onClick={() => setShowModal(true)}
-        >
-          <FaPlus className="me-2" />
-          Add Course
-        </button>
-      </div>
-
-      {/* Filter Section */}
-      <div className="card mb-4 shadow-sm">
-        <div className="card-body">
-          <div className="row g-3 align-items-center">
-            <div className="col-12 col-md-6">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <FaIdBadge />
-                </span>
-                <Form.Select
-                  value={selectedCode}
-                  onChange={(e) => setSelectedCode(e.target.value)}
-                >
-                  <option value="">All Courses</option>
-                  {courseCodes.map(code => (
-                    <option key={code} value={code}>{code}</option>
-                  ))}
-                </Form.Select>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-6">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <FaUniversity />
-                </span>
-                <Form.Select
-                  value={selectedDepartment}
-                  onChange={(e) => setSelectedDepartment(e.target.value)}
-                >
-                  <option value="">All Departments</option>
-                  {departments.map(dept => (
-                    <option key={dept._id} value={dept._id}>{dept.name}</option>
-                  ))}
-                </Form.Select>
-              </div>
-            </div>
-          </div>
+  // Columns for the Courses Table
+  const columns = [
+    {
+      title: (
+        <>
+          <IdcardOutlined style={{ marginRight: 4 }} />
+          Code
+        </>
+      ),
+      dataIndex: 'code',
+      key: 'code',
+      render: text => <span style={{ color: '#1890ff', fontWeight: 500 }}>{text}</span>,
+    },
+    {
+      title: (
+        <>
+          <BookOutlined style={{ marginRight: 4 }} />
+          Name
+        </>
+      ),
+      dataIndex: 'name',
+      key: 'name',
+    },
+    {
+      title: (
+        <>
+          <ApartmentOutlined style={{ marginRight: 4 }} />
+          Department
+        </>
+      ),
+      dataIndex: ['department', 'name'],
+      key: 'department',
+      render: (dept) => dept || 'N/A',
+    },
+    {
+      title: (
+        <>
+          <FilterOutlined style={{ marginRight: 4 }} />
+          Units
+        </>
+      ),
+      key: 'units',
+      render: (_, record) => (
+        <Tag color="blue">
+          {record.units ? record.units.length : 0}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => {
+              setSelectedCourse(record);
+              setFormData({
+                name: record.name,
+                code: record.code,
+                department: record.department?._id,
+              });
+              form.setFieldsValue({
+                name: record.name,
+                code: record.code,
+                department: record.department?._id,
+              });
+              setShowCourseModal(true);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            type="default"
+            icon={<UnorderedListOutlined />}
+            size="small"
+            onClick={() => handleManageUnits(record)}
+          >
+            Units
+          </Button>
+          <Button
+            type="primary"
+            danger
+            icon={<DeleteOutlined />}
+            size="small"
+            onClick={() => handleDeleteConfirmation(record._id)}
+          >
+            Delete
+          </Button>
         </div>
-      </div>
+      ),
+    },
+  ];
 
-      {/* Alerts */}
-      {error && <Alert variant="danger" className="d-flex align-items-center">
-        <FaExclamationTriangle className="me-2" />
-        {error}
-      </Alert>}
-      {loading && <Alert variant="info" className="d-flex align-items-center">
-        <FaSpinner className="fa-spin me-2" />
-        Loading...
-      </Alert>}
+  return (
+    <Layout style={{ minHeight: '100vh', padding: '20px' }}>
+      <Content>
+        {/* Back to Top Button */}
+        {showBackToTop && (
+          <Button
+            type="primary"
+            shape="circle"
+            icon={<ArrowUpOutlined />}
+            style={{
+              position: 'fixed',
+              bottom: 20,
+              right: 20,
+              zIndex: 1000,
+            }}
+            onClick={() =>
+              window.scrollTo({ top: 0, behavior: 'smooth' })
+            }
+          />
+        )}
 
-      {/* Courses Table */}
-      <div className="table-responsive rounded-3 shadow-sm" style={{ maxHeight: '65vh' }}>
-        <table className="table table-hover align-middle mb-0">
-          <thead className="table-light sticky-top">
-            <tr>
-              <th style={{ minWidth: '150px' }}>
-                <FaIdBadge className="me-2" />
-                Code
-              </th>
-              <th style={{ minWidth: '200px' }}>
-                <FaBook className="me-2" />
-                Name
-              </th>
-              <th style={{ minWidth: '200px' }}>
-                <FaUniversity className="me-2" />
-                Department
-              </th>
-              <th style={{ minWidth: '150px' }}>
-                <FaFilter className="me-2" />
-                Units
-              </th>
-              <th style={{ minWidth: '150px' }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredCourses.map(course => (
-              <tr key={course._id}>
-                <td className="fw-semibold text-primary">{course.code}</td>
-                <td>{course.name}</td>
-                <td>{course.department?.name || 'N/A'}</td>
-                <td>
-                  <Badge bg="info" className="rounded-pill">
-                    {course.units?.length || 0}
-                  </Badge>
-                </td>
-                <td>
-                  <div className="d-flex gap-2">
-                    <button 
-                      className="btn btn-sm btn-outline-primary d-flex align-items-center"
-                      onClick={() => {
-                        setSelectedCourse(course);
-                        setFormData({
-                          name: course.name,
-                          code: course.code,
-                          department: course.department?._id
-                        });
-                        setShowModal(true);
-                      }}
-                    >
-                      <FaEdit className="me-1" />
-                      <span className="d-none d-md-inline">Edit</span>
-                    </button>
-                    <button 
-                      className="btn btn-sm btn-outline-info d-flex align-items-center"
-                      onClick={() => handleManageUnits(course)}
-                    >
-                      <FaListUl className="me-1" />
-                      <span className="d-none d-md-inline">Units</span>
-                    </button>
-                    <button 
-                      className="btn btn-sm btn-outline-danger d-flex align-items-center"
-                      onClick={() => handleDeleteConfirmation(course._id)}
-                    >
-                      <FaTrash className="me-1" />
-                      <span className="d-none d-md-inline">Delete</span>
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+        {/* Header Section */}
+        <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+          <Button type="link" icon={<LeftOutlined />} onClick={() => navigate('/admin')}>
+            Back to Admin
+          </Button>
+          <h2 style={{ margin: 0 }}>
+            <BookOutlined style={{ marginRight: 8 }} />
+            Course Management
+          </h2>
+          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
+            setShowCourseModal(true);
+            setSelectedCourse(null);
+            setFormData({ name: '', code: '', department: '' });
+            form.resetFields();
+          }}>
+            Add Course
+          </Button>
+        </Row>
 
-      {/* Course Modal */}
-      <Modal show={showModal} onHide={() => {
-        setShowModal(false);
-        setSelectedCourse(null);
-        setFormData({ name: '', code: '', department: '' });
-      }}>
-        <Modal.Header closeButton>
-          <Modal.Title className="d-flex align-items-center">
-            {selectedCourse ? (
+        {/* Filter Section */}
+        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+          <Col xs={24} md={12}>
+            <Select
+              placeholder="All Courses"
+              style={{ width: '100%' }}
+              value={selectedCode || undefined}
+              onChange={value => setSelectedCode(value)}
+              allowClear
+            >
+              {courseCodes.map(code => (
+                <Option key={code} value={code}>
+                  {code}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+          <Col xs={24} md={12}>
+            <Select
+              placeholder="All Departments"
+              style={{ width: '100%' }}
+              value={selectedDepartment || undefined}
+              onChange={value => setSelectedDepartment(value)}
+              allowClear
+            >
+              {departments.map(dept => (
+                <Option key={dept._id} value={dept._id}>
+                  {dept.name}
+                </Option>
+              ))}
+            </Select>
+          </Col>
+        </Row>
+
+        {/* Alerts */}
+        {error && (
+          <Alert
+            message={error}
+            type="error"
+            closable
+            onClose={() => setError('')}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {loading && (
+          <Alert
+            message="Loading..."
+            type="info"
+            icon={<LoadingOutlined spin />}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+
+        {/* Courses Table */}
+        <Table
+          dataSource={filteredCourses}
+          columns={columns}
+          rowKey="_id"
+          scroll={{ y: 400 }}
+        />
+
+        {/* Course Add/Edit Modal */}
+        <Modal
+          open={showCourseModal}
+          title={
+            selectedCourse ? (
               <>
-                <FaEdit className="me-2" />
+                <EditOutlined style={{ marginRight: 8 }} />
                 Edit Course
               </>
             ) : (
               <>
-                <FaPlus className="me-2" />
+                <PlusOutlined style={{ marginRight: 8 }} />
                 Add Course
               </>
-            )}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form onSubmit={handleSubmit}>
-            <Form.Group className="mb-3">
-              <Form.Label className="d-flex align-items-center">
-                <FaIdBadge className="me-2" />
-                Course Code
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="code"
-                value={formData.code}
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="d-flex align-items-center">
-                <FaBook className="me-2" />
-                Course Name
-              </Form.Label>
-              <Form.Control
-                type="text"
-                name="name"
-                value={formData.name}
-                onChange={handleInputChange}
-                required
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label className="d-flex align-items-center">
-                <FaUniversity className="me-2" />
-                Department
-              </Form.Label>
-              <Form.Select
-                name="department"
-                value={formData.department}
-                onChange={handleInputChange}
-                required
-              >
-                <option value="">Select Department</option>
+            )
+          }
+          onCancel={() => {
+            setShowCourseModal(false);
+            setSelectedCourse(null);
+            setFormData({ name: '', code: '', department: '' });
+            form.resetFields();
+          }}
+          footer={[
+            <Button key="cancel" onClick={() => {
+              setShowCourseModal(false);
+              setSelectedCourse(null);
+              form.resetFields();
+            }}>
+              Cancel
+            </Button>,
+            <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading}>
+              {loading ? <LoadingOutlined spin /> : 'Save Course'}
+            </Button>,
+          ]}
+        >
+          <Form
+            form={form}
+            layout="vertical"
+            initialValues={formData}
+            onValuesChange={handleCourseFormChange}
+          >
+            <Form.Item
+              label={
+                <>
+                  <IdcardOutlined style={{ marginRight: 4 }} />
+                  Course Code
+                </>
+              }
+              name="code"
+              rules={[{ required: true, message: 'Please input the course code' }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label={
+                <>
+                  <BookOutlined style={{ marginRight: 4 }} />
+                  Course Name
+                </>
+              }
+              name="name"
+              rules={[{ required: true, message: 'Please input the course name' }]}
+            >
+              <Input />
+            </Form.Item>
+            <Form.Item
+              label={
+                <>
+                  <ApartmentOutlined style={{ marginRight: 4 }} />
+                  Department
+                </>
+              }
+              name="department"
+              rules={[{ required: true, message: 'Please select a department' }]}
+            >
+              <Select placeholder="Select Department">
                 {departments.map(dept => (
-                  <option key={dept._id} value={dept._id}>
+                  <Option key={dept._id} value={dept._id}>
                     {dept.name}
-                  </option>
+                  </Option>
                 ))}
-              </Form.Select>
-            </Form.Group>
-
-            <Button variant="primary" type="submit" disabled={loading}>
-              {loading ? (
-                <><FaSpinner className="fa-spin me-2" /> Saving...</>
-              ) : (
-                'Save Course'
-              )}
-            </Button>
+              </Select>
+            </Form.Item>
           </Form>
-        </Modal.Body>
-      </Modal>
+        </Modal>
 
-      {/* Delete Confirmation Modals */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Delete</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete this course? This action cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={handleDelete}>
-            Delete Course
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        {/* Course Delete Confirmation Modal */}
+        <Modal
+          open={showDeleteModal}
+          title="Confirm Delete"
+          onCancel={() => setShowDeleteModal(false)}
+          footer={[
+            <Button key="cancel" onClick={() => setShowDeleteModal(false)}>
+              Cancel
+            </Button>,
+            <Button key="delete" type="primary" danger onClick={handleDelete}>
+              Delete Course
+            </Button>,
+          ]}
+        >
+          <p>
+            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+            Are you sure you want to delete this course? This action cannot be undone.
+          </p>
+        </Modal>
 
-      <Modal show={showUnitDeleteModal} onHide={() => setShowUnitDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Unit Removal</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to remove this unit? This action cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowUnitDeleteModal(false)}>
-            Cancel
-          </Button>
-          <Button variant="danger" onClick={confirmUnitDelete}>
-            Remove Unit
-          </Button>
-        </Modal.Footer>
-      </Modal>
+        {/* Unit Delete Confirmation Modal */}
+        <Modal
+          open={showUnitDeleteModal}
+          title="Confirm Unit Removal"
+          onCancel={() => setShowUnitDeleteModal(false)}
+          footer={[
+            <Button key="cancel" onClick={() => setShowUnitDeleteModal(false)}>
+              Cancel
+            </Button>,
+            <Button key="remove" type="primary" danger onClick={confirmUnitDelete}>
+              Remove Unit
+            </Button>,
+          ]}
+        >
+          <p>
+            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+            Are you sure you want to remove this unit? This action cannot be undone.
+          </p>
+        </Modal>
 
-      {/* Units Management Modal */}
-      <Modal show={showUnitsModal} onHide={() => setShowUnitsModal(false)} size="lg">
-        <Modal.Header closeButton>
-          <Modal.Title className="d-flex align-items-center">
-            <FaListUl className="me-2" />
-            Manage Units - {selectedCourseForUnits?.name}
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <div className="mb-4">
-            <InputGroup className="mb-3">
-              <Form.Control
+        {/* Units Management Modal */}
+        <Modal
+          open={showUnitsModal}
+          title={
+            <>
+              <UnorderedListOutlined style={{ marginRight: 8 }} />
+              Manage Units - {selectedCourseForUnits?.name}
+            </>
+          }
+          onCancel={() => setShowUnitsModal(false)}
+          width="80%"
+          footer={null}
+        >
+          <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Col xs={24} sm={12} md={6}>
+              <Input
                 placeholder="Unit Name"
                 value={unitInput.name}
                 onChange={(e) => setUnitInput({ ...unitInput, name: e.target.value })}
               />
-              <Form.Control
+            </Col>
+            <Col xs={24} sm={12} md={6}>
+              <Input
                 placeholder="Unit Code"
                 value={unitInput.code}
                 onChange={(e) => setUnitInput({ ...unitInput, code: e.target.value })}
               />
-              <Form.Control
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Input
                 placeholder="Year"
                 type="number"
                 value={unitInput.year}
                 onChange={(e) => setUnitInput({ ...unitInput, year: e.target.value })}
               />
-              <Form.Control
+            </Col>
+            <Col xs={24} sm={12} md={4}>
+              <Input
                 placeholder="Semester"
                 type="number"
                 value={unitInput.semester}
                 onChange={(e) => setUnitInput({ ...unitInput, semester: e.target.value })}
               />
-              <Button 
-                variant="primary" 
+            </Col>
+            <Col xs={24} sm={24} md={4}>
+              <Button
+                type="primary"
+                icon={<PlusOutlined />}
                 onClick={handleAddUnit}
                 disabled={!unitInput.name.trim() || !unitInput.code.trim()}
               >
-                <FaPlus className="me-2" />
                 Add Unit
               </Button>
-            </InputGroup>
-          </div>
+            </Col>
+          </Row>
 
-          {error && <Alert variant="danger">{error}</Alert>}
-          
-          {units.length === 0 ? (
-            <Alert variant="info">No units found for this course</Alert>
-          ) : (
-            <div className="table-responsive">
-              <Table striped bordered hover>
-                <thead>
-                  <tr>
-                    <th><FaIdBadge /> Code</th>
-                    <th>Name</th>
-                    <th>Year</th>
-                    <th>Semester</th>
-                    <th>Actions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {units.map(unit => (
-                    <tr key={unit._id}>
-                      <td>{unit.code}</td>
-                      <td>{unit.name}</td>
-                      <td><Badge bg="info">{unit.year}</Badge></td>
-                      <td><Badge bg="secondary">{unit.semester}</Badge></td>
-                      <td>
-                        <Button
-                          variant="outline-danger"
-                          size="sm"
-                          onClick={() => promptRemoveUnit(unit._id)}
-                        >
-                          <FaTrash />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
+          {error && (
+            <Alert
+              message={error}
+              type="error"
+              closable
+              onClose={() => setError('')}
+              style={{ marginBottom: 16 }}
+            />
           )}
-        </Modal.Body>
-      </Modal>
 
-      <style>{`
-        .table-responsive {
-          overflow-y: auto;
-        }
-        .sticky-top {
-          position: sticky;
-          top: 0;
-          background: white;
-          z-index: 1;
-          box-shadow: inset 0 -1px 0 #dee2e6;
-        }
-      `}</style>
-    </div>
+          {units.length === 0 ? (
+            <Alert message="No units found for this course" type="info" />
+          ) : (
+            <Table
+              dataSource={units}
+              rowKey="_id"
+              pagination={false}
+              scroll={{ y: 300 }}
+              columns={[
+                {
+                  title: (
+                    <>
+                      <IdcardOutlined style={{ marginRight: 4 }} />
+                      Code
+                    </>
+                  ),
+                  dataIndex: 'code',
+                  key: 'code',
+                },
+                {
+                  title: 'Name',
+                  dataIndex: 'name',
+                  key: 'name',
+                },
+                {
+                  title: 'Year',
+                  dataIndex: 'year',
+                  key: 'year',
+                  render: year => <Tag color="blue">{year}</Tag>,
+                },
+                {
+                  title: 'Semester',
+                  dataIndex: 'semester',
+                  key: 'semester',
+                  render: sem => <Tag>{sem}</Tag>,
+                },
+                {
+                  title: 'Actions',
+                  key: 'actions',
+                  render: (_, record) => (
+                    <Button
+                      type="primary"
+                      danger
+                      icon={<DeleteOutlined />}
+                      size="small"
+                      onClick={() => promptRemoveUnit(record._id)}
+                    >
+                      Remove
+                    </Button>
+                  ),
+                },
+              ]}
+            />
+          )}
+        </Modal>
+      </Content>
+    </Layout>
   );
 };
 

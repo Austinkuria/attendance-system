@@ -1,27 +1,43 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  FaFileImport,
-  FaDownload,
-  FaSearch,
-  FaUserPlus,
-  FaSpinner,
-  FaExclamationTriangle,
-  FaUsers,
-  FaArrowUp,
-  FaChevronLeft,
-  FaEdit,
-  FaTrash,
-  FaIdBadge,
-  FaCalendarAlt,
-  FaBook,
-  FaFilter,
-  FaCheckCircle,
-} from "react-icons/fa";
-import { Modal, Button, Form, Alert } from "react-bootstrap";
+  Layout,
+  Table,
+  Modal,
+  Form,
+  Input,
+  Select,
+  Button,
+  Alert,
+  message,
+  // Skeleton,
+  Row,
+  Col,
+} from "antd";
+import {
+  ImportOutlined,
+  DownloadOutlined,
+  SearchOutlined,
+  UserAddOutlined,
+  LoadingOutlined,
+  ExclamationCircleOutlined,
+  TeamOutlined,
+  ArrowUpOutlined,
+  LeftOutlined,
+  EditOutlined,
+  DeleteOutlined,
+  IdcardOutlined,
+  CalendarOutlined,
+  BookOutlined,
+  FilterOutlined,
+  // CheckCircleOutlined,
+} from "@ant-design/icons";
 import { getStudents, deleteStudent, downloadStudents } from "../services/api";
-import "../styles.css";
 import api from "../services/api";
+import "../styles.css";
+
+const { Content } = Layout;
+const { Option } = Select;
 
 const ManageStudents = () => {
   const navigate = useNavigate();
@@ -34,13 +50,13 @@ const ManageStudents = () => {
     semester: "",
   });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [success, setSuccess] = useState("");
+  const [globalError, setGlobalError] = useState("");
+  const [globalSuccess, setGlobalSuccess] = useState("");
   const [file, setFile] = useState(null);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [showAddModal, setShowAddModal] = useState(false);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isAddModalVisible, setIsAddModalVisible] = useState(false);
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [studentToDelete, setStudentToDelete] = useState(null);
   const [selectedStudent, setSelectedStudent] = useState(null);
   const [newStudent, setNewStudent] = useState({
@@ -54,35 +70,26 @@ const ManageStudents = () => {
     year: "",
     semester: "",
   });
-  const [formErrors, setFormErrors] = useState({});
+  // const [formErrors, setFormErrors] = useState({});
+  const [departments, setDepartments] = useState([]);
 
-  // Redirect to login if no token is found
+  const [addForm] = Form.useForm();
+  const [editForm] = Form.useForm();
+
+  // Redirect if not authenticated
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/login");
-    }
+    if (!token) navigate("/login");
   }, [navigate]);
 
-  // Scroll handler
+  // Back-to-top scroll handler
   useEffect(() => {
     const handleScroll = () => setShowBackToTop(window.scrollY > 200);
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Courses dropdown data
-  const courses = useMemo(() => {
-    const courseSet = new Set();
-    students.forEach((student) => {
-      if (student.course && student.course !== "N/A") courseSet.add(student.course);
-    });
-    return Array.from(courseSet).sort();
-  }, [students]);
-
-  // Departments dropdown data
-  const [departments, setDepartments] = useState([]);
-
+  // Fetch departments data
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
@@ -91,18 +98,14 @@ const ManageStudents = () => {
           navigate("/login");
           return;
         }
-
         const response = await api.get("/department", {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+          headers: { Authorization: `Bearer ${token}` },
         });
         setDepartments(response.data);
       } catch (err) {
         console.error("Error fetching departments:", err);
       }
     };
-
     fetchDepartments();
   }, [navigate]);
 
@@ -116,29 +119,31 @@ const ManageStudents = () => {
           navigate("/login");
           return;
         }
-
         const response = await getStudents();
         const data = Array.isArray(response) ? response : [];
-
         if (isMounted) {
           const formattedStudents = data.map((student) => ({
             ...student,
             regNo: student.regNo || "N/A",
             year: student.year || "N/A",
             semester: student.semester?.toString() || "N/A",
-            course: student.course?.name || student.course || "N/A",
-            department: student.department?.name || student.department || "N/A",
+            course:
+              (student.course && (student.course.name || student.course)) ||
+              "N/A",
+            department:
+              (student.department &&
+                (student.department.name || student.department)) ||
+              "N/A",
           }));
           setStudents(formattedStudents);
-          console.log("Fetched Students:", formattedStudents); // Debugging
-          setError("");
+          setGlobalError("");
         }
       } catch (err) {
+        console.error("Error fetching students:", err);
         if (isMounted) {
-          setError("Failed to load student data. Please try again later.");
+          setGlobalError("Failed to load student data. Please try again later.");
           setStudents([]);
         }
-        console.error("Error fetching students:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -150,7 +155,18 @@ const ManageStudents = () => {
     };
   }, [navigate]);
 
-  // Validate form fields
+  // Courses dropdown derived from students
+  const courses = useMemo(() => {
+    const courseSet = new Set();
+    students.forEach((student) => {
+      if (student.course && student.course !== "N/A") {
+        courseSet.add(student.course);
+      }
+    });
+    return Array.from(courseSet).sort();
+  }, [students]);
+
+  // Validate new student form
   const validateForm = () => {
     const errors = {};
     if (!newStudent.firstName) errors.firstName = "First name is required";
@@ -166,14 +182,13 @@ const ManageStudents = () => {
     if (!newStudent.department) errors.department = "Department is required";
     if (!newStudent.year) errors.year = "Year is required";
     if (!newStudent.semester) errors.semester = "Semester is required";
-    setFormErrors(errors);
+    // setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
-  // Handle adding a new student
+  // Handle add student
   const handleAddStudent = async () => {
     if (!validateForm()) return;
-
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -181,34 +196,25 @@ const ManageStudents = () => {
         navigate("/login");
         return;
       }
-
       const response = await api.post(
         "/user",
-        {
-          ...newStudent,
-          role: "student",
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
+        { ...newStudent, role: "student" },
+        { headers: { Authorization: `Bearer ${token}` } }
       );
-
       if (response.data.message === "User created successfully") {
         const updated = await getStudents();
-        setStudents(
-          updated.map((s) => ({
-            ...s,
-            regNo: s.regNo || "N/A",
-            year: s.year || "N/A",
-            semester: s.semester?.toString() || "N/A",
-            course: s.course?.name || s.course || "N/A",
-            department: s.department?.name || s.department || "N/A",
-          }))
-        );
-        setShowAddModal(false);
-        setSuccess("Student added successfully");
+        const formatted = updated.map((s) => ({
+          ...s,
+          regNo: s.regNo || "N/A",
+          year: s.year || "N/A",
+          semester: s.semester?.toString() || "N/A",
+          course: (s.course && (s.course.name || s.course)) || "N/A",
+          department:
+            (s.department && (s.department.name || s.department)) || "N/A",
+        }));
+        setStudents(formatted);
+        setIsAddModalVisible(false);
+        message.success("Student added successfully");
         setNewStudent({
           firstName: "",
           lastName: "",
@@ -220,16 +226,18 @@ const ManageStudents = () => {
           year: "",
           semester: "",
         });
+        addForm.resetFields();
       }
     } catch (err) {
       console.error("Error creating student:", err);
-      setError(err.response?.data?.message || "Failed to create student");
+      setGlobalError(err.response?.data?.message || "Failed to create student");
+      message.error("Failed to create student");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle editing a student
+  // Handle edit student
   const handleEditStudent = async () => {
     try {
       setLoading(true);
@@ -238,37 +246,36 @@ const ManageStudents = () => {
         navigate("/login");
         return;
       }
-
-      const response = await api.put(`/user/${selectedStudent._id}`, selectedStudent, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
-
+      const response = await api.put(
+        `/user/${selectedStudent._id}`,
+        selectedStudent,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
       if (response.data.message === "User updated successfully") {
         const updated = await getStudents();
-        setStudents(
-          updated.map((s) => ({
-            ...s,
-            regNo: s.regNo || "N/A",
-            year: s.year || "N/A",
-            semester: s.semester?.toString() || "N/A",
-            course: s.course?.name || s.course || "N/A",
-            department: s.department?.name || s.department || "N/A",
-          }))
-        );
-        setShowEditModal(false);
-        setSuccess("Student updated successfully");
+        const formatted = updated.map((s) => ({
+          ...s,
+          regNo: s.regNo || "N/A",
+          year: s.year || "N/A",
+          semester: s.semester?.toString() || "N/A",
+          course: (s.course && (s.course.name || s.course)) || "N/A",
+          department:
+            (s.department && (s.department.name || s.department)) || "N/A",
+        }));
+        setStudents(formatted);
+        setIsEditModalVisible(false);
+        message.success("Student updated successfully");
       }
     } catch (err) {
       console.error("Error updating student:", err);
-      setError(err.response?.data?.message || "Failed to update student");
+      setGlobalError(err.response?.data?.message || "Failed to update student");
+      message.error("Failed to update student");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle deleting a student
+  // Handle delete student
   const handleConfirmDelete = async () => {
     try {
       setLoading(true);
@@ -277,30 +284,28 @@ const ManageStudents = () => {
         navigate("/login");
         return;
       }
-
       await deleteStudent(studentToDelete, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       });
       setStudents((prev) => prev.filter((s) => s._id !== studentToDelete));
-      setShowDeleteModal(false);
-      setSuccess("Student deleted successfully");
+      setIsDeleteModalVisible(false);
+      message.success("Student deleted successfully");
     } catch (err) {
       console.error("Error deleting student:", err);
-      setError("Failed to delete student. Please check your permissions.");
+      setGlobalError("Failed to delete student. Please check your permissions.");
+      message.error("Failed to delete student");
     } finally {
       setLoading(false);
     }
   };
 
-  // Handle file upload for CSV import
+  // Handle CSV file upload (only CSV allowed)
   const handleFileUpload = (e) => {
-    const file = e.target.files[0];
-    if (file?.type === "text/csv") {
-      setFile(file);
+    const selectedFile = e.target.files[0];
+    if (selectedFile?.type === "text/csv") {
+      setFile(selectedFile);
     } else {
-      setError("Invalid file type. Please upload a CSV file.");
+      setGlobalError("Invalid file type. Please upload a CSV file.");
       setFile(null);
     }
   };
@@ -308,7 +313,6 @@ const ManageStudents = () => {
   // Handle CSV import
   const handleImport = async () => {
     if (!file) return;
-
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
@@ -316,49 +320,48 @@ const ManageStudents = () => {
         navigate("/login");
         return;
       }
-
       const formData = new FormData();
       formData.append("csvFile", file);
-
       const response = await api.post("/upload-students", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (response.data.successCount > 0) {
         const updated = await getStudents();
-        setStudents(
-          updated.map((s) => ({
-            ...s,
-            regNo: s.regNo || "N/A",
-            year: s.year || "N/A",
-            semester: s.semester?.toString() || "N/A",
-            course: s.course?.name || s.course || "N/A",
-          }))
-        );
-        setSuccess(`Successfully imported ${response.data.successCount} students`);
+        const formatted = updated.map((s) => ({
+          ...s,
+          regNo: s.regNo || "N/A",
+          year: s.year || "N/A",
+          semester: s.semester?.toString() || "N/A",
+          course: (s.course && (s.course.name || s.course)) || "N/A",
+          department:
+            (s.department && (s.department.name || s.department)) || "N/A",
+        }));
+        setStudents(formatted);
+        message.success(`Successfully imported ${response.data.successCount} students`);
       }
-
       setFile(null);
-      setError(response.data.errorCount > 0 ? `${response.data.errorCount} records failed to import` : "");
+      if (response.data.errorCount > 0) {
+        setGlobalError(`${response.data.errorCount} records failed to import`);
+      }
     } catch (err) {
       console.error("CSV import failed:", err);
-      setError("CSV import failed. Please check file format and try again.");
+      setGlobalError("CSV import failed. Please check file format and try again.");
+      message.error("CSV import failed");
     } finally {
       setLoading(false);
     }
   };
 
-  // Filter students based on search and filters
+  // Filter students based on search and filter criteria
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
       const searchLower = searchQuery.toLowerCase().trim();
       const fullName = `${student.firstName} ${student.lastName}`.toLowerCase();
       const studentYear = student.year.toString();
       const studentSemester = student.semester.toString();
-
       return (
         fullName.includes(searchLower) &&
         student.regNo.toLowerCase().includes(filter.regNo.toLowerCase()) &&
@@ -369,561 +372,497 @@ const ManageStudents = () => {
     });
   }, [students, searchQuery, filter]);
 
+  // Define table columns using Ant Design's Table component
+  const columns = [
+    {
+      title: (
+        <>
+          <IdcardOutlined style={{ marginRight: 4 }} />
+          Reg No
+        </>
+      ),
+      dataIndex: "regNo",
+      key: "regNo",
+      render: (text) => <span style={{ color: "#1890ff", fontWeight: 500 }}>{text}</span>,
+    },
+    {
+      title: "Student Name",
+      key: "name",
+      render: (_, record) => `${record.firstName} ${record.lastName}`,
+    },
+    {
+      title: (
+        <>
+          <CalendarOutlined style={{ marginRight: 4 }} />
+          Year
+        </>
+      ),
+      dataIndex: "year",
+      key: "year",
+      render: (year) => <span className="ant-tag ant-tag-blue">{year}</span>,
+    },
+    {
+      title: (
+        <>
+          <BookOutlined style={{ marginRight: 4 }} />
+          Course
+        </>
+      ),
+      dataIndex: "course",
+      key: "course",
+      render: (course) => (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <BookOutlined style={{ color: "#999", marginRight: 4 }} />
+          {course}
+        </div>
+      ),
+    },
+    {
+      title: (
+        <>
+          <FilterOutlined style={{ marginRight: 4 }} />
+          Semester
+        </>
+      ),
+      dataIndex: "semester",
+      key: "semester",
+      render: (semester) => <span className="ant-tag">{semester}</span>,
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            size="small"
+            onClick={() => {
+              setSelectedStudent(record);
+              // Pre-fill edit form fields
+              editForm.setFieldsValue({
+                firstName: record.firstName,
+                lastName: record.lastName,
+                email: record.email,
+                regNo: record.regNo,
+                course: record.course,
+                year: record.year,
+                semester: record.semester,
+              });
+              setIsEditModalVisible(true);
+            }}
+          >
+            Edit
+          </Button>
+          <Button
+            type="danger"
+            icon={<DeleteOutlined />}
+            size="small"
+            onClick={() => {
+              setStudentToDelete(record._id);
+              setIsDeleteModalVisible(true);
+            }}
+          >
+            Delete
+          </Button>
+        </div>
+      ),
+    },
+  ];
+
   if (loading) {
     return (
-      <div className="container mt-4 text-center">
-        <FaSpinner className="fa-spin me-2" />
+      <div style={{ padding: 20, textAlign: "center" }}>
+        <LoadingOutlined spin style={{ fontSize: 24, marginRight: 8 }} />
         Loading student records...
       </div>
     );
   }
 
   return (
-    <div className="container mt-4">
-      {showBackToTop && (
-        <button
-          className="btn btn-primary shadow-lg back-to-top-btn"
-          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-        >
-          <FaArrowUp size={18} />
-        </button>
-      )}
+    <Layout style={{ minHeight: "100vh" }}>
+      <Content style={{ padding: "20px" }}>
+        {showBackToTop && (
+          <Button
+            type="primary"
+            shape="circle"
+            icon={<ArrowUpOutlined />}
+            style={{ position: "fixed", bottom: 50, right: 30, zIndex: 1000 }}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          />
+        )}
 
-      {error && (
-        <Alert variant="danger" onClose={() => setError("")} dismissible>
-          <FaExclamationTriangle className="me-2" />
-          {error}
-        </Alert>
-      )}
+        {globalError && (
+          <Alert
+            message={globalError}
+            type="error"
+            closable
+            onClose={() => setGlobalError("")}
+            style={{ marginBottom: 16 }}
+          />
+        )}
+        {globalSuccess && (
+          <Alert
+            message={globalSuccess}
+            type="success"
+            closable
+            onClose={() => setGlobalSuccess("")}
+            style={{ marginBottom: 16 }}
+          />
+        )}
 
-      {success && (
-        <Alert variant="success" onClose={() => setSuccess("")} dismissible>
-          <FaCheckCircle className="me-2" />
-          {success}
-        </Alert>
-      )}
+        {/* Header */}
+        <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+          <Button type="link" icon={<LeftOutlined />} onClick={() => navigate("/admin")}>
+            Back to Admin
+          </Button>
+          <h2 style={{ margin: 0 }}>
+            <TeamOutlined style={{ marginRight: 8 }} />
+            Student Management
+          </h2>
+          <Button
+            type="primary"
+            icon={<UserAddOutlined />}
+            onClick={() => {
+              addForm.resetFields();
+              setIsAddModalVisible(true);
+            }}
+          >
+            Add
+          </Button>
+        </Row>
 
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <button
-          className="btn btn-outline-primary d-flex align-items-center"
-          onClick={() => navigate("/admin")}
-        >
-          <FaChevronLeft className="me-2" />
-          Back to Admin
-        </button>
-        <h2 className="mb-0 d-flex align-items-center">
-          <FaUsers className="me-2" />
-          Student Management
-        </h2>
-      </div>
-
-      {/* Filters and Actions */}
-      <div className="card mb-4 shadow-sm">
-        <div className="card-body">
-          <div className="row g-3 align-items-center">
-            <div className="col-12 col-md-6 col-lg-4">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <FaSearch />
-                </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Search students by name ..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <FaIdBadge />
-                </span>
-                <input
-                  type="text"
-                  className="form-control"
-                  placeholder="Reg No"
-                  value={filter.regNo}
-                  onChange={(e) => setFilter((p) => ({ ...p, regNo: e.target.value }))}
-                />
-              </div>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <FaCalendarAlt />
-                </span>
-                <select
-                  className="form-select"
-                  value={filter.year}
-                  onChange={(e) => setFilter((p) => ({ ...p, year: e.target.value }))}
-                >
-                  <option value="">All Years</option>
-                  {[1, 2, 3, 4].map((year) => (
-                    <option key={year} value={year}>
-                      Year {year}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <FaBook />
-                </span>
-                <select
-                  className="form-select"
-                  value={filter.course}
-                  onChange={(e) => setFilter((p) => ({ ...p, course: e.target.value }))}
-                >
-                  <option value="">All Courses</option>
-                  {courses.map((course) => (
-                    <option key={course} value={course}>
-                      {course}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-
-            <div className="col-6 col-md-3 col-lg-2">
-              <div className="input-group">
-                <span className="input-group-text">
-                  <FaFilter />
-                </span>
-                <select
-                  className="form-select"
-                  value={filter.semester}
-                  onChange={(e) => setFilter((p) => ({ ...p, semester: e.target.value }))}
-                >
-                  <option value="">All Semesters</option>
-                  {[1, 2, 3].map((sem) => (
-                    <option key={sem} value={sem}>
-                      Sem {sem}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="row mt-3 g-2">
-            <div className="col-12 col-md-4">
-              <div className="input-group">
-                <input
-                  type="file"
-                  className="form-control"
-                  accept=".csv"
-                  onChange={handleFileUpload}
-                />
-                <button
-                  className="btn btn-success d-flex align-items-center"
-                  onClick={handleImport}
-                  disabled={!file}
-                >
-                  <FaFileImport className="me-2" />
-                  {file ? `Import ${file.name}` : "CSV"}
-                </button>
-              </div>
-            </div>
-
-            <div className="col-6 col-md-4">
-              <button
-                className="btn btn-primary w-100 d-flex align-items-center justify-content-center"
+        {/* Filters and Actions */}
+        <div style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+          <Row gutter={[16, 16]} align="middle">
+            <Col xs={24} md={8}>
+              <Input
+                placeholder="Search students by name ..."
+                prefix={<SearchOutlined />}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </Col>
+            <Col xs={12} md={4}>
+              <Input
+                placeholder="Reg No"
+                prefix={<IdcardOutlined />}
+                value={filter.regNo}
+                onChange={(e) => setFilter((prev) => ({ ...prev, regNo: e.target.value }))}
+              />
+            </Col>
+            <Col xs={12} md={4}>
+              <Select
+                placeholder="All Years"
+                style={{ width: "100%" }}
+                value={filter.year || undefined}
+                onChange={(value) => setFilter((prev) => ({ ...prev, year: value }))}
+                allowClear
+              >
+                {["1", "2", "3", "4"].map((year) => (
+                  <Option key={year} value={year}>
+                    Year {year}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Select
+                placeholder="All Courses"
+                style={{ width: "100%" }}
+                value={filter.course || undefined}
+                onChange={(value) => setFilter((prev) => ({ ...prev, course: value }))}
+                allowClear
+              >
+                {courses.map((course) => (
+                  <Option key={course} value={course}>
+                    {course}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={12} md={4}>
+              <Select
+                placeholder="All Semesters"
+                style={{ width: "100%" }}
+                value={filter.semester || undefined}
+                onChange={(value) => setFilter((prev) => ({ ...prev, semester: value }))}
+                allowClear
+              >
+                {["1", "2", "3"].map((sem) => (
+                  <Option key={sem} value={sem}>
+                    Semester {sem}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col xs={24} md={8}>
+              <Row gutter={8} align="middle">
+                <Col flex="auto">
+                  <Input type="file" accept=".csv" onChange={handleFileUpload} />
+                </Col>
+                <Col>
+                  <Button
+                    type="primary"
+                    icon={<ImportOutlined />}
+                    disabled={!file}
+                    onClick={handleImport}
+                  >
+                    {file ? `Import ${file.name}` : "CSV Import"}
+                  </Button>
+                </Col>
+              </Row>
+            </Col>
+            <Col xs={12} md={8}>
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                block
                 onClick={async () => {
                   try {
                     await downloadStudents();
                   } catch (err) {
                     console.error("Error downloading students:", err);
-                    setError("Failed to download students");
+                    setGlobalError("Failed to download students");
+                    message.error("Failed to download students");
                   }
                 }}
               >
-                <FaDownload className="me-2" />
                 Export
-              </button>
-            </div>
-
-            <div className="col-6 col-md-4">
-              <button
-                className="btn btn-secondary w-100 d-flex align-items-center justify-content-center"
-                onClick={() => setShowAddModal(true)}
-              >
-                <FaUserPlus className="me-2" />
-                Add
-              </button>
-            </div>
-          </div>
+              </Button>
+            </Col>
+          </Row>
         </div>
-      </div>
+
+        {/* Students Table */}
+        <Table
+          dataSource={filteredStudents}
+          columns={columns}
+          rowKey="_id"
+          scroll={{ y: 400 }}
+        />
+      </Content>
 
       {/* Add Student Modal */}
-      <Modal show={showAddModal} onHide={() => setShowAddModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <FaUserPlus className="me-2" />
+      <Modal
+        title={
+          <>
+            <UserAddOutlined style={{ marginRight: 8 }} />
             Add New Student
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>First Name</Form.Label>
-              <Form.Control
-                type="text"
-                value={newStudent.firstName}
-                onChange={(e) => setNewStudent({ ...newStudent, firstName: e.target.value })}
-                isInvalid={!!formErrors.firstName}
-              />
-              <Form.Control.Feedback type="invalid">
-                {formErrors.firstName}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Last Name</Form.Label>
-              <Form.Control
-                type="text"
-                value={newStudent.lastName}
-                onChange={(e) => setNewStudent({ ...newStudent, lastName: e.target.value })}
-                isInvalid={!!formErrors.lastName}
-              />
-              <Form.Control.Feedback type="invalid">
-                {formErrors.lastName}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Email</Form.Label>
-              <Form.Control
-                type="email"
-                value={newStudent.email}
-                onChange={(e) => setNewStudent({ ...newStudent, email: e.target.value })}
-                isInvalid={!!formErrors.email}
-              />
-              <Form.Control.Feedback type="invalid">
-                {formErrors.email}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Password</Form.Label>
-              <Form.Control
-                type="password"
-                value={newStudent.password}
-                onChange={(e) => setNewStudent({ ...newStudent, password: e.target.value })}
-                isInvalid={!!formErrors.password}
-              />
-              <Form.Control.Feedback type="invalid">
-                {formErrors.password}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Registration Number</Form.Label>
-              <Form.Control
-                type="text"
-                value={newStudent.regNo}
-                onChange={(e) => setNewStudent({ ...newStudent, regNo: e.target.value })}
-                isInvalid={!!formErrors.regNo}
-              />
-              <Form.Control.Feedback type="invalid">
-                {formErrors.regNo}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Course</Form.Label>
-              <Form.Select
-                value={newStudent.course}
-                onChange={(e) => setNewStudent({ ...newStudent, course: e.target.value })}
-                isInvalid={!!formErrors.course}
-              >
-                <option value="">Select Course</option>
-                {courses.map((course) => (
-                  <option key={course} value={course}>
-                    {course}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Control.Feedback type="invalid">
-                {formErrors.course}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Department</Form.Label>
-              <Form.Select
-                value={newStudent.department}
-                onChange={(e) => setNewStudent({ ...newStudent, department: e.target.value })}
-                isInvalid={!!formErrors.department}
-              >
-                <option value="">Select Department</option>
-                {departments.map((department) => (
-                  <option key={department._id} value={department.name}>
-                    {department.name}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Control.Feedback type="invalid">
-                {formErrors.department}
-              </Form.Control.Feedback>
-            </Form.Group>
-            <Form.Group className="mb-3">
-              <Form.Label>Year</Form.Label>
-              <Form.Select
-                value={newStudent.year}
-                onChange={(e) => setNewStudent({ ...newStudent, year: e.target.value })}
-                isInvalid={!!formErrors.year}
-              >
-                <option value="">Select Year</option>
-                {[1, 2, 3, 4].map((year) => (
-                  <option key={year} value={year}>
-                    Year {year}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Control.Feedback type="invalid">
-                {formErrors.year}
-              </Form.Control.Feedback>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Semester</Form.Label>
-              <Form.Select
-                value={newStudent.semester}
-                onChange={(e) => setNewStudent({ ...newStudent, semester: e.target.value })}
-                isInvalid={!!formErrors.semester}
-              >
-                <option value="">Select Semester</option>
-                {[1, 2, 3].map((sem) => (
-                  <option key={sem} value={sem}>
-                    Semester {sem}
-                  </option>
-                ))}
-              </Form.Select>
-              <Form.Control.Feedback type="invalid">
-                {formErrors.semester}
-              </Form.Control.Feedback>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowAddModal(false)}>
+          </>
+        }
+        open={isAddModalVisible}
+        onCancel={() => setIsAddModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>
             Cancel
-          </Button>
-          <Button variant="primary" onClick={handleAddStudent} disabled={loading}>
-            {loading ? <FaSpinner className="fa-spin me-2" /> : "Create Student"}
-          </Button>
-        </Modal.Footer>
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleAddStudent} loading={loading}>
+            Create Student
+          </Button>,
+        ]}
+      >
+        <Form form={addForm} layout="vertical">
+          <Form.Item
+            label="First Name"
+            name="firstName"
+            initialValue={newStudent.firstName}
+            rules={[{ required: true, message: "First name is required" }]}
+          >
+            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, firstName: e.target.value }))} />
+          </Form.Item>
+          <Form.Item
+            label="Last Name"
+            name="lastName"
+            initialValue={newStudent.lastName}
+            rules={[{ required: true, message: "Last name is required" }]}
+          >
+            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, lastName: e.target.value }))} />
+          </Form.Item>
+          <Form.Item
+            label="Email"
+            name="email"
+            initialValue={newStudent.email}
+            rules={[
+              { required: true, message: "Email is required" },
+              { type: "email", message: "Invalid email format" },
+            ]}
+          >
+            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, email: e.target.value }))} />
+          </Form.Item>
+          <Form.Item
+            label="Password"
+            name="password"
+            initialValue={newStudent.password}
+            rules={[{ required: true, message: "Password is required" }]}
+          >
+            <Input.Password onChange={(e) => setNewStudent((prev) => ({ ...prev, password: e.target.value }))} />
+          </Form.Item>
+          <Form.Item
+            label="Registration Number"
+            name="regNo"
+            initialValue={newStudent.regNo}
+            rules={[{ required: true, message: "Registration number is required" }]}
+          >
+            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
+          </Form.Item>
+          <Form.Item
+            label="Course"
+            name="course"
+            initialValue={newStudent.course}
+            rules={[{ required: true, message: "Course is required" }]}
+          >
+            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))} placeholder="Select Course">
+              {courses.map((course) => (
+                <Option key={course} value={course}>
+                  {course}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Department"
+            name="department"
+            initialValue={newStudent.department}
+            rules={[{ required: true, message: "Department is required" }]}
+          >
+            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, department: value }))} placeholder="Select Department">
+              {departments.map((dept) => (
+                <Option key={dept._id} value={dept.name}>
+                  {dept.name}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Year"
+            name="year"
+            initialValue={newStudent.year}
+            rules={[{ required: true, message: "Year is required" }]}
+          >
+            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, year: value }))} placeholder="Select Year">
+              {["1", "2", "3", "4"].map((year) => (
+                <Option key={year} value={year}>
+                  Year {year}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item
+            label="Semester"
+            name="semester"
+            initialValue={newStudent.semester}
+            rules={[{ required: true, message: "Semester is required" }]}
+          >
+            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, semester: value }))} placeholder="Select Semester">
+              {["1", "2", "3"].map((sem) => (
+                <Option key={sem} value={sem}>
+                  Semester {sem}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
       </Modal>
 
       {/* Edit Student Modal */}
-      <Modal show={showEditModal} onHide={() => setShowEditModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>
-            <FaEdit className="me-2" />
+      <Modal
+        title={
+          <>
+            <EditOutlined style={{ marginRight: 8 }} />
             Edit Student
-          </Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          <Form>
-            <Form.Group className="mb-3">
-              <Form.Label>First Name</Form.Label>
-              <Form.Control
-                type="text"
-                value={selectedStudent?.firstName || ""}
-                onChange={(e) => setSelectedStudent({ ...selectedStudent, firstName: e.target.value })}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Last Name</Form.Label>
-              <Form.Control
-                type="text"
-                value={selectedStudent?.lastName || ""}
-                onChange={(e) => setSelectedStudent({ ...selectedStudent, lastName: e.target.value })}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Email</Form.Label>
-              <Form.Control
-                type="email"
-                value={selectedStudent?.email || ""}
-                onChange={(e) => setSelectedStudent({ ...selectedStudent, email: e.target.value })}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Registration Number</Form.Label>
-              <Form.Control
-                type="text"
-                value={selectedStudent?.regNo || ""}
-                onChange={(e) => setSelectedStudent({ ...selectedStudent, regNo: e.target.value })}
-              />
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Course</Form.Label>
-              <Form.Select
-                value={selectedStudent?.course || ""}
-                onChange={(e) => setSelectedStudent({ ...selectedStudent, course: e.target.value })}
-              >
-                <option value="">Select Course</option>
-                {courses.map((course) => (
-                  <option key={course} value={course}>
-                    {course}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Year</Form.Label>
-              <Form.Select
-                value={selectedStudent?.year || ""}
-                onChange={(e) => setSelectedStudent({ ...selectedStudent, year: e.target.value })}
-              >
-                <option value="">Select Year</option>
-                {[1, 2, 3, 4].map((year) => (
-                  <option key={year} value={year}>
-                    Year {year}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-
-            <Form.Group className="mb-3">
-              <Form.Label>Semester</Form.Label>
-              <Form.Select
-                value={selectedStudent?.semester || ""}
-                onChange={(e) => setSelectedStudent({ ...selectedStudent, semester: e.target.value })}
-              >
-                <option value="">Select Semester</option>
-                {[1, 2, 3].map((sem) => (
-                  <option key={sem} value={sem}>
-                    Semester {sem}
-                  </option>
-                ))}
-              </Form.Select>
-            </Form.Group>
-          </Form>
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowEditModal(false)}>
+          </>
+        }
+        open={isEditModalVisible}
+        onCancel={() => setIsEditModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsEditModalVisible(false)}>
             Cancel
-          </Button>
-          <Button variant="primary" onClick={handleEditStudent} disabled={loading}>
-            {loading ? <FaSpinner className="fa-spin me-2" /> : "Save Changes"}
-          </Button>
-        </Modal.Footer>
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleEditStudent} loading={loading}>
+            Save Changes
+          </Button>,
+        ]}
+      >
+        <Form form={editForm} layout="vertical">
+          <Form.Item label="First Name" name="firstName">
+            <Input onChange={(e) =>
+              setSelectedStudent((prev) => ({ ...prev, firstName: e.target.value }))
+            } />
+          </Form.Item>
+          <Form.Item label="Last Name" name="lastName">
+            <Input onChange={(e) =>
+              setSelectedStudent((prev) => ({ ...prev, lastName: e.target.value }))
+            } />
+          </Form.Item>
+          <Form.Item label="Email" name="email">
+            <Input onChange={(e) =>
+              setSelectedStudent((prev) => ({ ...prev, email: e.target.value }))
+            } />
+          </Form.Item>
+          <Form.Item label="Registration Number" name="regNo">
+            <Input onChange={(e) =>
+              setSelectedStudent((prev) => ({ ...prev, regNo: e.target.value }))
+            } />
+          </Form.Item>
+          <Form.Item label="Course" name="course">
+            <Select onChange={(value) =>
+              setSelectedStudent((prev) => ({ ...prev, course: value }))
+            } placeholder="Select Course">
+              {courses.map((course) => (
+                <Option key={course} value={course}>
+                  {course}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Year" name="year">
+            <Select onChange={(value) =>
+              setSelectedStudent((prev) => ({ ...prev, year: value }))
+            } placeholder="Select Year">
+              {["1", "2", "3", "4"].map((year) => (
+                <Option key={year} value={year}>
+                  Year {year}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+          <Form.Item label="Semester" name="semester">
+            <Select onChange={(value) =>
+              setSelectedStudent((prev) => ({ ...prev, semester: value }))
+            } placeholder="Select Semester">
+              {["1", "2", "3"].map((sem) => (
+                <Option key={sem} value={sem}>
+                  Semester {sem}
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+        </Form>
       </Modal>
 
       {/* Delete Confirmation Modal */}
-      <Modal show={showDeleteModal} onHide={() => setShowDeleteModal(false)}>
-        <Modal.Header closeButton>
-          <Modal.Title>Confirm Deletion</Modal.Title>
-        </Modal.Header>
-        <Modal.Body>
-          Are you sure you want to delete this student? This action cannot be undone.
-        </Modal.Body>
-        <Modal.Footer>
-          <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>
+      <Modal
+        title="Confirm Deletion"
+        open={isDeleteModalVisible}
+        onCancel={() => setIsDeleteModalVisible(false)}
+        footer={[
+          <Button key="cancel" onClick={() => setIsDeleteModalVisible(false)}>
             Cancel
-          </Button>
-          <Button variant="danger" onClick={handleConfirmDelete} disabled={loading}>
-            {loading ? <FaSpinner className="fa-spin me-2" /> : "Delete Student"}
-          </Button>
-        </Modal.Footer>
+          </Button>,
+          <Button key="delete" type="primary" danger onClick={handleConfirmDelete} loading={loading}>
+            Delete Student
+          </Button>,
+        ]}
+      >
+        <p>
+          <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+          Are you sure you want to delete this student? This action cannot be undone.
+        </p>
       </Modal>
-
-      {/* Student Table */}
-      <div className="table-responsive rounded-3 shadow-sm" style={{ maxHeight: "65vh" }}>
-        <table className="table table-hover align-middle mb-0">
-          <thead className="table-light sticky-top">
-            <tr>
-              <th style={{ minWidth: "150px" }}>
-                <FaIdBadge className="me-2" />
-                Reg No
-              </th>
-              <th style={{ minWidth: "200px" }}>Student Name</th>
-              <th style={{ minWidth: "120px" }}>
-                <FaCalendarAlt className="me-2" />
-                Year
-              </th>
-              <th style={{ minWidth: "200px" }}>
-                <FaBook className="me-2" />
-                Course
-              </th>
-              <th style={{ minWidth: "150px" }}>
-                <FaFilter className="me-2" />
-                Semester
-              </th>
-              <th style={{ minWidth: "150px" }}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filteredStudents.length > 0 ? (
-              filteredStudents.map((student) => (
-                <tr key={student._id}>
-                  <td className="fw-semibold text-primary">{student.regNo}</td>
-                  <td>{`${student.firstName} ${student.lastName}`}</td>
-                  <td>
-                    <span className="badge bg-info rounded-pill">{student.year}</span>
-                  </td>
-                  <td>
-                    <div className="d-flex align-items-center">
-                      <FaBook className="text-muted me-2" />
-                      {student.course}
-                    </div>
-                  </td>
-                  <td>
-                    <span className="badge bg-secondary rounded-pill">{student.semester}</span>
-                  </td>
-                  <td>
-                    <div className="d-flex gap-2">
-                      <button
-                        className="btn btn-sm btn-outline-primary d-flex align-items-center"
-                        onClick={() => {
-                          setSelectedStudent(student);
-                          setShowEditModal(true);
-                        }}
-                      >
-                        <FaEdit className="me-1" />
-                        <span className="d-none d-md-inline">Edit</span>
-                      </button>
-                      <button
-                        className="btn btn-sm btn-outline-danger d-flex align-items-center"
-                        onClick={() => {
-                          setStudentToDelete(student._id);
-                          setShowDeleteModal(true);
-                        }}
-                      >
-                        <FaTrash className="me-1" />
-                        <span className="d-none d-md-inline">Delete</span>
-                      </button>
-                    </div>
-                  </td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan="6" className="text-center py-4 text-muted">
-                  No matching students found
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-    </div>
+    </Layout>
   );
 };
 

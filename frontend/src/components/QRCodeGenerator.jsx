@@ -18,7 +18,7 @@
 //       {qrCode && (
 //         <Modal
 //           title="QR Code"
-//           visible={!!qrCode}
+//           open={!!qrCode}
 //           onCancel={() => setQRCode("")}
 //           footer={null}
 //         >
