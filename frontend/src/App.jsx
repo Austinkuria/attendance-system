@@ -30,7 +30,7 @@ function App() {
     if (navigator.onLine) {
       setTimeout(() => {
         setShowBanner(false);
-      }, 3000);
+      }, 1000);
     }
   }, []);
 
