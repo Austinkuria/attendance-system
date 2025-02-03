@@ -18,13 +18,13 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('/api/login', { email, password });
+      const response = await axios.post('https://attendance-system-w70n.onrender.com/api/login', { email, password });
 
       // Store token in localStorage
       const token = response.data.token;
       localStorage.setItem('token', token);
       localStorage.setItem("userId", response.data.user.id);
-
+      // localStorage.setItem('userId', user.id);
       // Decode token to get user role
       const decodedToken = jwtDecode(token);
       const role = decodedToken.role;

@@ -1,5 +1,6 @@
 const Unit = require("../models/Unit");
 const User = require("../models/User");
+const Course = require("../models/Course");
 const authenticate = require("../middleware/authMiddleware");
 const router = require("express").Router();
 
@@ -96,23 +97,25 @@ const getUnits = async (req, res) => {
 const getLecturerUnits = async (req, res) => {
     try {
       const { lecturerId } = req.params;
-  
-      // Ensure a lecturer ID is provided
-      if (!lecturerId) {
-        return res.status(400).json({ message: "Lecturer ID is required" });
-      }
-  
-      // Fetch the lecturer from the database
-      const lecturer = await User.findById(lecturerId).populate("assignedUnits");
+      const lecturer = await User.findById(lecturerId)
+        .populate({
+          path: 'assignedUnits',
+          populate: {
+            path: 'course',
+            model: 'Course'
+          }
+        });
   
       if (!lecturer) {
         return res.status(404).json({ message: "Lecturer not found" });
       }
   
-      // Return the assigned units
       res.status(200).json(lecturer.assignedUnits);
     } catch (error) {
-      res.status(500).json({ message: "Error fetching lecturer units", error: error.message });
+      res.status(500).json({ 
+        message: "Error fetching lecturer units", 
+        error: error.message 
+      });
     }
   };
   

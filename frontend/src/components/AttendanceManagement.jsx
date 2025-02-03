@@ -59,40 +59,76 @@ const AttendanceManagement = () => {
     status: null
   });
 
-  // Fetch initial data
+  const lecturerId = localStorage.getItem('userId');
+
+  // Fetch lecturer units and set initial selected unit
   useEffect(() => {
-    const fetchData = async () => {
+    const fetchUnits = async () => {
       try {
-        const [unitsData, enrollmentsData] = await Promise.all([
-          getLecturerUnits(),
-          getUnitEnrollments()
-        ]);
+        setLoading(prev => ({ ...prev, units: true }));
+        const unitsData = await getLecturerUnits(lecturerId);
+        
+        if (!unitsData || unitsData.length === 0) {
+          message.warning('No units assigned to this lecturer');
+          return;
+        }
+        
         setUnits(unitsData);
-        setEnrollments(enrollmentsData);
-      } catch {
-        message.error('Failed to fetch initial data');
+        // Set initial selected unit to first in list
+        setSelectedUnit(unitsData[0]?._id);
+      } catch (error) {
+        console.error('Units fetch error:', error);
+        message.error('Failed to fetch units');
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
       }
     };
-    
-    fetchData();
-  }, []);
 
-  // Calculate statistics
-  const { totalAssignedUnits, attendanceRate, totalEnrolledStudents } = useMemo(() => {
-    const presentCount = attendance.filter(a => a.status === 'present').length;
-    const unitEnrollments = enrollments.filter(e => e.unitId === selectedUnit);
-    const totalStudents = unitEnrollments.length || 1;
-    
-    return {
-      totalAssignedUnits: units.length,
-      attendanceRate: totalStudents > 0 ? 
-        Number(((presentCount / totalStudents) * 100).toFixed(1)) : 0,
-      totalEnrolledStudents: unitEnrollments.length
+    if (lecturerId) fetchUnits();
+  }, [lecturerId]);
+
+  // Fetch enrollments and attendance when unit is selected
+  useEffect(() => {
+    const fetchUnitData = async () => {
+      if (!selectedUnit) return;
+      
+      try {
+        setLoading(prev => ({ ...prev, attendance: true, stats: true }));
+        const [attendanceData, enrollmentsData] = await Promise.all([
+          getAttendanceData(selectedUnit),
+          getUnitEnrollments(selectedUnit)
+        ]);
+        
+        setAttendance(attendanceData);
+        setEnrollments(enrollmentsData);
+      } catch (error) {
+        console.error('Unit data fetch error:', error);
+        message.error('Failed to fetch unit data');
+      } finally {
+        setLoading(prev => ({ ...prev, attendance: false, stats: false }));
+      }
     };
-  }, [units, attendance, enrollments, selectedUnit]);
 
+    fetchUnitData();
+  }, [selectedUnit]);
+
+  // Fix the statistics calculation section - remove duplicate return
+const { totalAssignedUnits, attendanceRate, totalEnrolledStudents } = useMemo(() => {
+  if (!units || units.length === 0) return {
+    totalAssignedUnits: 0,
+    attendanceRate: 0,
+    totalEnrolledStudents: 0
+  };
+
+  const presentCount = attendance.filter(a => a.status === 'present').length;
+  const totalStudents = enrollments.length || 1;
+  
+  return {
+    totalAssignedUnits: units.length,
+    attendanceRate: Number(((presentCount / totalStudents) * 100).toFixed(1)),
+    totalEnrolledStudents: enrollments.length
+  };
+}, [units, attendance, enrollments]); // Remove selectedUnit from dependencies
   // Process attendance data
   const processedAttendance = useMemo(() => {
     if (!selectedUnit) return [];
@@ -118,7 +154,7 @@ const AttendanceManagement = () => {
       });
   }, [attendance, enrollments, selectedUnit]);
 
-  // Filtered attendance data
+  // Apply filters
   const filteredAttendance = useMemo(() => {
     return processedAttendance.filter(record => {
       const searchMatch = record.student.toLowerCase().includes(filters.search.toLowerCase());
@@ -130,6 +166,7 @@ const AttendanceManagement = () => {
     });
   }, [processedAttendance, filters]);
 
+  // Generate QR Code
   const handleGenerateQR = async () => {
     if (!selectedUnit) {
       message.error('Please select a unit first');
@@ -140,11 +177,13 @@ const AttendanceManagement = () => {
       const { qrCode } = await generateQRCode(selectedUnit);
       setQrData(qrCode);
       setIsQRModalOpen(true);
-    } catch {
+    } catch (error) {
+      console.error('QR generation error:', error);
       message.error('Failed to generate QR code');
     }
   };
 
+  // Fetch attendance data
   const handleViewAttendance = async () => {
     if (!selectedUnit) {
       message.error('Please select a unit first');
@@ -155,71 +194,84 @@ const AttendanceManagement = () => {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
       const data = await getAttendanceData(selectedUnit);
       setAttendance(data);
-    } catch {
+    } catch (error) {
+      console.error('Attendance fetch error:', error);
       message.error('Failed to fetch attendance data');
     } finally {
       setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
   };
 
-  const handleDownloadReport = async () => {
-    if (!selectedUnit) {
-      message.error('Please select a unit first');
-      return;
-    }
+  // Toggle attendance status
+  const handleToggleStatus = async (recordId) => {
+    const record = processedAttendance.find(r => r._id === recordId);
+    if (!record) return;
+    
+    const newStatus = record.status === 'present' ? 'absent' : 'present';
     
     try {
-      await downloadAttendanceReport(selectedUnit);
-      message.success('Report download started');
-    } catch {
-      message.error('Failed to download report');
+      setAttendance(prev => {
+        const index = prev.findIndex(a => a.student === recordId && a.unit === selectedUnit);
+        if (index !== -1) {
+          const updatedRecord = { ...prev[index], status: newStatus };
+          return [
+            ...prev.slice(0, index),
+            updatedRecord,
+            ...prev.slice(index + 1)
+          ];
+        }
+        return [...prev, { ...record, status: newStatus }];
+      });
+      message.success(`Marked student as ${newStatus}`);
+    } catch (error) {
+      console.error('Status update error:', error);
+      message.error('Failed to update attendance status');
     }
   };
 
+  // Table columns
   const columns = [
-    {
-      title: 'Student',
-      dataIndex: 'student',
-      key: 'student',
-      responsive: ['md']
-    },
-    {
-      title: 'Reg Number',
-      dataIndex: 'regNo',
-      key: 'regNo',
-      responsive: ['md']
-    },
-    {
-      title: 'Course',
-      dataIndex: 'course',
-      key: 'course',
-      responsive: ['lg']
-    },
-    {
-      title: 'Year',
-      dataIndex: 'year',
+    { title: 'Student', dataIndex: 'student', key: 'student', responsive: ['md'] },
+    { title: 'Reg Number', dataIndex: 'regNo', key: 'regNo', responsive: ['md'] },
+    { title: 'Course', dataIndex: 'course', key: 'course', responsive: ['lg'] },
+    { 
+      title: 'Year', 
+      dataIndex: 'year', 
       key: 'year',
       render: year => <Tag color="blue">Year {year}</Tag>,
       responsive: ['sm']
     },
-    {
-      title: 'Semester',
-      dataIndex: 'semester',
+    { 
+      title: 'Semester', 
+      dataIndex: 'semester', 
       key: 'semester',
       render: semester => <Tag color="geekblue">Semester {semester}</Tag>
     },
-    {
-      title: 'Status',
-      dataIndex: 'status',
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
       key: 'status',
       render: status => (
         <Tag color={status === 'present' ? 'green' : 'volcano'}>
           {status.toUpperCase()}
         </Tag>
       )
+    },
+    {
+      title: 'Action',
+      key: 'action',
+      render: (_, record) => (
+        <Button 
+          type="link" 
+          onClick={() => handleToggleStatus(record._id)}
+        >
+          Mark as {record.status === 'present' ? 'Absent' : 'Present'}
+        </Button>
+      )
     }
   ];
 
+  // Summary cards
   const summaryCards = (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
       <Col xs={24} sm={12} md={8}>
@@ -264,7 +316,7 @@ const AttendanceManagement = () => {
           <Space wrap>
             <Button
               icon={<DownloadOutlined />}
-              onClick={handleDownloadReport}
+              onClick={() => downloadAttendanceReport(selectedUnit)}
               disabled={!selectedUnit}
             >
               {screens.md ? 'Download Report' : 'Download'}
@@ -293,7 +345,6 @@ const AttendanceManagement = () => {
                 value: unit._id
               }))}
             />
-            
             <Button
               onClick={handleViewAttendance}
               loading={loading.attendance}
@@ -378,13 +429,7 @@ const AttendanceManagement = () => {
         <div style={{ textAlign: 'center', padding: 24 }}>
           {qrData && (
             <>
-              {/* Uncomment when you have QR code library installed */}
-              {/* <QRCode 
-                value={qrData} 
-                size={256}
-                level="H"
-                includeMargin
-              /> */}
+              {/* QR Code display implementation */}
               <Text type="secondary" style={{ marginTop: 16, display: 'block' }}>
                 Scan this QR code to mark attendance
               </Text>

@@ -1,13 +1,13 @@
 import axios from "axios";
 const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({
-  baseURL: "http://localhost:5000/api", // backend URL
+  baseURL: "https://attendance-system-w70n.onrender.com/api", // backend URL
 });
 
 // Fetch units for a student based on their course, year, and semester
 export const getStudentUnits = async (token) => {
   try {
-    const response = await axios.get("http://localhost:5000/api/unit/student/units", {
+    const response = await axios.get("https://attendance-system-w70n.onrender.com/api/unit/student/units", {
       headers: {
         Authorization: `Bearer ${token}`,
         "Cache-Control": "no-cache",  // Disable caching to force a fresh request
@@ -27,14 +27,9 @@ export const getStudentCourses = () => api.get("/student/courses");
 export const getStudentAttendance = (unitId) => api.get(`/attendance/student/${unitId}`);
 
 // Fetch units assigned to the lecturer
-export const getLecturerUnits = async () => {
+// Add proper parameter handling
+export const getLecturerUnits = async (lecturerId) => {
   const token = localStorage.getItem("token");
-  const lecturerId = localStorage.getItem("userId"); // Ensure this is stored at login
-
-  if (!token || !lecturerId) {
-    console.error("Missing token or lecturer ID");
-    return [];
-  }
 
   try {
     const response = await axios.get(`${API_URL}/unit/lecturer/units/${lecturerId}`, {
@@ -42,9 +37,17 @@ export const getLecturerUnits = async () => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error fetching assigned units:", error.response?.data || error.message);
+    console.error("Error fetching lecturer units:", error);
     return [];
   }
+};
+
+export const getUnitEnrollments = (unitId) => {
+  if (!unitId) {
+    console.error("Unit ID is required");
+    return Promise.reject("Unit ID is required");
+  }
+  return api.get(`/unit/${unitId}/students`);
 };
 
 // Fetch attendance data for a unit
@@ -70,13 +73,13 @@ export const getStudents = async () => {
         "Content-Type": "application/json"
       }
     });
-    
+
     // Transform course data for frontend
     return response.data.map(student => ({
       ...student,
       course: student.course?.name || student.course || 'N/A'
     }));
-    
+
   } catch (error) {
     console.error("Error fetching students:", error.response?.data || error.message);
     return [];
@@ -143,7 +146,7 @@ export const getUnits = async () => {
   }
 
   try {
-    const response = await fetch("http://localhost:5000/api/unit", {
+    const response = await fetch("https://attendance-system-w70n.onrender.com/api/unit", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -184,7 +187,7 @@ export const getCourses = async () => {
   }
 
   try {
-    const response = await fetch("http://localhost:5000/api/course", {
+    const response = await fetch("https://attendance-system-w70n.onrender.com/api/course", {
       method: "GET",
       headers: {
         "Content-Type": "application/json",
@@ -258,7 +261,7 @@ export const importStudents = async (file) => {
 
   try {
     const response = await axios.post(`${API_URL}/students/upload`, formData, {
-      headers: { 
+      headers: {
         "Content-Type": "multipart/form-data",
         Authorization: `Bearer ${token}`
       }
@@ -279,7 +282,7 @@ export const downloadStudents = async () => {
         Authorization: `Bearer ${token}`
       }
     });
-    
+
     // Create temporary download link
     const url = window.URL.createObjectURL(new Blob([response.data]));
     const link = document.createElement("a");
@@ -288,7 +291,7 @@ export const downloadStudents = async () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-    
+
     return true;
   } catch (error) {
     console.error("Export error:", error.response?.data || error.message);
@@ -403,66 +406,66 @@ export const removeUnitFromCourse = async (courseId, unitId) => {
   }
 };
 
-  // getUnitsByCourse function
-  export const getUnitsByCourse = async (courseId) => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await axios.get(`${API_URL}/course/${courseId}/units`, {
-        headers: { Authorization: `Bearer ${token}` }
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error fetching units:", error);
-      throw error;
-    }
-  };
-  
-  // addUnitToCourse
-  export const addUnitToCourse = async (courseId, unitData) => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await axios.post(
-        `${API_URL}/course/${courseId}/units`,
-        {
-          ...unitData,
-          year: 1, // Add default year
-          semester: 1 // Add default semester
-        },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data;
-    } catch (error) {
-      console.error("Error adding unit:", error);
-      throw error;
-    }
-  };
+// getUnitsByCourse function
+export const getUnitsByCourse = async (courseId) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/course/${courseId}/units`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching units:", error);
+    throw error;
+  }
+};
 
-  export const getStudentProfile = async (studentId) => {
-    try {
-      const response = await api.get(`/students/${studentId}`);
-      return response.data;
-    } catch (error) {
-      throw error.response.data;
-    }
-  };
+// addUnitToCourse
+export const addUnitToCourse = async (courseId, unitData) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.post(
+      `${API_URL}/course/${courseId}/units`,
+      {
+        ...unitData,
+        year: 1, // Add default year
+        semester: 1 // Add default semester
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error("Error adding unit:", error);
+    throw error;
+  }
+};
 
-  // update lecturer
-  export const updateLecturer = async (id, lecturerData) => {
-    const token = localStorage.getItem("token");
-    try {
-      const response = await axios.put(`${API_URL}/lecturers/${id}`, lecturerData, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-      return response.data;
-    } catch (error) {
-      console.error("Error updating lecturer:", error.response?.data || error.message);
-      throw error;
-    }
-  };
-  
+export const getStudentProfile = async (studentId) => {
+  try {
+    const response = await api.get(`/students/${studentId}`);
+    return response.data;
+  } catch (error) {
+    throw error.response.data;
+  }
+};
+
+// update lecturer
+export const updateLecturer = async (id, lecturerData) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.put(`${API_URL}/lecturers/${id}`, lecturerData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error updating lecturer:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 // Mark attendance for a student
 export const markAttendance = (attendance) => api.post("/attendance", attendance);
 
@@ -472,19 +475,20 @@ export const downloadAttendanceReport = (courseId, semester, year) =>
     responseType: "blob",
   });
 
-  // attendance trends
-  export const getAttendanceTrends = (courseId) =>
+// attendance trends
+export const getAttendanceTrends = (courseId) =>
   api.get(`/attendance/trends/${courseId}`);
 
-  // getquiz
-  export const getQuiz = (unitId) => api.get(`/quiz/${unitId}`);
-  
-  // sendquiz
-  export const sendQuiz = (quizData) => api.post("/quiz", quizData);
+// getquiz
+export const getQuiz = (unitId) => api.get(`/quiz/${unitId}`);
 
-  // getquizresults
-  export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
+// sendquiz
+export const sendQuiz = (quizData) => api.post("/quiz", quizData);
+
+// getquizresults
+export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 
 // enrolled students units
-export const getUnitEnrollments = (unitId) => api.get(`/unit/${unitId}/students`);
+// export const getUnitEnrollments = (unitId) => api.get(`/unit/${unitId}/students`);
+
 export default api;
