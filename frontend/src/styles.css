@@ -85,8 +85,9 @@ form {
     }
   }
   
-  .install-btn {
+  /* .install-btn {
     padding: 10px 16px;
+    position: relative;
     font-size: 16px;
     color: white;
     background: #007bff;
@@ -98,7 +99,7 @@ form {
   .install-btn:hover {
     background: #0056b3;
   }
-  
+   */
  /*admin panel */
 .admin-panel {
   position: relative;
