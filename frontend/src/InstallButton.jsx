@@ -37,9 +37,10 @@ const InstallButton = () => {
       <div
         style={{
           position: 'fixed',
-          bottom: '20px',
-          right: '20px',
-          zIndex: 1100, // Ensure it's above the connectivity banner
+          left: '20px',         
+          bottom: '20px',       
+          zIndex: 110000,
+          margin: '0 20px 20px 0',
         }}
       >
         <Button
