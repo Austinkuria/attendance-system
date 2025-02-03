@@ -20,7 +20,7 @@ const Signup = () => {
     }
 
     try {
-      const response = await fetch('/api/signup', {
+      const response = await fetch('https://attendance-system-w70n.onrender.com/api/login', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName, lastName, email, password, role }),
