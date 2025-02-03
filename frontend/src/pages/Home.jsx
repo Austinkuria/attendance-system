@@ -20,6 +20,7 @@ const Home = () => {
           justifyContent: 'center',
           padding: '50px',
           flex: 1,  // Ensure that content stretches to fill available space
+          overflowY:'hidden',
         }}
       >
         <Title>Welcome to the Smart Attendance System</Title>
