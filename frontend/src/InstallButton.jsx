@@ -38,7 +38,7 @@ const InstallButton = () => {
         style={{
           position: 'fixed',
           left: '20px',         
-          bottom: '20px',       
+          top: '20px',       
           zIndex: 110000,
           margin: '0 20px 20px 0',
         }}
