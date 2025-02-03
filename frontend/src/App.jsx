@@ -1,8 +1,7 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
-import { IoCloseCircleOutline } from "react-icons/io5"; // Import React icon
+import { IoCloseCircleOutline } from "react-icons/io5";
 import "react-toastify/dist/ReactToastify.css";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
@@ -23,19 +22,32 @@ import QuizPage from "./pages/QuizPage";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [showBanner, setShowBanner] = useState(true);
+  // Initialize showBanner to true if online (to display banner on first load) or false otherwise.
+  const [showBanner, setShowBanner] = useState(navigator.onLine);
+
+  // Effect to auto-hide the banner on initial load if online.
+  useEffect(() => {
+    if (navigator.onLine) {
+      setTimeout(() => {
+        setShowBanner(false);
+      }, 3000);
+    }
+  }, []);
 
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      setShowBanner(true);
       toast.success("You're back online", { autoClose: 3000 });
+      setShowBanner(true);
+      setTimeout(() => {
+        setShowBanner(false);
+      }, 3000);
     };
 
     const handleOffline = () => {
       setIsOnline(false);
-      setShowBanner(true);
       toast.error("You're offline. Some features may not work.", { autoClose: 3000 });
+      setShowBanner(true);
     };
 
     window.addEventListener("online", handleOnline);
@@ -56,7 +68,8 @@ function App() {
       <ToastContainer />
       <InstallButton />
       <BackToTop />
-      {/* Online/Offline Banner with Close Button */}
+
+      {/* Connectivity Banner */}
       {showBanner && (
         <div
           style={{
@@ -75,7 +88,11 @@ function App() {
             boxSizing: "border-box",
           }}
         >
-          <span>{isOnline ? "Connected to the internet" : "You're offline. Some features may be limited."}</span>
+          <span>
+            {isOnline
+              ? "Connected to the internet"
+              : "You're offline. Some features may be limited."}
+          </span>
           <IoCloseCircleOutline
             onClick={handleCloseBanner}
             style={{
