@@ -47,6 +47,7 @@ const AttendanceManagement = () => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [qrData, setQrData] = useState('');
+  const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
     units: true,
     attendance: false,
@@ -65,8 +66,6 @@ const AttendanceManagement = () => {
     year: null,
     semester: null
   });
-
-  const lecturerId = localStorage.getItem('user.id');
 
   // Extract filter options from units
   const filterOptions = useMemo(() => {
@@ -109,23 +108,23 @@ const AttendanceManagement = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const storedId = localStorage.getItem("user.id");
-        if (!storedId) {
+        if (!lecturerId) {
           message.error("User session expired");
           return;
         }
 
         setLoading(prev => ({ ...prev, units: true }));
 
-        const unitsData = await getLecturerUnits(storedId);
+        // Get units assigned to the lecturer
+        const unitsData = await getLecturerUnits(lecturerId);
 
         if (unitsData?.length > 0) {
           setUnits(unitsData);
-          setSelectedUnit(unitsData[0]._id);
+          setSelectedUnit(unitsData[0]._id);  // Default to first unit
         } else {
           message.info("No units assigned to your account");
         }
-      } catch  {
+      } catch {
         message.error("Failed to load unit data");
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
@@ -134,6 +133,7 @@ const AttendanceManagement = () => {
 
     if (lecturerId) fetchData();
   }, [lecturerId]);
+
 
   // Update selected unit when filters change
   useEffect(() => {
