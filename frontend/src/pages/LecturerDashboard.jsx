@@ -58,8 +58,10 @@ const LecturerDashboard = () => {
   // Responsive layout
   useEffect(() => {
     const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) setCollapsed(true);
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) setCollapsed(true); // Collapse sidebar on mobile by default
+      else setCollapsed(false); // Expand sidebar on larger screens
     };
     
     handleResize();
@@ -72,6 +74,7 @@ const LecturerDashboard = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     sessionStorage.clear();
+    message.success('Logged out successfully!'); // Use the `message` variable
     window.location.href = '/login';
     window.location.reload(true);
   };
@@ -109,7 +112,7 @@ const LecturerDashboard = () => {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
-      <Sidebar collapsed={collapsed} />
+      <Sidebar collapsed={collapsed} isMobile={isMobile} />
       
       <Layout>
         <Header style={{ 
