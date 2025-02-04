@@ -1,75 +1,35 @@
-const Attendance = require("../models/Attendance");
-const Unit = require("../models/Unit");
-const QRCode = require('qrcode');
+const AttendanceSession = require("../models/AttendanceSession");
 
-// Get attendance records for a unit
-const getUnitAttendance = async (req, res) => {
-  try {
-    const unit = await Unit.findById(req.params.unitId);
-    if (!unit) {
-      return res.status(404).json({ message: "Unit not found" });
+// Function to create a new attendance session
+const createAttendanceSession = async (req, res) => {
+    try {
+        const { unit, lecturer, qrCode, startTime, endTime, attendance } = req.body;
+
+        // Validate incoming data
+        if (!unit || !lecturer || !startTime || !endTime) {
+            return res.status(400).json({ message: "Missing required fields" });
+        }
+
+        // Create a new attendance session
+        const newSession = new AttendanceSession({
+            unit,
+            lecturer,
+            qrCode,
+            startTime,
+            endTime,
+            attendance
+        });
+
+        // Save the session to the database
+        await newSession.save();
+
+        return res.status(201).json({ message: "Attendance session created successfully", session: newSession });
+    } catch (error) {
+        return res.status(500).json({ message: "Error creating attendance session", error: error.message });
     }
-
-    // Verify lecturer access
-    const lecturer = await User.findById(req.user.id);
-    if (!lecturer.assignedUnits.includes(unit._id)) {
-      return res.status(403).json({ message: "Unauthorized access" });
-    }
-
-    const attendance = await Attendance.find({ unit: req.params.unitId })
-      .populate('student', 'firstName lastName regNo')
-      .sort({ createdAt: -1 });
-
-    res.status(200).json(attendance);
-  } catch (error) {
-    res.status(500).json({
-      message: "Error fetching attendance records",
-      error: error.message
-    });
-  }
 };
 
-// Generate QR Code for attendance session
-const generateQRCode = async (req, res) => {
-  try {
-    const { unitId } = req.body;
-    const qrData = JSON.stringify({
-      unitId,
-      timestamp: new Date().toISOString(),
-      lecturerId: req.user.id
-    });
-
-    const qrCode = await QRCode.toDataURL(qrData);
-    
-    res.status(200).json({ qrCode });
-  } catch (error) {
-    res.status(500).json({
-      message: "Error generating QR code",
-      error: error.message
-    });
-  }
+module.exports = {
+    createAttendanceSession,
+    // other existing functions...
 };
-
-// Update attendance status
-const updateAttendance = async (req, res) => {
-  try {
-    const attendance = await Attendance.findByIdAndUpdate(
-      req.params.id,
-      { status: req.body.status },
-      { new: true }
-    ).populate('student', 'firstName lastName regNo');
-
-    if (!attendance) {
-      return res.status(404).json({ message: "Attendance record not found" });
-    }
-
-    res.status(200).json(attendance);
-  } catch (error) {
-    res.status(500).json({
-      message: "Error updating attendance",
-      error: error.message
-    });
-  }
-};
-
-module.exports = { getUnitAttendance, generateQRCode, updateAttendance };
