@@ -14,7 +14,7 @@ import ManageStudents from "./pages/ManageStudents";
 import ManageCourses from "./pages/ManageCourses";
 import ManageLecturers from "./pages/ManageLecturers";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import InstallButton from './InstallButton';
+import InstallButton from './components/InstallButton';
 import BackToTop from "./components/BackToTop";
 import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/Analytics";

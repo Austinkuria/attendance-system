@@ -28,11 +28,11 @@ export const getStudentAttendance = (unitId) => api.get(`/attendance/student/${u
 
 // Fetch units assigned to the lecturer
 // Add proper parameter handling
-export const getLecturerUnits = async (lecturerId) => {
+export const getLecturerUnits = async () => {
   const token = localStorage.getItem("token");
-
+  const lecturerId = localStorage.getItem("userId");
   try {
-    const response = await axios.get(`${API_URL}/unit/lecturer/units/${lecturerId}`, {
+    const response = await axios.get(`https://attendance-system-w70n.onrender.com/api/unit/lecturer/units/${lecturerId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
     return response.data;

@@ -19,7 +19,6 @@ const InstallBanner = styled.div`
   right: 20px;
   z-index: 100000;
   padding: 16px;
-  m
   background: #ffffff;
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0,0,0,0.12);
@@ -34,6 +33,7 @@ const InstallBanner = styled.div`
 
   @media (max-width: 768px) {
     bottom: 0;
+    top: auto;  /* Ensures it doesn't remain at the top */
     right: 0;
     left: 0;
     border-radius: 0;
@@ -52,6 +52,7 @@ const InstallButton = () => {
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
+      console.log("beforeinstallprompt event fired");
       if (dismissed) return;
       
       event.preventDefault();
