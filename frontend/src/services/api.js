@@ -490,5 +490,19 @@ export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 
 // enrolled students units
 // export const getUnitEnrollments = (unitId) => api.get(`/unit/${unitId}/students`);
-
+export const createAttendanceSession = async (attendanceData) => {
+  const token = localStorage.getItem("token"); // Retrieve the token from local storage
+  try {
+    const response = await api.post("/attendance", attendanceData, {
+      headers: {
+        Authorization: `Bearer ${token}`, // Include the token in the headers
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data; // Return the response data
+  } catch (error) {
+    console.error("Error creating attendance session:", error.response?.data || error.message);
+    throw error; // Rethrow the error for handling in the calling function
+  }
+};
 export default api;
