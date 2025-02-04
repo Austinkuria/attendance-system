@@ -50,6 +50,8 @@ const StudentDashboard = () => {
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [showBackToTop, setShowBackToTop] = useState(false);
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const navigate = useNavigate();
 
   // Fetch student profile (for potential future use)
@@ -66,6 +68,7 @@ const StudentDashboard = () => {
         setIsLoading(false);
       });
   }, []);
+
 
   // Fetch student units
   useEffect(() => {
@@ -131,10 +134,19 @@ const StudentDashboard = () => {
     link.click();
   };
 
+  // Logout handler
+  const confirmLogout = () => {
+    // Clear authentication tokens etc.
+    localStorage.removeItem("token");
+    setIsLogoutModalVisible(false);
+    message.success("You have been logged out successfully.");
+    navigate("/login");
+  };
+
+
   // Logout and navigation functions
   const handleLogout = () => {
-    localStorage.removeItem('token');
-    navigate('/login');
+    setIsLogoutModalVisible(true);
   };
 
   const handleViewProfile = () => {
@@ -212,7 +224,6 @@ const StudentDashboard = () => {
   };
 
   // "Back to Top" button state management
-  const [showBackToTop, setShowBackToTop] = useState(false);
   useEffect(() => {
     const onScroll = () => setShowBackToTop(window.scrollY > 200);
     window.addEventListener('scroll', onScroll);
@@ -226,8 +237,7 @@ const StudentDashboard = () => {
         <LoadingOutlined style={{ fontSize: 24 }} spin /> Loading...
       </div>
     );
-  }
-
+  }  
   // Dropdown menu for profile options
   const profileMenu = (
     <Menu>
@@ -255,7 +265,17 @@ const StudentDashboard = () => {
             </Dropdown>
           </div>
         </Row>
-
+         {/* Logout Confirmation Modal */}
+         <Modal
+          title="Confirm Logout"
+          visible={isLogoutModalVisible}
+          onOk={confirmLogout}
+          onCancel={() => setIsLogoutModalVisible(false)}
+          okText="Logout"
+          cancelText="Cancel"
+        >
+          <p>Are you sure you want to logout?</p>
+        </Modal>
         {/* Low Attendance Warning */}
         {lowAttendanceUnits.length > 0 && (
           <Alert
