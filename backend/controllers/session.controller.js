@@ -1,7 +1,5 @@
-const Session = require('../models/Session');
-const { generateQRToken } = require('../utils/session.utils');
-
 const Session = require('../models/AttendanceSession');
+const generateQRToken = require('../utils/session.utils');
 
 exports.detectCurrentSession = async (req, res) => {
   try {
@@ -14,6 +12,7 @@ exports.detectCurrentSession = async (req, res) => {
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
 };
+
 exports.createAttendanceSession = async (req, res) => {
   try {
     const { unitId, startTime, endTime } = req.body;
@@ -30,8 +29,8 @@ exports.createAttendanceSession = async (req, res) => {
 
     await session.save();
 
-    res.status(201).json({ message: "Session created successfully", session });
+    res.status(201).json({ message: 'Session created successfully', session });
   } catch (error) {
-    res.status(500).json({ message: "Error creating session", error: error.message });
+    res.status(500).json({ message: 'Error creating session', error: error.message });
   }
 };
