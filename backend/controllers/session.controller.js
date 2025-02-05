@@ -14,7 +14,6 @@ exports.detectCurrentSession = async (req, res) => {
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
 };
-
 exports.createAttendanceSession = async (req, res) => {
   try {
     const { unitId, startTime, endTime } = req.body;

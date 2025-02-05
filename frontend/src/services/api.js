@@ -525,7 +525,7 @@ export const createAttendanceSession = async (sessionData) => {
 };
 // detect current session
 export const detectCurrentSession = () => {
-  return axios.get('/api/sessions/current');
+  return axios.get('https://attendance-system-w70n.onrender.com/api/sessions/current');
 };
 
 export const submitAttendance = (token, deviceData) => {
