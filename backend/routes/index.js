@@ -33,7 +33,7 @@ router.use("/unit", unitRoutes);
 router.use("/attendance/",authenticate, attendanceRoutes);
 
 // Session routes
-router.use("/api/sessions", sessionRoutes); 
+router.use("/sessions", sessionRoutes); 
 
 // Define the /api/students route
 router.get('/students', getStudents);
