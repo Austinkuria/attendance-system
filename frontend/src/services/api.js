@@ -508,9 +508,15 @@ export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 //     throw error; // Rethrow the error for handling in the calling function
 //   }
 // };
+
 export const createAttendanceSession = async (sessionData) => {
   try {
-    const response = await axios.post(`${API_URL}/attendance/create`, sessionData);
+    const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+    const response = await axios.post(`${API_URL}/attendance/create`, sessionData, {
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
+    });
     return response.data;
   } catch (error) {
     console.error('Error creating attendance session:', error.response ? error.response.data : error.message);
