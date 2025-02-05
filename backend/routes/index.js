@@ -13,7 +13,7 @@ const departmentRoutes = require("../routes/departmentRoutes");
 const courseRoutes = require("../routes/courseRoutes");
 const unitRoutes = require("../routes/unitRoutes");
 const attendanceRoutes = require("../routes/attendance.routes");
-const sessionRoutes = require("../routes/sessionRoutes");
+const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
 
 // User routes
