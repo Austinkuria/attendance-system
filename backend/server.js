@@ -50,5 +50,5 @@ app.get("/", (req, res) => {
     res.send("API is running...");
 });
 
-const PORT = process.env.PORT || 'https://attendance-system-w70n.onrender.com';
+const PORT = process.env.PORT || 5000; // Set a default port number
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));

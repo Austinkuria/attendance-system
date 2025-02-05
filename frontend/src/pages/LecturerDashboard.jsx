@@ -18,6 +18,7 @@ import Sidebar from "../components/Sidebar";
 import AttendanceManagement from "../components/AttendanceManagement";
 import Analytics from "../pages/Analytics";
 import BackToTop from "../components/BackToTop";
+// import QrCodeGenerator from "../components/QRCodeGenerator";  // Make sure the filename matches (QRCodeGenerator.jsx)
 
 const { Header, Content } = Layout;
 
@@ -29,7 +30,7 @@ const LecturerDashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Authentication check
+  // Authentication check: redirect to /login if no token is found
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
@@ -55,13 +56,13 @@ const LecturerDashboard = () => {
     };
   }, []);
 
-  // Responsive layout
+  // Responsive layout: collapse sidebar on mobile screens
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) setCollapsed(true); // Collapse sidebar on mobile by default
-      else setCollapsed(false); // Expand sidebar on larger screens
+      if (mobile) setCollapsed(true); // Collapse on mobile by default
+      else setCollapsed(false); // Expand on larger screens
     };
     
     handleResize();
@@ -74,9 +75,9 @@ const LecturerDashboard = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     sessionStorage.clear();
-    message.success('Logged out successfully!'); // Use the `message` variable
+    message.success('Logged out successfully!');
     window.location.href = '/login';
-    window.location.reload(true);
+    // window.location.reload(true); // Consider if reload is really needed
   };
 
   // Profile dropdown items
@@ -112,6 +113,7 @@ const LecturerDashboard = () => {
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
+      {/* Sidebar Component */}
       <Sidebar collapsed={collapsed} isMobile={isMobile} />
       
       <Layout>
@@ -147,6 +149,11 @@ const LecturerDashboard = () => {
           }}
         >
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
+            {/* QR Code Generator Section */}
+            {/* <section style={{ marginBottom: 48 }}>
+              <QrCodeGenerator />
+            </section> */}
+            
             {/* Attendance Management Section */}
             <section style={{ marginBottom: 48 }}>
               <AttendanceManagement />

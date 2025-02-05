@@ -1,5 +1,6 @@
+
 const express = require("express");
-const { login, signup, getStudents, getLecturers, downloadStudents,deleteStudent, importStudents,getLecturerById,createAttendanceSession } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -11,6 +12,8 @@ const upload = require("../middleware/uploadMiddleware");
 const departmentRoutes = require("../routes/departmentRoutes"); 
 const courseRoutes = require("../routes/courseRoutes");
 const unitRoutes = require("../routes/unitRoutes");
+const attendanceRoutes = require("../routes/attendance.routes");
+const sessionRoutes = require("../routes/sessionRoutes");
 const router = express.Router();
 
 // User routes
@@ -26,6 +29,11 @@ router.use("/course", courseRoutes);
 // Unit routes
 router.use("/unit", unitRoutes);
 
+// Attendance routes
+router.use("/attendance/", attendanceRoutes);
+
+// Session routes
+router.use("/api/sessions", sessionRoutes); 
 
 // Define the /api/students route
 router.get('/students', getStudents);
@@ -36,18 +44,11 @@ router.get('/lecturers', getLecturers);
 // Admin routes (admin only)
 router.post("/user", authenticate, authorize(["admin"]), createUser);
 router.post("/upload-students", authenticate, authorize(["admin"]), upload.single("csvFile"), bulkUploadStudents);
-
 router.post("/upload", upload.single("csvFile"), importStudents);
 router.get("/download", downloadStudents);
 router.delete("/students/:id", deleteStudent);
 
 // Update import route to use correct path
 router.post('/students/upload', upload.single("csvFile"), importStudents);
-
-// leecturerbyid
-// router.get("/lecturer/:id", getLecturerById);
-
-// attendance routes
-router.use("/attendance", attendanceRoutes);
 
 module.exports = router;

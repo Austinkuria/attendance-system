@@ -54,7 +54,10 @@ export const getUnitEnrollments = (unitId) => {
 export const getAttendanceData = (unitId) => api.get(`/attendance/unit/${unitId}`);
 
 // Generate QR code for attendance (for lecturers)
-export const generateQRCode = (unitId) => api.post("/attendance/generateQR", { unitId });
+export const generateQRCode = () => {
+  return api.get("/sessions/current");
+};
+
 
 // ** New Methods for Admin Panel **
 
@@ -467,7 +470,7 @@ export const updateLecturer = async (id, lecturerData) => {
 };
 
 // Mark attendance for a student
-export const markAttendance = (attendance) => api.post("/attendance", attendance);
+// export const markAttendance = (attendance) => api.post("/attendance", attendance);
 
 // downloadattendancereport
 export const downloadAttendanceReport = (courseId, semester, year) =>
@@ -488,21 +491,41 @@ export const sendQuiz = (quizData) => api.post("/quiz", quizData);
 // getquizresults
 export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 
-// enrolled students units
+
 // export const getUnitEnrollments = (unitId) => api.get(`/unit/${unitId}/students`);
-export const createAttendanceSession = async (attendanceData) => {
-  const token = localStorage.getItem("token"); // Retrieve the token from local storage
+// export const createAttendanceSession = async (attendanceData) => {
+//   const token = localStorage.getItem("token"); // Retrieve the token from local storage
+//   try {
+//     const response = await api.post("https://attendance-system-w70n.onrender.com/api/attendance/create", attendanceData, {
+//       headers: {
+//         Authorization: `Bearer ${token}`, // Include the token in the headers
+//         "Content-Type": "application/json"
+//       }
+//     });
+//     return response.data; // Return the response data
+//   } catch (error) {
+//     console.error("Error creating attendance session:", error.response?.data || error.message);
+//     throw error; // Rethrow the error for handling in the calling function
+//   }
+// };
+export const createAttendanceSession = async (sessionData) => {
   try {
-    const response = await api.post("/attendance", attendanceData, {
-      headers: {
-        Authorization: `Bearer ${token}`, // Include the token in the headers
-        "Content-Type": "application/json"
-      }
-    });
-    return response.data; // Return the response data
+    const response = await axios.post(`${API_URL}/attendance/create`, sessionData);
+    return response.data;
   } catch (error) {
-    console.error("Error creating attendance session:", error.response?.data || error.message);
-    throw error; // Rethrow the error for handling in the calling function
+    console.error('Error creating attendance session:', error.response ? error.response.data : error.message);
+    throw error;
   }
+};
+// detect current session
+export const detectCurrentSession = () => {
+  return axios.get('/api/sessions/current');
+};
+
+export const submitAttendance = (token, deviceData) => {
+  return axios.post('https://attendance-system-w70n.onrender.com/api/attendance', { 
+    token,
+    deviceData 
+  });
 };
 export default api;

@@ -120,7 +120,7 @@ function App() {
           <Route path="/admin/manage-lecturers" element={<ManageLecturers />} />
           <Route path="/lecturer/attendance" element={<AttendanceManagement />} />
           <Route path="/lecturer/analytics" element={<Analytics />} />
-          <Route path="/quizzes" element={<QuizPage/>} />
+          <Route path="lecturer//quizzes" element={<QuizPage/>} />
         </Routes>
       </div>
     </Router>
