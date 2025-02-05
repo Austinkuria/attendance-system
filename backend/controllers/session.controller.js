@@ -1,23 +1,17 @@
 const Session = require('../models/Session');
 const { generateQRToken } = require('../utils/session.utils');
 
+const Session = require('../models/AttendanceSession');
+
 exports.detectCurrentSession = async (req, res) => {
   try {
-    const now = new Date();
-    const session = await Session.findOne({
-      lecturer: req.user.id,
-      startTime: { $lte: now },  // Session started
-      endTime: { $gte: now }     // Session not expired
-    }).populate('unit course');
-    
-    if (!session) return res.status(404).json({ message: "No active session" });
-
-    // Generate QR token for students to scan
-    const qrToken = await generateQRToken(session);
-    
-    res.json({ ...session.toObject(), qrToken });
+    const currentSession = await Session.findOne({ /* your criteria for current session */ });
+    if (!currentSession) {
+      return res.status(404).json({ message: 'No current session found' });
+    }
+    res.json(currentSession);
   } catch (error) {
-    res.status(500).json({ message: "Session detection failed" });
+    res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
 };
 
