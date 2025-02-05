@@ -1,6 +1,6 @@
 const AttendanceSession = require('../models/session.model');
 const jwt = require('jsonwebtoken');
-const generateQRToken = require('../utils/generateQRToken');
+const generateQRToken = require('../utils/session.utils');
 const Session = require('../models/Session');
 exports.submitAttendance = async (req, res) => {
   try {
