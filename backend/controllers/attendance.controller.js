@@ -1,7 +1,6 @@
-const AttendanceSession = require('../models/session.model');
 const jwt = require('jsonwebtoken');
 const generateQRToken = require('../utils/session.utils');
-const Session = require('../models/Session');
+const Session = require('../models/AttendanceSession');
 exports.submitAttendance = async (req, res) => {
   try {
     const deviceHash = req.deviceFingerprint; // Captured by middleware
@@ -69,7 +68,7 @@ exports.createAttendanceSession = async (req, res) => {
       lecturer: lecturerId,
       startTime,
       endTime,
-      qrToken: generateQRToken(), // Generate the QR token
+      qrCode: generateQRToken(), // Generate the QR token
     });
 
     await session.save();
