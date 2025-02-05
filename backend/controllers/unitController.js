@@ -96,7 +96,7 @@ const getUnits = async (req, res) => {
 // Fetch units for a specific lecturer
 const getLecturerUnits = async (req, res) => {
     try {
-      const { lecturerId } = req.user.id;
+      const { lecturerId } = req.params;
       const lecturer = await User.findById(lecturerId)
         .populate({
           path: 'assignedUnits',
