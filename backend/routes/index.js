@@ -30,7 +30,7 @@ router.use("/course", courseRoutes);
 router.use("/unit", unitRoutes);
 
 // Attendance routes
-router.use("/attendance/", attendanceRoutes);
+router.use("/attendance/",authenticate, attendanceRoutes);
 
 // Session routes
 router.use("/api/sessions", sessionRoutes); 
