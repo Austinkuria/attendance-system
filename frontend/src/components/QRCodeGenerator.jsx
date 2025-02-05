@@ -1,35 +1,91 @@
-// import { useState } from "react";
-// import PropTypes from "prop-types";
-// import { Button, Modal } from "antd";
-// import * as QRCode from 'qrcode.react';
+import { useState } from 'react';
+import { Form, Input, Button, Card, DatePicker, TimePicker } from 'antd';
+// Use the named export QRCodeCanvas from qrcode.react
+import { QRCodeCanvas } from 'qrcode.react';
 
+const QrCodeGenerator = () => {
+  const [qrData, setQrData] = useState('');
 
-// const QRCodeGenerator = ({ onGenerate }) => {
-//   const [qrCode, setQRCode] = useState("");
+  // Handler for form submission
+  const onFinish = (values) => {
+    // Extract form values
+    const { lecturerName, courseName, date, time } = values;
+    
+    // Build the payload for the QR code as a JSON string
+    const qrPayload = {
+      lecturer: lecturerName,
+      course: courseName,
+      date: date.format('YYYY-MM-DD'),
+      time: time.format('HH:mm'),
+    };
 
-//   const handleGenerate = async () => {
-//     const qrRes = await onGenerate();
-//     setQRCode(qrRes);
-//   };
+    // Set the QR data (as a JSON string)
+    setQrData(JSON.stringify(qrPayload));
+  };
 
-//   return (
-//     <>
-//       <Button onClick={handleGenerate}>Generate QR Code</Button>
-//       {qrCode && (
-//         <Modal
-//           title="QR Code"
-//           open={!!qrCode}
-//           onCancel={() => setQRCode("")}
-//           footer={null}
-//         >
-//           <QRCode value={qrCode} size={256} />
-//         </Modal>
-//       )}
-//     </>
-//   );
-// };
-// QRCodeGenerator.propTypes = {
-//   onGenerate: PropTypes.func.isRequired,
-// };
+  return (
+    <div style={{ padding: 20, maxWidth: 600, margin: '0 auto' }}>
+      <Card title="Smart QR Code Attendance Generator" style={{ marginBottom: 20 }}>
+        <Form layout="vertical" onFinish={onFinish}>
+          <Form.Item
+            label="Lecturer Name"
+            name="lecturerName"
+            rules={[{ required: true, message: 'Please enter the lecturer name' }]}
+          >
+            <Input placeholder="Enter lecturer name" />
+          </Form.Item>
 
-// export default QRCodeGenerator;
+          <Form.Item
+            label="Course Name"
+            name="courseName"
+            rules={[{ required: true, message: 'Please enter the course name' }]}
+          >
+            <Input placeholder="Enter course name" />
+          </Form.Item>
+
+          <Form.Item
+            label="Date"
+            name="date"
+            rules={[{ required: true, message: 'Please select the date' }]}
+          >
+            <DatePicker style={{ width: '100%' }} />
+          </Form.Item>
+
+          <Form.Item
+            label=" Start Time"
+            name="startTime"
+            rules={[{ required: true, message: 'Please select start the time' }]}
+          >
+            <TimePicker style={{ width: '100%' }} format="HH:mm" />
+          </Form.Item>
+          <Form.Item
+          label="End Time"
+            name="endTime"
+            rules={[{ required: true, message: 'Please select end the time' }]}
+            >
+            <TimePicker style={{ width: '100%' }} format="HH:mm" />
+            </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit">
+              Generate QR Code
+            </Button>
+          </Form.Item>
+        </Form>
+      </Card>
+
+      {qrData && (
+        <Card title="Generated QR Code">
+          <div style={{ textAlign: 'center' }}>
+            <QRCodeCanvas value={qrData} size={256} level="H" includeMargin={true} />
+          </div>
+          <p style={{ marginTop: 10, wordBreak: 'break-all' }}>
+            <strong>QR Code contains:</strong> {qrData}
+          </p>
+        </Card>
+      )}
+    </div>
+  );
+};
+
+export default QrCodeGenerator;
