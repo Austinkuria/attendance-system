@@ -224,7 +224,7 @@ const AttendanceManagement = () => {
 
     try {
       setLoading(prev => ({ ...prev, session: true }));
-      const { data } = await createAttendanceSession({
+      const data = await createAttendanceSession({
         unitId: selectedUnit,
         lecturerId,
         startTime: new Date(), // or any desired start time
