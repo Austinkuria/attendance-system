@@ -7,6 +7,7 @@ import {
   QrcodeOutlined,DownloadOutlined,SearchOutlined,FilterOutlined,CalendarOutlined,BookOutlined,TeamOutlined,PercentageOutlined,ScheduleOutlined,SyncOutlined,ClockCircleOutlined
 } from '@ant-design/icons';
 import PropTypes from 'prop-types';
+import axios from 'axios';
 import {
   generateQRCode,getAttendanceData,downloadAttendanceReport,getLecturerUnits,detectCurrentSession,createAttendanceSession,
   // submitAttendance
@@ -145,6 +146,24 @@ const AttendanceManagement = () => {
     if (lecturerId) fetchData();
   }, [lecturerId]);
 
+  useEffect(() => {
+    const fetchCurrentSession = async () => {
+      try {
+        const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+        const response = await axios.get('https://attendance-system-w70n.onrender.com/api/sessions/current', {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+        setCurrentSession(response.data);
+      } catch (error) {
+        console.error('Error fetching current session:', error.response ? error.response.data : error.message);
+        message.error('Failed to fetch current session');
+      }
+    };
+
+    fetchCurrentSession();
+  }, []);
   // Preserved selected unit update logic
   useEffect(() => {
     if (filteredUnits.length > 0 && !filteredUnits.some(u => u._id === selectedUnit)) {
@@ -216,6 +235,7 @@ const AttendanceManagement = () => {
   };
   
   // create session functionality
+ 
   const handleCreateSession = async () => {
     if (!selectedUnit) {
       message.error('Please select a unit first');
@@ -224,21 +244,26 @@ const AttendanceManagement = () => {
 
     try {
       setLoading(prev => ({ ...prev, session: true }));
-      const data = await createAttendanceSession({
+      const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', {
         unitId: selectedUnit,
         lecturerId,
         startTime: new Date(), // or any desired start time
         endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour session
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
       });
       message.success('Session created successfully');
       setCurrentSession(data);
-      setQrData(data.qrToken); // Optional: you can generate the QR for this session too
-    } catch {
+    } catch{
       message.error('Failed to create session');
     } finally {
       setLoading(prev => ({ ...prev, session: false }));
     }
   };
+
 
   
 
@@ -518,8 +543,23 @@ const AttendanceManagement = () => {
               >
                 Clear Filters
               </Button>
+              
             }
           >
+             <Card
+          title="Real-time Unit Filters"
+          size="small"
+          extra={
+            <Button
+              type="primary"
+              icon={<CalendarOutlined />}
+              onClick={handleCreateSession}
+              disabled={loading.session}
+            >
+              {loading.session ? 'Creating...' : 'Create Attendance Session'}
+            </Button>
+          }
+        ></Card>
             <Space wrap style={{ width: '100%' }}>
               <Select
                 placeholder="Department"
