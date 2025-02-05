@@ -1,5 +1,6 @@
-const AttendanceSession = require('../models/AttendanceSession');
+const AttendanceSession = require('../models/session.model');
 const jwt = require('jsonwebtoken');
+const generateQRToken = require('../utils/generateQRToken');
 const Session = require('../models/Session');
 exports.submitAttendance = async (req, res) => {
   try {
@@ -60,8 +61,7 @@ exports.generateQRCode = async (req, res) => {
 // Function to create a new attendance session
 exports.createAttendanceSession = async (req, res) => {
   try {
-    const { unitId, startTime, endTime } = req.body;
-    const lecturerId = req.user.id; // Get the lecturer's ID from the authenticated user
+    const { unitId, lecturerId, startTime, endTime } = req.body;
 
     // Create a new session in the database
     const session = new Session({
@@ -74,9 +74,9 @@ exports.createAttendanceSession = async (req, res) => {
 
     await session.save();
 
-    res.status(201).json({ message: "Session created successfully", session });
+    res.status(201).json({ message: 'Session created successfully', session });
   } catch (error) {
-    res.status(500).json({ message: "Error creating session", error: error.message });
+    res.status(500).json({ message: 'Error creating session', error: error.message });
   }
 };
 
