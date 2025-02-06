@@ -145,25 +145,34 @@ const AttendanceManagement = () => {
 
     if (lecturerId) fetchData();
   }, [lecturerId]);
-
   useEffect(() => {
     const fetchCurrentSession = async () => {
       try {
-        const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-        const response = await axios.get('https://attendance-system-w70n.onrender.com/api/sessions/current', {
-          headers: {
-            'Authorization': `Bearer ${token}`
+        const token = localStorage.getItem('token');
+        const response = await axios.get(
+          '/api/sessions/current', // Use relative path
+          {
+            headers: { 'Authorization': `Bearer ${token}` }
           }
-        });
-        setCurrentSession(response.data);
+        );
+        
+        if (response.data && response.data.active) {
+          setCurrentSession(response.data);
+          setQrData(response.data.qrToken);
+        } else {
+          setCurrentSession(null);
+        }
       } catch (error) {
-        console.error('Error fetching current session:', error.response ? error.response.data : error.message);
-        message.error('Failed to fetch current session');
+        console.error('Session error:', error);
+        message.error(error.response?.data?.message || 'Session check failed');
       }
     };
-
+  
     fetchCurrentSession();
+    const interval = setInterval(fetchCurrentSession, 15000);
+    return () => clearInterval(interval);
   }, []);
+
   // Preserved selected unit update logic
   useEffect(() => {
     if (filteredUnits.length > 0 && !filteredUnits.some(u => u._id === selectedUnit)) {
@@ -234,6 +243,29 @@ const AttendanceManagement = () => {
     }
   };
   
+  // End session functionality
+  const handleEndSession = async () => {
+    if (!currentSession) return;
+
+    try {
+      setLoading(prev => ({ ...prev, session: true }));
+      const token = localStorage.getItem('token');
+      await axios.post('/api/sessions/end', {
+        sessionId: currentSession._id
+      }, {
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+
+      setCurrentSession(null);
+      setQrData('');
+      message.success('Session ended successfully');
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Failed to end session');
+    } finally {
+      setLoading(prev => ({ ...prev, session: false }));
+    }
+  };
+
   // create session functionality
  
   const handleCreateSession = async () => {
@@ -241,31 +273,34 @@ const AttendanceManagement = () => {
       message.error('Please select a unit first');
       return;
     }
-
+  
+    if (currentSession && isSessionActive(currentSession)) {
+      message.warning('A session is already active!');
+      return;
+    }
+  
     try {
       setLoading(prev => ({ ...prev, session: true }));
-      const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', {
+      const token = localStorage.getItem('token');
+      const { data } = await axios.post('/api/sessions/create', {
         unitId: selectedUnit,
-        lecturerId,
-        startTime: new Date(), // or any desired start time
-        endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour session
+        duration: 60 // Session duration in minutes
       }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        headers: { 'Authorization': `Bearer ${token}` }
       });
-      message.success('Session created successfully');
-      setCurrentSession(data);
-    } catch{
-      message.error('Failed to create session');
+  
+      setCurrentSession({
+        ...data,
+        startTime: new Date(data.startTime),
+        endTime: new Date(data.endTime)
+      });
+      message.success(`Session started for ${data.duration} minutes`);
+    } catch (error) {
+      message.error(error.response?.data?.message || 'Session creation failed');
     } finally {
       setLoading(prev => ({ ...prev, session: false }));
     }
   };
-
-
-  
 
   // Preserved attendance data fetching
   const handleViewAttendance = async () => {
@@ -307,6 +342,26 @@ const AttendanceManagement = () => {
       message.error('Failed to update attendance status');
     }
   };
+
+// Add these validation helpers near the top of your component
+const isSessionActive = (session) => {
+  if (!session) return false;
+  const now = new Date();
+  return new Date(session.startTime) < now && now < new Date(session.endTime);
+};
+
+const formatSessionTime = (session) => {
+  if (!session) return '';
+  const options = { 
+    hour: 'numeric', 
+    minute: '2-digit', 
+    hour12: true 
+  };
+  return `
+    ${new Date(session.startTime).toLocaleTimeString([], options)} - 
+    ${new Date(session.endTime).toLocaleTimeString([], options)}
+  `;
+};
 
   // Preserved filter clearing
   const clearFilters = () => {
@@ -432,9 +487,7 @@ const AttendanceManagement = () => {
   // Session Timer Component
   const SessionTimer = ({ end }) => {
     const [timeLeft, setTimeLeft] = useState(Math.max(0, end - Date.now()));
-    SessionTimer.propTypes = {
-      end: PropTypes.number.isRequired
-    };
+    
     useEffect(() => {
       const timer = setInterval(() => {
         setTimeLeft(prev => Math.max(0, prev - 1000));
@@ -447,7 +500,9 @@ const AttendanceManagement = () => {
       const seconds = ((ms % 60000) / 1000).toFixed(0);
       return `${minutes}m ${seconds}s`;
     };
-
+    SessionTimer.propTypes = {
+      end: PropTypes.number.isRequired
+    };
     return (
       <div style={{ marginTop: 16 }}>
         <Tag icon={<ClockCircleOutlined />} color="processing">
@@ -475,29 +530,40 @@ const AttendanceManagement = () => {
 
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
-      {currentSession && (
-        <Card
-          title="Active Session"
-          style={{ marginBottom: 24 }}
+      {/* Replace the current session card with this */}
+{currentSession && isSessionActive(currentSession) && (
+  <Card
+    title={
+      <Space>
+        <ClockCircleOutlined />
+        Active Session: {currentSession.unit?.name}
+      </Space>
+    }
+    style={{ marginBottom: 24 }}
+  >
+    <Row gutter={[16, 16]}>
+      <Col span={24}>
+        <Text strong>Time: </Text>
+        {formatSessionTime(currentSession)}
+      </Col>
+      <Col span={24}>
+        <SessionTimer 
+          end={new Date(currentSession.endTime).getTime()}
+        />
+      </Col>
+      <Col span={24}>
+        <Button 
+          danger 
+          onClick={handleEndSession}
           loading={loading.session}
         >
-          <Space direction="vertical">
-          {currentSession && currentSession.unit ? (
-      <Text strong>{currentSession.unit.name} ({currentSession.unit.code})</Text>
-    ) : (
-      <Text strong>No current session or unit selected</Text>
-    )}
-            <Text>
-              {new Date(currentSession.startTime).toLocaleTimeString()} -{' '}
-              {new Date(currentSession.endTime).toLocaleTimeString()}
-            </Text>
-            <SessionTimer
-              start={new Date(currentSession.startTime).getTime()}
-              end={new Date(currentSession.endTime).getTime()}
-            />
-          </Space>
-        </Card>
-      )}
+          End Session Early
+        </Button>
+      </Col>
+    </Row>
+  </Card>
+)}
+
 
       <Card
         title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
