@@ -145,33 +145,53 @@ const AttendanceManagement = () => {
 
     if (lecturerId) fetchData();
   }, [lecturerId]);
+
+  
   useEffect(() => {
     const fetchCurrentSession = async () => {
       try {
-        const token = localStorage.getItem('token');
-        const response = await axios.get(
-          'https://attendance-system-w70n.onrender.com/api/sessions/current', // Use relative path
-          {
-            headers: { 'Authorization': `Bearer ${token}` }
+        const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+        const response = await axios.get('https://attendance-system-w70n.onrender.com/api/sessions/current', {
+          headers: {
+            'Authorization': `Bearer ${token}`
           }
-        );
-        
-        if (response.data && response.data.active) {
-          setCurrentSession(response.data);
-          setQrData(response.data.qrToken);
-        } else {
-          setCurrentSession(null);
-        }
+        });
+        setCurrentSession(response.data);
       } catch (error) {
-        console.error('Session error:', error);
-        message.error(error.response?.data?.message || 'Session check failed');
+        console.error('Error fetching current session:', error.response ? error.response.data : error.message);
+        message.error('Failed to fetch current session');
       }
     };
-  
+
     fetchCurrentSession();
-    const interval = setInterval(fetchCurrentSession, 15000);
-    return () => clearInterval(interval);
   }, []);
+
+  const handleCreateSession = async () => {
+    if (!selectedUnit) {
+      message.error('Please select a unit first');
+      return;
+    }
+
+    try {
+      setLoading(prev => ({ ...prev, session: true }));
+      const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
+      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', {
+        unitId: selectedUnit,
+        duration: 60, // Session duration in minutes
+        lecturerId
+      }, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      message.success('Session created successfully');
+      setCurrentSession(data);
+    } catch {
+      message.error('Failed to create session');
+    } finally {
+      setLoading(prev => ({ ...prev, session: false }));
+    }
+  };
 
   // Preserved selected unit update logic
   useEffect(() => {
@@ -261,43 +281,6 @@ const AttendanceManagement = () => {
       message.success('Session ended successfully');
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to end session');
-    } finally {
-      setLoading(prev => ({ ...prev, session: false }));
-    }
-  };
-
-  // create session functionality
- 
-  const handleCreateSession = async () => {
-    if (!selectedUnit) {
-      message.error('Please select a unit first');
-      return;
-    }
-  
-    if (currentSession && isSessionActive(currentSession)) {
-      message.warning('A session is already active!');
-      return;
-    }
-  
-    try {
-      setLoading(prev => ({ ...prev, session: true }));
-      const token = localStorage.getItem('token');
-      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', {
-        unitId: selectedUnit,
-        duration: 60 ,// Session duration in minutes
-        lecturerId
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
-      });
-  
-      // setCurrentSession({
-      //   ...data,
-      //   startTime: new Date(data.startTime),
-      //   endTime: new Date(data.endTime)
-      // });
-      message.success(`Session started for ${data.duration} minutes`);
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Session creation failed');
     } finally {
       setLoading(prev => ({ ...prev, session: false }));
     }
