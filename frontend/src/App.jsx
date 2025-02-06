@@ -19,6 +19,7 @@ import BackToTop from "./components/BackToTop";
 import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/Analytics";
 import QuizPage from "./pages/QuizPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -109,18 +110,18 @@ function App() {
       <div style={{ paddingTop: showBanner ? "40px" : "0" }}>
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/signup" element={<Signup />} />
+          <Route path="/auth/login" element={<Login />} />
+          <Route path="/auth/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
-          <Route path="/admin" element={<AdminPanel />} />
-          <Route path="/student-dashboard" element={<StudentDashboard />} />
-          <Route path="/admin/manage-students" element={<ManageStudents />} />
-          <Route path="/admin/manage-courses" element={<ManageCourses />} />
-          <Route path="/admin/manage-lecturers" element={<ManageLecturers />} />
-          <Route path="/lecturer/attendance" element={<AttendanceManagement />} />
-          <Route path="/lecturer/analytics" element={<Analytics />} />
-          <Route path="lecturer//quizzes" element={<QuizPage/>} />
+          <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+          <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
+          <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
+          <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
+          <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
+          <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+          <Route path="lecturer/quizzes" element= {<ProtectedRoute><QuizPage /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

@@ -81,7 +81,7 @@ const ManageLecturers = () => {
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
-      navigate("/login");
+      navigate("/auth/login");
     }
   }, [navigate]);
 
@@ -100,7 +100,7 @@ const ManageLecturers = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          navigate("/login");
+          navigate("/auth/login");
           return;
         }
         const [lecturerRes, unitsRes, deptsRes] = await Promise.all([
@@ -171,7 +171,7 @@ const ManageLecturers = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       const response = await addLecturer({ ...values, role: "lecturer" });
@@ -197,7 +197,7 @@ const ManageLecturers = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       const updatedLecturer = { ...selectedLecturer, ...values };
@@ -221,7 +221,7 @@ const ManageLecturers = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       await deleteLecturer(lecturerToDelete);
@@ -243,7 +243,7 @@ const ManageLecturers = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       const unitToAdd = units.find((unit) => unit._id === newUnit);

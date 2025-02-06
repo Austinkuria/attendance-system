@@ -18,7 +18,7 @@ const Login = () => {
     e.preventDefault();
 
     try {
-      const response = await axios.post('https://attendance-system-w70n.onrender.com/api/login', { email, password });
+      const response = await axios.post('https://attendance-system-w70n.onrender.com/api/auth/login', { email, password });
 
       // Store token in localStorage
       const token = response.data.token;
@@ -62,7 +62,7 @@ const Login = () => {
       <Card className="login-card" bordered={false}>
         <Title level={2} style={{ textAlign: 'center' }}>Login</Title>
         {error && <Alert message={error} type="error" showIcon style={{ marginBottom: '15px' }} />}
-        
+
         <form onSubmit={handleLogin}>
           <Input
             prefix={<MailOutlined />}
@@ -87,9 +87,9 @@ const Login = () => {
             Login
           </Button>
         </form>
-        
+
         <Text style={{ display: 'block', textAlign: 'center', marginTop: '10px' }}>
-          Don&apos;t have an account? <a href="/signup">Signup</a>
+          Don&apos;t have an account? <a href="/auth/signup">Signup</a>
         </Text>
       </Card>
     </div>
