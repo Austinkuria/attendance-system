@@ -166,6 +166,7 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, []);
 
+  // create session functionality
   const handleCreateSession = async () => {
     if (!selectedUnit) {
       message.error('Please select a unit first');
@@ -174,18 +175,15 @@ const AttendanceManagement = () => {
 
     try {
       setLoading(prev => ({ ...prev, session: true }));
-      const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', {
+      const data = await createAttendanceSession({
         unitId: selectedUnit,
-        duration: 60, // Session duration in minutes
-        lecturerId
-      }, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+        lecturerId,
+        startTime: new Date(), // or any desired start time
+        endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour session
       });
       message.success('Session created successfully');
       setCurrentSession(data);
+      setQrData(data.qrToken); // Optional: you can generate the QR for this session too
     } catch {
       message.error('Failed to create session');
     } finally {

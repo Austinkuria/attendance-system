@@ -571,6 +571,7 @@ export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 //   }
 // };
 
+
 export const createAttendanceSession = async (sessionData) => {
   try {
     const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
@@ -585,15 +586,19 @@ export const createAttendanceSession = async (sessionData) => {
     throw error;
   }
 };
-// detect current session
-export const detectCurrentSession = () => {
-  return axios.get('https://attendance-system-w70n.onrender.com/api/sessions/current');
-};
 
-export const submitAttendance = (token, deviceData) => {
-  return axios.post('https://attendance-system-w70n.onrender.com/api/attendance', { 
-    token,
-    deviceData 
+export const detectCurrentSession = () => {
+  return axios.get(`${API_URL}/sessions/current`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
   });
 };
+
+export const endCurrentSession = () => {
+  return axios.patch(`${API_URL}/sessions/current`, {
+    action: 'end'
+  }, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  });
+};
+
 export default api;
