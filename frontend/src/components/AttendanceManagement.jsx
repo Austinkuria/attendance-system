@@ -290,11 +290,11 @@ const AttendanceManagement = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
   
-      setCurrentSession({
-        ...data,
-        startTime: new Date(data.startTime),
-        endTime: new Date(data.endTime)
-      });
+      // setCurrentSession({
+      //   ...data,
+      //   startTime: new Date(data.startTime),
+      //   endTime: new Date(data.endTime)
+      // });
       message.success(`Session started for ${data.duration} minutes`);
     } catch (error) {
       message.error(error.response?.data?.message || 'Session creation failed');
