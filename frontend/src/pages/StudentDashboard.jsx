@@ -69,7 +69,6 @@ const StudentDashboard = () => {
       });
   }, []);
 
-
   // Fetch student units
   useEffect(() => {
     const token = localStorage.getItem('token');
@@ -142,7 +141,6 @@ const StudentDashboard = () => {
     message.success("You have been logged out successfully.");
     navigate("/login");
   };
-
 
   // Logout and navigation functions
   const handleLogout = () => {
@@ -237,7 +235,8 @@ const StudentDashboard = () => {
         <LoadingOutlined style={{ fontSize: 24 }} spin /> Loading...
       </div>
     );
-  }  
+  }
+
   // Dropdown menu for profile options
   const profileMenu = (
     <Menu>
@@ -265,8 +264,9 @@ const StudentDashboard = () => {
             </Dropdown>
           </div>
         </Row>
-         {/* Logout Confirmation Modal */}
-         <Modal
+
+        {/* Logout Confirmation Modal */}
+        <Modal
           title="Confirm Logout"
           visible={isLogoutModalVisible}
           onOk={confirmLogout}
@@ -276,6 +276,7 @@ const StudentDashboard = () => {
         >
           <p>Are you sure you want to logout?</p>
         </Modal>
+
         {/* Low Attendance Warning */}
         {lowAttendanceUnits.length > 0 && (
           <Alert
@@ -370,11 +371,7 @@ const StudentDashboard = () => {
           visible={!!selectedUnit}
           title={selectedUnit?.name}
           onCancel={() => setSelectedUnit(null)}
-          footer={[
-            <Button key="close" onClick={() => setSelectedUnit(null)}>
-              Close
-            </Button>,
-          ]}
+          footer={[<Button key="close" onClick={() => setSelectedUnit(null)}>Close</Button>]}
         >
           {selectedUnit && (
             <div>
@@ -402,9 +399,8 @@ const StudentDashboard = () => {
             position: 'fixed',
             bottom: 20,
             right: 20,
-            zIndex: 1000,
           }}
-          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          onClick={() => window.scrollTo(0, 0)}
         />
       )}
     </Layout>
