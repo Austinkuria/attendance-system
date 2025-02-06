@@ -571,11 +571,10 @@ export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 //   }
 // };
 
-
 export const createAttendanceSession = async (sessionData) => {
   try {
     const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-    const response = await axios.post('https://attendance-system-w70n.onrender.com/api/attendance/create', sessionData, {
+    const response = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', sessionData, {
       headers: {
         'Authorization': `Bearer ${token}`
       }

@@ -15,19 +15,23 @@ exports.detectCurrentSession = async (req, res) => {
 
 exports.createAttendanceSession = async (req, res) => {
   try {
-    const { unitId, duration } = req.body;
-    const lecturerId = req.user.id; // Get the lecturer's ID from the authenticated user
+    const { unitId, lecturerId, startTime, endTime } = req.body;
 
-    const startTime = new Date();
-    const endTime = new Date(startTime.getTime() + duration * 60000); // Calculate end time based on duration
+    // Ensure startTime and endTime are valid dates
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ message: 'Invalid startTime or endTime' });
+    }
 
     // Create a new session in the database
     const session = new Session({
       unit: unitId,
       lecturer: lecturerId,
-      startTime,
-      endTime,
-      qrToken: generateQRToken(), // Generate the QR token
+      startTime: start,
+      endTime: end,
+      qrCode: generateQRToken(), // Generate the QR token
     });
 
     await session.save();
@@ -37,3 +41,28 @@ exports.createAttendanceSession = async (req, res) => {
     res.status(500).json({ message: 'Error creating session', error: error.message });
   }
 };
+
+// exports.createAttendanceSession = async (req, res) => {
+//   try {
+//     const { unitId, duration } = req.body;
+//     const lecturerId = req.user.id; // Get the lecturer's ID from the authenticated user
+
+//     const startTime = new Date();
+//     const endTime = new Date(startTime.getTime() + duration * 60000); // Calculate end time based on duration
+
+//     // Create a new session in the database
+//     const session = new Session({
+//       unit: unitId,
+//       lecturer: lecturerId,
+//       startTime,
+//       endTime,
+//       qrToken: generateQRToken(), // Generate the QR token
+//     });
+
+//     await session.save();
+
+//     res.status(201).json({ message: 'Session created successfully', session });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error creating session', error: error.message });
+//   }
+// };

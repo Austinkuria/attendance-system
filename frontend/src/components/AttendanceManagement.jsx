@@ -166,6 +166,7 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, []);
 
+  
   // create session functionality
   const handleCreateSession = async () => {
     if (!selectedUnit) {
