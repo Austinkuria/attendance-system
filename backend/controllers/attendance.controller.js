@@ -68,6 +68,7 @@ exports.createAttendanceSession = async (req, res) => {
       lecturer: lecturerId,
       startTime,
       endTime,
+      duration,
       qrCode: generateQRToken(), // Generate the QR token
     });
 
