@@ -150,7 +150,7 @@ const AttendanceManagement = () => {
       try {
         const token = localStorage.getItem('token');
         const response = await axios.get(
-          '/api/sessions/current', // Use relative path
+          'https://attendance-system-w70n.onrender.com/api/sessions/current', // Use relative path
           {
             headers: { 'Authorization': `Bearer ${token}` }
           }
@@ -284,7 +284,8 @@ const AttendanceManagement = () => {
       const token = localStorage.getItem('token');
       const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', {
         unitId: selectedUnit,
-        duration: 60 // Session duration in minutes
+        duration: 60 ,// Session duration in minutes
+        lecturerId
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
