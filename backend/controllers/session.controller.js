@@ -15,9 +15,11 @@ exports.detectCurrentSession = async (req, res) => {
 
 exports.createAttendanceSession = async (req, res) => {
   try {
-    const { unitId, startTime, endTime } = req.body;
+    const { unitId } = req.body;
     const lecturerId = req.user.id; // Get the lecturer's ID from the authenticated user
-
+    
+    const startTime = new Date();
+    const endTime = new Date(startTime.getTime() + duration * 60000); // Calculate end time based on duration
     // Create a new session in the database
     const session = new Session({
       unit: unitId,

@@ -28,9 +28,9 @@ const AttendanceManagement = () => {
   const [anomalies] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
-    // units: true,
-    // attendance: false,
-    // stats: false,
+    units: true,
+    attendance: false,
+    stats: false,
     qr: false,
     session: false
   });
