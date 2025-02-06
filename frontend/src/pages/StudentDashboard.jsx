@@ -246,7 +246,17 @@ const StudentDashboard = () => {
       <Menu.Item key="settings" icon={<SettingOutlined />} onClick={handleSettings}>
         Settings
       </Menu.Item>
-      <Menu.Item key="logout" icon={<LogoutOutlined />} onClick={handleLogout}>
+      <Menu.Item 
+        key="3" 
+        icon={<LogoutOutlined />} 
+        danger 
+        onClick={() => Modal.confirm({
+          title: 'Confirm Logout',
+          content: 'Are you sure you want to logout?',
+          onOk: confirmLogout,
+          centered: true,
+        })}
+      >
         Logout
       </Menu.Item>
     </Menu>
@@ -264,19 +274,6 @@ const StudentDashboard = () => {
             </Dropdown>
           </div>
         </Row>
-
-        {/* Logout Confirmation Modal */}
-        <Modal
-          title="Confirm Logout"
-          visible={isLogoutModalVisible}
-          onOk={confirmLogout}
-          onCancel={() => setIsLogoutModalVisible(false)}
-          okText="Logout"
-          cancelText="Cancel"
-        >
-          <p>Are you sure you want to logout?</p>
-        </Modal>
-
         {/* Low Attendance Warning */}
         {lowAttendanceUnits.length > 0 && (
           <Alert
