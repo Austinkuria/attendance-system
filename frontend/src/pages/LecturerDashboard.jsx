@@ -3,6 +3,7 @@ import {
   Layout, 
   theme,
   Dropdown,
+  Menu,
   Modal,
   message,
   Button
@@ -18,7 +19,7 @@ import Sidebar from "../components/Sidebar";
 import AttendanceManagement from "../components/AttendanceManagement";
 import Analytics from "../pages/Analytics";
 import BackToTop from "../components/BackToTop";
-// import QrCodeGenerator from "../components/QRCodeGenerator";  // Make sure the filename matches (QRCodeGenerator.jsx)
+// import QRCodeGenerator from "../components/QRCodeGenerator";  // Ensure correct filename
 
 const { Header, Content } = Layout;
 
@@ -32,28 +33,10 @@ const LecturerDashboard = () => {
 
   // Authentication check: redirect to /login if no token is found
   useEffect(() => {
-    const checkAuth = () => {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = '/login';
-      }
-    };
-
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    
-    const handlePopState = () => {
-      if (!localStorage.getItem('token')) {
-        window.location.href = '/login';
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    
-    return () => {
-      window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('popstate', handlePopState);
-    };
+    const token = localStorage.getItem('token');
+    if (!token) {
+      window.location.href = '/login';
+    }
   }, []);
 
   // Responsive layout: collapse sidebar on mobile screens
@@ -61,8 +44,7 @@ const LecturerDashboard = () => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      if (mobile) setCollapsed(true); // Collapse on mobile by default
-      else setCollapsed(false); // Expand on larger screens
+      setCollapsed(mobile); // Collapse sidebar on mobile
     };
     
     handleResize();
@@ -72,44 +54,37 @@ const LecturerDashboard = () => {
 
   // Logout handler
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('userData');
+    ['token', 'userData'].forEach(item => localStorage.removeItem(item));
     sessionStorage.clear();
     message.success('Logged out successfully!');
-    window.location.href = '/login';
-    // window.location.reload(true); // Consider if reload is really needed
+    setTimeout(() => window.location.href = '/login', 500); // Smooth transition
   };
 
   // Profile dropdown items
-  const profileItems = [
-    {
-      key: '1',
-      label: 'View Profile',
-      icon: <UserOutlined />,
-      onClick: () => window.location.href = '/lecturer/profile'
-    },
-    {
-      key: '2',
-      label: 'Settings',
-      icon: <SettingOutlined />,
-      onClick: () => window.location.href = '/lecturer/settings'
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: '3',
-      label: 'Logout',
-      icon: <LogoutOutlined />,
-      danger: true,
-      onClick: () => Modal.confirm({
-        title: 'Confirm Logout',
-        content: 'Are you sure you want to logout?',
-        onOk: logout,
-        centered: true,
-      })
-    }
-  ];
+  const profileItems = (
+    <Menu>
+      <Menu.Item key="1" icon={<UserOutlined />} onClick={() => window.location.href = '/lecturer/profile'}>
+        View Profile
+      </Menu.Item>
+      <Menu.Item key="2" icon={<SettingOutlined />} onClick={() => window.location.href = '/lecturer/settings'}>
+        Settings
+      </Menu.Item>
+      <Menu.Divider />
+      <Menu.Item 
+        key="3" 
+        icon={<LogoutOutlined />} 
+        danger 
+        onClick={() => Modal.confirm({
+          title: 'Confirm Logout',
+          content: 'Are you sure you want to logout?',
+          onOk: logout,
+          centered: true,
+        })}
+      >
+        Logout
+      </Menu.Item>
+    </Menu>
+  );
 
   return (
     <Layout style={{ minHeight: "100vh" }}>
@@ -130,7 +105,7 @@ const LecturerDashboard = () => {
             onClick={() => setCollapsed(!collapsed)}
             style={{ fontSize: '16px', width: 64, height: 64 }}
           />
-          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+          <Dropdown overlay={profileItems} trigger={['click']}>
             <Button 
               type="text" 
               icon={<UserOutlined style={{ fontSize: 24 }} />} 
@@ -151,7 +126,7 @@ const LecturerDashboard = () => {
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
             {/* QR Code Generator Section */}
             {/* <section style={{ marginBottom: 48 }}>
-              <QrCodeGenerator />
+              <QRCodeGenerator />
             </section> */}
             
             {/* Attendance Management Section */}
