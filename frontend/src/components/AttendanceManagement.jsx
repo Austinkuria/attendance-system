@@ -166,7 +166,7 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, []);
 
-  
+
   // create session functionality
   const handleCreateSession = async () => {
     if (!selectedUnit) {
@@ -595,20 +595,7 @@ const formatSessionTime = (session) => {
               
             }
           >
-             <Card
-          title="Real-time Unit Filters"
-          size="small"
-          extra={
-            <Button
-              type="primary"
-              icon={<CalendarOutlined />}
-              onClick={handleCreateSession}
-              disabled={loading.session}
-            >
-              {loading.session ? 'Creating...' : 'Create Attendance Session'}
-            </Button>
-          }
-        ></Card>
+            </Card>
             <Space wrap style={{ width: '100%' }}>
               <Select
                 placeholder="Department"
@@ -660,8 +647,6 @@ const formatSessionTime = (session) => {
                 ))}
               </Select>
             </Space>
-          </Card>
-
           <Space wrap>
             <Select
               placeholder="Select Unit"
