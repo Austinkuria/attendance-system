@@ -250,7 +250,7 @@ const AttendanceManagement = () => {
     try {
       setLoading(prev => ({ ...prev, session: true }));
       const token = localStorage.getItem('token');
-      await axios.post('/api/sessions/end', {
+      await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/end', {
         sessionId: currentSession._id
       }, {
         headers: { 'Authorization': `Bearer ${token}` }
@@ -282,7 +282,7 @@ const AttendanceManagement = () => {
     try {
       setLoading(prev => ({ ...prev, session: true }));
       const token = localStorage.getItem('token');
-      const { data } = await axios.post('/api/sessions/create', {
+      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/attendance/create', {
         unitId: selectedUnit,
         duration: 60 // Session duration in minutes
       }, {
