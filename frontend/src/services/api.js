@@ -1,8 +1,69 @@
 import axios from "axios";
+import { useNavigate } from "react-router-dom";
 const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({
   baseURL: "https://attendance-system-w70n.onrender.com/api", // backend URL
 });
+
+
+// Function to get token from local storage
+const getToken = () => localStorage.getItem("token");
+
+// Function to refresh token
+const refreshToken = async () => {
+  try {
+    const refreshToken = localStorage.getItem("refreshToken");
+    if (!refreshToken) throw new Error("No refresh token available");
+
+    const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+    const { token, refreshToken: newRefreshToken } = response.data;
+
+    localStorage.setItem("token", token);
+    localStorage.setItem("refreshToken", newRefreshToken);
+
+    return token;
+  } catch (error) {
+    console.error("Token refresh failed:", error);
+    throw error;
+  }
+};
+
+// Axios Request Interceptor
+api.interceptors.request.use(
+  async (config) => {
+    const token = getToken();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
+// Axios Response Interceptor
+api.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const navigate = useNavigate();
+    const originalRequest = error.config;
+
+    if (error.response?.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      try {
+        const newToken = await refreshToken();
+        api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+        originalRequest.headers.Authorization = `Bearer ${newToken}`;
+        return api(originalRequest);
+      } catch {
+        console.error("Redirecting to login due to authentication failure");
+        localStorage.clear();
+        navigate("/login");
+      }
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 // Fetch units for a student based on their course, year, and semester
 export const getStudentUnits = async (token) => {
@@ -448,6 +509,7 @@ export const getStudentProfile = async (studentId) => {
     const response = await api.get(`/students/${studentId}`);
     return response.data;
   } catch (error) {
+    
     throw error.response.data;
   }
 };

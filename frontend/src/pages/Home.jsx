@@ -20,7 +20,7 @@ const Home = () => {
           justifyContent: 'center',
           padding: '50px',
           flex: 1,  // Ensure that content stretches to fill available space
-          overflowY:'hidden',
+          overflowY: 'hidden',
         }}
       >
         <Title>Welcome to the Smart Attendance System</Title>
@@ -31,7 +31,7 @@ const Home = () => {
           type="primary"
           size="large"
           style={{ marginTop: '20px' }}
-          onClick={() => navigate('/login')}
+          onClick={() => navigate('/auth/login')}
         >
           Login to Access Your Dashboard
         </Button>

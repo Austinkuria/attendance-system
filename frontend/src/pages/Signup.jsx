@@ -20,7 +20,7 @@ const Signup = () => {
     }
 
     try {
-      const response = await fetch('https://attendance-system-w70n.onrender.com/api/signup', {
+      const response = await fetch('https://attendance-system-w70n.onrender.com/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ firstName, lastName, email, password, role }),
@@ -29,7 +29,7 @@ const Signup = () => {
       const data = await response.json();
 
       if (response.ok) {
-        navigate('/login'); // Redirect to login after successful signup
+        navigate('/auth/login'); // Redirect to login after successful signup
       } else {
         setError(data.message || 'Signup failed');
       }
@@ -42,17 +42,17 @@ const Signup = () => {
     <div className="signup-container">
       <Card className="signup-card">
         <Title level={2} style={{ textAlign: 'center' }}>Create an Account</Title>
-        
+
         {error && (
-          <Alert 
-            message={error} 
-            type="error" 
-            closable 
-            onClose={() => setError(null)} 
-            style={{ marginBottom: 16 }} 
+          <Alert
+            message={error}
+            type="error"
+            closable
+            onClose={() => setError(null)}
+            style={{ marginBottom: 16 }}
           />
         )}
-        
+
         <Form name="signup" layout="vertical" onFinish={onFinish}>
           <Form.Item
             name="firstName"
@@ -126,7 +126,7 @@ const Signup = () => {
         </Form>
 
         <Text style={{ display: 'block', textAlign: 'center' }}>
-          Already have an account? <a href="/login">Login</a>
+          Already have an account? <a href="/auth/login">Login</a>
         </Text>
       </Card>
     </div>

@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { 
-  Layout, 
+import {
+  Layout,
   theme,
   Dropdown,
   Menu,
@@ -8,7 +8,7 @@ import {
   message,
   Button
 } from 'antd';
-import { 
+import {
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
@@ -31,11 +31,11 @@ const LecturerDashboard = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Authentication check: redirect to /login if no token is found
+  // Authentication check: redirect to /auth/login if no token is found
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      window.location.href = '/login';
+      window.location.href = '/auth/login';
     }
   }, []);
 
@@ -46,7 +46,7 @@ const LecturerDashboard = () => {
       setIsMobile(mobile);
       setCollapsed(mobile); // Collapse sidebar on mobile
     };
-    
+
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -57,7 +57,7 @@ const LecturerDashboard = () => {
     ['token', 'userData'].forEach(item => localStorage.removeItem(item));
     sessionStorage.clear();
     message.success('Logged out successfully!');
-    setTimeout(() => window.location.href = '/login', 500); // Smooth transition
+    setTimeout(() => window.location.href = '/auth/login', 500); // Smooth transition
   };
 
   // Profile dropdown items
@@ -70,10 +70,10 @@ const LecturerDashboard = () => {
         Settings
       </Menu.Item>
       <Menu.Divider />
-      <Menu.Item 
-        key="3" 
-        icon={<LogoutOutlined />} 
-        danger 
+      <Menu.Item
+        key="3"
+        icon={<LogoutOutlined />}
+        danger
         onClick={() => Modal.confirm({
           title: 'Confirm Logout',
           content: 'Are you sure you want to logout?',
@@ -90,10 +90,10 @@ const LecturerDashboard = () => {
     <Layout style={{ minHeight: "100vh" }}>
       {/* Sidebar Component */}
       <Sidebar collapsed={collapsed} isMobile={isMobile} />
-      
+
       <Layout>
-        <Header style={{ 
-          padding: 0, 
+        <Header style={{
+          padding: 0,
           background: colorBgContainer,
           display: 'flex',
           justifyContent: 'space-between',
@@ -106,9 +106,9 @@ const LecturerDashboard = () => {
             style={{ fontSize: '16px', width: 64, height: 64 }}
           />
           <Dropdown overlay={profileItems} trigger={['click']}>
-            <Button 
-              type="text" 
-              icon={<UserOutlined style={{ fontSize: 24 }} />} 
+            <Button
+              type="text"
+              icon={<UserOutlined style={{ fontSize: 24 }} />}
               style={{ marginRight: 24 }}
             />
           </Dropdown>
@@ -128,7 +128,7 @@ const LecturerDashboard = () => {
             {/* <section style={{ marginBottom: 48 }}>
               <QRCodeGenerator />
             </section> */}
-            
+
             {/* Attendance Management Section */}
             <section style={{ marginBottom: 48 }}>
               <AttendanceManagement />

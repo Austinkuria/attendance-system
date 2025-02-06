@@ -51,8 +51,16 @@ const StudentDashboard = () => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const navigate = useNavigate();
+
+  // Check if the user is logged in when the component loads
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (!token) {
+      // If no token, navigate to the login screen
+      navigate('/auth/login');
+    }
+  }, [navigate]);
 
   // Fetch student profile (for potential future use)
   useEffect(() => {
@@ -137,14 +145,8 @@ const StudentDashboard = () => {
   const confirmLogout = () => {
     // Clear authentication tokens etc.
     localStorage.removeItem("token");
-    setIsLogoutModalVisible(false);
     message.success("You have been logged out successfully.");
-    navigate("/login");
-  };
-
-  // Logout and navigation functions
-  const handleLogout = () => {
-    setIsLogoutModalVisible(true);
+    navigate("/auth/login");
   };
 
   const handleViewProfile = () => {
@@ -166,15 +168,15 @@ const StudentDashboard = () => {
           rate.value >= 75
             ? 'rgba(0, 255, 0, 0.5)'
             : rate.value >= 50
-            ? 'rgba(255, 255, 0, 0.5)'
-            : 'rgba(255, 0, 0, 0.5)'
+              ? 'rgba(255, 255, 0, 0.5)'
+              : 'rgba(255, 0, 0, 0.5)'
         ),
         borderColor: attendanceRates.map((rate) =>
           rate.value >= 75
             ? 'rgba(0, 255, 0, 1)'
             : rate.value >= 50
-            ? 'rgba(255, 255, 0, 1)'
-            : 'rgba(255, 0, 0, 1)'
+              ? 'rgba(255, 255, 0, 1)'
+              : 'rgba(255, 0, 0, 1)'
         ),
         borderWidth: 1,
         hoverBackgroundColor: 'rgba(75, 192, 192, 0.7)',
@@ -246,10 +248,10 @@ const StudentDashboard = () => {
       <Menu.Item key="settings" icon={<SettingOutlined />} onClick={handleSettings}>
         Settings
       </Menu.Item>
-      <Menu.Item 
-        key="3" 
-        icon={<LogoutOutlined />} 
-        danger 
+      <Menu.Item
+        key="3"
+        icon={<LogoutOutlined />}
+        danger
         onClick={() => Modal.confirm({
           title: 'Confirm Logout',
           content: 'Are you sure you want to logout?',

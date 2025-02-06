@@ -9,7 +9,7 @@ const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 
-const departmentRoutes = require("../routes/departmentRoutes"); 
+const departmentRoutes = require("../routes/departmentRoutes");
 const courseRoutes = require("../routes/courseRoutes");
 const unitRoutes = require("../routes/unitRoutes");
 const attendanceRoutes = require("../routes/attendance.routes");
@@ -17,8 +17,8 @@ const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
 
 // User routes
-router.post("/signup", signup); 
-router.post("/login", login); 
+router.post("/auth/signup", signup);
+router.post("/auth/login", login);
 
 // Department routes (admin only)
 router.use("/department", departmentRoutes);  // Register department routes under /department
@@ -30,10 +30,10 @@ router.use("/course", courseRoutes);
 router.use("/unit", unitRoutes);
 
 // Attendance routes
-router.use("/attendance/",authenticate, attendanceRoutes);
+router.use("/attendance/", authenticate, attendanceRoutes);
 
 // Session routes
-router.use("/sessions",authenticate, sessionRoutes); 
+router.use("/sessions", authenticate, sessionRoutes);
 
 // Define the /api/students route
 router.get('/students', getStudents);

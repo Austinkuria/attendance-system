@@ -1,25 +1,25 @@
 // src/pages/AdminPanel.jsx
 import { useState, useEffect, useCallback } from 'react';
-import { 
-  UserOutlined, 
-  BookOutlined, 
-  CheckCircleOutlined, 
-  MenuFoldOutlined, 
+import {
+  UserOutlined,
+  BookOutlined,
+  CheckCircleOutlined,
+  MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
   LogoutOutlined,
   TeamOutlined,
   FilterOutlined
 } from '@ant-design/icons';
-import { 
-  Layout, 
-  Menu, 
-  Button, 
-  Modal, 
-  Card, 
-  Row, 
-  Col, 
-  Dropdown, 
+import {
+  Layout,
+  Menu,
+  Button,
+  Modal,
+  Card,
+  Row,
+  Col,
+  Dropdown,
   Space,
   theme,
   message,
@@ -29,10 +29,10 @@ import {
   Divider
 } from 'antd';
 import '../styles.css';
-import { 
-  getStudents, 
-  getLecturers, 
-  getCourses, 
+import {
+  getStudents,
+  getLecturers,
+  getCourses,
   getCourseAttendanceRate,
   getUnitsByCourse
 } from '../services/api';
@@ -101,7 +101,7 @@ const AdminPanel = () => {
       setIsMobile(window.innerWidth < 768);
       if (window.innerWidth < 768) setCollapsed(true);
     };
-    
+
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -112,21 +112,21 @@ const AdminPanel = () => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
       if (!token) {
-        window.location.href = '/login';
+        window.location.href = '/auth/login';
       }
     };
 
     checkAuth();
     window.addEventListener('storage', checkAuth);
-    
+
     const handlePopState = () => {
       if (!localStorage.getItem('token')) {
-        window.location.href = '/login';
+        window.location.href = '/auth/login';
       }
     };
 
     window.addEventListener('popstate', handlePopState);
-    
+
     return () => {
       window.removeEventListener('storage', checkAuth);
       window.removeEventListener('popstate', handlePopState);
@@ -138,7 +138,7 @@ const AdminPanel = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
     sessionStorage.clear();
-    window.location.href = '/login';
+    window.location.href = '/auth/login';
     window.location.reload(true);
   };
 
@@ -150,7 +150,7 @@ const AdminPanel = () => {
         getLecturers(),
         getCourses(),
       ]);
-      
+
       setStudents(studentsRes);
       setLecturers(lecturersRes);
       setCourses(coursesRes);
@@ -169,7 +169,7 @@ const AdminPanel = () => {
           data: await getCourseAttendanceRate(course._id)
         }))
       );
-      
+
       setAttendanceRates(attendanceData.reduce((acc, cur) => ({
         ...acc,
         [cur.courseId]: cur.data
@@ -265,8 +265,8 @@ const AdminPanel = () => {
       </Sider>
 
       <Layout>
-        <Header style={{ 
-          padding: 0, 
+        <Header style={{
+          padding: 0,
           background: colorBgContainer,
           display: 'flex',
           justifyContent: 'space-between',
@@ -279,9 +279,9 @@ const AdminPanel = () => {
             style={{ fontSize: '16px', width: 64, height: 64 }}
           />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button 
-              type="text" 
-              icon={<UserOutlined style={{ fontSize: 24 }} />} 
+            <Button
+              type="text"
+              icon={<UserOutlined style={{ fontSize: 24 }} />}
               style={{ marginRight: 24 }}
             />
           </Dropdown>
@@ -295,8 +295,8 @@ const AdminPanel = () => {
                   <TeamOutlined style={{ fontSize: 24 }} />
                   <h3>Total Students</h3>
                   <h1>{loading ? <Skeleton.Input active /> : students.length}</h1>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     block
                     onClick={() => window.location.href = '/admin/manage-students'}
                   >
@@ -312,8 +312,8 @@ const AdminPanel = () => {
                   <BookOutlined style={{ fontSize: 24 }} />
                   <h3>Total Courses</h3>
                   <h1>{loading ? <Skeleton.Input active /> : courses.length}</h1>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     block
                     onClick={() => window.location.href = '/admin/manage-courses'}
                   >
@@ -329,8 +329,8 @@ const AdminPanel = () => {
                   <UserOutlined style={{ fontSize: 24 }} />
                   <h3>Total Lecturers</h3>
                   <h1>{loading ? <Skeleton.Input active /> : lecturers.length}</h1>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     block
                     onClick={() => window.location.href = '/admin/manage-lecturers'}
                   >
@@ -346,8 +346,8 @@ const AdminPanel = () => {
                   <CheckCircleOutlined style={{ fontSize: 24 }} />
                   <h3>Attendance Rate</h3>
                   <h1>85%</h1>
-                  <Button 
-                    type="primary" 
+                  <Button
+                    type="primary"
                     block
                     onClick={() => window.location.href = '/admin/attendance-reports'}
                   >
@@ -360,7 +360,7 @@ const AdminPanel = () => {
 
           <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
             <Col xs={24} md={12}>
-              <Card 
+              <Card
                 title={
                   <Space>
                     <FilterOutlined />
@@ -388,7 +388,7 @@ const AdminPanel = () => {
                       ))}
                     </Select>
                   </Col>
-                  
+
                   <Col xs={24} sm={12} md={6}>
                     <Select
                       placeholder="Select Academic Year"
@@ -401,7 +401,7 @@ const AdminPanel = () => {
                       ))}
                     </Select>
                   </Col>
-                  
+
                   <Col xs={24} sm={12} md={6}>
                     <Select
                       placeholder="Select Unit"
@@ -428,7 +428,7 @@ const AdminPanel = () => {
                       })}
                     </Select>
                   </Col>
-                  
+
                   <Col xs={24} sm={12} md={6}>
                     <Select
                       placeholder="Select Semester"
@@ -457,15 +457,15 @@ const AdminPanel = () => {
             <Row gutter={[24, 24]}>
               {filteredCourses.map(course => (
                 <Col key={course._id} xs={24} md={12} xl={8} xxl={6}>
-                  <Card 
+                  <Card
                     title={`${course.name} (Year ${course.year}, Sem ${course.semester})`}
                     loading={loading}
                     hoverable
                   >
                     <div style={{ height: 250 }}>
                       {!loading && (
-                        <AttendanceChart 
-                          data={attendanceRates[course._id]} 
+                        <AttendanceChart
+                          data={attendanceRates[course._id]}
                         />
                       )}
                     </div>

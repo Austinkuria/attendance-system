@@ -79,7 +79,7 @@ const ManageStudents = () => {
   // Redirect if not authenticated
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (!token) navigate("/login");
+    if (!token) navigate("/auth/login");
   }, [navigate]);
 
   // Back-to-top scroll handler
@@ -95,7 +95,7 @@ const ManageStudents = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          navigate("/login");
+          navigate("/auth/login");
           return;
         }
         const response = await api.get("/department", {
@@ -116,7 +116,7 @@ const ManageStudents = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) {
-          navigate("/login");
+          navigate("/auth/login");
           return;
         }
         const response = await getStudents();
@@ -193,7 +193,7 @@ const ManageStudents = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       const response = await api.post(
@@ -243,7 +243,7 @@ const ManageStudents = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       const response = await api.put(
@@ -281,7 +281,7 @@ const ManageStudents = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       await deleteStudent(studentToDelete, {
@@ -317,7 +317,7 @@ const ManageStudents = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
-        navigate("/login");
+        navigate("/auth/login");
         return;
       }
       const formData = new FormData();
