@@ -282,7 +282,7 @@ const AttendanceManagement = () => {
     try {
       setLoading(prev => ({ ...prev, session: true }));
       const token = localStorage.getItem('token');
-      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/attendance/create', {
+      const { data } = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', {
         unitId: selectedUnit,
         duration: 60 // Session duration in minutes
       }, {
