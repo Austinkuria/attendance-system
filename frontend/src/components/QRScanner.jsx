@@ -23,7 +23,7 @@ const QRScanner = () => {
       const token = localStorage.getItem("token");
       await markStudentAttendance(unitId, result?.data, token);
       message.success("Attendance marked successfully!");
-      navigate("/student/dashboard");
+      navigate("/student-dashboard");
     } catch (err) {
       message.error(err.response?.data?.message || "Error marking attendance");
     } finally {
