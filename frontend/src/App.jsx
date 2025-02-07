@@ -20,7 +20,7 @@ import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/Analytics";
 import QuizPage from "./pages/QuizPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import QRScanner from "./components/QrScanner";
+import QRScanner from "./components/QRScanner";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
