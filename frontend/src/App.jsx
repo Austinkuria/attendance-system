@@ -30,7 +30,7 @@ import Unauthorized from "./pages/ErrorPages/Unauthorized";
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   // Initialize showBanner to true if online (to display banner on first load) or false otherwise.
-  const [showBanner, setShowBanner] = useState(navigator.onLine);
+  const [showBanner, setShowBanner] = useState(false);
 
   // Effect to auto-hide the banner on initial load if online.
   useEffect(() => {
