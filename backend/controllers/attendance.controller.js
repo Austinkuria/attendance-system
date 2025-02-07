@@ -51,19 +51,20 @@ const QRCode = require("qrcode");
 exports.generateQRCode = async (req, res) => {
   try {
     const session = await detectCurrentSession(req, res);
-    if (!session || !session.qrToken) {
+    if (!session || !session.qrCode) {
       return res.status(404).json({ message: "QR token generation failed" });
     }
 
-    // Generate QR code from qrToken
-    const qrImage = await QRCode.toDataURL(session.qrToken);
+    // ✅ Generate a Base64 QR Code from the token
+    const qrImage = await QRCode.toDataURL(session.qrCode);
 
-    res.json({ qrCode: qrImage }); // Send the actual QR image
+    res.json({ qrCode: qrImage }); // ✅ Send Base64 QR Code instead of raw token
   } catch (error) {
     console.error("Error generating QR code:", error);
     res.status(500).json({ message: "Failed to generate QR code" });
   }
 };
+
 
 // Function to create a new attendance session
 exports.createAttendanceSession = async (req, res) => {
