@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Button,Table,Modal,Select,Input,Space,Card,Tag,Skeleton,message,Grid,Typography,Statistic,Row,Col,Badge,
+  Button,Table,Modal,Select,Input,Space,Card,Tag,Skeleton,message,Grid,Typography,Statistic,Row,Col,
+  // Badge,
   // Alert
 } from 'antd';
 import {
@@ -9,7 +10,7 @@ import {
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import {
-  generateQRCode,getAttendanceData,downloadAttendanceReport,getLecturerUnits,detectCurrentSession,createAttendanceSession,
+  generateQRCode,getAttendanceData,downloadAttendanceReport,getLecturerUnits,getDepartments ,detectCurrentSession,createAttendanceSession,
   // submitAttendance
 } from '../services/api';
 
@@ -26,6 +27,7 @@ const AttendanceManagement = () => {
   const [qrData, setQrData] = useState('');
   const [currentSession, setCurrentSession] = useState(null);
   const [anomalies] = useState([]);
+  const [departments,setDepartments] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
     units: true,
@@ -58,6 +60,20 @@ const AttendanceManagement = () => {
     ].join('|');
     return btoa(unescape(encodeURIComponent(deviceData))).slice(0, 32);
   };
+
+   // Fetch departments
+   useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const data = await getDepartments();
+        setDepartments(data);
+      } catch {
+        message.error('Failed to fetch departments');
+      }
+    };
+
+    fetchDepartments();
+  }, []);
 
   // Automatic session detection
   useEffect(() => {
@@ -166,6 +182,10 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, []);
 
+ // Handle department filter change
+  const handleDepartmentChange = (value) => {
+    setUnitFilters(prev => ({ ...prev, department: value }));
+  };
 
   // create session functionality
   const handleCreateSession = async () => {
@@ -598,17 +618,22 @@ const formatSessionTime = (session) => {
             </Card>
             <Space wrap style={{ width: '100%' }}>
               <Select
-                placeholder="Department"
+                placeholder="Select Department"
                 style={{ width: 160 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, department: val }))}
+                onChange={handleDepartmentChange}
                 allowClear
                 value={unitFilters.department}
               >
-                {filterOptions.departments.map(dept => (
-                  <Option key={dept} value={dept}>
+                {/* {filterOptions.departments.map(dept => (
+                  // <Option key={dept} value={dept}>
                     <Badge color="blue" text={dept} />
-                  </Option>
-                ))}
+                  </Option> */}
+                  {departments.map(department => (
+              <Option key={department._id} value={department.name}>
+                {department.name}
+                
+              </Option>
+            ))}
               </Select>
 
               <Select
