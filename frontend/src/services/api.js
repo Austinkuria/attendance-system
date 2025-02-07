@@ -115,9 +115,9 @@ export const getUnitEnrollments = (unitId) => {
 export const getAttendanceData = (unitId) => api.get(`/attendance/unit/${unitId}`);
 
 // Generate QR code for attendance (for lecturers)
-export const generateQRCode = () => {
-  return api.get("/sessions/current");
-};
+// export const generateQRCode = () => {
+//   return api.get("/sessions/current");
+// };
 
 
 // ** New Methods for Admin Panel **
