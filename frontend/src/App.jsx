@@ -22,6 +22,10 @@ import QuizPage from "./pages/QuizPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import QRScanner from "./components/QRScanner";
 import NotFound from "./pages/ErrorPages/NotFound";
+import Forbidden from "./pages/ErrorPages/Forbidden";
+import ServerError from "./pages/ErrorPages/ServerError";
+import MethodNotAllowed from "./pages/ErrorPages/MethodNotAllowed";
+import Unauthorized from "./pages/ErrorPages/Unauthorized";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -115,7 +119,13 @@ function App() {
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/signup" element={<Signup />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          {/* error routes */}
           <Route path="*" element={<NotFound />} />
+          <Route path="/401" element={<Unauthorized />} />
+          <Route path="/403" element={<Forbidden />} />
+          <Route path="/500" element={<ServerError />} />
+          <Route path="/405" element={<MethodNotAllowed />} />  
+          {/* end */}
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />

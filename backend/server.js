@@ -50,13 +50,57 @@ app.get("/", (req, res) => {
     res.send("API is running...");
 });
 
-// 404 Middleware for unknown API routes
-app.use((req, res) => {
+// Example protected route for 401
+app.use("/api/protected", (req, res) => {
+    res.status(401).json({
+      success: false,
+      message: "Unauthorized. Please log in.",
+    });
+  });
+  
+  // Example 402: Payment required for premium features
+  app.use("/api/premium", (req, res) => {
+    res.status(402).json({
+      success: false,
+      message: "Payment is required to access this resource.",
+    });
+  });
+  
+  // Example 403: Forbidden access
+  app.use("/api/admin", (req, res) => {
+    res.status(403).json({
+      success: false,
+      message: "You do not have permission to access this page.",
+    });
+  });
+  
+  // Handle 405 Method Not Allowed
+  app.use((req, res, next) => {
+    if (req.method !== "GET") {
+      return res.status(405).json({
+        success: false,
+        message: `Method ${req.method} is not allowed on this route.`,
+      });
+    }
+    next();
+  });
+  
+  // Handle 404 Not Found
+  app.use((req, res) => {
     res.status(404).json({
       success: false,
       message: "Route not found",
     });
   });
-
+  
+  // Handle 500 Internal Server Error
+  app.use((err, req, res, next) => {
+    console.error(err.stack);
+    res.status(500).json({
+      success: false,
+      message: "Internal Server Error. Please try again later.",
+    });
+  });
+  
 const PORT = process.env.PORT || 5000; // Set a default port number
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
