@@ -10,7 +10,8 @@ import {
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import {
-  generateQRCode,getAttendanceData,downloadAttendanceReport,getLecturerUnits,getDepartments ,detectCurrentSession,createAttendanceSession,
+  // generateQRCode,
+  getAttendanceData,downloadAttendanceReport,getLecturerUnits,getDepartments ,detectCurrentSession,createAttendanceSession,
   // submitAttendance
 } from '../services/api';
 
@@ -260,27 +261,35 @@ const AttendanceManagement = () => {
   // Enhanced QR generation with device fingerprint
   const handleGenerateQR = async () => {
     if (!selectedUnit) {
-      message.error('Please select a unit first');
+      message.error("Please select a unit first");
       return;
     }
   
     try {
-      setLoading(prev => ({ ...prev, qr: true }));
-      const { data } = await generateQRCode({
-        unitId: selectedUnit,
-        lecturerId,
-        deviceFingerprint: getDeviceFingerprint()
+      setLoading((prev) => ({ ...prev, qr: true }));
+  
+      // ✅ Call backend to get QR Code
+      const { data } = await axios.get("https://attendance-system-w70n.onrender.com/api/sessions/current", {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
       });
-      console.log('QR Code generated:', data); // Add a log here to inspect the data
-      setQrData(data.qrCode);
+      console.log("QR Code API Response:", data); // 🔍 Debugging Step
+  
+      if (!data || !data.qrCode) {
+        throw new Error("QR Code data is missing!");
+      }
+  
+      setQrData(data.qrCode); // ✅ Correctly setting the QR image
       setIsQRModalOpen(true);
     } catch (error) {
-      console.error('Error generating QR code:', error); // Log any errors to console
-      message.error('Failed to generate QR code');
+      console.error("Error generating QR code:", error);
+      message.error("Failed to generate QR code");
     } finally {
-      setLoading(prev => ({ ...prev, qr: false }));
+      setLoading((prev) => ({ ...prev, qr: false }));
     }
   };
+  
   
   // End session functionality
   const handleEndSession = async () => {
@@ -800,36 +809,42 @@ const formatSessionTime = (session) => {
         destroyOnClose
       >
         <div style={{ textAlign: 'center', padding: 24 }}>
-          {qrData ? (
-            <>
-              <img
-                src={`data:image/png;base64,${qrData}`}
-                alt="Attendance QR Code"
-                style={{
-                  width: '100%',
-                  maxWidth: 300,
-                  margin: '0 auto',
-                  display: 'block',
-                  borderRadius: 8,
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                }}
-              />
-              {currentSession && (
-                <SessionTimer
-                  start={new Date(currentSession.startTime).getTime()}
-                  end={new Date(currentSession.endTime).getTime()}
+        {qrData ? (
+              <>
+                <img
+                  src={qrData.startsWith("data:image/png;base64,") ? qrData : ""}
+                  alt="Attendance QR Code"
+                  style={{
+                    width: "100%",
+                    maxWidth: 300,
+                    margin: "0 auto",
+                    display: "block",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                  }}
                 />
-              )}
-              <Typography.Text
-                type="secondary"
-                style={{ marginTop: 16, display: 'block', fontSize: 16 }}
-              >
-                Scan this QR code to mark attendance.
-              </Typography.Text>
-            </>
-          ) : (
-            <Skeleton.Image style={{ width: 300, height: 300 }} />
-          )}
+                {currentSession && (
+                  <SessionTimer
+                    start={new Date(currentSession.startTime).getTime()}
+                    end={new Date(currentSession.endTime).getTime()}
+                  />
+                )}
+                <Typography.Text
+                  type="secondary"
+                  style={{ marginTop: 16, display: "block", fontSize: 16 }}
+                >
+                  Scan this QR code to mark attendance.
+                </Typography.Text>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: 24 }}>
+                <Typography.Text type="danger">
+                  Failed to generate QR Code
+                </Typography.Text>
+                <Skeleton.Image style={{ width: 300, height: 300 }} />
+              </div>
+            )}
+
         </div>
       </Modal>
     </div>
