@@ -20,7 +20,7 @@ import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/Analytics";
 import QuizPage from "./pages/QuizPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import QrScanner from "./components/QrScanner";
+import QRScanner from "./components/QrScanner";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -123,7 +123,7 @@ function App() {
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
           <Route path="lecturer/quizzes" element= {<ProtectedRoute><QuizPage /></ProtectedRoute>} />
-          <Route path="/qr-scanner/:unitId" element={<ProtectedRoute><QrScanner /></ProtectedRoute>} />
+          <Route path="/qr-scanner/:unitId" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

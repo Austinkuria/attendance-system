@@ -332,12 +332,13 @@ const StudentDashboard = () => {
                       View Rate
                     </Button>
                     <Button
-                      type="primary"
-                      icon={<QrcodeOutlined />}
-                      onClick={() => navigate(`/qr-scanner/${unit._id}`)}
-                    >
-                      Mark Attendance
-                    </Button>
+                          type="primary"
+                          icon={<QrcodeOutlined />}
+                          onClick={() => navigate(`/qr-scanner/${unit?._id}`)}
+                        >
+                          Mark Attendance
+                        </Button>
+
                   </Row>
                 </Card>
               </Col>
