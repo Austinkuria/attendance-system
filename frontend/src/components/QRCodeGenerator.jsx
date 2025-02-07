@@ -7,20 +7,36 @@ const QrCodeGenerator = () => {
   const [qrData, setQrData] = useState('');
 
   // Handler for form submission
-  const onFinish = (values) => {
-    // Extract form values
-    const { lecturerName, courseName, date, time } = values;
-    
+  const onFinish = async (values) => {
+    const { lecturerName, courseName, date, startTime, endTime } = values;
+
     // Build the payload for the QR code as a JSON string
     const qrPayload = {
       lecturer: lecturerName,
       course: courseName,
       date: date.format('YYYY-MM-DD'),
-      time: time.format('HH:mm'),
+      startTime: startTime.format('HH:mm'),
+      endTime: endTime.format('HH:mm'),
     };
 
-    // Set the QR data (as a JSON string)
-    setQrData(JSON.stringify(qrPayload));
+    try {
+      const response = await fetch('/generateQR', {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(qrPayload),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setQrData(data.qrCode); // Set the QR code from the response
+      } else {
+        console.error('Error generating QR code');
+      }
+    } catch (error) {
+      console.error('Error:', error);
+    }
   };
 
   return (
