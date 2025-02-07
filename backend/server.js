@@ -50,5 +50,13 @@ app.get("/", (req, res) => {
     res.send("API is running...");
 });
 
+// 404 Middleware for unknown API routes
+app.use((req, res) => {
+    res.status(404).json({
+      success: false,
+      message: "Route not found",
+    });
+  });
+
 const PORT = process.env.PORT || 5000; // Set a default port number
 app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
