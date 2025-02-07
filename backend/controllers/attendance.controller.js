@@ -103,3 +103,20 @@ exports.markAttendance = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// markStudentAttendance function
+exports.markStudentAttendance = async (req, res) => {
+  try {
+    const { studentId, unitId, attendanceDate } = req.body;
+    const newAttendance = new AttendanceSession({
+      student: studentId,
+      unit: unitId,
+      attendanceDate,
+    });
+    await newAttendance.save();
+    res.status(201).json({ message: 'Attendance marked successfully', data: newAttendance });
+  }
+  catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}

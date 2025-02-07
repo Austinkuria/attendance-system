@@ -601,21 +601,17 @@ export const endCurrentSession = () => {
 };
 
 // Function to mark student attendance
-export const markStudentAttendance = async (unitId, qrData, token) => {
+export const markStudentAttendance = async (unitId, qrCode, token) => {
   try {
-    const response = await axios.post(
-      `${API_URL}/attendance/mark`,
-      { unitId, qrData },
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      }
-    );
+    const response = await axios.post(`${API_URL}/attendance/mark`, { unitId, qrCode }, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
     return response.data;
   } catch (error) {
-    throw new Error(error.response?.data?.message || "Failed to mark attendance");
+    console.error("Error marking attendance:", error.response?.data || error.message);
+    throw error;
   }
-}
+};
+
 
 export default api;
