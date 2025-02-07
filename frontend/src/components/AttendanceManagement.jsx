@@ -268,19 +268,28 @@ const AttendanceManagement = () => {
     try {
       setLoading((prev) => ({ ...prev, qr: true }));
   
-      // ✅ Call backend to get QR Code
-      const { data } = await api.get("/sessions/current");
+      // ✅ Get Token from Local Storage
+      const token = localStorage.getItem("token");
+      if (!token) {
+        throw new Error("No authentication token found");
+      }
+  
+      // ✅ Send Token in API Request
+      const { data } = await axios.get("https://attendance-system-w70n.onrender.com/api/sessions/current", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+  
       console.log("QR Code API Response:", data); // 🔍 Debugging Step
   
       if (!data || !data.qrCode.startsWith("data:image/png;base64")) {
         throw new Error("QR Code data is missing or invalid!");
       }
   
-      setQrData(data.qrCode); // ✅ Set the correct Base64 QR image
+      setQrData(data.qrCode);
       setIsQRModalOpen(true);
     } catch (error) {
       console.error("Error generating QR code:", error);
-      message.error("Failed to generate QR code");
+      message.error(error.message || "Failed to generate QR code");
     } finally {
       setLoading((prev) => ({ ...prev, qr: false }));
     }
