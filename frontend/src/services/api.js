@@ -600,4 +600,22 @@ export const endCurrentSession = () => {
   });
 };
 
+// Function to mark student attendance
+export const markStudentAttendance = async (unitId, qrData, token) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/attendance/mark`,
+      { unitId, qrData },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+    return response.data;
+  } catch (error) {
+    throw new Error(error.response?.data?.message || "Failed to mark attendance");
+  }
+}
+
 export default api;

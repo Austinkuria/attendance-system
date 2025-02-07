@@ -1,259 +1,132 @@
-import { useEffect, useState } from "react";
-import PropTypes from "prop-types";
-import { Button, Spin, Result, message } from "antd";
-import { QrScanner } from "@yudiel/react-qr-scanner";
-import { CloseOutlined, CameraOutlined } from "@ant-design/icons";
+import { useEffect, useRef, useState, useCallback } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import { Button, Spin, message } from "antd";
+import QrScanner from "qr-scanner";
+import { markStudentAttendance } from "../services/api";
+import "./QrStyles.css"; // Custom styles for the QR scanner
 
-const QRScanner = ({ onScanSuccess, onClose }) => {
-  const [cameraError, setCameraError] = useState(false);
-  const [activeCamera, setActiveCamera] = useState("environment");
-  const [processing, setProcessing] = useState(false);
-  const [lastResult, setLastResult] = useState(null);
+const QRScanner = () => {
+  const scanner = useRef(null);
+  const videoEl = useRef(null);
+  const qrBoxEl = useRef(null);
+  const [qrOn, setQrOn] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const [scannedResult, setScannedResult] = useState("");
+  const { unitId } = useParams();
+  const navigate = useNavigate();
 
-  const handleScan = async (result) => {
-    if (processing || result === lastResult) return;
-    
-    setProcessing(true);
-    setLastResult(result);
-    
+  // Success handler
+  const onScanSuccess = useCallback(async (result) => {
+    setScannedResult(result?.data);
+    setLoading(true);
     try {
-      await onScanSuccess(result);
+      const token = localStorage.getItem("token");
+      await markStudentAttendance(unitId, result?.data, token);
       message.success("Attendance marked successfully!");
-      setTimeout(() => onClose(), 1500);
-    } catch (error) {
-      message.error(error.message);
-      setLastResult(null);
+      navigate("/student/dashboard");
+    } catch (err) {
+      message.error(err.response?.data?.message || "Error marking attendance");
     } finally {
-      setProcessing(false);
+      setLoading(false);
+      stopScanner();
     }
+  }, [unitId, navigate]);
+
+  // Fail handler
+  const onScanFail = (err) => {
+    console.error("QR Scan Error:", err);
   };
 
-  const toggleCamera = () => {
-    setActiveCamera(prev => prev === "environment" ? "user" : "environment");
-  };
-
+  // Start the scanner
   useEffect(() => {
-    if (cameraError) {
-      message.error("Camera access denied. Please enable camera permissions.");
+    if (!videoEl.current) return;
+
+    scanner.current = new QrScanner(
+      videoEl.current,
+      onScanSuccess,
+      {
+        onDecodeError: onScanFail,
+        preferredCamera: "environment",
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+        overlay: qrBoxEl.current || undefined,
+      }
+    );
+
+    scanner.current
+      .start()
+      .then(() => setQrOn(true))
+      .catch((err) => {
+        if (err) setQrOn(false);
+      });
+
+    return () => {
+      if (scanner.current) {
+        scanner.current.stop();
+        scanner.current.destroy();
+      }
+    };
+  }, [onScanSuccess]);
+
+  // Stop the scanner
+  const stopScanner = () => {
+    if (scanner.current) {
+      scanner.current.stop();
+      scanner.current.destroy();
     }
-  }, [cameraError]);
+    if (videoEl.current?.srcObject) {
+      videoEl.current.srcObject.getTracks().forEach((track) => track.stop());
+    }
+  };
+
+  // Handle camera permission errors
+  useEffect(() => {
+    if (!qrOn) {
+      message.error(
+        "Camera access denied. Please allow camera permissions and reload."
+      );
+    }
+  }, [qrOn]);
 
   return (
-    <div style={styles.overlay}>
-      <div style={styles.container}>
-        <div style={styles.header}>
-          <h2 style={styles.title}>Scan Attendance QR Code</h2>
-          <Button
-            type="text"
-            icon={<CloseOutlined />}
-            onClick={onClose}
-            style={styles.closeButton}
+    <div className="qr-scanner-container">
+      <div className="qr-scanner-header">
+        <h2>Scan QR Code to Mark Attendance</h2>
+        <Button
+          type="primary"
+          danger
+          onClick={() => {
+            stopScanner();
+            navigate("/student/dashboard");
+          }}
+        >
+          Cancel
+        </Button>
+      </div>
+
+      <div className="qr-video-container">
+        <video ref={videoEl} className="qr-video" />
+        <div ref={qrBoxEl} className="qr-box">
+          <img
+            src="/static/images/icons/scan_qr1.svg"
+            alt="QR Frame"
+            className="qr-frame"
           />
         </div>
-
-        {cameraError ? (
-          <div style={styles.errorContainer}>
-            <Result
-              status="error"
-              title="Camera Access Required"
-              subTitle="Please enable camera permissions to continue"
-              extra={
-                <Button
-                  type="primary"
-                  onClick={() => window.location.reload()}
-                >
-                  Reload & Allow Access
-                </Button>
-              }
-            />
-          </div>
-        ) : (
-          <div style={styles.scannerWrapper}>
-            <QrScanner
-              constraints={{ facingMode: activeCamera }}
-              scanDelay={500}
-              onResult={handleScan}
-              onError={(error) => {
-                console.error(error);
-                setCameraError(true);
-              }}
-              containerStyle={styles.scannerContainer}
-              videoStyle={styles.video}
-            />
-
-            <div style={styles.overlayFrame}>
-              <div style={styles.frame}>
-                <div style={styles.laser} />
-                {[0, 90, 180, 270].map((rotation, i) => (
-                  <div 
-                    key={i}
-                    style={{
-                      ...styles.corner,
-                      transform: `rotate(${rotation}deg)`,
-                      ...cornerPositions[i]
-                    }}
-                  />
-                ))}
-              </div>
-              <div style={styles.scanLabel}>Align QR code within frame to scan</div>
-            </div>
-
-            {processing && (
-              <div style={styles.processingOverlay}>
-                <Spin size="large" tip="Verifying attendance..." />
-              </div>
-            )}
+        {loading && (
+          <div className="qr-loading-overlay">
+            <Spin size="large" tip="Marking Attendance..." />
           </div>
         )}
-
-        <div style={styles.controls}>
-          <Button
-            type="primary"
-            shape="round"
-            icon={<CameraOutlined />}
-            onClick={toggleCamera}
-            style={styles.cameraButton}
-          >
-            Switch Camera
-          </Button>
-        </div>
       </div>
+
+      {scannedResult && (
+        <div className="qr-result">
+          <p>Scanned Result: {scannedResult}</p>
+        </div>
+      )}
     </div>
   );
 };
-
-QRScanner.propTypes = {
-  onScanSuccess: PropTypes.func.isRequired,
-  onClose: PropTypes.func.isRequired,
-};
-
-const styles = {
-  overlay: {
-    position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.9)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 1000,
-    backdropFilter: 'blur(10px)',
-  },
-  container: {
-    background: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: '24px',
-    padding: '2rem',
-    width: '90%',
-    maxWidth: '600px',
-    backdropFilter: 'blur(16px)',
-    border: '1px solid rgba(255, 255, 255, 0.2)',
-    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
-  },
-  header: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: '1.5rem',
-    color: 'white',
-  },
-  title: {
-    margin: 0,
-    fontWeight: 600,
-  },
-  closeButton: {
-    color: 'white',
-    fontSize: '1.2rem',
-  },
-  scannerWrapper: {
-    position: 'relative',
-    borderRadius: '16px',
-    overflow: 'hidden',
-  },
-  scannerContainer: {
-    borderRadius: '16px',
-    overflow: 'hidden',
-    boxShadow: '0 8px 32px rgba(0,0,0,0.1)',
-  },
-  video: {
-    filter: 'brightness(0.9)',
-    objectFit: 'cover',
-  },
-  overlayFrame: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    pointerEvents: 'none',
-  },
-  frame: {
-    position: 'relative',
-    width: '70%',
-    maxWidth: '300px',
-    aspectRatio: '1',
-    border: '2px solid rgba(255, 255, 255, 0.3)',
-    borderRadius: '24px',
-    animation: 'pulse 2s infinite',
-  },
-  laser: {
-    position: 'absolute',
-    width: '100%',
-    height: '2px',
-    background: '#ff4757',
-    boxShadow: '0 0 8px #ff475744',
-    animation: 'scan 2s infinite linear',
-  },
-  corner: {
-    position: 'absolute',
-    width: '20px',
-    height: '20px',
-    borderColor: '#00ff88',
-    borderWidth: '4px',
-  },
-  scanLabel: {
-    position: 'absolute',
-    bottom: '-40px',
-    color: 'white',
-    fontSize: '0.9rem',
-    textAlign: 'center',
-    width: '100%',
-    opacity: 0.8,
-  },
-  processingOverlay: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    background: 'rgba(0, 0, 0, 0.7)',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: '16px',
-  },
-  controls: {
-    marginTop: '1.5rem',
-    textAlign: 'center',
-  },
-  cameraButton: {
-    background: 'linear-gradient(45deg, #1890ff, #0066ff)',
-    border: 'none',
-    padding: '0.8rem 1.5rem',
-    fontWeight: 500,
-    transition: 'transform 0.2s',
-  },
-};
-
-const cornerPositions = [
-  { top: -2, left: -2, borderTop: '4px solid #00ff88', borderLeft: '4px solid #00ff88' },
-  { top: -2, right: -2, borderTop: '4px solid #00ff88', borderRight: '4px solid #00ff88' },
-  { bottom: -2, left: -2, borderBottom: '4px solid #00ff88', borderLeft: '4px solid #00ff88' },
-  { bottom: -2, right: -2, borderBottom: '4px solid #00ff88', borderRight: '4px solid #00ff88' },
-];
 
 export default QRScanner;
