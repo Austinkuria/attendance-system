@@ -80,6 +80,7 @@ const getStudents = async (req, res) => {
   }
 };
 
+
 // getLecturers
 const getLecturers = async (req, res) => {
   try {
@@ -197,5 +198,21 @@ const downloadStudents = async (req, res) => {
   }
 };
 
+// get userprofile
+const getUserProfile = async (req, res) => {
+  try {
+    const user = await User.findById(req.user.userId)
+      .populate('course', 'name')
+      .select('firstName lastName email regNo year department semester course');
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
 
-module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser};
+
+module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser, getUserProfile};
