@@ -210,10 +210,12 @@ const getUserProfile = async (req, res) => {
     }
     res.json(user);
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
+module.exports = { registerUser, loginUser, getUserProfile };
 
 
 module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser, getUserProfile};
