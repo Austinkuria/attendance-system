@@ -1,6 +1,6 @@
 
 const express = require("express");
-const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession,getUserProfile } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession,getUserProfile, updateUserProfile } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -53,4 +53,6 @@ router.delete("/students/:id", deleteStudent);
 router.post('/students/upload', upload.single("csvFile"), importStudents);
 
 router.get("/users/profile", authenticate,getUserProfile);
+
+router.put("users/profile", authenticate,updateUserProfile);
 module.exports = router;
