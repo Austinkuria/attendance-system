@@ -228,5 +228,34 @@ const getUserProfile = async (req, res) => {
   }
 };
 
+// Update user profile
+const updateUserProfile = async (req, res) => {
+  const { firstName, lastName, email } = req.body;
 
-module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser, getUserProfile};
+  // Check validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const user = await User.findById(req.user.userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.email = email;
+
+    await user.save();
+
+    res.json({ message: 'Profile updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+
+module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser, getUserProfile, updateUserProfile };

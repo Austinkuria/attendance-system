@@ -29,6 +29,7 @@ import MethodNotAllowed from "./pages/ErrorPages/MethodNotAllowed";
 import Unauthorized from "./pages/ErrorPages/Unauthorized";
 import AdminProfile from "./pages/profiles/AdminProfile";
 import LecturerProfile from "./pages/profiles/LecturerProfile";
+import LecturerSettings from "./pages/settings/LecturerSettings";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -131,6 +132,7 @@ function App() {
           {/* end */}
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
           <Route path="/lecturer/profile" element={<ProtectedRoute>< LecturerProfile /></ProtectedRoute>} />
+          <Route path="/Lecturer/settings" element={<ProtectedRoute><LecturerSettings/></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
