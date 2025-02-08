@@ -257,5 +257,4 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-
 module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser, getUserProfile, updateUserProfile };

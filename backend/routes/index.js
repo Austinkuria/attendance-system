@@ -1,4 +1,3 @@
-
 const express = require("express");
 const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession,getUserProfile, updateUserProfile } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
@@ -52,7 +51,8 @@ router.delete("/students/:id", deleteStudent);
 // Update import route to use correct path
 router.post('/students/upload', upload.single("csvFile"), importStudents);
 
-router.get("/users/profile", authenticate,getUserProfile);
+router.get("/users/profile", authenticate, getUserProfile);
 
-router.put("users/profile", authenticate,updateUserProfile);
+router.post("/users/profile/update", authenticate, updateUserProfile);
+
 module.exports = router;

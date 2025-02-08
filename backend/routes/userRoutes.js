@@ -1,6 +1,6 @@
 const express = require("express");
 const { check } = require('express-validator');
-const { registerUser, loginUser, getUserProfile, updateUserProfile,updateUserProfile } = require("../controllers/userController");
+const { registerUser, loginUser, getUserProfile, updateUserProfile } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const router = express.Router();
 
@@ -9,14 +9,13 @@ router.post("/auth/login", [
   check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
 ], loginUser); // Login user
 
-router.get("users/profile", authenticate, getUserProfile); // Get user profile (protected route)
+router.get("/users/profile", authenticate, getUserProfile); // Get user profile (protected route)
 
-router.put("users/profile/", authenticate, [
+router.put("/users/profile", authenticate, [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long'),
   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long'),
   check('email').isEmail().withMessage('Enter a valid email address')
 ], updateUserProfile); // Update user profile (protected route)
-
 
 router.post("/auth/signup", [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('First name must not contain numbers'),

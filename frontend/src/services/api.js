@@ -1,5 +1,4 @@
 import axios from "axios";
-import { useNavigate } from "react-router-dom";
 const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({
   baseURL: "https://attendance-system-w70n.onrender.com/api", // backend URL
@@ -44,7 +43,6 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    const navigate = useNavigate();
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -57,7 +55,7 @@ api.interceptors.response.use(
       } catch {
         console.error("Redirecting to login due to authentication failure");
         localStorage.clear();
-        navigate("/login");
+        window.location.href = "/login";
       }
     }
 
@@ -92,7 +90,7 @@ export const updateUserProfile = async (profileData) => {
     throw new Error('No token found');
   }
   try {
-    const response = await axios.put('https://attendance-system-w70n.onrender.com/api/users/profile', profileData, {
+    const response = await axios.post("https://attendance-system-w70n.onrender.com/api/users/profile/update", profileData, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
