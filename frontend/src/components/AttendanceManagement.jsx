@@ -259,22 +259,50 @@ const AttendanceManagement = () => {
   }, [processedAttendance, filters]);
 
   // Enhanced QR generation with device fingerprint
+  // const handleGenerateQR = async () => {
+  //   if (!selectedUnit) {
+  //     message.error("Please select a unit first");
+  //     return;
+  //   }
+  
+  //   try {
+  //     setLoading((prev) => ({ ...prev, qr: true }));
+  
+  //     // ✅ Get Token from Local Storage
+  //     const token = localStorage.getItem("token");
+  //     if (!token) {
+  //       throw new Error("No authentication token found");
+  //     }
+  
+  //     // ✅ Send Token in API Request
+  //     const { data } = await axios.get("https://attendance-system-w70n.onrender.com/api/sessions/current", {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     });
+  
+  //     console.log("QR Code API Response:", data); // 🔍 Debugging Step
+  
+  //     if (!data || !data.qrCode.startsWith("data:image/png;base64")) {
+  //       throw new Error("QR Code data is missing or invalid!");
+  //     }
+  
+  //     setQrData(data.qrCode);
+  //     setIsQRModalOpen(true);
+  //   } catch (error) {
+  //     console.error("Error generating QR code:", error);
+  //     message.error(error.message || "Failed to generate QR code");
+  //   } finally {
+  //     setLoading((prev) => ({ ...prev, qr: false }));
+  //   }
+  // };
   const handleGenerateQR = async () => {
     if (!selectedUnit) {
-      message.error("Please select a unit first");
+      message.error('Please select a unit first');
       return;
     }
   
     try {
-      setLoading((prev) => ({ ...prev, qr: true }));
-  
-      // ✅ Get Token from Local Storage
-      const token = localStorage.getItem("token");
-      if (!token) {
-        throw new Error("No authentication token found");
-      }
-  
-      // ✅ Send Token in API Request
+      setLoading(prev => ({ ...prev, qr: true }));
+      const token = localStorage.getItem('token');
       const { data } = await axios.get("https://attendance-system-w70n.onrender.com/api/sessions/current", {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -291,10 +319,9 @@ const AttendanceManagement = () => {
       console.error("Error generating QR code:", error);
       message.error(error.message || "Failed to generate QR code");
     } finally {
-      setLoading((prev) => ({ ...prev, qr: false }));
+      setLoading(prev => ({ ...prev, qr: false }));
     }
   };
-  
   
   
   // End session functionality
