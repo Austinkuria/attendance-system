@@ -27,6 +27,7 @@ import Forbidden from "./pages/ErrorPages/Forbidden";
 import ServerError from "./pages/ErrorPages/ServerError";
 import MethodNotAllowed from "./pages/ErrorPages/MethodNotAllowed";
 import Unauthorized from "./pages/ErrorPages/Unauthorized";
+import AdminProfile from "./pages/AdminProfile";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -132,6 +133,7 @@ function App() {
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
+          <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
