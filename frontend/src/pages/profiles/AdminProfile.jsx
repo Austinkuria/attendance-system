@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getUserProfile } from '../services/api';
+import { getUserProfile } from '../../services/api';
 import { Layout, Card, Typography, Button, message } from 'antd';
 
 const { Content } = Layout;
 const { Title } = Typography;
 
-const StudentProfile = () => {
+const AdminProfile = () => {
   const [profile, setProfile] = useState(null);
   const navigate = useNavigate();
 
@@ -31,7 +31,7 @@ const StudentProfile = () => {
     <Layout style={{ padding: '24px' }}>
       <Content>
         <Card>
-          <Title level={2}>Student Profile</Title>
+          <Title level={2}>Admin Profile</Title>
           <p>
             <strong>Name:</strong> {profile.firstName} {profile.lastName}
           </p>
@@ -39,21 +39,9 @@ const StudentProfile = () => {
             <strong>Email:</strong> {profile.email}
           </p>
           <p>
-            <strong>Registration Number:</strong> {profile.regNo}
+            <strong>Role:</strong> {profile.role}
           </p>
-          <p>
-            <strong>Course:</strong> {profile.course?.name || 'N/A'}
-          </p>
-          <p>
-            <strong>Department:</strong> {profile.department?.name || 'N/A'}
-          </p>
-          <p>
-            <strong>Year:</strong> {profile.year}
-          </p>
-          <p>
-            <strong>Semester:</strong> {profile.semester}
-          </p>
-          <Button type="primary" onClick={() => navigate('/student-dashboard')}>
+          <Button type="primary" onClick={() => navigate('/admin-dashboard')}>
             Back to Dashboard
           </Button>
         </Card>
@@ -62,4 +50,4 @@ const StudentProfile = () => {
   );
 };
 
-export default StudentProfile;
+export default AdminProfile;
