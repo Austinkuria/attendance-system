@@ -90,7 +90,7 @@ export const updateUserProfile = async (profileData) => {
     throw new Error('No token found');
   }
   try {
-    const response = await axios.post("https://attendance-system-w70n.onrender.com/api/users/profile/update", profileData, {
+    const response = await axios.post("https://attendance-system-w70n.onrender.com/api/users/profile", profileData, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
