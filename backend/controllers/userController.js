@@ -198,7 +198,7 @@ const downloadStudents = async (req, res) => {
   }
 };
 
-// get userprofile
+// Get user profile
 const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId)
@@ -209,10 +209,10 @@ const getUserProfile = async (req, res) => {
     }
     res.json(user);
   } catch (error) {
-    console.error(error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
+
 
 
 module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser, getUserProfile};
