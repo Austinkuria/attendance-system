@@ -1,4 +1,3 @@
-// src/pages/AdminPanel.jsx
 import { useState, useEffect, useCallback } from 'react';
 import {
   UserOutlined,
