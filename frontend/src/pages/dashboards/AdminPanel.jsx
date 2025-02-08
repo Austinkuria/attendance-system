@@ -27,15 +27,15 @@ import {
   Skeleton,
   Divider
 } from 'antd';
-import '../styles.css';
+import '../../styles.css';
 import {
   getStudents,
   getLecturers,
   getCourses,
   getCourseAttendanceRate,
   getUnitsByCourse
-} from '../services/api';
-import AttendanceChart from '../components/AttendanceChart';
+} from '../../services/api';
+import AttendanceChart from '../../components/AttendanceChart';
 
 const { Option } = Select;
 const { Header, Sider, Content } = Layout;

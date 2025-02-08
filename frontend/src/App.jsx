@@ -7,9 +7,9 @@ import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Dashboard from "./pages/Dashboard";
-import LecturerDashboard from "./pages/LecturerDashboard";
-import AdminPanel from "./pages/AdminPanel";
-import StudentDashboard from "./pages/StudentDashboard";
+import LecturerDashboard from "./pages/dashboards/LecturerDashboard";
+import AdminPanel from "./pages/dashboards/AdminPanel";
+import StudentDashboard from "./pages/dashboards/StudentDashboard";
 import ManageStudents from "./pages/ManageStudents";
 import ManageCourses from "./pages/ManageCourses";
 import ManageLecturers from "./pages/ManageLecturers";
@@ -28,6 +28,7 @@ import ServerError from "./pages/ErrorPages/ServerError";
 import MethodNotAllowed from "./pages/ErrorPages/MethodNotAllowed";
 import Unauthorized from "./pages/ErrorPages/Unauthorized";
 import AdminProfile from "./pages/profiles/AdminProfile";
+import LecturerProfile from "./pages/profiles/LecturerProfile";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -129,6 +130,7 @@ function App() {
           <Route path="/405" element={<MethodNotAllowed />} />
           {/* end */}
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
+          <Route path="/lecturer/profile" element={<ProtectedRoute>< LecturerProfile /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
