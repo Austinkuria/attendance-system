@@ -4,21 +4,20 @@ const User = require('../models/User');
 const csv = require("fast-csv");
 const fs = require("fs");
 const { parse } = require('json2csv'); 
-const { validationResult } = require('express-validator');
+const validationResult = require('express-validator').validationResult;
 
 // Login API
 const login = async (req, res) => {
   const { email, password } = req.body;
-  
-  // Log incoming request body
-  console.log("Login request body:", req.body);
+
+  // Check validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
 
   try {
     const user = await User.findOne({ email });
-    
-    // Log user found
-    console.log("User found:", user);
-
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
@@ -43,6 +42,12 @@ const login = async (req, res) => {
 const signup = async (req, res) => {
   const { firstName, lastName, email, password, role } = req.body;
 
+  // Check validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
   try {
     const existingUser = await User.findOne({ email });
     if (existingUser) {
@@ -61,6 +66,51 @@ const signup = async (req, res) => {
 
     await newUser.save();
 
+    res.status(201).json({ message: 'User created successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+// Register user
+const registerUser = async (req, res) => {
+  const { firstName, lastName, email, password, role, regNo, course, department, year, semester } = req.body;
+
+  // Check validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    // Validate department
+    const departments = await Department.find(); // Fetch departments from the database
+    if (role === 'student' && !departments.includes(department)) {
+      return res.status(400).json({ message: 'Invalid department' });
+    }
+
+    const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: existingUser.email === email 
+          ? 'Email already in use' 
+          : 'Registration number already exists'
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      password: hashedPassword,
+      role,
+      ...(role === 'student' && { regNo, course, department, year, semester })
+    });
+
+    await newUser.save();
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
     console.error(error);
@@ -128,45 +178,6 @@ const importStudents = async (req, res) => {
       });
   } catch (err) {
     res.status(500).json({ error: err.message });
-  }
-};
-
-// registerUser
-const registerUser = async (req, res) => {
-  const { firstName, lastName, email, password, role, regNo, course, department, year, semester } = req.body;
-
-  try {
-    // Validate department
-    const departments = await Department.find(); // Fetch departments from the database
-    if (role === 'student' && !departments.includes(department)) {
-      return res.status(400).json({ message: 'Invalid department' });
-    }
-
-    const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
-    if (existingUser) {
-      return res.status(400).json({ 
-        message: existingUser.email === email 
-          ? 'Email already in use' 
-          : 'Registration number already exists'
-      });
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const newUser = new User({
-      firstName,
-      lastName,
-      email,
-      password: hashedPassword,
-      role,
-      ...(role === 'student' && { regNo, course, department, year, semester })
-    });
-
-    await newUser.save();
-    res.status(201).json({ message: 'User created successfully' });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
