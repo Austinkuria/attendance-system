@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   getStudentAttendance,
   getStudentUnits,
-  getStudentProfile,
+  getUserProfile,
 } from '../services/api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -66,7 +66,7 @@ const StudentDashboard = () => {
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    getStudentProfile(token)
+    getUserProfile(token)
       .then((response) => {
         console.log('Profile Data:', response);
         setIsLoading(false);
@@ -332,12 +332,12 @@ const StudentDashboard = () => {
                       View Rate
                     </Button>
                     <Button
-                          type="primary"
-                          icon={<QrcodeOutlined />}
-                          onClick={() => navigate(`/qr-scanner/${unit?._id}`)}
-                        >
-                          Mark Attendance
-                        </Button>
+                      type="primary"
+                      icon={<QrcodeOutlined />}
+                      onClick={() => navigate(`/qr-scanner/${unit?._id}`)}
+                    >
+                      Mark Attendance
+                    </Button>
 
                   </Row>
                 </Card>

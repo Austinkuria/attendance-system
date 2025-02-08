@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { getStudentProfile } from '../services/api';
+import { getUserProfile } from '../services/api';
 import { Layout, Card, Typography, Button, message } from 'antd';
 
 const { Content } = Layout;
@@ -13,7 +13,7 @@ const StudentProfile = () => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const profileData = await getStudentProfile();
+        const profileData = await getUserProfile();
         setProfile(profileData);
       } catch {
         message.error('Failed to load profile data');

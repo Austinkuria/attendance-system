@@ -15,7 +15,7 @@ const unitRoutes = require("../routes/unitRoutes");
 const attendanceRoutes = require("./attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
-const userRoutes = require("./userRoutes");
+// const userRoutes = require("./userRoutes");
 
 // User routes
 router.post("/auth/signup", signup);
@@ -52,5 +52,5 @@ router.delete("/students/:id", deleteStudent);
 // Update import route to use correct path
 router.post('/students/upload', upload.single("csvFile"), importStudents);
 
-router.get("/users/profile", authenticate,userRoutes);
+router.get("/users/profile", authenticate,getUserProfile);
 module.exports = router;
