@@ -122,7 +122,8 @@ const registerUser = async (req, res) => {
 const getStudents = async (req, res) => {
   try {
     const students = await User.find({ role: 'student' })
-      .populate('course', 'name') 
+      .populate('course', 'name')
+      .populate('department', 'name')
       .select('firstName lastName email regNo year department semester course');
     res.json(students);
   } catch (error) {
@@ -215,6 +216,7 @@ const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId)
       .populate('course', 'name')
+      .populate('department', 'name') // Populate department name
       .select('firstName lastName email regNo year department semester course role');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });

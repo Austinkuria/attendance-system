@@ -42,10 +42,10 @@ const StudentProfile = () => {
             <strong>Registration Number:</strong> {profile.regNo}
           </p>
           <p>
-            <strong>Course:</strong> {profile.course}
+            <strong>Course:</strong> {profile.course?.name || 'N/A'}
           </p>
           <p>
-            <strong>Department:</strong> {profile.department}
+            <strong>Department:</strong> {profile.department?.name || 'N/A'}
           </p>
           <p>
             <strong>Year:</strong> {profile.year}

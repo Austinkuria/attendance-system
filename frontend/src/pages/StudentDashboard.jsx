@@ -150,7 +150,7 @@ const StudentDashboard = () => {
   };
 
   const handleViewProfile = () => {
-    navigate('/student/view-profile');
+    navigate('/student/profile');
   };
 
   const handleSettings = () => {
