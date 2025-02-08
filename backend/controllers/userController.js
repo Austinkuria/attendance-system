@@ -203,7 +203,7 @@ const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId)
       .populate('course', 'name')
-      .select('firstName lastName email regNo year department semester course');
+      .select('firstName lastName email regNo year department semester course role');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }

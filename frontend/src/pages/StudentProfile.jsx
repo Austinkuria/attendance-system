@@ -15,7 +15,7 @@ const StudentProfile = () => {
       try {
         const profileData = await getStudentProfile();
         setProfile(profileData);
-      } catch  {
+      } catch {
         message.error('Failed to load profile data');
       }
     };
