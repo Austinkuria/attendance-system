@@ -13,7 +13,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import ManageStudents from "./pages/ManageStudents";
 import ManageCourses from "./pages/ManageCourses";
 import ManageLecturers from "./pages/ManageLecturers";
-import StudentProfile from "./pages/StudentProfile";
+import StudentProfile from "./pages/profiles/StudentProfile";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import InstallButton from './components/InstallButton';
 import BackToTop from "./components/BackToTop";
@@ -27,7 +27,7 @@ import Forbidden from "./pages/ErrorPages/Forbidden";
 import ServerError from "./pages/ErrorPages/ServerError";
 import MethodNotAllowed from "./pages/ErrorPages/MethodNotAllowed";
 import Unauthorized from "./pages/ErrorPages/Unauthorized";
-import AdminProfile from "./pages/AdminProfile";
+import AdminProfile from "./pages/profiles/AdminProfile";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -126,7 +126,7 @@ function App() {
           <Route path="/401" element={<Unauthorized />} />
           <Route path="/403" element={<Forbidden />} />
           <Route path="/500" element={<ServerError />} />
-          <Route path="/405" element={<MethodNotAllowed />} />  
+          <Route path="/405" element={<MethodNotAllowed />} />
           {/* end */}
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
@@ -138,7 +138,7 @@ function App() {
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="lecturer/quizzes" element= {<ProtectedRoute><QuizPage /></ProtectedRoute>} />
+          <Route path="lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
           <Route path="/qr-scanner/:unitId" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>
       </div>
