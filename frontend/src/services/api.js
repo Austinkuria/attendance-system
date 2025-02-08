@@ -66,7 +66,7 @@ api.interceptors.response.use(
 );
 
 // get studentprofile
-export const getStudentProfile = async () => {
+export const getUserProfile = async () => {
   const token = localStorage.getItem('token');
   try {
     const response = await axios.get(`${API_URL}/users/profile`, {
