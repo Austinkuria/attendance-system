@@ -53,6 +53,6 @@ router.post('/students/upload', upload.single("csvFile"), importStudents);
 
 router.get("/users/profile", authenticate, getUserProfile);
 
-router.post("/users/profile", authenticate, updateUserProfile);
+// router.post("/users/profile", authenticate, updateUserProfile);
 
 module.exports = router;
