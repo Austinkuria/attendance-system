@@ -84,24 +84,24 @@ export const getUserProfile = async () => {
 };
 
 // update userprofile
-export const updateUserProfile = async (profileData) => {
-  const token = localStorage.getItem('token');
-  if (!token) {
-    throw new Error('No token found');
-  }
-  try {
-    const response = await axios.post("https://attendance-system-w70n.onrender.com/api/users/profile", profileData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error updating user profile:", error.response?.data || error.message);
-    throw error;
-  }
-};
+// export const updateUserProfile = async (profileData) => {
+//   const token = localStorage.getItem('token');
+//   if (!token) {
+//     throw new Error('No token found');
+//   }
+//   try {
+//     const response = await axios.post("https://attendance-system-w70n.onrender.com/api/users/profile", profileData, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json"
+//       }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error updating user profile:", error.response?.data || error.message);
+//     throw error;
+//   }
+// };
 
 // Fetch units for a student based on their course, year, and semester
 export const getStudentUnits = async (token) => {
