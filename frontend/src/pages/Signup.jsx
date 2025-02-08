@@ -56,14 +56,22 @@ const Signup = () => {
         <Form name="signup" layout="vertical" onFinish={onFinish}>
           <Form.Item
             name="firstName"
-            rules={[{ required: true, message: 'Please enter your first name!' }]}
+            rules={[
+              { required: true, message: 'Please enter your first name!' },
+              { min: 3, message: 'First name must be at least 3 characters long!' },
+              { pattern: /^[A-Za-z]+$/, message: 'First name must not contain numbers!' }
+            ]}
           >
             <Input prefix={<UserOutlined />} placeholder="First Name" />
           </Form.Item>
 
           <Form.Item
             name="lastName"
-            rules={[{ required: true, message: 'Please enter your last name!' }]}
+            rules={[
+              { required: true, message: 'Please enter your last name!' },
+              { min: 3, message: 'Last name must be at least 3 characters long!' },
+              { pattern: /^[A-Za-z]+$/, message: 'Last name must not contain numbers!' }
+            ]}
           >
             <Input prefix={<UserOutlined />} placeholder="Last Name" />
           </Form.Item>

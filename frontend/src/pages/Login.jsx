@@ -2,20 +2,19 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import { Card, Input, Button, Typography, Alert } from 'antd';
+import { Card, Input, Button, Typography, Alert, Form } from 'antd';
 import { LockOutlined, MailOutlined } from '@ant-design/icons';
 import '../styles.css';
 
 const { Title, Text } = Typography;
 
 const Login = () => {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState(null);
   const navigate = useNavigate();
+  const [form] = Form.useForm();
 
-  const handleLogin = async (e) => {
-    e.preventDefault();
+  const handleLogin = async (values) => {
+    const { email, password } = values;
 
     try {
       const response = await axios.post('https://attendance-system-w70n.onrender.com/api/auth/login', { email, password });
@@ -24,15 +23,13 @@ const Login = () => {
       const token = response.data.token;
       localStorage.setItem('token', token);
       localStorage.setItem("userId", response.data.user.id);
-      // localStorage.setItem('userId', user.id);
+
       // Decode token to get user role
       const decodedToken = jwtDecode(token);
       const role = decodedToken.role;
-      console.log("Decoded Token:", decodedToken);
 
       // Store role in localStorage
       localStorage.setItem('role', role);
-      console.log("Navigating to:", role);
 
       // Redirect based on role
       switch (role) {
@@ -48,9 +45,6 @@ const Login = () => {
         default:
           navigate('/dashboard'); // Fallback
       }
-      console.log("Token:", token);
-      console.log("Decoded Token:", decodedToken);
-      console.log("Role:", role);
     } catch (error) {
       console.error("Login error:", error.response ? error.response.data : error.message);
       setError('Invalid email or password');
@@ -63,30 +57,44 @@ const Login = () => {
         <Title level={2} style={{ textAlign: 'center' }}>Login</Title>
         {error && <Alert message={error} type="error" showIcon style={{ marginBottom: '15px' }} />}
 
-        <form onSubmit={handleLogin}>
-          <Input
-            prefix={<MailOutlined />}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            size="large"
-            style={{ marginBottom: '10px' }}
-          />
-          <Input.Password
-            prefix={<LockOutlined />}
-            placeholder="Password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-            size="large"
-            style={{ marginBottom: '15px' }}
-          />
-          <Button type="primary" htmlType="submit" size="large" block>
-            Login
-          </Button>
-        </form>
+        <Form form={form} name="login" layout="vertical" onFinish={handleLogin}>
+          <Form.Item
+            name="email"
+            rules={[
+              { required: true, message: 'Please enter your email!' },
+              { type: 'email', message: 'Enter a valid email address!' }
+            ]}
+          >
+            <Input
+              prefix={<MailOutlined />}
+              type="email"
+              placeholder="Email"
+              size="large"
+              style={{ marginBottom: '10px' }}
+            />
+          </Form.Item>
+
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: 'Please enter your password!' },
+              { min: 6, message: 'Password must be at least 6 characters long!' }
+            ]}
+          >
+            <Input.Password
+              prefix={<LockOutlined />}
+              placeholder="Password"
+              size="large"
+              style={{ marginBottom: '15px' }}
+            />
+          </Form.Item>
+
+          <Form.Item>
+            <Button type="primary" htmlType="submit" size="large" block>
+              Login
+            </Button>
+          </Form.Item>
+        </Form>
 
         <Text style={{ display: 'block', textAlign: 'center', marginTop: '10px' }}>
           Don&apos;t have an account? <a href="/auth/signup">Signup</a>

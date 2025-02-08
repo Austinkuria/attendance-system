@@ -4,6 +4,7 @@ const User = require('../models/User');
 const csv = require("fast-csv");
 const fs = require("fs");
 const { parse } = require('json2csv'); 
+const { validationResult } = require('express-validator');
 
 // Login API
 const login = async (req, res) => {
