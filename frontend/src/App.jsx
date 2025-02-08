@@ -13,6 +13,7 @@ import StudentDashboard from "./pages/StudentDashboard";
 import ManageStudents from "./pages/ManageStudents";
 import ManageCourses from "./pages/ManageCourses";
 import ManageLecturers from "./pages/ManageLecturers";
+import StudentProfile from "./pages/StudentProfile";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import InstallButton from './components/InstallButton';
 import BackToTop from "./components/BackToTop";
@@ -129,6 +130,7 @@ function App() {
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student/view-profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />

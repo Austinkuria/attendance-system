@@ -65,6 +65,23 @@ api.interceptors.response.use(
   }
 );
 
+// get studentprofile
+export const getStudentProfile = async () => {
+  const token = localStorage.getItem('token');
+  try {
+    const response = await axios.get(`${API_URL}/users/profile`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching student profile:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 // Fetch units for a student based on their course, year, and semester
 export const getStudentUnits = async (token) => {
   try {
@@ -501,16 +518,6 @@ export const addUnitToCourse = async (courseId, unitData) => {
   } catch (error) {
     console.error("Error adding unit:", error);
     throw error;
-  }
-};
-
-export const getStudentProfile = async (studentId) => {
-  try {
-    const response = await api.get(`/students/${studentId}`);
-    return response.data;
-  } catch (error) {
-    
-    throw error.response.data;
   }
 };
 
