@@ -97,7 +97,7 @@ const QRScanner = () => {
           danger
           onClick={() => {
             stopScanner();
-            navigate("/student/dashboard");
+            navigate("/student-dashboard");
           }}
         >
           Cancel

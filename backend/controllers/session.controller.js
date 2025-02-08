@@ -3,7 +3,11 @@ const generateQRToken = require('../utils/session.utils');
 
 exports.detectCurrentSession = async (req, res) => {
   try {
-    const currentSession = await Session.findOne({ /* your criteria for current session */ });
+    const currentTime = new Date();
+    const currentSession = await Session.findOne({
+      startTime: { $lte: currentTime },
+      endTime: { $gte: currentTime }
+    });
     if (!currentSession) {
       return res.status(404).json({ message: 'No current session found' });
     }

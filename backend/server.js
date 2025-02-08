@@ -57,16 +57,9 @@ app.use("/api/protected", (req, res) => {
       message: "Unauthorized. Please log in.",
     });
   });
+ 
   
-  // Example 402: Payment required for premium features
-  app.use("/api/premium", (req, res) => {
-    res.status(402).json({
-      success: false,
-      message: "Payment is required to access this resource.",
-    });
-  });
-  
-  // Example 403: Forbidden access
+  // 403: Forbidden access
   app.use("/api/admin", (req, res) => {
     res.status(403).json({
       success: false,

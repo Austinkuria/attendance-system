@@ -51,6 +51,7 @@ const QRCode = require("qrcode");
 exports.generateQRCode = async (req, res) => {
   try {
     const session = await detectCurrentSession(req, res);
+    console.log("Current session data:", session); // Log the session data
     if (!session || !session.qrCode) {
       return res.status(404).json({ message: "QR token generation failed" });
     }
