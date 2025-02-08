@@ -57,6 +57,7 @@ exports.generateQRCode = async (req, res) => {
     }
 
     // ✅ Generate a Base64 QR Code from the token
+    console.log("QR Code data:", session.qrCode); // Log the QR code data
     const qrImage = await QRCode.toDataURL(session.qrCode);
 
     res.json({ qrCode: qrImage }); // ✅ Send Base64 QR Code instead of raw token
