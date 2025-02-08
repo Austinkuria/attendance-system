@@ -7,7 +7,6 @@ const helmet = require("helmet");
 const routes = require("./routes/index");  // Import the combined routes
 dotenv.config();
 const app = express();
-const userRoutes = require('./routes/userRoutes'); // Import user routes
 
 
 // Middleware
@@ -52,8 +51,6 @@ app.get("/", (req, res) => {
     res.send("API is running...");
 });
 
-// Register all routes
-app.use('/api/users', userRoutes); 
 
 // Example protected route for 401
 app.use("/api/protected", (req, res) => {
