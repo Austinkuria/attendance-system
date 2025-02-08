@@ -65,9 +65,12 @@ api.interceptors.response.use(
   }
 );
 
-// get studentprofile
+// get userprofile
 export const getUserProfile = async () => {
   const token = localStorage.getItem('token');
+  if (!token) {
+    throw new Error('No token found');
+  }
   try {
     const response = await axios.get(`${API_URL}/users/profile`, {
       headers: {
