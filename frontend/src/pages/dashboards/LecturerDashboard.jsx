@@ -15,10 +15,10 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined
 } from '@ant-design/icons';
-import Sidebar from "../components/Sidebar";
-import AttendanceManagement from "../components/AttendanceManagement";
-import Analytics from "../pages/Analytics";
-import BackToTop from "../components/BackToTop";
+import Sidebar from "../../components/Sidebar";
+import AttendanceManagement from "../../components/AttendanceManagement";
+import Analytics from "../Analytics";
+import BackToTop from "../../components/BackToTop";
 // import QRCodeGenerator from "../components/QRCodeGenerator";  // Ensure correct filename
 
 const { Header, Content } = Layout;
