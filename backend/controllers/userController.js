@@ -1,6 +1,8 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const Department = require('../models/Department');
+const Course = require('../models/Course');
 const csv = require("fast-csv");
 const fs = require("fs");
 const { parse } = require('json2csv'); 
@@ -75,7 +77,7 @@ const signup = async (req, res) => {
 
 // Register user
 const registerUser = async (req, res) => {
-  const { firstName, lastName, email, password, role, regNo, course, department, year, semester } = req.body;
+  const { firstName, lastName, email, password, role, regNo, course: courseName, department: deptName, year, semester } = req.body;
 
   // Check validation results
   const errors = validationResult(req);
@@ -84,12 +86,7 @@ const registerUser = async (req, res) => {
   }
 
   try {
-    // Validate department
-    const departments = await Department.find(); // Fetch departments from the database
-    if (role === 'student' && !departments.includes(department)) {
-      return res.status(400).json({ message: 'Invalid department' });
-    }
-
+    // Check for existing user
     const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
     if (existingUser) {
       return res.status(400).json({ 
@@ -97,6 +94,27 @@ const registerUser = async (req, res) => {
           ? 'Email already in use' 
           : 'Registration number already exists'
       });
+    }
+
+    // If role is student, get department and course IDs
+    let departmentId, courseId;
+    if (role === 'student') {
+      // Find department by name
+      const department = await Department.findOne({ name: deptName });
+      if (!department) {
+        return res.status(400).json({ message: 'Department not found' });
+      }
+      departmentId = department._id;
+
+      // Find course by name and department
+      const course = await Course.findOne({ 
+        name: courseName,
+        department: departmentId 
+      });
+      if (!course) {
+        return res.status(400).json({ message: 'Course not found in the specified department' });
+      }
+      courseId = course._id;
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -107,14 +125,20 @@ const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      ...(role === 'student' && { regNo, course, department, year, semester })
+      ...(role === 'student' && { 
+        regNo, 
+        course: courseId, 
+        department: departmentId, 
+        year, 
+        semester 
+      })
     });
 
     await newUser.save();
     res.status(201).json({ message: 'User created successfully' });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ message: 'Error creating user', error: error.message });
   }
 };
 
@@ -149,7 +173,7 @@ const getLecturers = async (req, res) => {
 
 // Update student
 const updateStudent = async (req, res) => {
-  const { firstName, lastName, email, regNo, course, department, year, semester } = req.body;
+  const { firstName, lastName, email, regNo, course: courseName, department: deptName, year, semester } = req.body;
 
   // Check validation results
   const errors = validationResult(req);
@@ -179,12 +203,27 @@ const updateStudent = async (req, res) => {
       });
     }
 
+    // Find department by name
+    const department = await Department.findOne({ name: deptName });
+    if (!department) {
+      return res.status(400).json({ message: 'Department not found' });
+    }
+
+    // Find course by name and department
+    const course = await Course.findOne({ 
+      name: courseName,
+      department: department._id 
+    });
+    if (!course) {
+      return res.status(400).json({ message: 'Course not found in the specified department' });
+    }
+
     student.firstName = firstName;
     student.lastName = lastName;
     student.email = email;
     student.regNo = regNo;
-    student.course = course;
-    student.department = department;
+    student.course = course._id;
+    student.department = department._id;
     student.year = year;
     student.semester = semester;
 
@@ -220,24 +259,61 @@ const deleteStudent = async (req, res) => {
 const importStudents = async (req, res) => {
   try {
     const filePath = req.file.path;
-    let students = [];
+    let studentsData = [];
 
-    fs.createReadStream(filePath)
-      .pipe(csv.parse({ headers: true }))
-      .on("data", (row) => {
-        students.push({
-          ...row,
-          role: 'student',
-          password: bcrypt.hashSync('defaultpassword', 10)
-        });
-      })
-      .on("end", async () => {
-        await User.insertMany(students);
-        fs.unlinkSync(filePath);
-        res.json({ message: "Students imported successfully" });
+    // First pass: read all data from CSV
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(filePath)
+        .pipe(csv.parse({ headers: true }))
+        .on("data", (row) => {
+          studentsData.push(row);
+        })
+        .on("end", resolve)
+        .on("error", reject);
+    });
+
+    // Process each student
+    const students = [];
+    for (const row of studentsData) {
+      // Find department by name
+      const department = await Department.findOne({ name: row.department });
+      if (!department) {
+        throw new Error(`Department not found: ${row.department}`);
+      }
+
+      // Find course by name and department
+      const course = await Course.findOne({ 
+        name: row.course,
+        department: department._id 
       });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+      if (!course) {
+        throw new Error(`Course not found: ${row.course} in department ${row.department}`);
+      }
+
+      students.push({
+        firstName: row.firstName,
+        lastName: row.lastName,
+        email: row.email,
+        regNo: row.regNo,
+        role: 'student',
+        department: department._id,
+        course: course._id,
+        year: row.year,
+        semester: row.semester,
+        password: bcrypt.hashSync('defaultpassword', 10)
+      });
+    }
+
+    // Insert all students
+    await User.insertMany(students);
+    fs.unlinkSync(filePath);
+    res.json({ message: "Students imported successfully" });
+  } catch (error) {
+    console.error("Import error:", error);
+    res.status(500).json({ 
+      error: error.message,
+      message: 'Failed to import students. Please check department and course names in CSV.'
+    });
   }
 };
 
