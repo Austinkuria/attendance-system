@@ -11,11 +11,11 @@ router.post("/auth/login", [
 
 router.get("/users/profile", authenticate, getUserProfile); // Get user profile (protected route)
 
-// router.put("/users/profile", authenticate, [
-//   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long'),
-//   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long'),
-//   check('email').isEmail().withMessage('Enter a valid email address')
-// ], updateUserProfile); // Update user profile (protected route)
+router.put("/users/profile/update", authenticate, [
+  check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long'),
+  check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long'),
+  check('email').isEmail().withMessage('Enter a valid email address')
+], updateUserProfile); // Update user profile (protected route)
 
 router.post("/auth/signup", [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('First name must not contain numbers'),
