@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   Table,
   Button,
@@ -27,12 +27,19 @@ const StudentManagement = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [form] = Form.useForm();
   const [editingStudent, setEditingStudent] = useState(null);
+  const [selectedDepartment, setSelectedDepartment] = useState(null);
 
   useEffect(() => {
     fetchStudents();
     fetchCourses();
     fetchDepartments();
   }, []);
+
+  // Filter courses based on selected department
+  const filteredCourses = useMemo(() => {
+    if (!selectedDepartment) return [];
+    return courses.filter(course => course.department?._id === selectedDepartment);
+  }, [courses, selectedDepartment]);
 
   const fetchStudents = async () => {
     try {
@@ -66,11 +73,26 @@ const StudentManagement = () => {
 
   const handleSubmit = async (values) => {
     try {
+      // Get department and course names from their IDs
+      const department = departments.find(d => d._id === values.department);
+      const course = courses.find(c => c._id === values.course);
+
+      if (!department || !course) {
+        message.error('Invalid department or course selected');
+        return;
+      }
+
+      const studentData = {
+        ...values,
+        department: department.name,
+        course: course.name
+      };
+
       if (editingStudent) {
-        await addStudent({ ...values, _id: editingStudent._id });
+        await addStudent({ ...studentData, _id: editingStudent._id });
         message.success('Student updated successfully');
       } else {
-        await addStudent(values);
+        await addStudent(studentData);
         message.success('Student added successfully');
       }
       setModalVisible(false);
@@ -84,13 +106,15 @@ const StudentManagement = () => {
 
   const handleEdit = (student) => {
     setEditingStudent(student);
+    const departmentId = student.department?._id;
+    setSelectedDepartment(departmentId);
     form.setFieldsValue({
       firstName: student.firstName,
       lastName: student.lastName,
       email: student.email,
       regNo: student.regNo,
       course: student.course?._id,
-      department: student.department?._id,
+      department: departmentId,
       year: student.year,
       semester: student.semester
     });
@@ -236,6 +260,7 @@ const StudentManagement = () => {
           setModalVisible(false);
           form.resetFields();
           setEditingStudent(null);
+          setSelectedDepartment(null);
         }}
         footer={null}
       >
@@ -284,7 +309,12 @@ const StudentManagement = () => {
             label="Department"
             rules={[{ required: true, message: 'Please select department' }]}
           >
-            <Select>
+            <Select
+              onChange={(value) => {
+                setSelectedDepartment(value);
+                form.setFieldValue('course', undefined);
+              }}
+            >
               {departments.map(dept => (
                 <Option key={dept._id} value={dept._id}>{dept.name}</Option>
               ))}
@@ -296,8 +326,8 @@ const StudentManagement = () => {
             label="Course"
             rules={[{ required: true, message: 'Please select course' }]}
           >
-            <Select>
-              {courses.map(course => (
+            <Select disabled={!selectedDepartment}>
+              {filteredCourses.map(course => (
                 <Option key={course._id} value={course._id}>{course.name}</Option>
               ))}
             </Select>
@@ -336,6 +366,7 @@ const StudentManagement = () => {
                 setModalVisible(false);
                 form.resetFields();
                 setEditingStudent(null);
+                setSelectedDepartment(null);
               }}>
                 Cancel
               </Button>
