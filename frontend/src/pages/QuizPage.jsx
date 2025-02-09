@@ -26,8 +26,8 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
-// IMPORTANT: Ensure createQuiz is exported in your ../services/api.js file.
-import { getLecturerUnits, createQuiz } from '../services/api';
+// Ensure these functions are exported from your API service.
+import { getLecturerUnits, getDepartments, createQuiz } from '../services/api';
 
 const { Header, Sider, Content } = Layout;
 const { Option } = Select;
@@ -125,7 +125,7 @@ const CreateQuizForm = () => {
                     <Form.Item
                       {...field}
                       name={[field.name, 'questionText']}
-                      key={[field.key, 'questionText']}
+                      fieldKey={[field.fieldKey, 'questionText']}
                       label="Question"
                       rules={[{ required: true, message: 'Missing question text' }]}
                     >
@@ -140,7 +140,7 @@ const CreateQuizForm = () => {
                               <Form.Item
                                 {...optionField}
                                 name={[optionField.name, 'optionText']}
-                                key={[optionField.key, 'optionText']}
+                                fieldKey={[optionField.fieldKey, 'optionText']}
                                 label={idx === 0 ? 'Options' : ''}
                                 rules={[{ required: true, message: 'Missing option text' }]}
                               >
@@ -149,7 +149,7 @@ const CreateQuizForm = () => {
                               <Form.Item
                                 {...optionField}
                                 name={[optionField.name, 'isCorrect']}
-                                key={[optionField.key, 'isCorrect']}
+                                fieldKey={[optionField.fieldKey, 'isCorrect']}
                                 valuePropName="checked"
                                 label="Correct?"
                               >
@@ -210,65 +210,72 @@ const CreateQuizForm = () => {
 };
 
 const QuizPage = () => {
-  const [darkMode] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState({ units: true, quizzes: false });
+  const [units, setUnits] = useState([]);
+  const [departments, setDepartments] = useState([]);
+  const [quizzes] = useState([]);
   const [filters, setFilters] = useState({
     department: null,
     course: null,
     year: null,
     semester: null,
   });
-  const [units, setUnits] = useState([]);
-  const [quizzes] = useState([]);
   const [activeTab, setActiveTab] = useState('dashboard');
+  const [darkMode, setDarkMode] = useState(false);
   const lecturerId = localStorage.getItem("userId");
   const { token } = theme.useToken();
 
-  // Fetch lecturer's units
+  // Fetch both lecturer units and department data
   useEffect(() => {
-    const fetchUnits = async () => {
+    const fetchData = async () => {
       try {
-        const unitsData = await getLecturerUnits(lecturerId);
+        const [unitsData, departmentsData] = await Promise.all([
+          getLecturerUnits(lecturerId),
+          getDepartments(),
+        ]);
         setUnits(unitsData);
+        setDepartments(departmentsData);
       } catch {
-        message.error('Failed to load unit data');
+        message.error('Failed to load data');
       } finally {
-        setLoading(prev => ({ ...prev, units: false }));
+        setLoading((prev) => ({ ...prev, units: false }));
       }
     };
 
-    if (lecturerId) fetchUnits();
+    if (lecturerId) fetchData();
   }, [lecturerId]);
 
-  // Calculate filter options from units
+  // Compute filter options:
+  // - Departments come from the departments API call.
+  // - Courses, years, and semesters are derived from the units data.
   const filterOptions = useMemo(() => {
-    const departments = new Set();
+    const deptOptions = departments.map((dept) => dept.name).sort();
+
     const courses = new Set();
     const years = new Set();
     const semesters = new Set();
 
-    units.forEach(unit => {
-      if (unit.department?.name) departments.add(unit.department.name);
+    units.forEach((unit) => {
       if (unit.course?.name) courses.add(unit.course.name);
       if (unit.year) years.add(unit.year);
       if (unit.semester) semesters.add(unit.semester);
     });
 
     return {
-      departments: Array.from(departments).sort(),
+      departments: deptOptions,
       courses: Array.from(courses).sort(),
       years: Array.from(years).sort((a, b) => a - b),
       semesters: Array.from(semesters).sort((a, b) => a - b),
     };
-  }, [units]);
+  }, [units, departments]);
 
   // Calculate available options based on current filters
   const availableCourses = useMemo(() => {
     if (!filters.department) return filterOptions.courses;
     return units
-      .filter(unit => unit.department?.name === filters.department)
-      .map(unit => unit.course?.name)
+      .filter((unit) => unit.department?.name === filters.department)
+      .map((unit) => unit.course?.name)
       .filter(Boolean)
       .filter((value, index, self) => self.indexOf(value) === index);
   }, [filters.department, units, filterOptions.courses]);
@@ -277,33 +284,35 @@ const QuizPage = () => {
     if (!filters.department || !filters.course) return filterOptions.years;
     return units
       .filter(
-        unit =>
+        (unit) =>
           unit.department?.name === filters.department &&
           unit.course?.name === filters.course
       )
-      .map(unit => unit.year)
+      .map((unit) => unit.year)
       .filter((value, index, self) => self.indexOf(value) === index);
   }, [filters.department, filters.course, units, filterOptions.years]);
 
   const availableSemesters = useMemo(() => {
-    if (!filters.department || !filters.course || !filters.year) return filterOptions.semesters;
+    if (!filters.department || !filters.course || !filters.year)
+      return filterOptions.semesters;
     return units
       .filter(
-        unit =>
+        (unit) =>
           unit.department?.name === filters.department &&
           unit.course?.name === filters.course &&
           unit.year === filters.year
       )
-      .map(unit => unit.semester)
+      .map((unit) => unit.semester)
       .filter((value, index, self) => self.indexOf(value) === index);
   }, [filters.department, filters.course, filters.year, units, filterOptions.semesters]);
 
   const filteredQuizzes = useMemo(() => {
-    return quizzes.filter(quiz =>
-      (!filters.department || quiz.department === filters.department) &&
-      (!filters.course || quiz.course === filters.course) &&
-      (!filters.year || quiz.year === filters.year) &&
-      (!filters.semester || quiz.semester === filters.semester)
+    return quizzes.filter(
+      (quiz) =>
+        (!filters.department || quiz.department === filters.department) &&
+        (!filters.course || quiz.course === filters.course) &&
+        (!filters.year || quiz.year === filters.year) &&
+        (!filters.semester || quiz.semester === filters.semester)
     );
   }, [quizzes, filters]);
 

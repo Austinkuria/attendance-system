@@ -2,7 +2,8 @@ const express = require("express");
 const { check } = require('express-validator');
 const { 
   registerUser, 
-  login, 
+  login,
+  signup
   getUserProfile, 
   updateUserProfile, 
   getStudents,
@@ -27,7 +28,7 @@ router.post("/auth/signup", [
   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('Last name must not contain numbers'),
   check('email').isEmail().withMessage('Enter a valid email address'),
   check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
-], registerUser);
+], registerUser,signup);
 
 // Profile routes
 router.get("/users/profile", authenticate, getUserProfile);
