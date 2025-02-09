@@ -40,11 +40,11 @@ router.get('/lecturers', userRoutes);
 
 // Admin routes (admin only)
 router.post("/user", authenticate, authorize(["admin"]), userRoutes);
-router.post("/upload-students", authenticate, authorize(["admin"]), upload.single("csvFile"), studentRoutes);
-router.post("/upload", upload.single("csvFile"),studentRoutes);
-router.get("/download",studentRoutes);
-router.delete("/students/:id",studentRoutes);
+router.post("/upload-students", authenticate, authorize(["admin"]), upload.single("csvFile"), userRoutes);
+router.post("/upload", upload.single("csvFile"),userRoutesRoutes);
+router.get("/download",userRoutes);
+router.delete("/students/:id",userRoutes);
 
 // Update import route to use correct path
-router.post('/students/upload', upload.single("csvFile"), studentRoutes);
+router.post('/students/upload', upload.single("csvFile"), userRoutes);
 module.exports = router;
