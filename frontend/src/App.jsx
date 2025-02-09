@@ -30,6 +30,8 @@ import Unauthorized from "./pages/ErrorPages/Unauthorized";
 import AdminProfile from "./pages/profiles/AdminProfile";
 import LecturerProfile from "./pages/profiles/LecturerProfile";
 import LecturerSettings from "./pages/settings/LecturerSettings";
+import AdminSettings from "./pages/settings/AdminSettings";
+import StudentSettings from "./pages/settings/StudentSettings";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -134,8 +136,10 @@ function App() {
           <Route path="/lecturer/profile" element={<ProtectedRoute>< LecturerProfile /></ProtectedRoute>} />
           <Route path="/Lecturer/settings" element={<ProtectedRoute><LecturerSettings/></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+          <Route path="/admin/settings" element ={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
+          <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
