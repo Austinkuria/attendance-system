@@ -147,13 +147,72 @@ const getLecturers = async (req, res) => {
   }
 };
 
+// Update student
+const updateStudent = async (req, res) => {
+  const { firstName, lastName, email, regNo, course, department, year, semester } = req.body;
+
+  // Check validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const student = await User.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Check if email or regNo is already taken by another user
+    const existingUser = await User.findOne({
+      $and: [
+        { _id: { $ne: req.params.id } },
+        { $or: [{ email }, { regNo }] }
+      ]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: existingUser.email === email 
+          ? 'Email already in use' 
+          : 'Registration number already exists'
+      });
+    }
+
+    student.firstName = firstName;
+    student.lastName = lastName;
+    student.email = email;
+    student.regNo = regNo;
+    student.course = course;
+    student.department = department;
+    student.year = year;
+    student.semester = semester;
+
+    await student.save();
+    res.json({ message: 'Student updated successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Delete student
 const deleteStudent = async (req, res) => {
   try {
-    await User.findByIdAndDelete(req.params.id);  // Use User model instead of Student
-    res.json({ message: "Student deleted" });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const student = await User.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+    
+    if (student.role !== 'student') {
+      return res.status(400).json({ message: 'Can only delete student accounts' });
+    }
+    
+    await User.findByIdAndDelete(req.params.id);
+    res.json({ message: 'Student deleted successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
@@ -257,4 +316,16 @@ const updateUserProfile = async (req, res) => {
   }
 };
 
-module.exports = { login, signup, getStudents, getLecturers, deleteStudent, importStudents, downloadStudents, registerUser, getUserProfile, updateUserProfile };
+module.exports = { 
+  login, 
+  signup, 
+  getStudents, 
+  getLecturers, 
+  updateStudent,
+  deleteStudent, 
+  importStudents, 
+  downloadStudents, 
+  registerUser, 
+  getUserProfile, 
+  updateUserProfile 
+};

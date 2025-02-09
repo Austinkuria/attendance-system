@@ -188,8 +188,27 @@ export const getStudents = async () => {
   }
 };
 
-// Add a new student
-export const addStudent = (student) => api.post("/students", student);
+// Add or update a student
+export const addStudent = async (student) => {
+  const token = localStorage.getItem("token");
+  try {
+    const url = student._id 
+      ? `${API_URL}/students/${student._id}`
+      : `${API_URL}/students`;
+    const method = student._id ? 'put' : 'post';
+    
+    const response = await axios[method](url, student, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error saving student:", error.response?.data || error.message);
+    throw error;
+  }
+};
 
 // Delete a student
 // export const deleteStudent = (id) => api.delete(`/students/${id}`);
