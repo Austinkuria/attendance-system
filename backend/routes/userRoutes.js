@@ -20,7 +20,7 @@ const router = express.Router();
 router.post("/auth/login", [
   check('email').isEmail().withMessage('Enter a valid email address'),
   check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
-], loginUser);
+], login);
 
 router.post("/auth/signup", [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('First name must not contain numbers'),
