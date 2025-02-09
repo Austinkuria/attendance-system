@@ -3,8 +3,8 @@ const { check } = require('express-validator');
 const { 
   registerUser, 
   login,
-  signup
-  getUserProfile, 
+  signup,
+  getUserProfile,
   updateUserProfile, 
   getStudents,
   updateStudent,
