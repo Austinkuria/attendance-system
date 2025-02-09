@@ -30,8 +30,8 @@ router.post("/auth/signup", [
 ], registerUser);
 
 // Profile routes
-router.get("/users/profile", authenticate, getUserProfile);
-router.put("/users/profile/update", authenticate, [
+router.get("/profile", authenticate, getUserProfile);
+router.put("/profile/update", authenticate, [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long'),
   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long'),
   check('email').isEmail().withMessage('Enter a valid email address')
