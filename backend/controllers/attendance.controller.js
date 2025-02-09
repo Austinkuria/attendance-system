@@ -73,23 +73,55 @@ exports.createAttendanceSession = async (req, res) => {
   try {
     const { unitId, lecturerId, startTime, endTime } = req.body;
 
+    // Ensure startTime and endTime are valid dates
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      return res.status(400).json({ message: 'Invalid startTime or endTime' });
+    }
+
     // Create a new session in the database
     const session = new Session({
       unit: unitId,
       lecturer: lecturerId,
-      startTime,
-      endTime,
-      duration,
+      startTime: start,
+      endTime: end,
       qrCode: generateQRToken(), // Generate the QR token
     });
 
     await session.save();
 
-    res.status(201).json({ message: 'Session created successfully', session });
+    // Generate a base64-encoded QR code image
+    const qrImage = await QRCode.toDataURL(session.qrCode);
+
+    res.status(201).json({ message: 'Session created successfully', session, qrCode: qrImage });
   } catch (error) {
     res.status(500).json({ message: 'Error creating session', error: error.message });
   }
 };
+
+// exports.createAttendanceSession = async (req, res) => {
+//   try {
+//     const { unitId, lecturerId, startTime, endTime } = req.body;
+
+//     // Create a new session in the database
+//     const session = new Session({
+//       unit: unitId,
+//       lecturer: lecturerId,
+//       startTime,
+//       endTime,
+//       duration,
+//       qrCode: generateQRToken(), // Generate the QR token
+//     });
+
+//     await session.save();
+
+//     res.status(201).json({ message: 'Session created successfully', session });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error creating session', error: error.message });
+//   }
+// };
 
 exports.markAttendance = async (req, res) => {
   try {
