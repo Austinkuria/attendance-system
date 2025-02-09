@@ -40,7 +40,7 @@ const Sidebar = () => {
           <Link to="/analytics">Analytics</Link>
         </Menu.Item>
         <Menu.Item key="4" icon={<FormOutlined />}>
-          <Link to="/quizzes">Quizzes</Link>
+          <Link to="/lecturer/quizzes">Quizzes</Link>
         </Menu.Item>
       </Menu>
     </Sider>
