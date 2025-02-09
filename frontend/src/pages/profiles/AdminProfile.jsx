@@ -41,7 +41,7 @@ const AdminProfile = () => {
           <p>
             <strong>Role:</strong> {profile.role}
           </p>
-          <Button type="primary" onClick={() => navigate('/admin-dashboard')}>
+          <Button type="primary" onClick={() => navigate('/admin')}>
             Back to Dashboard
           </Button>
         </Card>
