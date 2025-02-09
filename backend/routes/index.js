@@ -10,14 +10,17 @@ const unitRoutes = require("../routes/unitRoutes");
 const attendanceRoutes = require("../routes/attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession } = require("../controllers/userController");
+const { createDepartment, getDepartments } = require("../controllers/departmentController");
+const { createCourse, getCoursesByDepartment } = require("../controllers/courseController");
+const { createUser, bulkUploadStudents } = require("../controllers/adminController");
 
 router.use('/', userRoutes);
 router.use('/students', studentRoutes);
 
-// lecturer routes
-router.use('/')
-router.post("/auth/signup",userRoutes);
-router.post("/auth/login", userRoutes);
+// User routes
+router.post("/auth/signup", signup);
+router.post("/auth/login", login);
 
 // Department routes (admin only)
 router.use("/department", departmentRoutes);  // Register department routes under /department
@@ -34,17 +37,19 @@ router.use("/attendance/", authenticate, attendanceRoutes);
 // Session routes
 router.use("/sessions", authenticate, sessionRoutes);
 
+// Define the /api/students route
+router.get('/students', getStudents);
 
 // Define the  route for lecture
-router.get('/lecturers', userRoutes);
+router.get('/lecturers', getLecturers);
 
 // Admin routes (admin only)
-router.post("/user", authenticate, authorize(["admin"]), userRoutes);
-router.post("/upload-students", authenticate, authorize(["admin"]), upload.single("csvFile"), userRoutes);
-router.post("/upload", upload.single("csvFile"),userRoutesRoutes);
-router.get("/download",userRoutes);
-router.delete("/students/:id",userRoutes);
+router.post("/user", authenticate, authorize(["admin"]), createUser);
+router.post("/upload-students", authenticate, authorize(["admin"]), upload.single("csvFile"), bulkUploadStudents);
+router.post("/upload", upload.single("csvFile"), importStudents);
+router.get("/download", downloadStudents);
+router.delete("/students/:id", deleteStudent);
 
 // Update import route to use correct path
-router.post('/students/upload', upload.single("csvFile"), userRoutes);
+router.post('/students/upload', upload.single("csvFile"), importStudents);
 module.exports = router;
