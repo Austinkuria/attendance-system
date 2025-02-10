@@ -28,7 +28,7 @@ import {
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
 // Ensure these functions are exported from your API service.
-import { getLecturerUnits, getDepartments, createQuiz } from '../services/api';
+import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes } from '../services/api';
 
 const { Header, Sider, Content } = Layout;
 const { Option } = Select;
@@ -273,12 +273,14 @@ const CreateQuizForm = ({ units, loading }) => {
   );
 };
 
+CreateQuizForm.propTypes = createQuizFormPropTypes;
+
 const QuizPage = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState({ units: true, quizzes: false });
   const [units, setUnits] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [quizzes] = useState([]);
+  const [quizzes, setQuizzes] = useState([]); // Updated to allow setting fetched quizzes
   const [filters, setFilters] = useState({
     department: null,
     course: null,
@@ -329,6 +331,23 @@ const QuizPage = () => {
     };
 
     if (lecturerId) fetchData();
+  }, [lecturerId]);
+
+  // Fetch past quizzes
+  useEffect(() => {
+    const fetchQuizzes = async () => {
+      try {
+        setLoading(prev => ({ ...prev, quizzes: true }));
+        const quizData = await getPastQuizzes(lecturerId);
+        setQuizzes(quizData || []);
+      } catch {
+        message.error("Failed to load quizzes");
+      } finally {
+        setLoading(prev => ({ ...prev, quizzes: false }));
+      }
+    };
+
+    if (lecturerId) fetchQuizzes();
   }, [lecturerId]);
 
   // Compute filter options:
@@ -484,7 +503,7 @@ const QuizPage = () => {
           <Content style={{ margin: '24px 16px' }}>
             {activeTab === 'create' ? (
               <CreateQuizForm units={units} loading={loading} />
-            ) : (
+            ) : activeTab === 'library' ? (
               <div>
                 <div className="flex gap-md mb-lg">
                   <Space wrap style={{ width: '100%' }}>
@@ -551,7 +570,7 @@ const QuizPage = () => {
                   </Space>
                 </div>
                 <div>
-                  <h2>Dashboard</h2>
+                  <h2>Quiz Library</h2>
                   {loading.quizzes ? (
                     <Skeleton active />
                   ) : (
@@ -574,6 +593,11 @@ const QuizPage = () => {
                   )}
                 </div>
               </div>
+            ) : (
+              <div>
+                <h2>Dashboard</h2>
+                <p>Dashboard content goes here...</p>
+              </div>
             )}
           </Content>
         </Layout>
@@ -581,7 +605,5 @@ const QuizPage = () => {
     </App>
   );
 };
-
-CreateQuizForm.propTypes = createQuizFormPropTypes;
 
 export default QuizPage;

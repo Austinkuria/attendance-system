@@ -661,16 +661,57 @@ export const markStudentAttendance = async (unitId, qrCode, token) => {
 };
 
 export const createQuiz = async (quizData) => {
-  const token = localStorage.getItem("token"); 
-  const response = await fetch(`${API_URL}/quizzes`, {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await fetch(`${API_URL}/quizzes`, {
       method: 'POST',
       headers: {
-          'Content-Type': 'application/json',
-          'Authorization': token ? `Bearer ${token}` : '',  // add token header
+        'Content-Type': 'application/json',
+        Authorization: token ? `Bearer ${token}` : '',
       },
       body: JSON.stringify(quizData),
-  });
-  return response.json();
+    });
+    if (!response.ok) {
+      throw new Error('Failed to create quiz');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error("Network error:", error);
+    throw new Error("Network error. Please check your connection.");
+  }
+};
+
+export const getQuizzes = async () => {
+  try {
+    const response = await fetch(`${API_URL}/quizzes`); // Adjust the API endpoint
+    if (!response.ok) throw new Error('Failed to fetch quizzes');
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
+export const getPastQuizzes = async (lecturerId, page = 1, limit = 10) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await fetch(
+      `${API_URL}/quizzes?lecturerId=${lecturerId}&page=${page}&limit=${limit}`,
+      {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: token ? `Bearer ${token}` : '',
+        },
+      }
+    );
+    if (!response.ok) {
+      throw new Error('Failed to fetch past quizzes');
+    }
+    return await response.json();
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
 };
 
 export default api;
