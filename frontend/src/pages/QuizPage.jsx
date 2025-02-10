@@ -222,24 +222,45 @@ const QuizPage = () => {
     semester: null,
   });
   const [activeTab, setActiveTab] = useState('dashboard');
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode] = useState(false);
   const lecturerId = localStorage.getItem("userId");
   const { token } = theme.useToken();
 
-  // Fetch both lecturer units and department data
+  // Fetch departments
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const data = await getDepartments();
+        setDepartments(data);
+      } catch {
+        message.error('Failed to fetch departments');
+      }
+    };
+
+    fetchDepartments();
+  }, []);
+
+  // Fetch lecturer units
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [unitsData, departmentsData] = await Promise.all([
-          getLecturerUnits(lecturerId),
-          getDepartments(),
-        ]);
-        setUnits(unitsData);
-        setDepartments(departmentsData);
+        if (!lecturerId) {
+          message.error("User session expired");
+          return;
+        }
+
+        setLoading(prev => ({ ...prev, units: true }));
+        const unitsData = await getLecturerUnits(lecturerId);
+
+        if (unitsData?.length > 0) {
+          setUnits(unitsData);
+        } else {
+          message.info("No units assigned to your account");
+        }
       } catch {
-        message.error('Failed to load data');
+        message.error("Failed to load unit data");
       } finally {
-        setLoading((prev) => ({ ...prev, units: false }));
+        setLoading(prev => ({ ...prev, units: false }));
       }
     };
 
@@ -316,23 +337,51 @@ const QuizPage = () => {
     );
   }, [quizzes, filters]);
 
-  const handleFilterChange = (name, value) => {
-    setFilters((prev) => {
-      const newFilters = { ...prev, [name]: value };
-      // Reset dependent filters when a parent filter changes
-      if (name === 'department') {
-        newFilters.course = null;
-        newFilters.year = null;
-        newFilters.semester = null;
-      }
-      if (name === 'course') {
-        newFilters.year = null;
-        newFilters.semester = null;
-      }
-      if (name === 'year') {
-        newFilters.semester = null;
-      }
-      return newFilters;
+  // Handle department filter change
+  const handleDepartmentChange = (value) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      department: value,
+      course: null,
+      year: null,
+      semester: null 
+    }));
+  };
+
+  // Handle course filter change
+  const handleCourseChange = (value) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      course: value,
+      year: null,
+      semester: null 
+    }));
+  };
+
+  // Handle year filter change
+  const handleYearChange = (value) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      year: value,
+      semester: null 
+    }));
+  };
+
+  // Handle semester filter change
+  const handleSemesterChange = (value) => {
+    setFilters(prev => ({ 
+      ...prev, 
+      semester: value 
+    }));
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilters({
+      department: null,
+      course: null,
+      year: null,
+      semester: null,
     });
   };
 
@@ -374,64 +423,68 @@ const QuizPage = () => {
             ) : (
               <div>
                 <div className="flex gap-md mb-lg">
-                  <Select
-                    placeholder="Select Department"
-                    style={{ width: 200 }}
-                    onChange={(value) => handleFilterChange('department', value)}
-                    value={filters.department}
-                    loading={loading.units}
-                  >
-                    {filterOptions.departments.map((dept) => (
-                      <Option key={dept} value={dept}>
-                        {dept}
-                      </Option>
-                    ))}
-                  </Select>
+                  <Space wrap style={{ width: '100%' }}>
+                    <Select
+                      placeholder="Select Department"
+                      style={{ width: 160 }}
+                      onChange={handleDepartmentChange}
+                      value={filters.department}
+                      allowClear
+                    >
+                      {departments.map(department => (
+                        <Option key={department._id} value={department.name}>
+                          {department.name}
+                        </Option>
+                      ))}
+                    </Select>
 
-                  <Select
-                    placeholder="Select Course"
-                    style={{ width: 200 }}
-                    onChange={(value) => handleFilterChange('course', value)}
-                    value={filters.course}
-                    disabled={!filters.department}
-                    loading={loading.units}
-                  >
-                    {availableCourses.map((course) => (
-                      <Option key={course} value={course}>
-                        {course}
-                      </Option>
-                    ))}
-                  </Select>
+                    <Select
+                      placeholder="Course"
+                      style={{ width: 180 }}
+                      onChange={handleCourseChange}
+                      value={filters.course}
+                      allowClear
+                      disabled={!filters.department}
+                    >
+                      {availableCourses.map((course) => (
+                        <Option key={course} value={course}>{course}</Option>
+                      ))}
+                    </Select>
 
-                  <Select
-                    placeholder="Select Year"
-                    style={{ width: 120 }}
-                    onChange={(value) => handleFilterChange('year', value)}
-                    value={filters.year}
-                    disabled={!filters.course}
-                    loading={loading.units}
-                  >
-                    {availableYears.map((year) => (
-                      <Option key={year} value={year}>
-                        Year {year}
-                      </Option>
-                    ))}
-                  </Select>
+                    <Select
+                      placeholder="Year"
+                      style={{ width: 120 }}
+                      onChange={handleYearChange}
+                      value={filters.year}
+                      allowClear
+                      disabled={!filters.course}
+                    >
+                      {availableYears.map((year) => (
+                        <Option key={year} value={year}>Year {year}</Option>
+                      ))}
+                    </Select>
 
-                  <Select
-                    placeholder="Select Semester"
-                    style={{ width: 140 }}
-                    onChange={(value) => handleFilterChange('semester', value)}
-                    value={filters.semester}
-                    disabled={!filters.year}
-                    loading={loading.units}
-                  >
-                    {availableSemesters.map((sem) => (
-                      <Option key={sem} value={sem}>
-                        Sem {sem}
-                      </Option>
-                    ))}
-                  </Select>
+                    <Select
+                      placeholder="Semester"
+                      style={{ width: 140 }}
+                      onChange={handleSemesterChange}
+                      value={filters.semester}
+                      allowClear
+                      disabled={!filters.year}
+                    >
+                      {availableSemesters.map((sem) => (
+                        <Option key={sem} value={sem}>Sem {sem}</Option>
+                      ))}
+                    </Select>
+
+                    <Button
+                      type="link"
+                      onClick={clearFilters}
+                      disabled={!Object.values(filters).some(Boolean)}
+                    >
+                      Clear Filters
+                    </Button>
+                  </Space>
                 </div>
                 <div>
                   <h2>Dashboard</h2>
