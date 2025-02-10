@@ -661,7 +661,7 @@ export const markStudentAttendance = async (unitId, qrCode, token) => {
 };
 
 export const createQuiz = async (quizData) => {
-    const response = await fetch('/api/quizzes', {
+    const response = await fetch(`${API_URL}/quizzes`, {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',

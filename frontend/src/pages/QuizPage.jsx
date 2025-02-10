@@ -1,4 +1,5 @@
 import { useState, useMemo, useEffect } from 'react';
+import PropTypes from 'prop-types';
 import {
   Layout,
   Menu,
@@ -38,7 +39,35 @@ const { Option } = Select;
  *  1. Manually: Lecturer fills out a form with quiz title, description, and a dynamic list of questions.
  *  2. Upload: Lecturer uploads a JSON file containing quiz data.
  */
-const CreateQuizForm = () => {
+// Define PropTypes for CreateQuizForm component
+const createQuizFormPropTypes = {
+  units: PropTypes.arrayOf(PropTypes.shape({
+    _id: PropTypes.string.isRequired,
+    name: PropTypes.string.isRequired,
+    code: PropTypes.string.isRequired,
+    course: PropTypes.shape({
+      name: PropTypes.string
+    })
+  })).isRequired,
+  loading: PropTypes.shape({
+    units: PropTypes.bool
+  }).isRequired
+};
+
+const CreateQuizForm = ({ units, loading }) => {
+  CreateQuizForm.propTypes = {
+    units: PropTypes.arrayOf(PropTypes.shape({
+      _id: PropTypes.string.isRequired,
+      name: PropTypes.string.isRequired,
+      code: PropTypes.string.isRequired,
+      course: PropTypes.shape({
+        name: PropTypes.string
+      })
+    })).isRequired,
+    loading: PropTypes.shape({
+      units: PropTypes.bool
+    }).isRequired
+  };
   const [form] = Form.useForm();
   const [creationMethod, setCreationMethod] = useState('manual'); // 'manual' or 'upload'
   const [submitting, setSubmitting] = useState(false);
@@ -46,11 +75,17 @@ const CreateQuizForm = () => {
   const onFinish = async (values) => {
     setSubmitting(true);
     try {
+      if (!values.unit) {
+        message.error('Please select a unit');
+        return;
+      }
+
       // Build the payload with common fields
       const payload = {
         title: values.title,
         description: values.description,
         method: creationMethod,
+        unit: values.unit,
       };
 
       if (creationMethod === 'manual') {
@@ -99,13 +134,42 @@ const CreateQuizForm = () => {
       </Space>
 
       <Form form={form} onFinish={onFinish} layout="vertical">
-        <Form.Item
-          name="title"
-          label="Quiz Title"
-          rules={[{ required: true, message: 'Please input the quiz title' }]}
-        >
-          <Input placeholder="Enter quiz title" />
-        </Form.Item>
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Form.Item
+            name="unit"
+            label="Select Unit"
+            rules={[{ required: true, message: 'Please select a unit' }]}
+          >
+            <Select
+              placeholder="Select Unit"
+              style={{ width: '100%' }}
+              loading={loading.units}
+              optionLabelProp="label"
+            >
+              {units.map(unit => (
+                <Option 
+                  key={unit._id} 
+                  value={unit._id}
+                  label={`${unit.name} (${unit.code})`}
+                >
+                  <Space>
+                    {unit.name}
+                    <Tag color="blue">{unit.code}</Tag>
+                    {unit.course && <Tag color="green">{unit.course.name}</Tag>}
+                  </Space>
+                </Option>
+              ))}
+            </Select>
+          </Form.Item>
+
+          <Form.Item
+            name="title"
+            label="Quiz Title"
+            rules={[{ required: true, message: 'Please input the quiz title' }]}
+          >
+            <Input placeholder="Enter quiz title" />
+          </Form.Item>
+        </Space>
 
         <Form.Item name="description" label="Quiz Description">
           <Input.TextArea rows={4} placeholder="Enter quiz description (optional)" />
@@ -419,7 +483,7 @@ const QuizPage = () => {
           </Header>
           <Content style={{ margin: '24px 16px' }}>
             {activeTab === 'create' ? (
-              <CreateQuizForm />
+              <CreateQuizForm units={units} loading={loading} />
             ) : (
               <div>
                 <div className="flex gap-md mb-lg">
@@ -517,5 +581,7 @@ const QuizPage = () => {
     </App>
   );
 };
+
+CreateQuizForm.propTypes = createQuizFormPropTypes;
 
 export default QuizPage;
