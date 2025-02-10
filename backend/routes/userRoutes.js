@@ -16,6 +16,7 @@ const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 const router = express.Router();
+const quizController = require('../controllers/quizController');
 
 // Auth routes
 router.post("/auth/login", [

@@ -10,6 +10,7 @@ const unitRoutes = require("../routes/unitRoutes");
 const attendanceRoutes = require("../routes/attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
+const quizRoutes = require('./quizRoutes');
 const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment } = require("../controllers/courseController");
@@ -42,6 +43,9 @@ router.get('/students', getStudents);
 
 // Define the  route for lecture
 router.get('/lecturers', getLecturers);
+
+// quiz routes
+router.use('/quizzes', require('./quizRoutes'));
 
 // Admin routes (admin only)
 router.post("/user", authenticate, authorize(["admin"]), createUser);
