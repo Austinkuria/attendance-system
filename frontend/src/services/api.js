@@ -661,14 +661,16 @@ export const markStudentAttendance = async (unitId, qrCode, token) => {
 };
 
 export const createQuiz = async (quizData) => {
-    const response = await fetch(`${API_URL}/quizzes`, {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(quizData),
-    });
-    return response.json();
+  const token = localStorage.getItem("token"); 
+  const response = await fetch(`${API_URL}/quizzes`, {
+      method: 'POST',
+      headers: {
+          'Content-Type': 'application/json',
+          'Authorization': token ? `Bearer ${token}` : '',  // add token header
+      },
+      body: JSON.stringify(quizData),
+  });
+  return response.json();
 };
 
 export default api;
