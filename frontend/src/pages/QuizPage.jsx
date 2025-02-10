@@ -27,47 +27,29 @@ import {
   MenuFoldOutlined,
   MenuUnfoldOutlined,
 } from '@ant-design/icons';
-// Ensure these functions are exported from your API service.
 import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes } from '../services/api';
 
 const { Header, Sider, Content } = Layout;
 const { Option } = Select;
 
-/**
- * CreateQuizForm Component
- * Provides two methods to create a quiz:
- *  1. Manually: Lecturer fills out a form with quiz title, description, and a dynamic list of questions.
- *  2. Upload: Lecturer uploads a JSON file containing quiz data.
- */
 // Define PropTypes for CreateQuizForm component
 const createQuizFormPropTypes = {
-  units: PropTypes.arrayOf(PropTypes.shape({
-    _id: PropTypes.string.isRequired,
-    name: PropTypes.string.isRequired,
-    code: PropTypes.string.isRequired,
-    course: PropTypes.shape({
-      name: PropTypes.string
-    })
-  })).isRequired,
-  loading: PropTypes.shape({
-    units: PropTypes.bool
-  }).isRequired
-};
-
-const CreateQuizForm = ({ units, loading }) => {
-  CreateQuizForm.propTypes = {
-    units: PropTypes.arrayOf(PropTypes.shape({
+  units: PropTypes.arrayOf(
+    PropTypes.shape({
       _id: PropTypes.string.isRequired,
       name: PropTypes.string.isRequired,
       code: PropTypes.string.isRequired,
       course: PropTypes.shape({
-        name: PropTypes.string
-      })
-    })).isRequired,
-    loading: PropTypes.shape({
-      units: PropTypes.bool
-    }).isRequired
-  };
+        name: PropTypes.string,
+      }),
+    })
+  ).isRequired,
+  loading: PropTypes.shape({
+    units: PropTypes.bool,
+  }).isRequired,
+};
+
+const CreateQuizForm = ({ units, loading }) => {
   const [form] = Form.useForm();
   const [creationMethod, setCreationMethod] = useState('manual'); // 'manual' or 'upload'
   const [submitting, setSubmitting] = useState(false);
@@ -79,45 +61,49 @@ const CreateQuizForm = ({ units, loading }) => {
         message.error('Please select a unit');
         return;
       }
-
-      // Build the payload with common fields
+  
       const payload = {
         title: values.title,
         description: values.description,
         method: creationMethod,
         unit: values.unit,
+        questions: values.questions.map((question) => ({
+          question: question.questionText, // Map `questionText` to `question`
+          options: question.options.map((option) => option.optionText), // Map `optionText` to `options`
+          answer: question.options.find((option) => option.isCorrect)?.optionText, // Set the correct answer
+        })),
       };
+      
 
       if (creationMethod === 'manual') {
-        // For manual creation, attach the questions list.
         payload.questions = values.questions;
       } else {
-        // For upload, read and parse the JSON file.
         const fileList = values.quizFile;
         if (fileList && fileList.length > 0) {
           const file = fileList[0].originFileObj;
           const text = await file.text();
           const quizData = JSON.parse(text);
+          if (!quizData.title || !quizData.questions) {
+            throw new Error('Invalid quiz file structure');
+          }
           payload.quizData = quizData;
         } else {
-          throw new Error("No file uploaded");
+          throw new Error('No file uploaded');
         }
       }
 
-      // Call the API to create the quiz
       await createQuiz(payload);
-      message.success('Quiz created successfully!');
-      form.resetFields();
-    } catch {
-      message.error('Failed to create quiz');
-    } finally {
-      setSubmitting(false);
-    }
-  };
+    message.success('Quiz created successfully!');
+    form.resetFields();
+  } catch (error) {
+    message.error(error.message || 'Failed to create quiz');
+  } finally {
+    setSubmitting(false);
+  }
+};
 
   return (
     <div>
-      {/* Mode Switcher */}
       <Space style={{ marginBottom: 16 }}>
         <Button
           type={creationMethod === 'manual' ? 'primary' : 'default'}
@@ -146,12 +132,8 @@ const CreateQuizForm = ({ units, loading }) => {
               loading={loading.units}
               optionLabelProp="label"
             >
-              {units.map(unit => (
-                <Option 
-                  key={unit._id} 
-                  value={unit._id}
-                  label={`${unit.name} (${unit.code})`}
-                >
+              {units.map((unit) => (
+                <Option key={unit._id} value={unit._id} label={`${unit.name} (${unit.code})`}>
                   <Space>
                     {unit.name}
                     <Tag color="blue">{unit.code}</Tag>
@@ -176,44 +158,33 @@ const CreateQuizForm = ({ units, loading }) => {
         </Form.Item>
 
         {creationMethod === 'manual' ? (
-          // Manual creation: dynamic list of questions and options
           <Form.List name="questions">
             {(fields, { add, remove }) => (
               <>
                 {fields.map((field, index) => (
-                  <Card
-                    key={field.key}
-                    title={`Question ${index + 1}`}
-                    style={{ marginBottom: 16 }}
-                  >
+                  <Card key={field.key} title={`Question ${index + 1}`} style={{ marginBottom: 16 }}>
                     <Form.Item
-                      {...field}
                       name={[field.name, 'questionText']}
-                      fieldKey={[field.fieldKey, 'questionText']}
                       label="Question"
                       rules={[{ required: true, message: 'Missing question text' }]}
                     >
                       <Input placeholder="Enter question text" />
                     </Form.Item>
-                    {/* Dynamic list of options for each question */}
+
                     <Form.List name={[field.name, 'options']}>
                       {(optionFields, { add: addOption, remove: removeOption }) => (
                         <>
                           {optionFields.map((optionField, idx) => (
                             <Space key={optionField.key} align="baseline">
                               <Form.Item
-                                {...optionField}
                                 name={[optionField.name, 'optionText']}
-                                fieldKey={[optionField.fieldKey, 'optionText']}
                                 label={idx === 0 ? 'Options' : ''}
                                 rules={[{ required: true, message: 'Missing option text' }]}
                               >
                                 <Input placeholder={`Option ${idx + 1}`} />
                               </Form.Item>
                               <Form.Item
-                                {...optionField}
                                 name={[optionField.name, 'isCorrect']}
-                                fieldKey={[optionField.fieldKey, 'isCorrect']}
                                 valuePropName="checked"
                                 label="Correct?"
                               >
@@ -232,29 +203,31 @@ const CreateQuizForm = ({ units, loading }) => {
                         </>
                       )}
                     </Form.List>
-                    <Button type="link" danger onClick={() => remove(field.name)}>
-                      Remove Question
-                    </Button>
+
+                    {fields.length > 1 && (
+                      <Button type="link" danger onClick={() => remove(field.name)}>
+                        Remove Question
+                      </Button>
+                    )}
                   </Card>
                 ))}
-                <Form.Item>
-                  <Button type="dashed" onClick={() => add()} block>
-                    Add Question
-                  </Button>
-                </Form.Item>
+
+                {fields.length < 20 && (
+                  <Form.Item>
+                    <Button type="dashed" onClick={() => add()} block>
+                      Add Question
+                    </Button>
+                  </Form.Item>
+                )}
               </>
             )}
           </Form.List>
         ) : (
-          // Upload mode: file upload field
           <Form.Item
             name="quizFile"
             label="Quiz File"
             valuePropName="fileList"
-            getValueFromEvent={(e) => {
-              if (Array.isArray(e)) return e;
-              return e && e.fileList;
-            }}
+            getValueFromEvent={(e) => (Array.isArray(e) ? e : e?.fileList)}
             rules={[{ required: true, message: 'Please upload a quiz file' }]}
           >
             <Upload name="file" accept=".json" beforeUpload={() => false}>
@@ -280,7 +253,7 @@ const QuizPage = () => {
   const [loading, setLoading] = useState({ units: true, quizzes: false });
   const [units, setUnits] = useState([]);
   const [departments, setDepartments] = useState([]);
-  const [quizzes, setQuizzes] = useState([]); // Updated to allow setting fetched quizzes
+  const [quizzes, setQuizzes] = useState([]);
   const [filters, setFilters] = useState({
     department: null,
     course: null,
@@ -289,44 +262,23 @@ const QuizPage = () => {
   });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode] = useState(false);
-  const lecturerId = localStorage.getItem("userId");
+  const lecturerId = localStorage.getItem('userId');
   const { token } = theme.useToken();
 
-  // Fetch departments
-  useEffect(() => {
-    const fetchDepartments = async () => {
-      try {
-        const data = await getDepartments();
-        setDepartments(data);
-      } catch {
-        message.error('Failed to fetch departments');
-      }
-    };
-
-    fetchDepartments();
-  }, []);
-
-  // Fetch lecturer units
+  // Fetch departments and units
   useEffect(() => {
     const fetchData = async () => {
       try {
-        if (!lecturerId) {
-          message.error("User session expired");
-          return;
-        }
-
-        setLoading(prev => ({ ...prev, units: true }));
-        const unitsData = await getLecturerUnits(lecturerId);
-
-        if (unitsData?.length > 0) {
-          setUnits(unitsData);
-        } else {
-          message.info("No units assigned to your account");
-        }
+        const [departmentsData, unitsData] = await Promise.all([
+          getDepartments(),
+          getLecturerUnits(lecturerId),
+        ]);
+        setDepartments(departmentsData);
+        setUnits(unitsData);
       } catch {
-        message.error("Failed to load unit data");
+        message.error('Failed to fetch data');
       } finally {
-        setLoading(prev => ({ ...prev, units: false }));
+        setLoading((prev) => ({ ...prev, units: false }));
       }
     };
 
@@ -337,25 +289,22 @@ const QuizPage = () => {
   useEffect(() => {
     const fetchQuizzes = async () => {
       try {
-        setLoading(prev => ({ ...prev, quizzes: true }));
+        setLoading((prev) => ({ ...prev, quizzes: true }));
         const quizData = await getPastQuizzes(lecturerId);
         setQuizzes(quizData || []);
       } catch {
-        message.error("Failed to load quizzes");
+        message.error('Failed to load quizzes');
       } finally {
-        setLoading(prev => ({ ...prev, quizzes: false }));
+        setLoading((prev) => ({ ...prev, quizzes: false }));
       }
     };
 
     if (lecturerId) fetchQuizzes();
   }, [lecturerId]);
 
-  // Compute filter options:
-  // - Departments come from the departments API call.
-  // - Courses, years, and semesters are derived from the units data.
+  // Compute filter options
   const filterOptions = useMemo(() => {
     const deptOptions = departments.map((dept) => dept.name).sort();
-
     const courses = new Set();
     const years = new Set();
     const semesters = new Set();
@@ -374,98 +323,37 @@ const QuizPage = () => {
     };
   }, [units, departments]);
 
-  // Calculate available options based on current filters
-  const availableCourses = useMemo(() => {
-    if (!filters.department) return filterOptions.courses;
-    return units
-      .filter((unit) => unit.department?.name === filters.department)
-      .map((unit) => unit.course?.name)
-      .filter(Boolean)
-      .filter((value, index, self) => self.indexOf(value) === index);
-  }, [filters.department, units, filterOptions.courses]);
-
-  const availableYears = useMemo(() => {
-    if (!filters.department || !filters.course) return filterOptions.years;
-    return units
-      .filter(
-        (unit) =>
-          unit.department?.name === filters.department &&
-          unit.course?.name === filters.course
-      )
-      .map((unit) => unit.year)
-      .filter((value, index, self) => self.indexOf(value) === index);
-  }, [filters.department, filters.course, units, filterOptions.years]);
-
-  const availableSemesters = useMemo(() => {
-    if (!filters.department || !filters.course || !filters.year)
-      return filterOptions.semesters;
-    return units
-      .filter(
-        (unit) =>
-          unit.department?.name === filters.department &&
-          unit.course?.name === filters.course &&
-          unit.year === filters.year
-      )
-      .map((unit) => unit.semester)
-      .filter((value, index, self) => self.indexOf(value) === index);
-  }, [filters.department, filters.course, filters.year, units, filterOptions.semesters]);
-
+  // Compute filtered quizzes based on selected filters
   const filteredQuizzes = useMemo(() => {
-    return quizzes.filter(
-      (quiz) =>
+    return quizzes.filter((quiz) => {
+      return (
         (!filters.department || quiz.department === filters.department) &&
         (!filters.course || quiz.course === filters.course) &&
         (!filters.year || quiz.year === filters.year) &&
         (!filters.semester || quiz.semester === filters.semester)
-    );
+      );
+    });
   }, [quizzes, filters]);
 
-  // Handle department filter change
+  // Handle filter changes
   const handleDepartmentChange = (value) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      department: value,
-      course: null,
-      year: null,
-      semester: null 
-    }));
+    setFilters((prev) => ({ ...prev, department: value, course: null, year: null, semester: null }));
   };
 
-  // Handle course filter change
   const handleCourseChange = (value) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      course: value,
-      year: null,
-      semester: null 
-    }));
+    setFilters((prev) => ({ ...prev, course: value, year: null, semester: null }));
   };
 
-  // Handle year filter change
   const handleYearChange = (value) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      year: value,
-      semester: null 
-    }));
+    setFilters((prev) => ({ ...prev, year: value, semester: null }));
   };
 
-  // Handle semester filter change
   const handleSemesterChange = (value) => {
-    setFilters(prev => ({ 
-      ...prev, 
-      semester: value 
-    }));
+    setFilters((prev) => ({ ...prev, semester: value }));
   };
 
-  // Clear all filters
   const clearFilters = () => {
-    setFilters({
-      department: null,
-      course: null,
-      year: null,
-      semester: null,
-    });
+    setFilters({ department: null, course: null, year: null, semester: null });
   };
 
   const menuItems = [
@@ -479,17 +367,8 @@ const QuizPage = () => {
     <App theme={{ algorithm: darkMode ? theme.darkAlgorithm : theme.defaultAlgorithm }}>
       <Layout style={{ minHeight: '100vh' }}>
         <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
-          <div
-            className="logo"
-            style={{ height: 32, margin: 16, background: 'rgba(255,255,255,0.2)' }}
-          />
-          <Menu
-            theme="dark"
-            mode="inline"
-            selectedKeys={[activeTab]}
-            onClick={({ key }) => setActiveTab(key)}
-            items={menuItems}
-          />
+          <div className="logo" style={{ height: 32, margin: 16, background: 'rgba(255,255,255,0.2)' }} />
+          <Menu theme="dark" mode="inline" selectedKeys={[activeTab]} onClick={({ key }) => setActiveTab(key)} items={menuItems} />
         </Sider>
         <Layout>
           <Header style={{ padding: 0, background: token.colorBgContainer }}>
@@ -514,7 +393,7 @@ const QuizPage = () => {
                       value={filters.department}
                       allowClear
                     >
-                      {departments.map(department => (
+                      {departments.map((department) => (
                         <Option key={department._id} value={department.name}>
                           {department.name}
                         </Option>
@@ -529,8 +408,10 @@ const QuizPage = () => {
                       allowClear
                       disabled={!filters.department}
                     >
-                      {availableCourses.map((course) => (
-                        <Option key={course} value={course}>{course}</Option>
+                      {filterOptions.courses.map((course) => (
+                        <Option key={course} value={course}>
+                          {course}
+                        </Option>
                       ))}
                     </Select>
 
@@ -542,8 +423,10 @@ const QuizPage = () => {
                       allowClear
                       disabled={!filters.course}
                     >
-                      {availableYears.map((year) => (
-                        <Option key={year} value={year}>Year {year}</Option>
+                      {filterOptions.years.map((year) => (
+                        <Option key={year} value={year}>
+                          Year {year}
+                        </Option>
                       ))}
                     </Select>
 
@@ -555,8 +438,10 @@ const QuizPage = () => {
                       allowClear
                       disabled={!filters.year}
                     >
-                      {availableSemesters.map((sem) => (
-                        <Option key={sem} value={sem}>Sem {sem}</Option>
+                      {filterOptions.semesters.map((sem) => (
+                        <Option key={sem} value={sem}>
+                          Sem {sem}
+                        </Option>
                       ))}
                     </Select>
 
