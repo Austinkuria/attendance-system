@@ -791,5 +791,26 @@ export const getQuizzesByDate = async (date) => {
   }
 };
 
+export const deleteQuiz = async (quizId) => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("No token found. Please log in.");
+  }
+
+  try {
+    const response = await axios.delete(`${API_URL}/quizzes/${quizId}`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error deleting quiz:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 
 export default api;

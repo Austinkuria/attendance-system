@@ -43,7 +43,7 @@ import {
   EyeOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
-import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes } from '../services/api';
+import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes,deleteQuiz } from '../services/api';
 import '../styles.css';
 
 const { Header, Sider, Content } = Layout;
@@ -644,10 +644,5 @@ const previewQuiz = (quiz) => {
   });
 };
 
-const deleteQuiz = (quizId) => {
-  // Implement delete functionality (e.g., API call to delete quiz)
-
-  message.success(`Quiz ${quizId} deleted successfully`);
-};
 
 export default QuizPage;
