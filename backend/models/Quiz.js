@@ -5,8 +5,8 @@ const quizSchema = new mongoose.Schema({
         type: String,
         required: true,
     },
-    description: String, // Add description if needed
-    method: String, // Add method if needed
+    description: String, // Optional field
+    method: String, // Optional field
     unit: { type: mongoose.Schema.Types.ObjectId, ref: "Unit", required: true },
     questions: [
         {
@@ -20,6 +20,7 @@ const quizSchema = new mongoose.Schema({
             answer: { type: String, required: true, default: "Not provided" }, // Ensure default
         },
     ],
+    createdAt: { type: Date, default: Date.now }, // Automatically add creation date
 });
 
 module.exports = mongoose.model("Quiz", quizSchema);
