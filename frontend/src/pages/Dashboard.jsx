@@ -33,7 +33,7 @@ const Dashboard = ({ username }) => {
   );
 };
 Dashboard.propTypes = {
-  username: PropTypes.string.isRequired,
+  username: PropTypes.string,
 };
 
 export default Dashboard;
