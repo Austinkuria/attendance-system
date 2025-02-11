@@ -1,6 +1,20 @@
 const Quiz = require('../models/Quiz');
 
+exports.deleteQuiz = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const deletedQuiz = await Quiz.findByIdAndDelete(id);
+        if (!deletedQuiz) {
+            return res.status(404).json({ message: 'Quiz not found' });
+        }
+        res.status(200).json({ message: 'Quiz deleted successfully' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error deleting quiz', error: error.message });
+    }
+};
+
 // Add a new quiz
+
 exports.addQuiz = async (req, res) => {
     try {
         const quizData = {
