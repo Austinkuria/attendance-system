@@ -359,7 +359,7 @@ const QuizPage = () => {
       try {
         setLoading((prev) => ({ ...prev, quizzes: true }));
         const quizData = await getPastQuizzes(lecturerId);
-
+  
         // Map unit ObjectId to unit name
         const validatedQuizData = quizData.map(quiz => {
           const unit = units.find(unit => unit._id === quiz.unit); // Find the unit by its ID
@@ -368,7 +368,7 @@ const QuizPage = () => {
             unit: unit ? unit.name : 'No Unit', // Use the unit name if found, otherwise default to 'No Unit'
           };
         });
-
+  
         setQuizzes(validatedQuizData || []);
       } catch {
         message.error('Failed to load quizzes');
@@ -376,10 +376,10 @@ const QuizPage = () => {
         setLoading((prev) => ({ ...prev, quizzes: false }));
       }
     };
-
+  
     if (lecturerId && units.length > 0) fetchQuizzes(); // Ensure units are fetched before mapping
   }, [lecturerId, units]);
-
+  
   // Compute filter options
   const filterOptions = useMemo(() => {
     const deptOptions = departments.map((dept) => dept.name).sort();
@@ -646,7 +646,7 @@ const previewQuiz = (quiz) => {
 
 const deleteQuiz = (quizId) => {
   // Implement delete functionality (e.g., API call to delete quiz)
-  
+
   message.success(`Quiz ${quizId} deleted successfully`);
 };
 
