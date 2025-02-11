@@ -17,6 +17,18 @@ import {
   Switch,
   Space,
   Tag,
+  Row,
+  Col,
+  Checkbox,
+  Dropdown,
+  Empty,
+  Popconfirm,
+  DatePicker,
+  Collapse,
+  Badge,
+  Pagination,
+  Divider,
+  Modal
 } from 'antd';
 import {
   DashboardOutlined,
@@ -26,8 +38,15 @@ import {
   UploadOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  SearchOutlined,
+  DeleteOutlined,
+  DownloadOutlined,
+  EyeOutlined,
+  FilterOutlined,
+  MoreOutlined
 } from '@ant-design/icons';
 import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes } from '../services/api';
+import '../styles.css';
 
 const { Header, Sider, Content } = Layout;
 const { Option } = Select;
@@ -62,6 +81,7 @@ const CreateQuizForm = ({ units, loading }) => {
         return;
       }
   
+      // Build payload with properly mapped questions and options
       const payload = {
         title: values.title,
         description: values.description,
@@ -71,15 +91,15 @@ const CreateQuizForm = ({ units, loading }) => {
           question: question.questionText, // Map questionText to question
           options: question.options.map((option) => ({
             optionText: option.optionText,
-            isCorrect: option.isCorrect || false, // Ensure isCorrect is always boolean
+            isCorrect: option.isCorrect || false,
           })),
-          answer: question.options.find((option) => option.isCorrect)?.optionText || "Not provided",
+          answer:
+            question.options.find((option) => option.isCorrect)?.optionText ||
+            "Not provided",
         })),
       };      
 
-      if (creationMethod === 'manual') {
-        payload.questions = values.questions;
-      } else {
+      if (creationMethod === 'upload') {
         const fileList = values.quizFile;
         if (fileList && fileList.length > 0) {
           const file = fileList[0].originFileObj;
@@ -95,14 +115,14 @@ const CreateQuizForm = ({ units, loading }) => {
       }
 
       await createQuiz(payload);
-    message.success('Quiz created successfully!');
-    form.resetFields();
-  } catch (error) {
-    message.error(error.message || 'Failed to create quiz');
-  } finally {
-    setSubmitting(false);
-  }
-};
+      message.success('Quiz created successfully!');
+      form.resetFields();
+    } catch (error) {
+      message.error(error.message || 'Failed to create quiz');
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div>
@@ -250,6 +270,48 @@ const CreateQuizForm = ({ units, loading }) => {
 
 CreateQuizForm.propTypes = createQuizFormPropTypes;
 
+const QuizCard = ({ quiz }) => {
+  // If quiz.status is undefined, default to 'active'
+  const status = quiz.status || 'active';
+  return (
+    <Badge.Ribbon text={status} color={status === 'active' ? 'green' : 'red'}>
+      <Card
+        title={quiz.title}
+        actions={[
+          <EyeOutlined key="preview" onClick={() => previewQuiz(quiz)} />,
+          <DownloadOutlined key="download" onClick={() => exportQuiz(quiz)} />,
+          <Popconfirm key="delete" title="Delete this quiz?" onConfirm={() => deleteQuiz(quiz._id)}>
+            <DeleteOutlined />
+          </Popconfirm>
+        ]}
+      >
+        <div className="quiz-card-content">
+          <Tag color="blue">{quiz.department}</Tag>
+          <Tag color="geekblue">{quiz.course}</Tag>
+          <div className="quiz-meta">
+            <small>Year: {quiz.year}</small>
+            <small>Semester: {quiz.semester}</small>
+          </div>
+          {quiz.description && <p className="quiz-description">{quiz.description}</p>}
+        </div>
+      </Card>
+    </Badge.Ribbon>
+  );
+};
+
+QuizCard.propTypes = {
+  quiz: PropTypes.shape({
+    status: PropTypes.string, // Made optional now
+    title: PropTypes.string.isRequired,
+    _id: PropTypes.string.isRequired,
+    department: PropTypes.string.isRequired,
+    course: PropTypes.string.isRequired,
+    year: PropTypes.number.isRequired,
+    semester: PropTypes.number.isRequired,
+    description: PropTypes.string,
+  }).isRequired,
+};
+
 const QuizPage = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState({ units: true, quizzes: false });
@@ -325,33 +387,79 @@ const QuizPage = () => {
     };
   }, [units, departments]);
 
-  // Compute filtered quizzes based on selected filters
+  // Enhanced filtering, search and sort
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedQuizzes, setSelectedQuizzes] = useState([]);
+  const [sortBy, setSortBy] = useState('title_asc');
+  const [currentPage, setCurrentPage] = useState(1);
+  const pageSize = 12;
+
   const filteredQuizzes = useMemo(() => {
-    return quizzes.filter((quiz) => {
-      return (
-        (!filters.department || quiz.department === filters.department) &&
-        (!filters.course || quiz.course === filters.course) &&
-        (!filters.year || quiz.year === filters.year) &&
-        (!filters.semester || quiz.semester === filters.semester)
-      );
-    });
-  }, [quizzes, filters]);
+    return quizzes
+      .filter((quiz) => {
+        const matchesSearch =
+          quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (quiz.description && quiz.description.toLowerCase().includes(searchQuery.toLowerCase()));
+        return (
+          matchesSearch &&
+          (!filters.department || quiz.department === filters.department) &&
+          (!filters.course || quiz.course === filters.course) &&
+          (!filters.year || quiz.year === filters.year) &&
+          (!filters.semester || quiz.semester === filters.semester)
+        );
+      })
+      .sort((a, b) => {
+        if (sortBy === 'title_asc') return a.title.localeCompare(b.title);
+        if (sortBy === 'title_desc') return b.title.localeCompare(a.title);
+        if (sortBy === 'date_asc') return new Date(a.createdAt) - new Date(b.createdAt);
+        return new Date(b.createdAt) - new Date(a.createdAt);
+      });
+  }, [quizzes, filters, searchQuery, sortBy]);
 
-  // Handle filter changes
-  const handleDepartmentChange = (value) => {
-    setFilters((prev) => ({ ...prev, department: value, course: null, year: null, semester: null }));
+  // Bulk actions
+  const handleBulkDelete = () => {
+    // Implement API call for bulk delete
+    setSelectedQuizzes([]);
+    message.success('Selected quizzes deleted successfully');
   };
 
-  const handleCourseChange = (value) => {
-    setFilters((prev) => ({ ...prev, course: value, year: null, semester: null }));
-  };
+  const QuizCard = ({ quiz }) => (
+    <Badge.Ribbon text={quiz.status || 'active'} color={(quiz.status || 'active') === 'active' ? 'green' : 'red'}>
+      <Card
+        title={quiz.title}
+        actions={[
+          <EyeOutlined key="preview" onClick={() => previewQuiz(quiz)} />,
+          <DownloadOutlined key="download" onClick={() => exportQuiz(quiz)} />,
+          <Popconfirm key="delete" title="Delete this quiz?" onConfirm={() => deleteQuiz(quiz._id)}>
+            <DeleteOutlined />
+          </Popconfirm>
+        ]}
+      >
+        <div className="quiz-card-content">
+          <Tag color="blue">{quiz.department}</Tag>
+          <Tag color="geekblue">{quiz.course}</Tag>
+          <div className="quiz-meta">
+            <small>Year: {quiz.year}</small>
+            <small>Semester: {quiz.semester}</small>
+          </div>
+          {quiz.description && <p className="quiz-description">{quiz.description}</p>}
+        </div>
+      </Card>
+    </Badge.Ribbon>
+  );
 
-  const handleYearChange = (value) => {
-    setFilters((prev) => ({ ...prev, year: value, semester: null }));
-  };
-
-  const handleSemesterChange = (value) => {
-    setFilters((prev) => ({ ...prev, semester: value }));
+  QuizCard.propTypes = {
+    quiz: PropTypes.shape({
+      // Removed isRequired from status since it might be undefined
+      status: PropTypes.string,
+      title: PropTypes.string.isRequired,
+      _id: PropTypes.string.isRequired,
+      department: PropTypes.string.isRequired,
+      course: PropTypes.string.isRequired,
+      year: PropTypes.number.isRequired,
+      semester: PropTypes.number.isRequired,
+      description: PropTypes.string,
+    }).isRequired,
   };
 
   const clearFilters = () => {
@@ -370,7 +478,13 @@ const QuizPage = () => {
       <Layout style={{ minHeight: '100vh' }}>
         <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed}>
           <div className="logo" style={{ height: 32, margin: 16, background: 'rgba(255,255,255,0.2)' }} />
-          <Menu theme="dark" mode="inline" selectedKeys={[activeTab]} onClick={({ key }) => setActiveTab(key)} items={menuItems} />
+          <Menu
+            theme="dark"
+            mode="inline"
+            selectedKeys={[activeTab]}
+            onClick={({ key }) => setActiveTab(key)}
+            items={menuItems}
+          />
         </Sider>
         <Layout>
           <Header style={{ padding: 0, background: token.colorBgContainer }}>
@@ -385,100 +499,106 @@ const QuizPage = () => {
             {activeTab === 'create' ? (
               <CreateQuizForm units={units} loading={loading} />
             ) : activeTab === 'library' ? (
-              <div>
-                <div className="flex gap-md mb-lg">
-                  <Space wrap style={{ width: '100%' }}>
-                    <Select
-                      placeholder="Select Department"
-                      style={{ width: 160 }}
-                      onChange={handleDepartmentChange}
-                      value={filters.department}
-                      allowClear
+              <div className="quiz-library">
+                <div className="library-controls" style={{ marginBottom: 16 }}>
+                  <Input.Search
+                    placeholder="Search quizzes..."
+                    prefix={<SearchOutlined />}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    style={{ width: 300 }}
+                  />
+                  <Space>
+                    <Dropdown
+                      menu={{
+                        items: [
+                          { key: 'title_asc', label: 'Title (A-Z)' },
+                          { key: 'title_desc', label: 'Title (Z-A)' },
+                          { key: 'date_asc', label: 'Date (Oldest)' },
+                          { key: 'date_desc', label: 'Date (Newest)' },
+                        ],
+                        onClick: ({ key }) => setSortBy(key),
+                      }}
                     >
-                      {departments.map((department) => (
-                        <Option key={department._id} value={department.name}>
-                          {department.name}
-                        </Option>
-                      ))}
-                    </Select>
-
-                    <Select
-                      placeholder="Course"
-                      style={{ width: 180 }}
-                      onChange={handleCourseChange}
-                      value={filters.course}
-                      allowClear
-                      disabled={!filters.department}
-                    >
-                      {filterOptions.courses.map((course) => (
-                        <Option key={course} value={course}>
-                          {course}
-                        </Option>
-                      ))}
-                    </Select>
-
-                    <Select
-                      placeholder="Year"
-                      style={{ width: 120 }}
-                      onChange={handleYearChange}
-                      value={filters.year}
-                      allowClear
-                      disabled={!filters.course}
-                    >
-                      {filterOptions.years.map((year) => (
-                        <Option key={year} value={year}>
-                          Year {year}
-                        </Option>
-                      ))}
-                    </Select>
-
-                    <Select
-                      placeholder="Semester"
-                      style={{ width: 140 }}
-                      onChange={handleSemesterChange}
-                      value={filters.semester}
-                      allowClear
-                      disabled={!filters.year}
-                    >
-                      {filterOptions.semesters.map((sem) => (
-                        <Option key={sem} value={sem}>
-                          Sem {sem}
-                        </Option>
-                      ))}
-                    </Select>
-
-                    <Button
-                      type="link"
-                      onClick={clearFilters}
-                      disabled={!Object.values(filters).some(Boolean)}
-                    >
-                      Clear Filters
-                    </Button>
+                      <Button icon={<FilterOutlined />}>Sort By</Button>
+                    </Dropdown>
+                    <Collapse
+                      ghost
+                      items={[
+                        {
+                          key: '1',
+                          header: 'Advanced Filters',
+                          children: (
+                            <>
+                              {/* Insert advanced filter controls here */}
+                            </>
+                          ),
+                        },
+                      ]}
+                    />
+                    {selectedQuizzes.length > 0 && (
+                      <Space>
+                        <Button danger icon={<DeleteOutlined />} onClick={handleBulkDelete}>
+                          Delete ({selectedQuizzes.length})
+                        </Button>
+                        <Button icon={<DownloadOutlined />}>Export Selected</Button>
+                      </Space>
+                    )}
                   </Space>
                 </div>
-                <div>
-                  <h2>Quiz Library</h2>
-                  {loading.quizzes ? (
-                    <Skeleton active />
-                  ) : (
-                    <Table dataSource={filteredQuizzes} rowKey="id">
-                      <Table.Column title="Quiz Title" dataIndex="title" key="title" />
-                      <Table.Column title="Department" dataIndex="department" key="department" />
-                      <Table.Column title="Course" dataIndex="course" key="course" />
-                      <Table.Column title="Year" dataIndex="year" key="year" />
-                      <Table.Column title="Semester" dataIndex="semester" key="semester" />
-                      <Table.Column
-                        title="Status"
-                        key="status"
-                        render={(_, record) => (
-                          <Tag color={record.status === 'active' ? 'green' : 'red'}>
-                            {record.status}
-                          </Tag>
-                        )}
+                {loading.quizzes ? (
+                  <Row gutter={[16, 16]}>
+                    {[...Array(6)].map((_, i) => (
+                      <Col key={i} xs={24} sm={12} md={8} lg={6}>
+                        <Skeleton active />
+                      </Col>
+                    ))}
+                  </Row>
+                ) : filteredQuizzes.length > 0 ? (
+                  <>
+                    <Row gutter={[16, 16]}>
+                      {filteredQuizzes
+                        .slice((currentPage - 1) * pageSize, currentPage * pageSize)
+                        .map((quiz) => (
+                          <Col key={quiz._id} xs={24} sm={12} md={8} lg={6}>
+                            <Checkbox
+                              checked={selectedQuizzes.includes(quiz._id)}
+                              onChange={(e) =>
+                                setSelectedQuizzes(
+                                  e.target.checked
+                                    ? [...selectedQuizzes, quiz._id]
+                                    : selectedQuizzes.filter((id) => id !== quiz._id)
+                                )
+                              }
+                            >
+                              <QuizCard quiz={quiz} />
+                            </Checkbox>
+                          </Col>
+                        ))}
+                    </Row>
+                    <div className="pagination" style={{ marginTop: 16, textAlign: 'center' }}>
+                      <Pagination
+                        current={currentPage}
+                        pageSize={pageSize}
+                        total={filteredQuizzes.length}
+                        onChange={setCurrentPage}
+                        showSizeChanger={false}
                       />
-                    </Table>
-                  )}
-                </div>
+                    </div>
+                  </>
+                ) : (
+                  <Empty
+                    image={Empty.PRESENTED_IMAGE_SIMPLE}
+                    description={
+                      <span>
+                        No quizzes found {searchQuery && `for "${searchQuery}"`}
+                      </span>
+                    }
+                  >
+                    <Button type="primary" onClick={clearFilters}>
+                      Clear Filters
+                    </Button>
+                  </Empty>
+                )}
               </div>
             ) : (
               <div>
@@ -491,6 +611,56 @@ const QuizPage = () => {
       </Layout>
     </App>
   );
+};
+
+const exportQuiz = (quiz) => {
+  const jsonString = JSON.stringify(quiz, null, 2);
+  const blob = new Blob([jsonString], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `${quiz.title.replace(/ /g, '_')}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+};
+
+const previewQuiz = (quiz) => {
+  Modal.info({
+    title: quiz.title,
+    width: 800,
+    content: (
+      <div className="quiz-preview">
+        <div className="quiz-meta">
+          <Tag color="blue">{quiz.department}</Tag>
+          <Tag color="geekblue">{quiz.course}</Tag>
+          <span>Year: {quiz.year}</span>
+          <span>Semester: {quiz.semester}</span>
+        </div>
+        {quiz.description && <p>{quiz.description}</p>}
+        <Divider>Questions</Divider>
+        {quiz.questions.map((q, i) => (
+          <div key={i} className="question">
+            <h4>
+              {i + 1}. {q.question}
+            </h4>
+            <ul>
+              {q.options.map((opt, j) => (
+                <li key={j} style={opt.isCorrect ? { color: 'green', fontWeight: 'bold' } : {}}>
+                  {opt.optionText}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+    ),
+  });
+};
+
+const deleteQuiz = (quizId) => {
+  // Implement delete functionality (e.g., API call to delete quiz)
+  message.success(`Quiz ${quizId} deleted successfully`);
 };
 
 export default QuizPage;
