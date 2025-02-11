@@ -734,32 +734,37 @@ export const getQuizzes = async (filters = {}) => {
 */
 export const getPastQuizzes = async (lecturerId, filters = {}) => {
   const token = localStorage.getItem("token");
-  if (!lecturerId) {
-      throw new Error("Lecturer ID is required.");
+  if (!token) {
+    throw new Error("No token found. Please log in.");
   }
 
   try {
-      // Construct query parameters from filters
-      const queryParams = new URLSearchParams({
-          lecturerId,
-          ...filters, // Include additional filters (e.g., date)
-      }).toString();
+    const queryParams = new URLSearchParams({
+      lecturerId,
+      ...filters,
+    }).toString();
 
-      const response = await fetch(`${API_URL}/quizzes?${queryParams}`, {
-          headers: {
-              'Content-Type': 'application/json',
-              Authorization: token ? `Bearer ${token}` : '',
-          },
-      });
+    const response = await fetch(`${API_URL}/quizzes?${queryParams}`, {
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      if (!response.ok) {
-          throw new Error('Failed to fetch past quizzes');
+    if (!response.ok) {
+      const errorData = await response.json();
+      if (errorData.message === "Token is not valid") {
+        // Token is invalid or expired
+        localStorage.removeItem("token"); // Clear the invalid token
+        window.location.href = "/login"; // Redirect to login page
       }
+      throw new Error(errorData.message || 'Failed to fetch past quizzes');
+    }
 
-      return await response.json();
+    return await response.json();
   } catch (error) {
-      console.error("Error fetching past quizzes:", error);
-      return [];
+    console.error("Error fetching past quizzes:", error);
+    return [];
   }
 };
 
