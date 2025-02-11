@@ -68,12 +68,14 @@ const CreateQuizForm = ({ units, loading }) => {
         method: creationMethod,
         unit: values.unit,
         questions: values.questions.map((question) => ({
-          question: question.questionText, // Map `questionText` to `question`
-          options: question.options.map((option) => option.optionText), // Map `optionText` to `options`
-          answer: question.options.find((option) => option.isCorrect)?.optionText, // Set the correct answer
+          question: question.questionText, // Map questionText to question
+          options: question.options.map((option) => ({
+            optionText: option.optionText,
+            isCorrect: option.isCorrect || false, // Ensure isCorrect is always boolean
+          })),
+          answer: question.options.find((option) => option.isCorrect)?.optionText || "Not provided",
         })),
-      };
-      
+      };      
 
       if (creationMethod === 'manual') {
         payload.questions = values.questions;
