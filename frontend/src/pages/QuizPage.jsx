@@ -10,7 +10,6 @@ import {
   Input,
   Select,
   Upload,
-  // Table,
   Skeleton,
   message,
   App,
@@ -23,12 +22,12 @@ import {
   Dropdown,
   Empty,
   Popconfirm,
-  // DatePicker,
+  DatePicker,
   Collapse,
   Badge,
   Pagination,
   Divider,
-  Modal
+  Modal,
 } from 'antd';
 import {
   DashboardOutlined,
@@ -43,7 +42,6 @@ import {
   DownloadOutlined,
   EyeOutlined,
   FilterOutlined,
-  // MoreOutlined
 } from '@ant-design/icons';
 import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes } from '../services/api';
 import '../styles.css';
@@ -80,13 +78,14 @@ const CreateQuizForm = ({ units, loading }) => {
         message.error('Please select a unit');
         return;
       }
-  
+
       // Build payload with properly mapped questions and options
       const payload = {
         title: values.title,
         description: values.description,
         method: creationMethod,
         unit: values.unit,
+        createdAt: new Date().toISOString(), // Automatically add the current date
         questions: values.questions.map((question) => ({
           question: question.questionText, // Map questionText to question
           options: question.options.map((option) => ({
@@ -97,7 +96,7 @@ const CreateQuizForm = ({ units, loading }) => {
             question.options.find((option) => option.isCorrect)?.optionText ||
             "Not provided",
         })),
-      };      
+      };
 
       if (creationMethod === 'upload') {
         const fileList = values.quizFile;
@@ -273,6 +272,7 @@ CreateQuizForm.propTypes = createQuizFormPropTypes;
 const QuizCard = ({ quiz }) => {
   const status = quiz.status || 'active';
   const unit = quiz.unit || 'No Unit'; // Use the mapped unit name
+  const createdAt = new Date(quiz.createdAt).toLocaleDateString(); // Format the creation date
 
   return (
     <Badge.Ribbon text={status} color={status === 'active' ? 'green' : 'red'}>
@@ -292,6 +292,7 @@ const QuizCard = ({ quiz }) => {
           <div className="quiz-meta">
             <small>Year: {quiz.year}</small>
             <small>Semester: {quiz.semester}</small>
+            <small>Created: {createdAt}</small> {/* Display the creation date */}
           </div>
           {quiz.description && <p className="quiz-description">{quiz.description}</p>}
         </div>
@@ -305,11 +306,12 @@ QuizCard.propTypes = {
     status: PropTypes.string,
     title: PropTypes.string.isRequired,
     _id: PropTypes.string.isRequired,
-    unit: PropTypes.string, // Updated to use unit name
+    unit: PropTypes.string, // Updated to use unit instead of department
     course: PropTypes.string.isRequired,
     year: PropTypes.number.isRequired,
     semester: PropTypes.number.isRequired,
     description: PropTypes.string,
+    createdAt: PropTypes.string.isRequired, // Added createdAt
   }).isRequired,
 };
 
@@ -324,6 +326,7 @@ const QuizPage = () => {
     course: null,
     year: null,
     semester: null,
+    date: null, // Add date filter
   });
   const [activeTab, setActiveTab] = useState('dashboard');
   const [darkMode] = useState(false);
@@ -356,7 +359,7 @@ const QuizPage = () => {
       try {
         setLoading((prev) => ({ ...prev, quizzes: true }));
         const quizData = await getPastQuizzes(lecturerId);
-  
+
         // Map unit ObjectId to unit name
         const validatedQuizData = quizData.map(quiz => {
           const unit = units.find(unit => unit._id === quiz.unit); // Find the unit by its ID
@@ -365,7 +368,7 @@ const QuizPage = () => {
             unit: unit ? unit.name : 'No Unit', // Use the unit name if found, otherwise default to 'No Unit'
           };
         });
-  
+
         setQuizzes(validatedQuizData || []);
       } catch {
         message.error('Failed to load quizzes');
@@ -373,10 +376,10 @@ const QuizPage = () => {
         setLoading((prev) => ({ ...prev, quizzes: false }));
       }
     };
-  
+
     if (lecturerId && units.length > 0) fetchQuizzes(); // Ensure units are fetched before mapping
-  }, [lecturerId, units]); // Add units as a dependency
-  
+  }, [lecturerId, units]);
+
   // Compute filter options
   const filterOptions = useMemo(() => {
     const deptOptions = departments.map((dept) => dept.name).sort();
@@ -411,12 +414,18 @@ const QuizPage = () => {
         const matchesSearch =
           quiz.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
           (quiz.description && quiz.description.toLowerCase().includes(searchQuery.toLowerCase()));
+
+        // Filter by date
+        const quizDate = new Date(quiz.createdAt).toDateString();
+        const filterDate = filters.date ? new Date(filters.date).toDateString() : null;
+
         return (
           matchesSearch &&
-          (!filters.unit || quiz.unit === filters.unit) && // Updated to filter by unit
+          (!filters.unit || quiz.unit === filters.unit) &&
           (!filters.course || quiz.course === filters.course) &&
           (!filters.year || quiz.year === filters.year) &&
-          (!filters.semester || quiz.semester === filters.semester)
+          (!filters.semester || quiz.semester === filters.semester) &&
+          (!filters.date || quizDate === filterDate) // Filter by date
         );
       })
       .sort((a, b) => {
@@ -434,51 +443,8 @@ const QuizPage = () => {
     message.success('Selected quizzes deleted successfully');
   };
 
-  const QuizCard = ({ quiz }) => {
-    const status = quiz.status || 'active';
-    const unit = quiz.unit || 'No Unit'; // Provide a default value
-  
-    return (
-      <Badge.Ribbon text={status} color={status === 'active' ? 'green' : 'red'}>
-        <Card
-          title={quiz.title}
-          actions={[
-            <EyeOutlined key="preview" onClick={() => previewQuiz(quiz)} />,
-            <DownloadOutlined key="download" onClick={() => exportQuiz(quiz)} />,
-            <Popconfirm key="delete" title="Delete this quiz?" onConfirm={() => deleteQuiz(quiz._id)}>
-              <DeleteOutlined />
-            </Popconfirm>
-          ]}
-        >
-          <div className="quiz-card-content">
-            <Tag color="blue">{unit}</Tag> {/* Display unit instead of department */}
-            <Tag color="geekblue">{quiz.course}</Tag>
-            <div className="quiz-meta">
-              <small>Year: {quiz.year}</small>
-              <small>Semester: {quiz.semester}</small>
-            </div>
-            {quiz.description && <p className="quiz-description">{quiz.description}</p>}
-          </div>
-        </Card>
-      </Badge.Ribbon>
-    );
-  };
-  
-  QuizCard.propTypes = {
-    quiz: PropTypes.shape({
-      status: PropTypes.string,
-      title: PropTypes.string.isRequired,
-      _id: PropTypes.string.isRequired,
-      unit: PropTypes.string, // Updated to use unit instead of department
-      course: PropTypes.string.isRequired,
-      year: PropTypes.number.isRequired,
-      semester: PropTypes.number.isRequired,
-      description: PropTypes.string,
-    }).isRequired,
-  };
-
   const clearFilters = () => {
-    setFilters({ department: null, course: null, year: null, semester: null });
+    setFilters({ department: null, course: null, year: null, semester: null, date: null });
   };
 
   const menuItems = [
@@ -536,6 +502,10 @@ const QuizPage = () => {
                     >
                       <Button icon={<FilterOutlined />}>Sort By</Button>
                     </Dropdown>
+                    <DatePicker
+                      placeholder="Filter by date"
+                      onChange={(date) => setFilters({ ...filters, date })}
+                    />
                     <Collapse
                       ghost
                       items={[
@@ -651,6 +621,7 @@ const previewQuiz = (quiz) => {
           <Tag color="geekblue">{quiz.course}</Tag>
           <span>Year: {quiz.year}</span>
           <span>Semester: {quiz.semester}</span>
+          <span>Created: {new Date(quiz.createdAt).toLocaleDateString()}</span>
         </div>
         {quiz.description && <p>{quiz.description}</p>}
         <Divider>Questions</Divider>
@@ -675,6 +646,7 @@ const previewQuiz = (quiz) => {
 
 const deleteQuiz = (quizId) => {
   // Implement delete functionality (e.g., API call to delete quiz)
+  
   message.success(`Quiz ${quizId} deleted successfully`);
 };
 

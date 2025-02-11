@@ -660,83 +660,131 @@ export const markStudentAttendance = async (unitId, qrCode, token) => {
   }
 };
 
+/**
+ * Create a new quiz
+ * @param {Object} quizData - The quiz data to be created
+ * @returns {Promise<Object>} - The created quiz data
+ */
 export const createQuiz = async (quizData) => {
   const token = localStorage.getItem("token");
   if (!token) {
-    throw new Error("No token found. Please log in.");
+      throw new Error("No token found. Please log in.");
   }
 
-  // Update mapping to use "question" if "questionText" is not provided
+  // Validate required fields
+  if (!quizData.title || !quizData.unit || !quizData.questions) {
+      throw new Error("Missing required fields: title, unit, or questions.");
+  }
+
+  // Format the quiz data
   const formattedQuizData = {
-    title: quizData.title,
-    description: quizData.description,
-    method: quizData.method,
-    unit: quizData.unit,
-    questions: quizData.questions.map(question => ({
-      // Use question.questionText if available, otherwise fall back to question.question
-      question: question.questionText || question.question,
-      options: question.options.map(option => ({
-        optionText: option.optionText,
-        isCorrect: option.isCorrect || false,
-      })),
-      answer: question.answer ? question.answer : undefined,
-    })),
+      ...quizData,
+      createdAt: new Date().toISOString(), // Automatically add the current date
   };
 
   try {
-    const response = await fetch(`${API_URL}/quizzes`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(formattedQuizData),
-    });
+      const response = await fetch(`${API_URL}/quizzes`, {
+          method: 'POST',
+          headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify(formattedQuizData),
+      });
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message || 'Failed to create quiz');
-    }
-
-    return await response.json();
-  } catch (error) {
-    console.error("Network error:", error);
-    throw new Error(error.message || "Network error. Please check your connection.");
-  }
-};
-
-
-export const getQuizzes = async () => {
-  try {
-    const response = await fetch(`${API_URL}/quizzes`); // Adjust the API endpoint
-    if (!response.ok) throw new Error('Failed to fetch quizzes');
-    return await response.json();
-  } catch (error) {
-    console.error(error);
-    return [];
-  }
-};
-
-export const getPastQuizzes = async (lecturerId, page = 1, limit = 10) => {
-  const token = localStorage.getItem("token");
-  try {
-    const response = await fetch(
-      `${API_URL}/quizzes?lecturerId=${lecturerId}&page=${page}&limit=${limit}`,
-      {
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: token ? `Bearer ${token}` : '',
-        },
+      if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Failed to create quiz');
       }
-    );
-    if (!response.ok) {
-      throw new Error('Failed to fetch past quizzes');
-    }
-    return await response.json();
+
+      return await response.json();
   } catch (error) {
-    console.error(error);
-    return [];
+      console.error("Network error:", error);
+      throw new Error(error.message || "Network error. Please check your connection.");
   }
 };
+
+/**
+* Fetch all quizzes (with optional filtering)
+* @param {Object} filters - Optional filters (e.g., lecturerId, date)
+* @returns {Promise<Array>} - A list of quizzes
+*/
+export const getQuizzes = async (filters = {}) => {
+  try {
+      // Construct query parameters from filters
+      const queryParams = new URLSearchParams(filters).toString();
+      const response = await fetch(`${API_URL}/quizzes?${queryParams}`);
+
+      if (!response.ok) {
+          throw new Error('Failed to fetch quizzes');
+      }
+
+      return await response.json();
+  } catch (error) {
+      console.error("Error fetching quizzes:", error);
+      return [];
+  }
+};
+
+/**
+* Fetch past quizzes for a lecturer (with optional filtering)
+* @param {string} lecturerId - The ID of the lecturer
+* @param {Object} filters - Optional filters (e.g., date)
+* @returns {Promise<Array>} - A list of past quizzes
+*/
+export const getPastQuizzes = async (lecturerId, filters = {}) => {
+  const token = localStorage.getItem("token");
+  if (!lecturerId) {
+      throw new Error("Lecturer ID is required.");
+  }
+
+  try {
+      // Construct query parameters from filters
+      const queryParams = new URLSearchParams({
+          lecturerId,
+          ...filters, // Include additional filters (e.g., date)
+      }).toString();
+
+      const response = await fetch(`${API_URL}/quizzes?${queryParams}`, {
+          headers: {
+              'Content-Type': 'application/json',
+              Authorization: token ? `Bearer ${token}` : '',
+          },
+      });
+
+      if (!response.ok) {
+          throw new Error('Failed to fetch past quizzes');
+      }
+
+      return await response.json();
+  } catch (error) {
+      console.error("Error fetching past quizzes:", error);
+      return [];
+  }
+};
+
+/**
+* Fetch quizzes by date
+* @param {string} date - The date to filter quizzes by (in ISO format)
+* @returns {Promise<Array>} - A list of quizzes created on the specified date
+*/
+export const getQuizzesByDate = async (date) => {
+  if (!date) {
+      throw new Error("Date is required.");
+  }
+
+  try {
+      const response = await fetch(`${API_URL}/quizzes?date=${date}`);
+      if (!response.ok) {
+          throw new Error('Failed to fetch quizzes by date');
+      }
+
+      return await response.json();
+  } catch (error) {
+      console.error("Error fetching quizzes by date:", error);
+      return [];
+  }
+};
+
 
 export default api;
