@@ -662,24 +662,47 @@ export const markStudentAttendance = async (unitId, qrCode, token) => {
 
 export const createQuiz = async (quizData) => {
   const token = localStorage.getItem("token");
+  if (!token) {
+    throw new Error("No token found. Please log in.");
+  }
+
+  const formattedQuizData = {
+    title: quizData.title,
+    description: quizData.description,
+    method: quizData.method,
+    unit: quizData.unit,
+    questions: quizData.questions.map(question => ({
+      question: question.questionText,
+      options: question.options.map(option => ({
+        optionText: option.optionText,
+        isCorrect: option.isCorrect || false,
+      })),
+      answer: question.answer || '',
+    })),
+  };
+
   try {
     const response = await fetch(`${API_URL}/quizzes`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        Authorization: token ? `Bearer ${token}` : '',
+        Authorization: `Bearer ${token}`,
       },
-      body: JSON.stringify(quizData),
+      body: JSON.stringify(formattedQuizData),
     });
+
     if (!response.ok) {
-      throw new Error('Failed to create quiz');
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create quiz');
     }
+
     return await response.json();
   } catch (error) {
     console.error("Network error:", error);
-    throw new Error("Network error. Please check your connection.");
+    throw new Error(error.message || "Network error. Please check your connection.");
   }
 };
+
 
 export const getQuizzes = async () => {
   try {
