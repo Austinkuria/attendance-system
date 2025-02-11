@@ -666,18 +666,20 @@ export const createQuiz = async (quizData) => {
     throw new Error("No token found. Please log in.");
   }
 
+  // Update mapping to use "question" if "questionText" is not provided
   const formattedQuizData = {
     title: quizData.title,
     description: quizData.description,
     method: quizData.method,
     unit: quizData.unit,
     questions: quizData.questions.map(question => ({
-      question: question.questionText,
+      // Use question.questionText if available, otherwise fall back to question.question
+      question: question.questionText || question.question,
       options: question.options.map(option => ({
         optionText: option.optionText,
         isCorrect: option.isCorrect || false,
       })),
-      answer: question.answer || '',
+      answer: question.answer ? question.answer : undefined,
     })),
   };
 

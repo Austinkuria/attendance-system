@@ -296,3 +296,39 @@ form {
   box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
   border-radius: 8px;
 }
+
+.quiz-library {
+  padding: 16px;
+}
+
+.library-controls {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 24px;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.quiz-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.quiz-card-content .quiz-meta {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 8px;
+}
+
+.quiz-card-content .quiz-description {
+  margin: 8px 0;
+  color: rgba(0, 0, 0, 0.7);
+  font-size: 0.9em;
+}
+
+.pagination {
+  margin-top: 24px;
+  display: flex;
+  justify-content: center;
+}
