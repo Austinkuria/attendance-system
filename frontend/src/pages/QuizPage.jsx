@@ -10,7 +10,7 @@ import {
   Input,
   Select,
   Upload,
-  Table,
+  // Table,
   Skeleton,
   message,
   App,
@@ -23,7 +23,7 @@ import {
   Dropdown,
   Empty,
   Popconfirm,
-  DatePicker,
+  // DatePicker,
   Collapse,
   Badge,
   Pagination,
@@ -43,7 +43,7 @@ import {
   DownloadOutlined,
   EyeOutlined,
   FilterOutlined,
-  MoreOutlined
+  // MoreOutlined
 } from '@ant-design/icons';
 import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes } from '../services/api';
 import '../styles.css';
@@ -271,8 +271,9 @@ const CreateQuizForm = ({ units, loading }) => {
 CreateQuizForm.propTypes = createQuizFormPropTypes;
 
 const QuizCard = ({ quiz }) => {
-  // If quiz.status is undefined, default to 'active'
   const status = quiz.status || 'active';
+  const unit = quiz.unit || 'No Unit'; // Use the mapped unit name
+
   return (
     <Badge.Ribbon text={status} color={status === 'active' ? 'green' : 'red'}>
       <Card
@@ -286,7 +287,7 @@ const QuizCard = ({ quiz }) => {
         ]}
       >
         <div className="quiz-card-content">
-          <Tag color="blue">{quiz.department}</Tag>
+          <Tag color="blue">{unit}</Tag> {/* Display the unit name */}
           <Tag color="geekblue">{quiz.course}</Tag>
           <div className="quiz-meta">
             <small>Year: {quiz.year}</small>
@@ -301,10 +302,10 @@ const QuizCard = ({ quiz }) => {
 
 QuizCard.propTypes = {
   quiz: PropTypes.shape({
-    status: PropTypes.string, // Made optional now
+    status: PropTypes.string,
     title: PropTypes.string.isRequired,
     _id: PropTypes.string.isRequired,
-    department: PropTypes.string.isRequired,
+    unit: PropTypes.string, // Updated to use unit name
     course: PropTypes.string.isRequired,
     year: PropTypes.number.isRequired,
     semester: PropTypes.number.isRequired,
@@ -355,17 +356,27 @@ const QuizPage = () => {
       try {
         setLoading((prev) => ({ ...prev, quizzes: true }));
         const quizData = await getPastQuizzes(lecturerId);
-        setQuizzes(quizData || []);
+  
+        // Map unit ObjectId to unit name
+        const validatedQuizData = quizData.map(quiz => {
+          const unit = units.find(unit => unit._id === quiz.unit); // Find the unit by its ID
+          return {
+            ...quiz,
+            unit: unit ? unit.name : 'No Unit', // Use the unit name if found, otherwise default to 'No Unit'
+          };
+        });
+  
+        setQuizzes(validatedQuizData || []);
       } catch {
         message.error('Failed to load quizzes');
       } finally {
         setLoading((prev) => ({ ...prev, quizzes: false }));
       }
     };
-
-    if (lecturerId) fetchQuizzes();
-  }, [lecturerId]);
-
+  
+    if (lecturerId && units.length > 0) fetchQuizzes(); // Ensure units are fetched before mapping
+  }, [lecturerId, units]); // Add units as a dependency
+  
   // Compute filter options
   const filterOptions = useMemo(() => {
     const deptOptions = departments.map((dept) => dept.name).sort();
@@ -402,7 +413,7 @@ const QuizPage = () => {
           (quiz.description && quiz.description.toLowerCase().includes(searchQuery.toLowerCase()));
         return (
           matchesSearch &&
-          (!filters.department || quiz.department === filters.department) &&
+          (!filters.unit || quiz.unit === filters.unit) && // Updated to filter by unit
           (!filters.course || quiz.course === filters.course) &&
           (!filters.year || quiz.year === filters.year) &&
           (!filters.semester || quiz.semester === filters.semester)
@@ -423,38 +434,42 @@ const QuizPage = () => {
     message.success('Selected quizzes deleted successfully');
   };
 
-  const QuizCard = ({ quiz }) => (
-    <Badge.Ribbon text={quiz.status || 'active'} color={(quiz.status || 'active') === 'active' ? 'green' : 'red'}>
-      <Card
-        title={quiz.title}
-        actions={[
-          <EyeOutlined key="preview" onClick={() => previewQuiz(quiz)} />,
-          <DownloadOutlined key="download" onClick={() => exportQuiz(quiz)} />,
-          <Popconfirm key="delete" title="Delete this quiz?" onConfirm={() => deleteQuiz(quiz._id)}>
-            <DeleteOutlined />
-          </Popconfirm>
-        ]}
-      >
-        <div className="quiz-card-content">
-          <Tag color="blue">{quiz.department}</Tag>
-          <Tag color="geekblue">{quiz.course}</Tag>
-          <div className="quiz-meta">
-            <small>Year: {quiz.year}</small>
-            <small>Semester: {quiz.semester}</small>
+  const QuizCard = ({ quiz }) => {
+    const status = quiz.status || 'active';
+    const unit = quiz.unit || 'No Unit'; // Provide a default value
+  
+    return (
+      <Badge.Ribbon text={status} color={status === 'active' ? 'green' : 'red'}>
+        <Card
+          title={quiz.title}
+          actions={[
+            <EyeOutlined key="preview" onClick={() => previewQuiz(quiz)} />,
+            <DownloadOutlined key="download" onClick={() => exportQuiz(quiz)} />,
+            <Popconfirm key="delete" title="Delete this quiz?" onConfirm={() => deleteQuiz(quiz._id)}>
+              <DeleteOutlined />
+            </Popconfirm>
+          ]}
+        >
+          <div className="quiz-card-content">
+            <Tag color="blue">{unit}</Tag> {/* Display unit instead of department */}
+            <Tag color="geekblue">{quiz.course}</Tag>
+            <div className="quiz-meta">
+              <small>Year: {quiz.year}</small>
+              <small>Semester: {quiz.semester}</small>
+            </div>
+            {quiz.description && <p className="quiz-description">{quiz.description}</p>}
           </div>
-          {quiz.description && <p className="quiz-description">{quiz.description}</p>}
-        </div>
-      </Card>
-    </Badge.Ribbon>
-  );
-
+        </Card>
+      </Badge.Ribbon>
+    );
+  };
+  
   QuizCard.propTypes = {
     quiz: PropTypes.shape({
-      // Removed isRequired from status since it might be undefined
       status: PropTypes.string,
       title: PropTypes.string.isRequired,
       _id: PropTypes.string.isRequired,
-      department: PropTypes.string.isRequired,
+      unit: PropTypes.string, // Updated to use unit instead of department
       course: PropTypes.string.isRequired,
       year: PropTypes.number.isRequired,
       semester: PropTypes.number.isRequired,
