@@ -43,8 +43,9 @@ import {
   EyeOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
-import { getLecturerUnits, getDepartments, createQuiz, getPastQuizzes,deleteQuiz } from '../services/api';
+import { getLecturerUnits, createQuiz, getPastQuizzes, deleteQuiz } from '../services/api';
 import '../styles.css';
+import FeedbackView from '../components/FeedbackView'; // Add this line to import FeedbackView component
 
 const { Header, Sider, Content } = Layout;
 const { Option } = Select;
@@ -319,7 +320,6 @@ const QuizPage = () => {
   const [collapsed, setCollapsed] = useState(false);
   const [loading, setLoading] = useState({ units: true, quizzes: false });
   const [units, setUnits] = useState([]);
-  const [departments, setDepartments] = useState([]);
   const [quizzes, setQuizzes] = useState([]);
   const [filters, setFilters] = useState({
     department: null,
@@ -337,11 +337,7 @@ const QuizPage = () => {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [departmentsData, unitsData] = await Promise.all([
-          getDepartments(),
-          getLecturerUnits(lecturerId),
-        ]);
-        setDepartments(departmentsData);
+        const unitsData = await getLecturerUnits(lecturerId);
         setUnits(unitsData);
       } catch {
         message.error('Failed to fetch data');
@@ -349,7 +345,6 @@ const QuizPage = () => {
         setLoading((prev) => ({ ...prev, units: false }));
       }
     };
-
     if (lecturerId) fetchData();
   }, [lecturerId]);
 
@@ -380,27 +375,7 @@ const QuizPage = () => {
     if (lecturerId && units.length > 0) fetchQuizzes(); // Ensure units are fetched before mapping
   }, [lecturerId, units]);
   
-  // Compute filter options
-  const filterOptions = useMemo(() => {
-    const deptOptions = departments.map((dept) => dept.name).sort();
-    const courses = new Set();
-    const years = new Set();
-    const semesters = new Set();
-
-    units.forEach((unit) => {
-      if (unit.course?.name) courses.add(unit.course.name);
-      if (unit.year) years.add(unit.year);
-      if (unit.semester) semesters.add(unit.semester);
-    });
-
-    return {
-      departments: deptOptions,
-      courses: Array.from(courses).sort(),
-      years: Array.from(years).sort((a, b) => a - b),
-      semesters: Array.from(semesters).sort((a, b) => a - b),
-    };
-  }, [units, departments]);
-
+ 
   // Enhanced filtering, search and sort
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
@@ -589,6 +564,10 @@ const QuizPage = () => {
               <div>
                 <h2>Dashboard</h2>
                 <p>Dashboard content goes here...</p>
+                  {/* Feedback View Section */}
+            <section style={{ marginBottom: 48 }}>
+              <FeedbackView />
+            </section>
               </div>
             )}
           </Content>

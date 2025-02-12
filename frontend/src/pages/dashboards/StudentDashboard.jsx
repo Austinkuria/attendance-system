@@ -4,6 +4,9 @@ import {
   getStudentAttendance,
   getStudentUnits,
   getUserProfile,
+  submitFeedback,
+  getSessionQuiz,
+  submitQuizAnswers,
 } from '../../services/api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -27,6 +30,9 @@ import {
   List,
   Modal,
   message,
+  Input,
+  Rate,
+  Radio,
 } from 'antd';
 import {
   EyeOutlined,
@@ -51,18 +57,26 @@ const StudentDashboard = () => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  
+  // New state for modals
+  const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
+  const [quizModalVisible, setQuizModalVisible] = useState(false);
+  const [activeSessionId, setActiveSessionId] = useState(null);
+  const [feedbackData, setFeedbackData] = useState({ rating: 3, text: '' });
+  const [quiz, setQuiz] = useState(null);
+  const [quizAnswers, setQuizAnswers] = useState({});
+
   const navigate = useNavigate();
 
   // Check if the user is logged in when the component loads
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
-      // If no token, navigate to the login screen
       navigate('/auth/login');
     }
   }, [navigate]);
 
-  // Fetch student profile (for potential future use)
+  // Fetch student profile
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -143,7 +157,6 @@ const StudentDashboard = () => {
 
   // Logout handler
   const confirmLogout = () => {
-    // Clear authentication tokens etc.
     localStorage.removeItem("token");
     message.success("You have been logged out successfully.");
     navigate("/auth/login");
@@ -252,17 +265,95 @@ const StudentDashboard = () => {
         key="3"
         icon={<LogoutOutlined />}
         danger
-        onClick={() => Modal.confirm({
-          title: 'Confirm Logout',
-          content: 'Are you sure you want to logout?',
-          onOk: confirmLogout,
-          centered: true,
-        })}
+        onClick={() =>
+          Modal.confirm({
+            title: 'Confirm Logout',
+            content: 'Are you sure you want to logout?',
+            onOk: confirmLogout,
+            centered: true,
+          })
+        }
       >
         Logout
       </Menu.Item>
     </Menu>
   );
+
+  // --- New: Functions to handle feedback and quiz modals ---
+
+  // Opens the Feedback Modal for a given unit.
+  // Here, we pick the latest attendance session for that unit.
+  const openFeedbackModal = (unitId) => {
+    const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
+    if (unitAttendance && unitAttendance.data.length > 0) {
+      // Assume the latest session is the last element (adjust as needed)
+      const latestSession = unitAttendance.data[unitAttendance.data.length - 1];
+      setActiveSessionId(latestSession._id);
+      setFeedbackModalVisible(true);
+    } else {
+      message.warning("No attendance record found for this unit.");
+    }
+  };
+
+  // Opens the Quiz Modal for a given unit.
+  const openQuizModal = async (unitId) => {
+    const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
+    if (unitAttendance && unitAttendance.data.length > 0) {
+      const latestSession = unitAttendance.data[unitAttendance.data.length - 1];
+      setActiveSessionId(latestSession._id);
+      try {
+        const quizData = await getSessionQuiz(latestSession._id);
+        if (quizData) {
+          setQuiz(quizData);
+          setQuizModalVisible(true);
+        } else {
+          message.info("No quiz available for this session.");
+        }
+      } catch {
+        message.error("Error fetching quiz.");
+      }
+    } else {
+      message.warning("No attendance record found for this unit.");
+    }
+  };
+
+  // Submit feedback using the activeSessionId
+  const handleFeedbackSubmit = async () => {
+    try {
+      await submitFeedback({
+        sessionId: activeSessionId,
+        rating: feedbackData.rating,
+        feedbackText: feedbackData.text,
+      });
+      message.success("Feedback submitted!");
+      setFeedbackModalVisible(false);
+      // Reset feedback form if desired
+      setFeedbackData({ rating: 3, text: '' });
+    } catch (error) {
+      message.error("Error submitting feedback.");
+    }
+  };
+
+  // Handle quiz answer change for a question
+  const handleQuizAnswerChange = (questionIndex, value) => {
+    setQuizAnswers((prev) => ({ ...prev, [questionIndex]: value }));
+  };
+
+  // Submit quiz answers
+  const handleQuizSubmit = async () => {
+    try {
+      await submitQuizAnswers({
+        quizId: quiz._id,
+        answers: quizAnswers,
+      });
+      message.success("Quiz submitted!");
+      setQuizModalVisible(false);
+      setQuizAnswers({});
+      setQuiz(null);
+    } catch (error) {
+      message.error("Error submitting quiz.");
+    }
+  };
 
   return (
     <Layout style={{ padding: '24px' }}>
@@ -294,7 +385,6 @@ const StudentDashboard = () => {
             style={{ marginBottom: 24 }}
           />
         )}
-
         {/* Units Section */}
         <Row gutter={[16, 16]}>
           {units.length > 0 ? (
@@ -334,12 +424,22 @@ const StudentDashboard = () => {
                     <Button
                       type="primary"
                       icon={<QrcodeOutlined />}
-                      onClick={() => navigate(`/qr-scanner/${unit?._id}`)}
+                      onClick={() => navigate(`/qr-scanner/${unit._id}`)}
                     >
                       Mark Attendance
                     </Button>
-
                   </Row>
+                  {/* New buttons for Feedback and Quiz (only if attendance data exists) */}
+                  {attendanceData.find((d) => d.unitId === unit._id)?.data.length > 0 && (
+                    <Row justify="space-around" style={{ marginTop: 16 }}>
+                      <Button onClick={() => openFeedbackModal(unit._id)}>
+                        Submit Feedback
+                      </Button>
+                      <Button onClick={() => openQuizModal(unit._id)}>
+                        Take Quiz
+                      </Button>
+                    </Row>
+                  )}
                 </Card>
               </Col>
             ))
@@ -347,10 +447,8 @@ const StudentDashboard = () => {
             <p>No units found for your course, year, and semester.</p>
           )}
         </Row>
-
         {/* Compact Calendar / Events List */}
         {renderCompactCalendar()}
-
         {/* Overall Attendance Rates Chart */}
         <div style={{ marginTop: 48 }}>
           <h3 style={{ textAlign: 'center' }}>Overall Attendance Rates</h3>
@@ -358,14 +456,12 @@ const StudentDashboard = () => {
             <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
           </div>
         </div>
-
         {/* Export Attendance Data */}
         <div style={{ marginTop: 24, textAlign: 'center' }}>
           <Button type="default" onClick={exportAttendanceData}>
             Export Attendance Data
           </Button>
         </div>
-
         {/* Unit Details Modal */}
         <Modal
           visible={!!selectedUnit}
@@ -388,21 +484,60 @@ const StudentDashboard = () => {
           )}
         </Modal>
       </Content>
-
       {/* Back to Top Button */}
       {showBackToTop && (
         <Button
           type="primary"
           shape="circle"
           icon={<ArrowUpOutlined />}
-          style={{
-            position: 'fixed',
-            bottom: 20,
-            right: 20,
-          }}
+          style={{ position: 'fixed', bottom: 20, right: 20 }}
           onClick={() => window.scrollTo(0, 0)}
         />
       )}
+      {/* Feedback Modal */}
+      <Modal
+        title="Session Feedback"
+        visible={feedbackModalVisible}
+        onCancel={() => setFeedbackModalVisible(false)}
+        onOk={handleFeedbackSubmit}
+      >
+        <p>How was today's class?</p>
+        <Rate
+          allowHalf
+          value={feedbackData.rating}
+          onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
+        />
+        <Input.TextArea
+          rows={4}
+          placeholder="Leave a comment (optional)"
+          value={feedbackData.text}
+          onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
+          style={{ marginTop: 16 }}
+        />
+      </Modal>
+      {/* Quiz Modal */}
+      <Modal
+        title={quiz?.title || "Quiz"}
+        visible={quizModalVisible}
+        onCancel={() => setQuizModalVisible(false)}
+        onOk={handleQuizSubmit}
+      >
+        {quiz?.questions?.map((q, index) => (
+          <div key={index} style={{ marginBottom: 16 }}>
+            <p>{q.question}</p>
+            <Radio.Group
+              onChange={(e) => handleQuizAnswerChange(index, e.target.value)}
+              value={quizAnswers[index]}
+            >
+              {q.options.map((opt, idx) => (
+                <Radio key={idx} value={opt.optionText}>
+                  {opt.optionText}
+                </Radio>
+              ))}
+            </Radio.Group>
+          </div>
+        ))}
+      </Modal>
     </Layout>
   );
 };

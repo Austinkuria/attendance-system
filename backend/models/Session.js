@@ -6,5 +6,13 @@ const sessionSchema = new mongoose.Schema({
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
   qrToken: { type: String, unique: true },
+  date: {
+    type: Date,
+    default: Date.now
+  },
+  feedback: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Feedback"
+  }],
   deviceFingerprints: [String] // Tracks student devices for fraud detection
 }, { timestamps: true });
