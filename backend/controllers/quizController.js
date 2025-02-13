@@ -28,7 +28,7 @@ exports.addQuiz = async (req, res) => {
         res.status(400).json({ message: 'Error creating quiz', error: error.message });
     }
 };
-  
+
 // Retrieve all quizzes
 exports.getPastQuizzes = async (req, res) => {
     try {

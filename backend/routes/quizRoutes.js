@@ -8,5 +8,5 @@ router.post('/', authenticate, quizController.addQuiz);
 // router.post('/submit', authenticate, quizController.submitQuiz);
 // Route to retrieve all quizzes
 router.get('/', authenticate, quizController.getQuizzes);
-router.get('/past', authenticate, quizController.getPastQuizzes);
+router.get('/', authenticate, quizController.getPastQuizzes);
 module.exports = router;
