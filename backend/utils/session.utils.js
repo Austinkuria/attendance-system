@@ -6,6 +6,7 @@ const generateQRToken = async (data) => {
     const qrCode = await QRCode.toDataURL(data);
     return qrCode; // Returns a base64-encoded image string
   } catch (error) {
+    console.error('Error generating QR code:', error);
     throw new Error('Failed to generate QR code');
   }
 };
