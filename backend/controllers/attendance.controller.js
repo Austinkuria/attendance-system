@@ -69,6 +69,38 @@ exports.generateQRCode = async (req, res) => {
 
 
 // Function to create a new attendance session
+// exports.createAttendanceSession = async (req, res) => {
+//   try {
+//     const { unitId, lecturerId, startTime, endTime } = req.body;
+
+//     // Ensure startTime and endTime are valid dates
+//     const start = new Date(startTime);
+//     const end = new Date(endTime);
+
+//     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+//       return res.status(400).json({ message: 'Invalid startTime or endTime' });
+//     }
+
+//     // Create a new session in the database
+//     const session = new Session({
+//       unit: unitId,
+//       lecturer: lecturerId,
+//       startTime: start,
+//       endTime: end,
+//       qrCode: generateQRToken(), // Generate the QR token
+//     });
+
+//     await session.save();
+
+//     // Generate a base64-encoded QR code image
+//     const qrImage = await QRCode.toDataURL(session.qrCode);
+
+//     res.status(201).json({ message: 'Session created successfully', session, qrCode: qrImage });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error creating session', error: error.message });
+//   }
+// };
+
 exports.createAttendanceSession = async (req, res) => {
   try {
     const { unitId, lecturerId, startTime, endTime } = req.body;
@@ -81,47 +113,29 @@ exports.createAttendanceSession = async (req, res) => {
       return res.status(400).json({ message: 'Invalid startTime or endTime' });
     }
 
+    // Generate a QR token
+    const qrToken = generateQRToken();
+
+    // Generate a base64-encoded QR code image
+    const qrImage = await QRCode.toDataURL(qrToken);
+
     // Create a new session in the database
     const session = new Session({
       unit: unitId,
       lecturer: lecturerId,
       startTime: start,
       endTime: end,
-      qrCode: generateQRToken(), // Generate the QR token
+      qrCode: qrImage, // Save the base64-encoded QR code image
     });
 
     await session.save();
 
-    // Generate a base64-encoded QR code image
-    const qrImage = await QRCode.toDataURL(session.qrCode);
-
-    res.status(201).json({ message: 'Session created successfully', session, qrCode: qrImage });
+    res.status(201).json({ message: 'Session created successfully', session });
   } catch (error) {
     res.status(500).json({ message: 'Error creating session', error: error.message });
   }
 };
 
-// exports.createAttendanceSession = async (req, res) => {
-//   try {
-//     const { unitId, lecturerId, startTime, endTime } = req.body;
-
-//     // Create a new session in the database
-//     const session = new Session({
-//       unit: unitId,
-//       lecturer: lecturerId,
-//       startTime,
-//       endTime,
-//       duration,
-//       qrCode: generateQRToken(), // Generate the QR token
-//     });
-
-//     await session.save();
-
-//     res.status(201).json({ message: 'Session created successfully', session });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error creating session', error: error.message });
-//   }
-// };
 
 exports.markAttendance = async (req, res) => {
   try {
