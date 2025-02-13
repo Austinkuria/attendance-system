@@ -5,6 +5,6 @@ const router = express.Router();
 
 router.post('/', authenticate, quizController.addQuiz);
 // router.get('/:sessionId', authenticate, quizController.getQuizzesForSession);
-router.post('/submit', authenticate, quizController.submitQuiz);
+// router.post('/submit', authenticate, quizController.submitQuiz);
 
 module.exports = router;
