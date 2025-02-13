@@ -633,38 +633,11 @@ export const createAttendanceSession = async (sessionData) => {
   }
 };
 
-export const detectCurrentSession = async () => {
-  try {
-    const response = await axios.get('https://attendance-system-w70n.onrender.com/api/sessions/current', {
-      headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error detecting current session:', error.response ? error.response.data : error.message);
-    throw error;
-  }
+export const detectCurrentSession = () => {
+  return axios.get(`${API_URL}/sessions/current`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  });
 };
-
-// export const createAttendanceSession = async (sessionData) => {
-//   try {
-//     const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-//     const response = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', sessionData, {
-//       headers: {
-//         'Authorization': `Bearer ${token}`
-//       }
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error creating attendance session:', error.response ? error.response.data : error.message);
-//     throw error;
-//   }
-// };
-
-// export const detectCurrentSession = () => {
-//   return axios.get(`${API_URL}/sessions/current`, {
-//     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-//   });
-// };
 
 export const endCurrentSession = () => {
   return axios.patch(`${API_URL}/sessions/current`, {
