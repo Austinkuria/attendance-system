@@ -308,9 +308,9 @@ QuizCard.propTypes = {
     title: PropTypes.string.isRequired,
     _id: PropTypes.string.isRequired,
     unit: PropTypes.string, // Updated to use unit instead of department
-    course: PropTypes.string.isRequired,
-    year: PropTypes.number.isRequired,
-    semester: PropTypes.number.isRequired,
+    course: PropTypes.string,
+    year: PropTypes.number,
+    semester: PropTypes.number,
     description: PropTypes.string,
     createdAt: PropTypes.string.isRequired, // Added createdAt
   }).isRequired,
