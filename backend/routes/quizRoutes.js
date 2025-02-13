@@ -4,9 +4,7 @@ const authenticate = require('../middleware/authMiddleware');
 const router = express.Router();
 
 router.post('/', authenticate, quizController.addQuiz);
-// router.get('/:sessionId', authenticate, quizController.getQuizzesForSession);
-// router.post('/submit', authenticate, quizController.submitQuiz);
-// Route to retrieve all quizzes
-router.get('/', authenticate, quizController.getQuizzes);
-router.get('/', authenticate, quizController.getPastQuizzes);
+router.get('/', authenticate, quizController.getQuizzes); // Fetch all quizzes
+router.get('/past', authenticate, quizController.getPastQuizzes); // Fetch past quizzes
+
 module.exports = router;
