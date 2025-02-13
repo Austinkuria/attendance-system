@@ -19,7 +19,7 @@ import Sidebar from "../../components/Sidebar";
 import AttendanceManagement from "../../components/AttendanceManagement";
 import Analytics from "../Analytics";
 import BackToTop from "../../components/BackToTop";
-// import QRCodeGenerator from "../components/QRCodeGenerator";  // Ensure correct filename
+import QRCodeGenerator from "../../components/QRCodeGenerator";  // Ensure correct filename
 
 const { Header, Content } = Layout;
 
@@ -124,14 +124,12 @@ const LecturerDashboard = () => {
           }}
         >
           <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            {/* QR Code Generator Section */}
-            {/* <section style={{ marginBottom: 48 }}>
-              <QRCodeGenerator />
-            </section> */}
+           {/* QR Code Generator for the current session */}
+           <QRCodeGenerator sessionId={sessionId} expiryTime={30} />
 
             {/* Attendance Management Section */}
             <section style={{ marginBottom: 48 }}>
-              <AttendanceManagement />
+              {/* <AttendanceManagement /> */}
             </section>
 
             {/* Analytics Section */}
