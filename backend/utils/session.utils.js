@@ -1,14 +1,32 @@
-const QRCode = require('qrcode');
+const crypto = require('crypto');
 
-const generateQRToken = async (data) => {
-  try {
-    // Generate a QR code as a base64-encoded image
-    const qrCode = await QRCode.toDataURL(data);
-    return qrCode; // Returns a base64-encoded image string
-  } catch (error) {
-    console.error('Error generating QR code:', error);
-    throw new Error('Failed to generate QR code');
-  }
+const generateQRToken = () => {
+  return crypto.randomBytes(16).toString('hex');
 };
 
 module.exports = generateQRToken;
+
+// const QRCode = require('qrcode');
+
+// // Generate the QR token for a session
+// const generateQRToken = async (session) => {
+//   try {
+//     // Create a string to encode as a QR code
+//     const qrData = {
+//       sessionId: session._id,
+//       unitId: session.unit,
+//       lecturerId: session.lecturer,
+//       startTime: session.startTime,
+//       endTime: session.endTime,
+//     };
+
+//     // Generate the QR code data
+//     const qrToken = await QRCode.toDataURL(JSON.stringify(qrData));
+
+//     return qrToken; // Return the QR token (base64-encoded image)
+//   } catch (error) {
+//     throw new Error("Error generating QR code: " + error.message);
+//   }
+// };
+
+// module.exports = { generateQRToken };
