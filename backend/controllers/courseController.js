@@ -34,6 +34,21 @@ const getCoursesByDepartment = async (req, res) => {
       }
 
       const courses = await Course.find(filter);
+      res.status(200).json(courses);
+  } catch (err) {
+      res.status(500).json({ message: "Error fetching courses", error: err.message });
+  }
+};
+
+// handle path-based request
+const getCoursesByDepartmentById = async (req, res) => {
+  try {
+      const departmentId = req.params.departmentId;
+      const courses = await Course.find({ department: departmentId });
+
+      if (!courses.length) {
+          return res.status(404).json({ message: "No courses found for this department" });
+      }
 
       res.status(200).json(courses);
   } catch (err) {
