@@ -186,56 +186,86 @@ const ManageStudents = () => {
     return Object.keys(errors).length === 0;
   };
 
-  // Handle add student
-  const handleAddStudent = async () => {
-    if (!validateForm()) return;
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/auth/login");
-        return;
-      }
-      const response = await api.post(
-        "/user",
-        { ...newStudent, role: "student" },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      if (response.data.message === "User created successfully") {
-        const updated = await getStudents();
-        const formatted = updated.map((s) => ({
-          ...s,
-          regNo: s.regNo || "N/A",
-          year: s.year || "N/A",
-          semester: s.semester?.toString() || "N/A",
-          course: (s.course && (s.course.name || s.course)) || "N/A",
-          department:
-            (s.department && (s.department.name || s.department)) || "N/A",
-        }));
-        setStudents(formatted);
-        setIsAddModalVisible(false);
-        message.success("Student added successfully");
-        setNewStudent({
-          firstName: "",
-          lastName: "",
-          email: "",
-          password: "",
-          regNo: "",
-          course: "",
-          department: "",
-          year: "",
-          semester: "",
-        });
-        addForm.resetFields();
-      }
-    } catch (err) {
-      console.error("Error creating student:", err);
-      setGlobalError(err.response?.data?.message || "Failed to create student");
-      message.error("Failed to create student");
-    } finally {
-      setLoading(false);
+// Handle add student
+const handleAddStudent = async () => {
+  if (!validateForm()) return;
+  
+  try {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth/login");
+      return;
     }
-  };
+
+    // Fetch department ID
+    const deptResponse = await api.get(`/departments?name=${newStudent.department}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!deptResponse.data || deptResponse.data.length === 0) {
+      message.error("Department not found");
+      return;
+    }
+    const departmentId = deptResponse.data[0]._id;
+
+    // Fetch course ID
+    const courseResponse = await api.get(`/courses?name=${newStudent.course}&department=${departmentId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    if (!courseResponse.data || courseResponse.data.length === 0) {
+      message.error("Course not found in the specified department");
+      return;
+    }
+    const courseId = courseResponse.data[0]._id;
+
+    // Send request with ObjectIds
+    const response = await api.post(
+      "/user",
+      {
+        ...newStudent,
+        role: "student",
+        department: departmentId, // Now using ObjectId
+        course: courseId, // Now using ObjectId
+      },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    if (response.data.message === "User created successfully") {
+      const updated = await getStudents();
+      const formatted = updated.map((s) => ({
+        ...s,
+        regNo: s.regNo || "N/A",
+        year: s.year || "N/A",
+        semester: s.semester?.toString() || "N/A",
+        course: (s.course && (s.course.name || s.course)) || "N/A",
+        department: (s.department && (s.department.name || s.department)) || "N/A",
+      }));
+      setStudents(formatted);
+      setIsAddModalVisible(false);
+      message.success("Student added successfully");
+      setNewStudent({
+        firstName: "",
+        lastName: "",
+        email: "",
+        password: "",
+        regNo: "",
+        course: "",
+        department: "",
+        year: "",
+        semester: "",
+      });
+      addForm.resetFields();
+    }
+  } catch (err) {
+    console.error("Error creating student:", err);
+    setGlobalError(err.response?.data?.message || "Failed to create student");
+    message.error("Failed to create student");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Handle edit student
   const handleEditStudent = async () => {

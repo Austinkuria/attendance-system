@@ -5,7 +5,8 @@ const {
   updateStudent,
   deleteStudent,
   importStudents,
-  downloadStudents 
+  downloadStudents,
+  registerUser
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
@@ -31,5 +32,7 @@ router.delete("/:id", authenticate, authorize(['admin']), deleteStudent);
 
 router.post("/upload", authenticate, authorize(['admin']), upload.single('csvFile'), importStudents);
 router.get("/download", authenticate, authorize(['admin']), downloadStudents);
+
+router.post("/", authenticate, authorize(["admin"]), registerUser);
 
 module.exports = router;
