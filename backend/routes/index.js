@@ -26,6 +26,7 @@ router.post("/auth/login", login);
 // Department routes (admin only)
 router.use("/department", departmentRoutes);  // Register department routes under /department
 
+router.use("/:id", departmentRoutes); // Fetch department by ID
 // Course routes (admin only)
 router.use("/course", courseRoutes);
 
