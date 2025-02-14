@@ -56,7 +56,7 @@ api.interceptors.response.use(
       } catch {
         console.error("Redirecting to login due to authentication failure");
         localStorage.clear();
-        window.location.href = "/login";
+        window.location.href = "/auth/login";
       }
     }
 
@@ -563,6 +563,22 @@ export const addUnitToCourse = async (courseId, unitData) => {
   }
 };
 
+export const getCourseByDepartment = async (departmentId, courseName) => {
+  const token = localStorage.getItem("token");
+
+  try {
+    const response = await axios.get(`${API_URL}/course?department=${departmentId}&name=${courseName}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching course:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+
 // update lecturer
 export const updateLecturer = async (id, lecturerData) => {
   const token = localStorage.getItem("token");
@@ -758,7 +774,7 @@ export const getPastQuizzes = async (lecturerId, filters = {}) => {
       if (errorData.message === "Token is not valid") {
         // Token is invalid or expired
         localStorage.removeItem("token"); // Clear the invalid token
-        window.location.href = "/login"; // Redirect to login page
+        window.location.href = "/auth/login"; // Redirect to login page
       }
       throw new Error(errorData.message || 'Failed to fetch past quizzes');
     }
