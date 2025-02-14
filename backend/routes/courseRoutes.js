@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   createCourse,
   getCoursesByDepartment,
+  getCoursesByDepartmentById,
   getAllCourses,
   updateCourse,
   deleteCourse,
