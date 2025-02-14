@@ -199,7 +199,7 @@ const handleAddStudent = async () => {
     }
 
     // Fetch department ID
-    const deptResponse = await api.get(`/departments?name=${newStudent.department}`, {
+    const deptResponse = await api.get(`/department?name=${newStudent.department}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -210,7 +210,7 @@ const handleAddStudent = async () => {
     const departmentId = deptResponse.data[0]._id;
 
     // Fetch course ID
-    const courseResponse = await api.get(`/courses?name=${newStudent.course}&department=${departmentId}`, {
+    const courseResponse = await api.get(`/course?name=${newStudent.course}&department=${departmentId}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
@@ -222,7 +222,7 @@ const handleAddStudent = async () => {
 
     // Send request with ObjectIds
     const response = await api.post(
-      "/user",
+      "/students",
       {
         ...newStudent,
         role: "student",
