@@ -96,7 +96,6 @@ const registerUser = async (req, res) => {
       });
     }
 
-    // If role is student, get department and course IDs
     let departmentId, courseId;
     if (role === 'student') {
       // Find department by name
@@ -108,7 +107,7 @@ const registerUser = async (req, res) => {
 
       // Find course by name and department
       const course = await Course.findOne({ 
-        name: courseName,
+        name: courseName, 
         department: departmentId 
       });
       if (!course) {
@@ -127,8 +126,8 @@ const registerUser = async (req, res) => {
       role,
       ...(role === 'student' && { 
         regNo, 
-        course: courseId, 
-        department: departmentId, 
+        course: courseId,  // Now storing ObjectId
+        department: departmentId,  // Now storing ObjectId
         year, 
         semester 
       })
@@ -141,6 +140,7 @@ const registerUser = async (req, res) => {
     res.status(500).json({ message: 'Error creating user', error: error.message });
   }
 };
+
 
 // getStudents
 const getStudents = async (req, res) => {
