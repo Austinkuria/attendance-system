@@ -32,7 +32,7 @@ import {
   FilterOutlined,
   // CheckCircleOutlined,
 } from "@ant-design/icons";
-import { getStudents, deleteStudent, downloadStudents } from "../services/api";
+import { getStudents, deleteStudent, downloadStudents, getCourseByDepartment } from "../services/api";
 import api from "../services/api";
 import "../styles.css";
 
@@ -209,16 +209,14 @@ const handleAddStudent = async () => {
     }
     const departmentId = deptResponse.data[0]._id;
 
-    // Fetch course ID
-    const courseResponse = await api.get(`/course?name=${newStudent.course}&department=${departmentId}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // Fetch Course ID
+    const courseResponse = await getCourseByDepartment(departmentId, newStudent.course);
 
-    if (!courseResponse.data || courseResponse.data.length === 0) {
-      message.error("Course not found in the specified department");
-      return;
-    }
-    const courseId = courseResponse.data[0]._id;
+if (!courseResponse || courseResponse.length === 0) {
+  message.error("Course not found in the specified department");
+  return;
+}
+const courseId = courseResponse[0]._id; // No need for `.data`
 
     // Send request with ObjectIds
     const response = await api.post(

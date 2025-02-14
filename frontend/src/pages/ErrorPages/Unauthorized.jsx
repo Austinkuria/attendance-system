@@ -10,7 +10,7 @@ const Unauthorized = () => {
       title="401"
       subTitle="You are not authorized. Please log in."
       extra={
-        <Button type="primary" onClick={() => navigate("/login")}>
+        <Button type="primary" onClick={() => navigate("/auth/login")}>
           Go to Login
         </Button>
       }
