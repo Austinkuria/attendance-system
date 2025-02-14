@@ -99,7 +99,7 @@ const registerUser = async (req, res) => {
     let departmentId, courseId;
     if (role === 'student') {
       // Find department by name
-      const department = await Department.findOne({ name: deptName });
+      const department = await Department.findOne({ name: deptName, departmentId });
       if (!department) {
         return res.status(400).json({ message: 'Department not found' });
       }
