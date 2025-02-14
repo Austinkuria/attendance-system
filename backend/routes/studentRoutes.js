@@ -11,6 +11,7 @@ const {
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
+const departmentRoutes = require("./departmentRoutes");
 
 const router = express.Router();
 
@@ -34,5 +35,7 @@ router.post("/upload", authenticate, authorize(['admin']), upload.single('csvFil
 router.get("/download", authenticate, authorize(['admin']), downloadStudents);
 
 router.post("/", authenticate, authorize(["admin"]), registerUser);
+
+router.use("/departments", departmentRoutes);
 
 module.exports = router;
