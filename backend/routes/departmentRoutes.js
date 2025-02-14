@@ -17,4 +17,17 @@ router.get("/department", async (req, res) => {
     }
   });
 
+  //fetch department by ID
+router.get('/department/:id', async (req, res) => {
+  try {
+    const department = await Department.findById(req.params.id);
+    if (!department) {
+      return res.status(404).json({ message: 'Department not found' });
+    }
+    res.status(200).json(department);
+  } catch (error) {
+    res.status(500).json({ message: 'Error fetching department', error: error.message });
+  }
+});
+
 module.exports = router;
