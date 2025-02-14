@@ -266,6 +266,7 @@ const handleAddStudent = async () => {
     setLoading(false);
   }
 };
+
   // Handle edit student
   const handleEditStudent = async () => {
     try {
