@@ -21,7 +21,7 @@ const createCourse = async (req, res) => {
 // Get all courses for a specific department
 const getCoursesByDepartment = async (req, res) => {
   try {
-      const { department, name } = req.query;  // Extract query parameters
+      const { department, name } = req.query;  // Extract query params
 
       if (!department) {
           return res.status(400).json({ message: "Department ID is required" });
@@ -39,6 +39,7 @@ const getCoursesByDepartment = async (req, res) => {
       res.status(500).json({ message: "Error fetching courses", error: err.message });
   }
 };
+
 
 // handle path-based request
 const getCoursesByDepartmentById = async (req, res) => {
@@ -187,4 +188,4 @@ const getUnitsByCourse = async (req, res) => {
     }
   };
 
-module.exports = { createCourse, getCoursesByDepartment, getAllCourses, updateCourse, deleteCourse, getUnitsByCourse, addUnitToCourse, removeUnitFromCourse };
+module.exports = { createCourse, getCoursesByDepartment,getCoursesByDepartmentById , getAllCourses, updateCourse, deleteCourse, getUnitsByCourse, addUnitToCourse, removeUnitFromCourse };
