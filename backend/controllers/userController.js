@@ -97,25 +97,27 @@ const registerUser = async (req, res) => {
     }
 
     let departmentId, courseId;
+
     if (role === 'student') {
-      // Find department by name
-      const department = await Department.findOne({ name: deptName });
-      if (!department) {
-        return res.status(400).json({ message: 'Department not found' });
+      try {
+        // Find department by name
+        const department = await Department.findOne({ name: deptName });
+        if (!department) {
+          return res.status(400).json({ message: "Department not found" });
+        }
+        departmentId = department._id;
+    
+        // Find course by name within the department
+        const course = await Course.findOne({ name: courseName, department: departmentId });
+        if (!course) {
+          return res.status(400).json({ message: "Course not found in the specified department" });
+        }
+        courseId = course._id;
+      } catch (error) {
+        return res.status(500).json({ message: "Server error", error: error.message });
       }
-      departmentId = department._id;
-
-      // Find course by name and department
-      const course = await Course.findOne({ 
-        name: courseName, 
-        department: departmentId 
-      });
-      if (!course) {
-        return res.status(400).json({ message: 'Course not found in the specified department' });
-      }
-      courseId = course._id;
     }
-
+    
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({

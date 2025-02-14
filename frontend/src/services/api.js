@@ -189,32 +189,24 @@ export const getStudents = async () => {
   }
 };
 
-// Add or update a student
 export const addStudent = async (student) => {
   const token = localStorage.getItem("token");
-
-  if (!token) {
-    throw new Error("No token found in localStorage");
-  }
+  if (!token) throw new Error("No token found in localStorage");
 
   try {
-    const response = await axios.post(`${API_URL}/students`, {
-      ...student,
-      department: student.department, 
-      course: student.course,      
-    }, {
+    const response = await axios.post(`${API_URL}/students`, student, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
     });
-
     return response.data;
   } catch (error) {
-    console.error("Error saving student:", error.response?.data || error.message);
+    console.error("Error saving student:", error.response?.data?.message || error.message);
     throw error;
   }
 };
+
 
 // Delete a student
 // export const deleteStudent = (id) => api.delete(`/students/${id}`);

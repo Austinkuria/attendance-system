@@ -21,24 +21,21 @@ const createCourse = async (req, res) => {
 // Get all courses for a specific department
 const getCoursesByDepartment = async (req, res) => {
   try {
-      const { department, name } = req.query;  // Extract query params
-
+      const { department, name } = req.query;  
       if (!department) {
           return res.status(400).json({ message: "Department ID is required" });
       }
-
       let filter = { department };
-
       if (name) {
-          filter.name = { $regex: new RegExp(name, "i") }; // Case-insensitive search
+          filter.name = { $regex: new RegExp(name, "i") };
       }
-
       const courses = await Course.find(filter);
       res.status(200).json(courses);
   } catch (err) {
       res.status(500).json({ message: "Error fetching courses", error: err.message });
   }
 };
+
 
 
 // handle path-based request
