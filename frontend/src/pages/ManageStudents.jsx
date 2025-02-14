@@ -189,7 +189,7 @@ const ManageStudents = () => {
 // Handle add student
 const handleAddStudent = async () => {
   if (!validateForm()) return;
-  
+
   try {
     setLoading(true);
     const token = localStorage.getItem("token");
@@ -212,23 +212,25 @@ const handleAddStudent = async () => {
     // Fetch Course ID
     const courseResponse = await getCourseByDepartment(departmentId, newStudent.course);
 
-if (!courseResponse || courseResponse.length === 0) {
-  message.error("Course not found in the specified department");
-  return;
-}
-const courseId = courseResponse[0]._id; // No need for `.data`
+    if (!courseResponse || courseResponse.length === 0) {
+      message.error("Course not found in the specified department");
+      return;
+    }
+    const courseId = courseResponse[0]._id;
 
     // Send request with ObjectIds
-    const response = await api.post(
-      "/students",
-      {
-        ...newStudent,
-        role: "student",
-        department: departmentId, // Now using ObjectId
-        course: courseId, // Now using ObjectId
-      },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const payload = {
+      ...newStudent,
+      role: "student",
+      department: departmentId, // Ensure this is a valid ObjectId
+      course: courseId, // Ensure this is a valid ObjectId
+      year: Number(newStudent.year), // Convert to number
+      semester: Number(newStudent.semester), // Convert to number
+    };
+
+    const response = await api.post("/students", payload, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
 
     if (response.data.message === "User created successfully") {
       const updated = await getStudents();
