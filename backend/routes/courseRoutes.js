@@ -15,7 +15,9 @@ const {
 router.post("/create", createCourse);
 router.get("/", getAllCourses);
 router.get('/:courseId/units', getUnitsByCourse);
-router.get("/:departmentId", getCoursesByDepartment); 
+router.get("/", getCoursesByDepartment); // For query-based search (preferred)
+router.get("/:departmentId", getCoursesByDepartmentById); // For path-based search
+
 
 // Unit management routes
 router.post('/:courseId/units', addUnitToCourse);
