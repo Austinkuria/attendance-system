@@ -199,33 +199,33 @@ const handleAddStudent = async () => {
     }
 
     // Fetch department ID
-    const deptResponse = await api.get(`/department?name=${newStudent.department}`, {
+    const { data: department } = await api.get(`/departments?name=${newStudent.department}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
-    if (!deptResponse.data || deptResponse.data.length === 0) {
+    if (!department || !department._id) {
       message.error("Department not found");
       return;
     }
-    const departmentId = deptResponse.data[0]._id;
+    const departmentId = department._id;
 
-    // Fetch Course ID
-    const courseResponse = await getCourseByDepartment(departmentId, newStudent.course);
+    // Fetch course ID
+    const { data: course } = await getCourseByDepartment(departmentId, newStudent.course);
 
-    if (!courseResponse || courseResponse.length === 0) {
+    if (!course || !course._id) {
       message.error("Course not found in the specified department");
       return;
     }
-    const courseId = courseResponse[0]._id;
+    const courseId = course._id;
 
-    // Send request with ObjectIds
+    // Prepare payload
     const payload = {
       ...newStudent,
       role: "student",
-      department: departmentId, // Ensure this is a valid ObjectId
-      course: courseId, // Ensure this is a valid ObjectId
-      year: Number(newStudent.year), // Convert to number
-      semester: Number(newStudent.semester), // Convert to number
+      department: departmentId, 
+      course: courseId,
+      year: Number(newStudent.year),
+      semester: Number(newStudent.semester),
     };
 
     const response = await api.post("/students", payload, {
@@ -242,9 +242,12 @@ const handleAddStudent = async () => {
         course: (s.course && (s.course.name || s.course)) || "N/A",
         department: (s.department && (s.department.name || s.department)) || "N/A",
       }));
+
       setStudents(formatted);
       setIsAddModalVisible(false);
       message.success("Student added successfully");
+
+      // Reset form
       setNewStudent({
         firstName: "",
         lastName: "",
@@ -260,7 +263,7 @@ const handleAddStudent = async () => {
     }
   } catch (err) {
     console.error("Error creating student:", err);
-    setGlobalError(err.response?.data?.message || "Failed to create student");
+    setGlobalError(err.response?.data?.message || err.message || "Failed to create student");
     message.error("Failed to create student");
   } finally {
     setLoading(false);

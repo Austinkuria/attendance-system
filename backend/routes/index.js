@@ -30,6 +30,8 @@ router.use("/:id", departmentRoutes); // Fetch department by ID
 // Course routes (admin only)
 router.use("/course", courseRoutes);
 
+router.get("/department/:departmentId", getCoursesByDepartmentById);
+
 // Unit routes
 router.use("/unit", unitRoutes);
 
