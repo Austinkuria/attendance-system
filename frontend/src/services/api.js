@@ -1,4 +1,5 @@
 import axios from "axios";
+// import mongoose from "mongoose";
 const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({
   baseURL: "https://attendance-system-w70n.onrender.com/api", // backend URL
@@ -191,18 +192,19 @@ export const getStudents = async () => {
 // Add or update a student
 export const addStudent = async (student) => {
   const token = localStorage.getItem("token");
+
   try {
-    const url = student._id 
-      ? `${API_URL}/students/${student._id}`
-      : `${API_URL}/students`;
-    const method = student._id ? 'put' : 'post';
-    
-    const response = await axios[method](url, student, {
+    const response = await axios.post(`${API_URL}/students`, {
+      ...student,
+      department: student.department, 
+      course: student.course,      
+    }, {
       headers: {
         Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
+        "Content-Type": "application/json",
+      },
     });
+
     return response.data;
   } catch (error) {
     console.error("Error saving student:", error.response?.data || error.message);
