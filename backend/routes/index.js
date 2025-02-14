@@ -13,7 +13,7 @@ const router = express.Router();
 const quizRoutes = require('./quizRoutes');
 const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
-const { createCourse, getCoursesByDepartment } = require("../controllers/courseController");
+const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
 
 router.use('/', userRoutes);
