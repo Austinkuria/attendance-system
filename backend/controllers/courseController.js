@@ -109,16 +109,16 @@ const getAllCourses = async (req, res) => {
 // Update a course
 const updateCourse = async (req, res) => {
   try {
-      const { id } = req.params;
-      const updatedCourse = await Course.findByIdAndUpdate(id, req.body, { new: true });
+    const { id } = req.params;
+    const updatedCourse = await Course.findByIdAndUpdate(id, req.body, { new: true });
 
-      if (!updatedCourse) {
-          return res.status(404).json({ message: "Course not found" });
-      }
+    if (!updatedCourse) {
+      return res.status(404).json({ message: "Course not found" });
+    }
 
-      res.status(200).json(updatedCourse);
+    res.status(200).json(updatedCourse);
   } catch (err) {
-      res.status(500).json({ message: "Error updating course", error: err.message });
+    res.status(500).json({ message: "Error updating course", error: err.message });
   }
 };
 
