@@ -122,13 +122,9 @@ const ManageStudents = () => {
           headers: { Authorization: `Bearer ${token}` },
         });
   
-        // ✅ Store both _id and name
-        const formattedCourses = response.data.map(course => ({
-          id: course._id,
-          name: course.name
-        }));
+        console.log("Fetched Courses:", response.data); // Debugging
   
-        setCourses(formattedCourses);
+        setCourses(response.data);
       } catch (err) {
         console.error("Error fetching courses:", err);
       }
@@ -184,18 +180,11 @@ const ManageStudents = () => {
 
   // Courses dropdown derived from students
   const availableCourses = useMemo(() => {
-    const courseMap = new Map();
-    students.forEach((student) => {
-      if (student.course && student.course !== "N/A") {
-        const courseId = student.course._id || student.course; 
-        const courseName = student.course.name || student.course;
-        if (courseId && courseName) {
-          courseMap.set(courseId, courseName);
-        }
-      }
-    });
-    return Array.from(courseMap.entries()).map(([id, name]) => ({ id, name }));
-  }, [students]);
+    return courses.map((course) => ({
+      id: course._id,
+      name: course.name,
+    }));
+  }, [courses]);
   
   // Debugging
   useEffect(() => {
@@ -777,25 +766,25 @@ const handleAddStudent = async () => {
             <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
           </Form.Item>
           <Form.Item
-                  label="Course"
-                  name="course"
-                  rules={[{ required: true, message: "Course is required" }]}
-                >
-                  <Select
-                    placeholder="Select Course"
-                    onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))}
-                  >
-                    {availableCourses.length > 0 ? (
-                      availableCourses.map((course) => (
-                        <Option key={course.id} value={course.id}>
-                          {course.name}
-                        </Option>
-                      ))
-                    ) : (
-                      <Option disabled>No courses available</Option>
-                    )}
-                  </Select>
-                </Form.Item>
+  label="Course"
+  name="course"
+  rules={[{ required: true, message: "Course is required" }]}
+>
+  <Select
+    placeholder="Select Course"
+    onChange={(value) => {
+      console.log("Selected Course ID:", value);
+      setNewStudent((prev) => ({ ...prev, course: value }));
+    }}
+  >
+    {availableCourses.map((course) => (
+      <Option key={course.id} value={course.id}>
+        {course.name}
+      </Option>
+    ))}
+  </Select>
+</Form.Item>
+
 
           <Form.Item
             label="Department"
