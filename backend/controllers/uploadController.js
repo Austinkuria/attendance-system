@@ -1,10 +1,17 @@
 const multer = require("multer");
 const path = require("path");
+const fs = require("fs");
+
+// Ensure "uploads" directory exists
+const uploadDir = "uploads/";
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+}
 
 // Set up file storage options
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, "uploads/"); // Store uploaded files in the "uploads" folder
+        cb(null, uploadDir);
     },
     filename: (req, file, cb) => {
         cb(null, Date.now() + path.extname(file.originalname)); // Add timestamp to filename
@@ -24,11 +31,20 @@ const fileFilter = (req, file, cb) => {
 const upload = multer({ storage, fileFilter });
 
 const handleFileUpload = (req, res) => {
-    if (!req.file) {
-        return res.status(400).json({ message: "No file uploaded" });
+    try {
+        console.log("Received file upload request...");
+        console.log("File details:", req.file);
+
+        if (!req.file) {
+            console.error("No file uploaded");
+            return res.status(400).json({ message: "No file uploaded" });
+        }
+
+        res.status(200).json({ message: "File uploaded successfully", file: req.file });
+    } catch (error) {
+        console.error("File upload error:", error);
+        res.status(500).json({ message: "Server error", error: error.message });
     }
-    // Handle CSV file processing here
-    res.status(200).json({ message: "File uploaded successfully", file: req.file });
 };
 
 module.exports = { upload, handleFileUpload };

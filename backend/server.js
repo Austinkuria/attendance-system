@@ -8,6 +8,20 @@ const routes = require("./routes/index");  // Import the combined routes
 dotenv.config();
 const app = express();
 
+const fs = require("fs");
+const path = require("path");
+
+// Define the upload directory path
+const uploadDir = path.join(__dirname, "uploads");
+
+// Check if the directory exists, if not, create it
+if (!fs.existsSync(uploadDir)) {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log("Uploads folder created successfully!");
+} else {
+    console.log("Uploads folder already exists.");
+}
+
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
