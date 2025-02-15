@@ -303,12 +303,20 @@ const handleAddStudent = async () => {
         navigate("/auth/login");
         return;
       }
+      const formattedStudent = {
+        ...selectedStudent,
+        course: selectedStudent.course.name || selectedStudent.course,
+        department: selectedStudent.department.name || selectedStudent.department,
+      };
+      
       const response = await api.put(
-        `/user/${selectedStudent._id}`,
-        selectedStudent,
+        `/students/${selectedStudent._id}`,
+        formattedStudent,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (response.data.message === "User updated successfully") {
+      
+      if (response.data.message === "Student updated successfully")
+        {
         const updated = await getStudents();
         const formatted = updated.map((s) => ({
           ...s,
