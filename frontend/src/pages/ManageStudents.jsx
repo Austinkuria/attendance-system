@@ -349,21 +349,37 @@ const handleAddStudent = async () => {
         navigate("/auth/login");
         return;
       }
-      await deleteStudent(studentToDelete, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      setStudents((prev) => prev.filter((s) => s._id !== studentToDelete));
+  
+      // Ensure student ID is valid
+      if (!studentToDelete) {
+        message.error("No student selected for deletion");
+        setLoading(false);
+        return;
+      }
+  
+      console.log("Deleting student ID:", studentToDelete); // Debugging log
+  
+      // Call API to delete student
+      const response = await deleteStudent(studentToDelete);
+  
+      // Ensure deletion was successful
+      if (response.message === "Student deleted successfully") {
+        setStudents((prev) => prev.filter((s) => s._id !== studentToDelete));
+        message.success("Student deleted successfully");
+      } else {
+        message.error(response.message || "Failed to delete student");
+      }
+  
       setIsDeleteModalVisible(false);
-      message.success("Student deleted successfully");
     } catch (err) {
       console.error("Error deleting student:", err);
-      setGlobalError("Failed to delete student. Please check your permissions.");
+      setGlobalError(err.response?.data?.message || "Failed to delete student. Please check your permissions.");
       message.error("Failed to delete student");
     } finally {
       setLoading(false);
     }
   };
-
+  
   // Handle CSV file upload (only CSV allowed)
   const handleFileUpload = (e) => {
     const selectedFile = e.target.files[0];

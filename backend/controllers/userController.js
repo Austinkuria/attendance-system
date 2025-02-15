@@ -240,24 +240,33 @@ const updateStudent = async (req, res) => {
 };
 
 // Delete student
+
 const deleteStudent = async (req, res) => {
   try {
-    const student = await User.findById(req.params.id);
+    const { id } = req.params;
+
+    // Validate ObjectId
+    if (!mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({ message: "Invalid student ID format" });
+    }
+
+    const student = await User.findById(id);
     if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
+      return res.status(404).json({ message: "Student not found" });
     }
-    
-    if (student.role !== 'student') {
-      return res.status(400).json({ message: 'Can only delete student accounts' });
+
+    if (student.role !== "student") {
+      return res.status(400).json({ message: "Can only delete student accounts" });
     }
-    
-    await User.findByIdAndDelete(req.params.id);
-    res.json({ message: 'Student deleted successfully' });
+
+    await User.findByIdAndDelete(id);
+    res.json({ message: "Student deleted successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Error deleting student:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 // Import students
 const importStudents = async (req, res) => {
