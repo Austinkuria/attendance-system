@@ -5,6 +5,7 @@ const Unit = require('../models/Unit'); // ✅ Import the Unit model
 const createCourse = async (req, res) => {
   try {
       const { name, code, departmentId } = req.body;
+      console.log("Received data:", req.body);  // Add this line for debugging
 
       if (!name || !code || !departmentId) {
           return res.status(400).json({ message: "Name, code, and department ID are required" });
