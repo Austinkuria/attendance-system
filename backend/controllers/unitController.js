@@ -118,5 +118,22 @@ const getLecturerUnits = async (req, res) => {
       });
     }
   };
+
+  const getUnitsByCourse = async (req, res) => {
+    try {
+        const { courseId } = req.params;
+        const course = await Course.findById(courseId);
+        
+        if (!course) {
+            return res.status(404).json({ message: "Course not found" });
+        }
+
+        const units = await Unit.find({ course: courseId }).populate("lecturer");
+        res.status(200).json(units);
+    } catch (error) {
+        res.status(500).json({ message: "Error fetching units", error: error.message });
+    }
+};
+
   
 module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits, getLecturerUnits };
