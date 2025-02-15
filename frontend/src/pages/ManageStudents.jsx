@@ -198,11 +198,10 @@ const handleAddStudent = async () => {
       return;
     }
 
-    // ✅ Directly use department and course IDs (they are already selected in the form)
-    const departmentId = newStudent.department;
-    const courseId = newStudent.course;
+    const departmentId = newStudent.department;  // ✅ Should be an ObjectId
+    const courseId = newStudent.course;  // ✅ Should be an ObjectId
 
-    // Debugging logs (remove after testing)
+    // Debugging logs
     console.log("Selected Department ID:", departmentId);
     console.log("Selected Course ID:", courseId);
 
@@ -211,22 +210,20 @@ const handleAddStudent = async () => {
       return;
     }
 
-    if (!courseId) {
+    if (!courseId || courseId.length !== 24) {  // Ensure ObjectId format (24-char hex)
       message.error("Please select a valid course");
       return;
     }
 
-    // Prepare payload
     const payload = {
       ...newStudent,
       role: "student",
-      department: departmentId,  // ✅ Use _id directly
-      course: courseId,          // ✅ Use _id directly
+      department: departmentId,
+      course: courseId,  // ✅ Now it's an ObjectId
       year: Number(newStudent.year) || 1,
       semester: Number(newStudent.semester) || 1,
     };
 
-    // Send request to create student
     const response = await api.post("/students", payload, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -741,19 +738,23 @@ const handleAddStudent = async () => {
             <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
           </Form.Item>
           <Form.Item
-            label="Course"
-            name="course"
-            initialValue={newStudent.course}
-            rules={[{ required: true, message: "Course is required" }]}
-          >
-            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))} placeholder="Select Course">
-              {courses.map((course) => (
-                <Option key={course} value={course}>
-                  {course}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+                    label="Course"
+                    name="course"
+                    initialValue={newStudent.course}
+                    rules={[{ required: true, message: "Course is required" }]}
+                  >
+                    <Select 
+                      onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))} 
+                      placeholder="Select Course"
+                    >
+                      {courses.map((course) => (
+                        <Option key={course._id} value={course._id}> 
+                          {course.name} {/* ✅ Display name, but use _id as value */}
+                        </Option>
+                      ))}
+                    </Select>
+                  </Form.Item>
+
           <Form.Item
             label="Department"
             name="department"
