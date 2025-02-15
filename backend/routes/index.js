@@ -49,12 +49,8 @@ router.use('/quizzes', quizRoutes);
 
 // Admin routes
 router.post("/user", authenticate, authorize(["admin"]), createUser);
-router.post("/upload-students", authenticate, authorize(["admin"]), upload.single("csvFile"), bulkUploadStudents);
-router.post("/upload", upload.single("csvFile"), importStudents);
 router.get("/download", downloadStudents);
 router.delete("/students/:id", deleteStudent);
 
-// Update import route
-router.post('/students/upload', upload.single("csvFile"), importStudents);
 
 module.exports = router;
