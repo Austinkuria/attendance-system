@@ -267,7 +267,7 @@ const deleteStudent = async (req, res) => {
   }
 };
 
-// Import students
+// import students
 const importStudents = async (req, res) => {
   try {
     if (!req.file) {
@@ -291,53 +291,72 @@ const importStudents = async (req, res) => {
     const students = [];
     const errors = [];
 
-    for (const row of studentsData) {
-      try {
-        // Convert semester and year to numbers
-        row.year = parseInt(row.year, 10);
-        row.semester = parseInt(row.semester, 10);
+    // Process all students in parallel
+    await Promise.all(
+      studentsData.map(async (row) => {
+        try {
+          row.year = parseInt(row.year, 10);
+          row.semester = parseInt(row.semester, 10);
 
-        // Validate semester and year
-        if (isNaN(row.year) || row.year < 1 || row.year > 4) {
-          errors.push({ row, error: "Invalid year" });
-          continue;
-        }
-        if (isNaN(row.semester) || row.semester < 1 || row.semester > 3) {
-          errors.push({ row, error: "Invalid semester" });
-          continue;
-        }
+          if (isNaN(row.year) || row.year < 1 || row.year > 4) {
+            errors.push({ row, error: "Invalid year" });
+            return;
+          }
+          if (isNaN(row.semester) || row.semester < 1 || row.semester > 3) {
+            errors.push({ row, error: "Invalid semester" });
+            return;
+          }
 
-        // Find department by name
-        const department = await Department.findOne({ name: row.department });
-        if (!department) {
-          errors.push({ row, error: `Department not found: ${row.department}` });
-          continue;
-        }
+          const department = await Department.findOne({ name: row.department });
+          if (!department) {
+            errors.push({ row, error: `Department not found: ${row.department}` });
+            return;
+          }
 
-        // Find course by name within the department
-        const course = await Course.findOne({ name: row.course, department: department._id });
-        if (!course) {
-          errors.push({ row, error: `Course not found: ${row.course} in department ${row.department}` });
-          continue;
-        }
+          const course = await Course.findOne({ name: row.course, department: department._id });
+          if (!course) {
+            errors.push({ row, error: `Course not found: ${row.course} in department ${row.department}` });
+            return;
+          }
 
-        students.push({
-          firstName: row.firstName,
-          lastName: row.lastName,
-          email: row.email,
-          regNo: row.regNo,
-          role: 'student',
-          department: department._id,
-          course: course._id,
-          year: row.year,
-          semester: row.semester,
-          password: bcrypt.hashSync('defaultpassword', 10),
-        });
-      } catch (err) {
-        console.error("Error processing row:", row, err.message);
-        errors.push({ row, error: err.message });
-      }
-    }
+          // Check for duplicate email or regNo
+          const existingUser = await User.findOne({ $or: [{ email: row.email }, { regNo: row.regNo }] });
+          if (existingUser) {
+            errors.push({ row, error: "Student with this email or regNo already exists" });
+            return;
+          }
+
+          let enrolledUnits = [];
+          if (row.enrolledUnits) {
+            const unitIds = row.enrolledUnits.split(",").map((id) => id.trim());
+            const validUnits = await Unit.find({ _id: { $in: unitIds } });
+
+            if (validUnits.length !== unitIds.length) {
+              errors.push({ row, error: "Some enrolled units are invalid" });
+              return;
+            }
+            enrolledUnits = validUnits.map((unit) => unit._id);
+          }
+
+          students.push({
+            firstName: row.firstName,
+            lastName: row.lastName,
+            email: row.email,
+            regNo: row.regNo,
+            role: "student",
+            department: department._id,
+            course: course._id,
+            year: row.year,
+            semester: row.semester,
+            password: bcrypt.hashSync("defaultpassword", 10),
+            enrolledUnits,
+          });
+        } catch (err) {
+          console.error("Error processing row:", row, err.message);
+          errors.push({ row, error: err.message });
+        }
+      })
+    );
 
     if (students.length > 0) {
       await User.insertMany(students);
@@ -355,11 +374,12 @@ const importStudents = async (req, res) => {
     console.error("Import error:", error);
     res.status(500).json({
       error: error.message,
-      message: 'Failed to import students. Please check department and course names in CSV.',
+      message: "Failed to import students. Please check department and course names in CSV.",
     });
   }
 };
 
+module.exports = { importStudents };
 // Download students
 const downloadStudents = async (req, res) => {
   try {
