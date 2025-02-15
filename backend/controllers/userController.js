@@ -98,6 +98,9 @@ const registerUser = async (req, res) => {
 
     // Validate department and course for students
     if (role === "student") {
+      console.log("Received Department ID:", departmentId);
+      console.log("Received Course ID:", courseId);
+
       if (!mongoose.isValidObjectId(departmentId) || !mongoose.isValidObjectId(courseId)) {
         return res.status(400).json({ message: "Invalid department or course ID format" });
       }
