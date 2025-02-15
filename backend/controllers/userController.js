@@ -7,7 +7,7 @@ const csv = require("fast-csv");
 const fs = require("fs");
 const { parse } = require('json2csv'); 
 const validationResult = require('express-validator').validationResult;
-
+const mongoose = require('mongoose');
 // Login API
 const login = async (req, res) => {
   const { email, password } = req.body;
