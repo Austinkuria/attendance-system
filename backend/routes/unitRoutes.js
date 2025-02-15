@@ -1,5 +1,5 @@
 const express = require("express");
-const { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits,getLecturerUnits } = require("../controllers/unitController");
+const { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits,getUnitsByCourse, getUnits,getLecturerUnits } = require("../controllers/unitController");
 const router = express.Router();
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
