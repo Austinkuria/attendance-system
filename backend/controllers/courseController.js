@@ -1,4 +1,6 @@
 const Course = require('../models/Course');
+const Unit = require('../models/Unit'); // ✅ Import the Unit model
+
 // Create a new course
 const createCourse = async (req, res) => {
   try {
@@ -77,12 +79,26 @@ const getCoursesByDepartmentById = async (req, res) => {
 // Get all courses
 const getAllCourses = async (req, res) => {
   try {
-      const courses = await Course.find().populate("department");
-      res.status(200).json(courses);
+    const courses = await Course.find().populate({
+      path: "department",
+      select: "name", // Only fetch department name to reduce unnecessary data
+      strictPopulate: false // Prevent errors if department is missing
+    });
+
+    res.status(200).json(courses);
   } catch (err) {
-      res.status(500).json({ message: "Error fetching courses", error: err.message });
+    res.status(500).json({ message: "Error fetching courses", error: err.message });
   }
 };
+
+// const getAllCourses = async (req, res) => {
+//   try {
+//       const courses = await Course.find().populate("department");
+//       res.status(200).json(courses);
+//   } catch (err) {
+//       res.status(500).json({ message: "Error fetching courses", error: err.message });
+//   }
+// };
 
 // Update a course
 const updateCourse = async (req, res) => {
@@ -117,20 +133,30 @@ const deleteCourse = async (req, res) => {
 };
 
   // Remove unit from course
-//   const removeUnitFromCourse = async (req, res) => {
-//     try {
-//       const course = await Course.findById(req.params.courseId);
-//       course.units.pull(req.params.unitId);
-//       await course.save();
-      
-//       await Unit.findByIdAndDelete(req.params.unitId);
-      
-//       res.status(200).json({ message: "Unit removed successfully" });
-//     } catch (err) {
-//       res.status(500).json({ message: "Error removing unit", error: err.message });
-//     }
-//   };
-
+  const removeUnitFromCourse = async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.courseId);
+      if (!course) {
+        return res.status(404).json({ message: "Course not found" });
+      }
+  
+      // Ensure the unit exists before removing it
+      const unit = await Unit.findById(req.params.unitId);
+      if (!unit) {
+        return res.status(404).json({ message: "Unit not found" });
+      }
+  
+      course.units.pull(req.params.unitId);
+      await course.save();
+      await Unit.findByIdAndDelete(req.params.unitId);
+  
+      res.status(200).json({ message: "Unit removed successfully" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).json({ message: "Server Error", error: error.message });
+    }
+  };
+  
   
 // Get units for a course
 const getUnitsByCourse = async (req, res) => {
@@ -178,24 +204,6 @@ const getUnitsByCourse = async (req, res) => {
       await course.save();
   
       res.status(201).json(unit);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server Error', error: error.message });
-    }
-  };
-  // Remove unit from course
-  const removeUnitFromCourse = async (req, res) => {
-    try {
-      const course = await Course.findById(req.params.courseId);
-      if (!course) {
-        return res.status(404).json({ message: 'Course not found' });
-      }
-  
-      course.units.pull(req.params.unitId);
-      await course.save();
-      await Unit.findByIdAndDelete(req.params.unitId);
-  
-      res.status(200).json({ message: 'Unit removed successfully' });
     } catch (error) {
       console.error(error);
       res.status(500).json({ message: 'Server Error', error: error.message });
