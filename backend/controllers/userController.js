@@ -76,14 +76,6 @@ const signup = async (req, res) => {
 };
 
 // Register user
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
-const { validationResult } = require("express-validator");
-const User = require("../models/User");
-const Department = require("../models/Department");
-const Course = require("../models/Course");
-
-// Register user
 const registerUser = async (req, res) => {
   const { firstName, lastName, email, password, role, regNo, course: courseId, department: departmentId, year, semester } = req.body;
 
