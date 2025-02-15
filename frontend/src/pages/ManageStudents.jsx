@@ -257,7 +257,7 @@ const handleAddStudent = async () => {
       ...newStudent,
       role: "student",
       department: departmentId,  // ✅ Use _id directly
-      course: courseId,          // ✅ Use _id directly
+      course:newStudent.course, // ✅ Use _id directly
       year: Number(newStudent.year) || 1,
       semester: Number(newStudent.semester) || 1,
     };
