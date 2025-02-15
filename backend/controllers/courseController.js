@@ -4,25 +4,27 @@ const Unit = require('../models/Unit'); // ✅ Import the Unit model
 // Create a new course
 const createCourse = async (req, res) => {
   try {
-      const { name, code, departmentId } = req.body;
-      console.log("Received data:", req.body);  // Add this line for debugging
+    const { name, code, department } = req.body; // Change departmentId to department
 
-      if (!name || !code || !departmentId) {
-          return res.status(400).json({ message: "Name, code, and department ID are required" });
-      }
+    console.log("Received data:", req.body);
 
-      const newCourse = new Course({
-          name,
-          code,
-          department: departmentId
-      });
+    if (!name || !code || !department) {
+      return res.status(400).json({ message: "Name, code, and department ID are required" });
+    }
 
-      await newCourse.save();
-      res.status(201).json({ message: "Course created successfully", course: newCourse });
+    const newCourse = new Course({
+      name,
+      code,
+      department, // Save department directly
+    });
+
+    await newCourse.save();
+    res.status(201).json({ message: "Course created successfully", course: newCourse });
   } catch (err) {
-      res.status(500).json({ message: "Error creating course", error: err.message });
+    res.status(500).json({ message: "Error creating course", error: err.message });
   }
 };
+
 
 // Get all courses for a specific department
 const getCoursesByDepartment = async (req, res) => {
