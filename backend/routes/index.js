@@ -23,14 +23,11 @@ router.use('/students', studentRoutes);
 router.post("/auth/signup", signup);
 router.post("/auth/login", login);
 
-// Department routes (admin only)
-router.use("/department", departmentRoutes);  // Register department routes under /department
+// Department routes
+router.use("/department", departmentRoutes); 
 
-router.use("/:id", departmentRoutes); // Fetch department by ID
-// Course routes (admin only)
+// Course routes
 router.use("/course", courseRoutes);
-
-router.get("/department/:departmentId", getCoursesByDepartmentById);
 
 // Unit routes
 router.use("/unit", unitRoutes);
@@ -41,22 +38,23 @@ router.use("/attendance/", authenticate, attendanceRoutes);
 // Session routes
 router.use("/sessions", authenticate, sessionRoutes);
 
-// Define the /api/students route
+// Students
 router.get('/students', getStudents);
 
-// Define the  route for lecture
+// Lecturers
 router.get('/lecturers', getLecturers);
 
-// quiz routes
-router.use('/quizzes', require('./quizRoutes'));
+// Quiz routes
+router.use('/quizzes', quizRoutes);
 
-// Admin routes (admin only)
+// Admin routes
 router.post("/user", authenticate, authorize(["admin"]), createUser);
 router.post("/upload-students", authenticate, authorize(["admin"]), upload.single("csvFile"), bulkUploadStudents);
 router.post("/upload", upload.single("csvFile"), importStudents);
 router.get("/download", downloadStudents);
 router.delete("/students/:id", deleteStudent);
 
-// Update import route to use correct path
+// Update import route
 router.post('/students/upload', upload.single("csvFile"), importStudents);
+
 module.exports = router;
