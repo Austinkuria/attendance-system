@@ -369,9 +369,19 @@ export const getCourseAttendanceRate = async (courseId) => {
     return { present: 0, absent: 0 };
   }
 };
-
 export const deleteStudent = async (studentId) => {
   const token = localStorage.getItem("token");
+
+  if (!studentId) {
+    console.error("Error: No student ID provided for deletion");
+    throw new Error("Student ID is required");
+  }
+
+  if (!token) {
+    console.error("Error: No authentication token found");
+    throw new Error("Unauthorized. Please log in again.");
+  }
+
   try {
     const response = await axios.delete(`${API_URL}/students/${studentId}`, {
       headers: {
@@ -379,10 +389,12 @@ export const deleteStudent = async (studentId) => {
         "Content-Type": "application/json"
       }
     });
+
+    console.log("Student deleted successfully:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error deleting student:", error.response?.data || error.message);
-    throw error;
+    throw new Error(error.response?.data?.message || "Failed to delete student");
   }
 };
 
