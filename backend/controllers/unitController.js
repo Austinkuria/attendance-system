@@ -3,6 +3,7 @@ const User = require("../models/User");
 const Course = require("../models/Course");
 const authenticate = require("../middleware/authMiddleware");
 const router = require("express").Router();
+const mongoose = require("mongoose");
 
 // Add a new unit
 const addUnit = async (req, res) => {
@@ -120,26 +121,29 @@ const getLecturerUnits = async (req, res) => {
   };
 
   const getUnitsByCourse = async (req, res) => {
-    try {
-        const { courseId } = req.params;
-        console.log("Received courseId:", courseId);
-
-        const course = await Course.findById(courseId);
-        console.log("Found course:", course);
-
-        if (!course) {
-            return res.status(404).json({ message: "Course not found" });
-        }
-
-        const units = await Unit.find({ course: courseId }).populate("lecturer");
-        console.log("Found units:", units);
-
-        res.status(200).json(units);
-    } catch (error) {
-        console.error("Error fetching units:", error.message);
-        res.status(500).json({ message: "Error fetching units", error: error.message });
-    }
-};
-
+      try {
+          const { courseId } = req.params;
+          console.log("Received courseId:", courseId);
+  
+          if (!mongoose.Types.ObjectId.isValid(courseId)) {
+              return res.status(400).json({ message: "Invalid course ID format" });
+          }
+  
+          const course = await Course.findById(new mongoose.Types.ObjectId(courseId));
+          console.log("Found course:", course);
+  
+          if (!course) {
+              return res.status(404).json({ message: "Course not found" });
+          }
+  
+          const units = await Unit.find({ course: courseId }).populate("lecturer");
+          console.log("Units found:", units);
+  
+          res.status(200).json(units);
+      } catch (error) {
+          console.error("Error fetching units:", error.message);
+          res.status(500).json({ message: "Error fetching units", error: error.message });
+      }
+  };  
   
 module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits,getUnitsByCourse, getLecturerUnits };
