@@ -13,6 +13,8 @@ router.get("/", authenticate, authorize(["admin"]), getUnits); // Use /unit to f
 router.get("/:id", getUnit); // Get unit details by ID
 router.put("/update/:id", updateUnit); // Update unit details
 router.delete("/delete/:id", deleteUnit); // Delete a unit
+router.get("/course/:courseId/units", authenticate, getUnitsByCourse);
+
 
 // lecturer units
 router.get("/lecturer/units/:lecturerId", authenticate, getLecturerUnits);
