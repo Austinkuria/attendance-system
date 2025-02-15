@@ -77,16 +77,14 @@ const signup = async (req, res) => {
 
 // Register user
 const registerUser = async (req, res) => {
-  const { firstName, lastName, email, password, role, regNo, course: courseName, department: deptName, year, semester } = req.body;
+  const { firstName, lastName, email, password, role, regNo, course: courseId, department: departmentId, year, semester } = req.body;
 
-  // Check validation results
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
-    // Check for existing user
     const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
     if (existingUser) {
       return res.status(400).json({ 
@@ -96,28 +94,24 @@ const registerUser = async (req, res) => {
       });
     }
 
-    let departmentId, courseId;
-
     if (role === 'student') {
       try {
-        // Find department by name
-        const department = await Department.findOne({ name: deptName });
+        // Find department by ID instead of name
+        const department = await Department.findById(departmentId);
         if (!department) {
           return res.status(400).json({ message: "Department not found" });
         }
-        departmentId = department._id;
-    
-        // Find course by name within the department
-        const course = await Course.findOne({ name: courseName, department: departmentId });
-        if (!course) {
+
+        // Find course by ID instead of name
+        const course = await Course.findById(courseId);
+        if (!course || course.department.toString() !== departmentId) {
           return res.status(400).json({ message: "Course not found in the specified department" });
         }
-        courseId = course._id;
       } catch (error) {
         return res.status(500).json({ message: "Server error", error: error.message });
       }
     }
-    
+
     const hashedPassword = await bcrypt.hash(password, 10);
 
     const newUser = new User({
@@ -128,8 +122,8 @@ const registerUser = async (req, res) => {
       role,
       ...(role === 'student' && { 
         regNo, 
-        course: courseId,  // Now storing ObjectId
-        department: departmentId,  // Now storing ObjectId
+        course: courseId,  // Storing ObjectId correctly
+        department: departmentId,  // Storing ObjectId correctly
         year, 
         semester 
       })
@@ -142,7 +136,6 @@ const registerUser = async (req, res) => {
     res.status(500).json({ message: 'Error creating user', error: error.message });
   }
 };
-
 
 // getStudents
 const getStudents = async (req, res) => {
