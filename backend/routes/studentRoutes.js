@@ -23,7 +23,12 @@ router.put("/:id", authenticate, authorize(['admin']), [
   check('lastName').notEmpty().withMessage('Last name is required'),
   check('email').isEmail().withMessage('Valid email is required'),
   check('regNo').notEmpty().withMessage('Registration number is required'),
-  check('course').notEmpty().withMessage('Course is required'),
+  check('course').custom(value => {
+    if (!value || (typeof value !== 'string' && typeof value !== 'object')) {
+      throw new Error('Invalid course selection');
+    }
+    return true;
+  }),  
   check('department').notEmpty().withMessage('Department is required'),
   check('year').isInt({ min: 1, max: 4 }).withMessage('Valid year is required'),
   check('semester').isInt({ min: 1, max: 2 }).withMessage('Valid semester is required')
