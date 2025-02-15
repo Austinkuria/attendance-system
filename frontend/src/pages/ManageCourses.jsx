@@ -30,10 +30,10 @@ import {
 } from '@ant-design/icons';
 import {
   getCourses,
-  createCourse,
+  // createCourse,
   deleteCourse,
   getDepartments,
-  updateCourse,
+  // updateCourse,
   addUnitToCourse,
   removeUnitFromCourse,
   getUnitsByCourse,
@@ -121,28 +121,46 @@ const ManageCourses = () => {
 
   const handleCourseSubmit = async () => {
     try {
+      const values = await form.validateFields();
       setLoading(true);
+  
+      const requestBody = {
+        name: values.name,
+        code: values.code,
+        departmentId: values.department, // Change department to departmentId
+      };
+  
+      console.log("Submitting Course Data:", requestBody); // Debugging
+  
+      let response;
       if (selectedCourse) {
-        // Update existing course
-        await updateCourse(selectedCourse._id, formData);
+        response = await fetch(`https://attendance-system-w70n.onrender.com/api/course/${selectedCourse._id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
       } else {
-        // Create new course
-        await createCourse(formData);
+        response = await fetch('https://attendance-system-w70n.onrender.com/api/course/create', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        });
       }
+  
+      if (!response.ok) throw new Error("Failed to save course");
+  
+      message.success(selectedCourse ? "Course updated successfully" : "Course added successfully");
       setShowCourseModal(false);
-      message.success('Operation successful');
-      await fetchData();
-      setFormData({ name: '', code: '', department: '' });
-      setSelectedCourse(null);
       form.resetFields();
-    } catch (err) {
-      setError(err.message || 'Operation failed');
-      message.error('Operation failed');
+      fetchData();
+    } catch (error) {
+      message.error(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
-
+  
+  
   const handleManageUnits = async (course) => {
     try {
       setLoading(true);
@@ -480,23 +498,28 @@ const ManageCourses = () => {
               <Input />
             </Form.Item>
             <Form.Item
-              label={
-                <>
-                  <ApartmentOutlined style={{ marginRight: 4 }} />
-                  Department
-                </>
-              }
-              name="department"
-              rules={[{ required: true, message: 'Please select a department' }]}
-            >
-              <Select placeholder="Select Department">
-                {departments.map(dept => (
-                  <Option key={dept._id} value={dept._id}>
-                    {dept.name}
-                  </Option>
-                ))}
-              </Select>
-            </Form.Item>
+  label={
+    <>
+      <ApartmentOutlined style={{ marginRight: 4 }} />
+      Department
+    </>
+  }
+  name="department"
+  rules={[{ required: true, message: 'Please select a department' }]}
+>
+  <Select
+    placeholder="Select Department"
+    value={formData.department} // Bind formData.department to the select value
+    onChange={(value) => setFormData({ ...formData, department: value })} // Update formData on change
+  >
+    {departments.map(dept => (
+      <Option key={dept._id} value={dept._id}>
+        {dept.name}
+      </Option>
+    ))}
+  </Select>
+</Form.Item>
+
           </Form>
         </Modal>
 
