@@ -76,66 +76,80 @@ const signup = async (req, res) => {
 };
 
 // Register user
+const mongoose = require("mongoose");
+const bcrypt = require("bcrypt");
+const { validationResult } = require("express-validator");
+const User = require("../models/User");
+const Department = require("../models/Department");
+const Course = require("../models/Course");
+
+// Register user
 const registerUser = async (req, res) => {
   const { firstName, lastName, email, password, role, regNo, course: courseId, department: departmentId, year, semester } = req.body;
 
+  // Validate request body
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
+    // Check if email or regNo already exists
     const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
     if (existingUser) {
       return res.status(400).json({ 
         message: existingUser.email === email 
-          ? 'Email already in use' 
-          : 'Registration number already exists'
+          ? "Email already in use" 
+          : "Registration number already exists"
       });
     }
 
-    if (role === 'student') {
-      try {
-        // Find department by ID instead of name
-        const department = await Department.findById(departmentId);
-        if (!department) {
-          return res.status(400).json({ message: "Department not found" });
-        }
+    // Validate department and course for students
+    if (role === "student") {
+      if (!mongoose.isValidObjectId(departmentId) || !mongoose.isValidObjectId(courseId)) {
+        return res.status(400).json({ message: "Invalid department or course ID format" });
+      }
 
-        // Find course by ID instead of name
-        const course = await Course.findById(courseId);
-        if (!course || course.department.toString() !== departmentId) {
-          return res.status(400).json({ message: "Course not found in the specified department" });
-        }
-      } catch (error) {
-        return res.status(500).json({ message: "Server error", error: error.message });
+      const department = await Department.findById(departmentId);
+      if (!department) {
+        return res.status(400).json({ message: "Department not found" });
+      }
+
+      const course = await Course.findById(courseId);
+      if (!course || course.department.toString() !== departmentId) {
+        return res.status(400).json({ message: "Course not found in the specified department" });
       }
     }
 
+    // Hash password
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Create new user
     const newUser = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
       role,
-      ...(role === 'student' && { 
+      ...(role === "student" && { 
         regNo, 
-        course: courseId,  // Storing ObjectId correctly
-        department: departmentId,  // Storing ObjectId correctly
-        year, 
-        semester 
-      })
+        course: courseId, 
+        department: departmentId, 
+        year: Number(year) || 1, 
+        semester: Number(semester) || 1
+      }),
     });
 
+    // Save user to database
     await newUser.save();
-    res.status(201).json({ message: 'User created successfully' });
+    res.status(201).json({ message: "User created successfully" });
+
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Error creating user', error: error.message });
+    console.error("Error creating user:", error);
+    res.status(500).json({ message: "Error creating user", error: error.message });
   }
 };
+
 
 // getStudents
 const getStudents = async (req, res) => {
