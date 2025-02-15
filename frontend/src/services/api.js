@@ -189,6 +189,7 @@ export const getStudents = async () => {
   }
 };
 
+// add student
 export const addStudent = async (student) => {
   const token = localStorage.getItem("token");
   if (!token) throw new Error("No token found in localStorage");
@@ -208,10 +209,6 @@ export const addStudent = async (student) => {
     throw error;
   }
 };
-
-
-// Delete a student
-// export const deleteStudent = (id) => api.delete(`/students/${id}`);
 
 // Fetch all lecturers
 export const getLecturers = async () => {

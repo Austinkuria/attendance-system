@@ -31,7 +31,7 @@ router.put("/:id", authenticate, authorize(['admin']), [
   }),  
   check('department').notEmpty().withMessage('Department is required'),
   check('year').isInt({ min: 1, max: 4 }).withMessage('Valid year is required'),
-  check('semester').isInt({ min: 1, max: 2 }).withMessage('Valid semester is required')
+  check('semester').isInt({ min: 1, max: 3 }).withMessage('Valid semester is required')
 ], updateStudent);
 
 router.delete("/:id", authenticate, authorize(['admin']), deleteStudent);
