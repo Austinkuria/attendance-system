@@ -199,7 +199,7 @@ const handleAddStudent = async () => {
     }
 
     // Fetch department ID
-    const { data: department } = await api.get(`/departments?name=${newStudent.department}`, {
+    const { data: department } = await api.get(`/department?name=${newStudent.department}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
 
