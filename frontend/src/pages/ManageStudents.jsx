@@ -32,7 +32,7 @@ import {
   FilterOutlined,
   // CheckCircleOutlined,
 } from "@ant-design/icons";
-import { getStudents, deleteStudent, downloadStudents, getCourseByDepartment } from "../services/api";
+import { getStudents, deleteStudent, downloadStudents} from "../services/api";
 import api from "../services/api";
 import "../styles.css";
 
@@ -198,35 +198,30 @@ const handleAddStudent = async () => {
       return;
     }
 
-    // Fetch department ID
-    const { data } = await api.get(`/department?name=${newStudent.department}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    // ✅ Directly use department and course IDs (they are already selected in the form)
+    const departmentId = newStudent.department;
+    const courseId = newStudent.course;
 
-    const department = data[0]; // ✅ Extract first match
+    // Debugging logs (remove after testing)
+    console.log("Selected Department ID:", departmentId);
+    console.log("Selected Course ID:", courseId);
 
-    if (!department || !department._id) {
-      message.error("Department not found");
+    if (!departmentId) {
+      message.error("Please select a valid department");
       return;
     }
-    const departmentId = department._id;
 
-    // Fetch course ID
-    const courses = await getCourseByDepartment(departmentId, newStudent.course);
-    const course = courses.find(c => c.name === newStudent.course); // Match by name
-
-    if (!course || !course._id) {
-      message.error("Course not found in the specified department");
+    if (!courseId) {
+      message.error("Please select a valid course");
       return;
     }
-    const courseId = course._id;
 
     // Prepare payload
     const payload = {
       ...newStudent,
       role: "student",
-      department: departmentId,
-      course: courseId,
+      department: departmentId,  // ✅ Use _id directly
+      course: courseId,          // ✅ Use _id directly
       year: Number(newStudent.year) || 1,
       semester: Number(newStudent.semester) || 1,
     };
