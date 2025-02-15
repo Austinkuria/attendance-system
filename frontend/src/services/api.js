@@ -298,31 +298,42 @@ export const getUnits = async () => {
 // };
 
 // Fetch all courses (new API endpoint)
-export const getCourses = async () => {
+export const getCourses = async (departmentId, courseName = "") => {
   const token = localStorage.getItem("token");
+
   if (!token) {
-    console.error("No token found in localStorage");
-    return [];
+      console.error("No token found in localStorage");
+      return [];
   }
 
   try {
-    const response = await fetch("https://attendance-system-w70n.onrender.com/api/course", {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      let url = `https://attendance-system-w70n.onrender.com/api/course?department=${departmentId}`;
+      if (courseName) {
+          url += `&name=${encodeURIComponent(courseName)}`;
+      }
 
-    if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.message);
-    }
+      console.log("Fetching courses from URL:", url); // Debugging
 
-    return await response.json();
+      const response = await fetch(url, {
+          method: "GET",
+          headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${token}`,
+          },
+      });
+
+      if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || "Failed to fetch courses");
+      }
+
+      const data = await response.json();
+      console.log("Courses received:", data); // Debugging
+
+      return data;
   } catch (error) {
-    console.error("Error fetching courses:", error);
-    return []; // Return empty array instead of undefined
+      console.error("Error fetching courses:", error);
+      return [];
   }
 };
 
