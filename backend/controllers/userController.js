@@ -267,65 +267,95 @@ const deleteStudent = async (req, res) => {
   }
 };
 
-
 // Import students
 const importStudents = async (req, res) => {
   try {
+    if (!req.file) {
+      return res.status(400).json({ error: "CSV file is required" });
+    }
+
     const filePath = req.file.path;
     let studentsData = [];
 
-    // First pass: read all data from CSV
+    // Read CSV file and parse data
     await new Promise((resolve, reject) => {
       fs.createReadStream(filePath)
         .pipe(csv.parse({ headers: true }))
-        .on("data", (row) => {
-          studentsData.push(row);
-        })
+        .on("data", (row) => studentsData.push(row))
         .on("end", resolve)
         .on("error", reject);
     });
 
-    // Process each student
+    console.log("Parsed CSV Data:", studentsData);
+
     const students = [];
+    const errors = [];
+
     for (const row of studentsData) {
-      // Find department by name
-      const department = await Department.findOne({ name: row.department });
-      if (!department) {
-        throw new Error(`Department not found: ${row.department}`);
-      }
+      try {
+        // Convert semester and year to numbers
+        row.year = parseInt(row.year, 10);
+        row.semester = parseInt(row.semester, 10);
 
-      // Find course by name and department
-      const course = await Course.findOne({ 
-        name: row.course,
-        department: department._id 
-      });
-      if (!course) {
-        throw new Error(`Course not found: ${row.course} in department ${row.department}`);
-      }
+        // Validate semester and year
+        if (isNaN(row.year) || row.year < 1 || row.year > 4) {
+          errors.push({ row, error: "Invalid year" });
+          continue;
+        }
+        if (isNaN(row.semester) || row.semester < 1 || row.semester > 3) {
+          errors.push({ row, error: "Invalid semester" });
+          continue;
+        }
 
-      students.push({
-        firstName: row.firstName,
-        lastName: row.lastName,
-        email: row.email,
-        regNo: row.regNo,
-        role: 'student',
-        department: department._id,
-        course: course._id,
-        year: row.year,
-        semester: row.semester,
-        password: bcrypt.hashSync('defaultpassword', 10)
-      });
+        // Find department by name
+        const department = await Department.findOne({ name: row.department });
+        if (!department) {
+          errors.push({ row, error: `Department not found: ${row.department}` });
+          continue;
+        }
+
+        // Find course by name within the department
+        const course = await Course.findOne({ name: row.course, department: department._id });
+        if (!course) {
+          errors.push({ row, error: `Course not found: ${row.course} in department ${row.department}` });
+          continue;
+        }
+
+        students.push({
+          firstName: row.firstName,
+          lastName: row.lastName,
+          email: row.email,
+          regNo: row.regNo,
+          role: 'student',
+          department: department._id,
+          course: course._id,
+          year: row.year,
+          semester: row.semester,
+          password: bcrypt.hashSync('defaultpassword', 10),
+        });
+      } catch (err) {
+        console.error("Error processing row:", row, err.message);
+        errors.push({ row, error: err.message });
+      }
     }
 
-    // Insert all students
-    await User.insertMany(students);
-    fs.unlinkSync(filePath);
-    res.json({ message: "Students imported successfully" });
+    if (students.length > 0) {
+      await User.insertMany(students);
+    }
+
+    fs.unlinkSync(filePath); // Remove CSV file after processing
+
+    res.json({
+      message: "Students imported successfully",
+      successCount: students.length,
+      errorCount: errors.length,
+      errors,
+    });
   } catch (error) {
     console.error("Import error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       error: error.message,
-      message: 'Failed to import students. Please check department and course names in CSV.'
+      message: 'Failed to import students. Please check department and course names in CSV.',
     });
   }
 };

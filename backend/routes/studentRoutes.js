@@ -35,9 +35,8 @@ router.put("/:id", authenticate, authorize(['admin']), [
 ], updateStudent);
 
 router.delete("/:id", authenticate, authorize(['admin']), deleteStudent);
-
-router.post("/upload", authenticate, authorize(['admin']), upload.single('csvFile'), importStudents);
 router.get("/download", authenticate, authorize(['admin']), downloadStudents);
+router.post("/upload", authenticate, authorize(['admin']), upload.single('csvFile'), importStudents);
 
 router.post("/", authenticate, authorize(["admin"]), registerUser);
 
