@@ -380,28 +380,32 @@ const getUserProfile = async (req, res) => {
 const updateUserProfile = async (req, res) => {
   const { firstName, lastName, email } = req.body;
 
-  // Check validation results
+  // Validate request
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
 
   try {
-    const user = await User.findById(req.user.userId);
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+    const userId = req.user?.userId; // Ensure userId exists
+    if (!userId) {
+      return res.status(401).json({ message: "Unauthorized: Missing user ID" });
     }
 
-    user.firstName = firstName;
-    user.lastName = lastName;
-    user.email = email;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    user.firstName = firstName || user.firstName;
+    user.lastName = lastName || user.lastName;
+    user.email = email || user.email;
 
     await user.save();
-
-    res.json({ message: 'Profile updated successfully' });
+    res.json({ message: "Profile updated successfully", user });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Profile Update Error:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 

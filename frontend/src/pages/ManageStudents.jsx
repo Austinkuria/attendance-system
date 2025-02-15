@@ -303,31 +303,22 @@ const handleAddStudent = async () => {
         navigate("/auth/login");
         return;
       }
+  
       const formattedStudent = {
         ...selectedStudent,
         course: selectedStudent.course.name || selectedStudent.course,
         department: selectedStudent.department.name || selectedStudent.department,
       };
-      
+  
       const response = await api.put(
         `/students/${selectedStudent._id}`,
         formattedStudent,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      
-      if (response.data.message === "Student updated successfully")
-        {
+  
+      if (response.status === 200) {
         const updated = await getStudents();
-        const formatted = updated.map((s) => ({
-          ...s,
-          regNo: s.regNo || "N/A",
-          year: s.year || "N/A",
-          semester: s.semester?.toString() || "N/A",
-          course: (s.course && (s.course.name || s.course)) || "N/A",
-          department:
-            (s.department && (s.department.name || s.department)) || "N/A",
-        }));
-        setStudents(formatted);
+        setStudents(formatStudentData(updated));
         setIsEditModalVisible(false);
         message.success("Student updated successfully");
       }
@@ -339,7 +330,19 @@ const handleAddStudent = async () => {
       setLoading(false);
     }
   };
-
+  
+  // Helper Function
+  const formatStudentData = (students) => {
+    return students.map((s) => ({
+      ...s,
+      regNo: s.regNo || "N/A",
+      year: s.year || "N/A",
+      semester: s.semester?.toString() || "N/A",
+      course: (s.course && (s.course.name || s.course)) || "N/A",
+      department: (s.department && (s.department.name || s.department)) || "N/A",
+    }));
+  };
+  
   // Handle delete student
   const handleConfirmDelete = async () => {
     try {
@@ -938,6 +941,7 @@ const handleAddStudent = async () => {
       <Modal
         title="Confirm Deletion"
         open={isDeleteModalVisible}
+        centered
         onCancel={() => setIsDeleteModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setIsDeleteModalVisible(false)}>
