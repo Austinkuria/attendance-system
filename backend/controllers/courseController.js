@@ -1,4 +1,4 @@
-
+const Course = require('../models/Course');
 // Create a new course
 const createCourse = async (req, res) => {
   try {
