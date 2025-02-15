@@ -10,7 +10,7 @@ router.post("/create", createDepartment);
 router.get("/", getDepartments);
 
 // Backend endpoint to fetch departments
-router.get("/department", getDepartments);
+// router.get("/department", getDepartments);
 
   //fetch department by ID
   router.get("/:id", async (req, res) => {
