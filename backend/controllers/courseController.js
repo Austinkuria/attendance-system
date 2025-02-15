@@ -4,27 +4,30 @@ const Unit = require('../models/Unit'); // ✅ Import the Unit model
 // Create a new course
 const createCourse = async (req, res) => {
   try {
-    const { name, code, department } = req.body; // Change departmentId to department
+    console.log("Received data:", req.body); // Log the request body
 
-    console.log("Received data:", req.body);
-
-    if (!name || !code || !department) {
+    const { name, code, departmentId } = req.body;
+    
+    if (!name || !code || !departmentId) {
       return res.status(400).json({ message: "Name, code, and department ID are required" });
     }
+
+    console.log("All fields are present, proceeding to save...");
 
     const newCourse = new Course({
       name,
       code,
-      department, // Save department directly
+      department: departmentId, // Ensure this matches the schema
     });
 
     await newCourse.save();
     res.status(201).json({ message: "Course created successfully", course: newCourse });
+
   } catch (err) {
+    console.error("Error creating course:", err.message);
     res.status(500).json({ message: "Error creating course", error: err.message });
   }
 };
-
 
 // Get all courses for a specific department
 const getCoursesByDepartment = async (req, res) => {
