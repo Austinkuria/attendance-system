@@ -199,9 +199,11 @@ const handleAddStudent = async () => {
     }
 
     // Fetch department ID
-    const { data: department } = await api.get(`/department?name=${newStudent.department}`, {
+    const { data } = await api.get(`/department?name=${newStudent.department}`, {
       headers: { Authorization: `Bearer ${token}` },
     });
+
+    const department = data[0]; // ✅ Extract first match
 
     if (!department || !department._id) {
       message.error("Department not found");
@@ -210,7 +212,8 @@ const handleAddStudent = async () => {
     const departmentId = department._id;
 
     // Fetch course ID
-    const { data: course } = await getCourseByDepartment(departmentId, newStudent.course);
+    const courses = await getCourseByDepartment(departmentId, newStudent.course);
+    const course = courses.find(c => c.name === newStudent.course); // Match by name
 
     if (!course || !course._id) {
       message.error("Course not found in the specified department");
@@ -222,12 +225,13 @@ const handleAddStudent = async () => {
     const payload = {
       ...newStudent,
       role: "student",
-      department: departmentId, 
+      department: departmentId,
       course: courseId,
-      year: Number(newStudent.year),
-      semester: Number(newStudent.semester),
+      year: Number(newStudent.year) || 1,
+      semester: Number(newStudent.semester) || 1,
     };
 
+    // Send request to create student
     const response = await api.post("/students", payload, {
       headers: { Authorization: `Bearer ${token}` },
     });
@@ -761,13 +765,16 @@ const handleAddStudent = async () => {
             initialValue={newStudent.department}
             rules={[{ required: true, message: "Department is required" }]}
           >
-            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, department: value }))} placeholder="Select Department">
-              {departments.map((dept) => (
-                <Option key={dept._id} value={dept.name}>
-                  {dept.name}
-                </Option>
-              ))}
-            </Select>
+            <Select
+                  onChange={(value) => setNewStudent((prev) => ({ ...prev, department: value }))}
+                  placeholder="Select Department"
+                >
+                  {departments.map((dept) => (
+                    <Option key={dept._id} value={dept._id}> {/* ✅ Use _id, not name */}
+                      {dept.name}
+                    </Option>
+                  ))}
+                </Select>
           </Form.Item>
           <Form.Item
             label="Year"
