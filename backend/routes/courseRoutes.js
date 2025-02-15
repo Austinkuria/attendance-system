@@ -18,6 +18,7 @@ router.get("/", getAllCourses);
 router.get('/:courseId/units', getUnitsByCourse);
 router.get("/by-department", getCoursesByDepartment); // For query-based search
 router.get("/:departmentId", getCoursesByDepartmentById); // For path-based search
+router.put("/:id", updateCourse); // Add this to handle course updates
 
 
 // Unit management routes
