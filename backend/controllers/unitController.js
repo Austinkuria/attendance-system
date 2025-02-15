@@ -136,4 +136,4 @@ const getLecturerUnits = async (req, res) => {
 };
 
   
-module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits, getLecturerUnits };
+module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits,getUnitsByCourse, getLecturerUnits };
