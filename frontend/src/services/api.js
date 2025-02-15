@@ -395,6 +395,7 @@ export const deleteStudent = async (studentId) => {
   }
 };
 
+// import students
 export const importStudents = async (file) => {
   const token = localStorage.getItem("token");
   const formData = new FormData();
@@ -404,8 +405,8 @@ export const importStudents = async (file) => {
     const response = await axios.post(`${API_URL}/students/upload`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${token}`
-      }
+        Authorization: `Bearer ${token}`,
+      },
     });
     return response.data;
   } catch (error) {

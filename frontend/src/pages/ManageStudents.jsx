@@ -384,60 +384,72 @@ const handleAddStudent = async () => {
   };
   
   // Handle CSV file upload (only CSV allowed)
-  const handleFileUpload = (e) => {
-    const selectedFile = e.target.files[0];
-    if (selectedFile?.type === "text/csv") {
-      setFile(selectedFile);
-    } else {
-      setGlobalError("Invalid file type. Please upload a CSV file.");
-      setFile(null);
-    }
-  };
+const handleFileUpload = (e) => {
+  const selectedFile = e.target.files[0];
+  const validCSVTypes = ["text/csv", "application/vnd.ms-excel"];
 
-  // Handle CSV import
-  const handleImport = async () => {
-    if (!file) return;
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/auth/login");
-        return;
-      }
-      const formData = new FormData();
-      formData.append("csvFile", file);
-      const response = await api.post("/upload-students", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
-      if (response.data.successCount > 0) {
-        const updated = await getStudents();
-        const formatted = updated.map((s) => ({
-          ...s,
-          regNo: s.regNo || "N/A",
-          year: s.year || "N/A",
-          semester: s.semester?.toString() || "N/A",
-          course: (s.course && (s.course.name || s.course)) || "N/A",
-          department:
-            (s.department && (s.department.name || s.department)) || "N/A",
-        }));
-        setStudents(formatted);
-        message.success(`Successfully imported ${response.data.successCount} students`);
-      }
-      setFile(null);
-      if (response.data.errorCount > 0) {
-        setGlobalError(`${response.data.errorCount} records failed to import`);
-      }
-    } catch (err) {
-      console.error("CSV import failed:", err);
-      setGlobalError("CSV import failed. Please check file format and try again.");
-      message.error("CSV import failed");
-    } finally {
-      setLoading(false);
+  if (selectedFile && validCSVTypes.includes(selectedFile.type)) {
+    setFile(selectedFile);
+    setGlobalError(null); // Clear any previous errors
+  } else {
+    setGlobalError("Invalid file type. Please upload a valid CSV file.");
+    setFile(null);
+  }
+};
+
+// Handle CSV import
+const handleImport = async () => {
+  if (!file) {
+    setGlobalError("Please select a CSV file before importing.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth/login");
+      return;
     }
-  };
+
+    const formData = new FormData();
+    formData.append("csvFile", file);
+
+    const response = await api.post("/students/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.data.successCount > 0) {
+      const updated = await getStudents();
+      const formatted = updated.map((s) => ({
+        ...s,
+        regNo: s.regNo || "N/A",
+        year: s.year || "N/A",
+        semester: s.semester?.toString() || "N/A",
+        course: (s.course && (s.course.name || s.course)) || "N/A",
+        department: (s.department && (s.department.name || s.department)) || "N/A",
+      }));
+
+      setStudents(formatted);
+      message.success(`Successfully imported ${response.data.successCount} students`);
+    }
+
+    setFile(null);
+    
+    if (response.data.errorCount > 0) {
+      setGlobalError(`${response.data.errorCount} records failed to import. Check errors in response.`);
+    }
+  } catch (err) {
+    console.error("CSV import failed:", err);
+    setGlobalError("CSV import failed. Please check file format and try again.");
+    message.error("CSV import failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Filter students based on search and filter criteria
   const filteredStudents = useMemo(() => {
@@ -811,8 +823,6 @@ const handleAddStudent = async () => {
     ))}
   </Select>
 </Form.Item>
-
-
           <Form.Item
             label="Department"
             name="department"
