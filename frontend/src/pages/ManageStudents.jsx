@@ -72,6 +72,7 @@ const ManageStudents = () => {
   });
   // const [formErrors, setFormErrors] = useState({});
   const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
 
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
@@ -109,6 +110,32 @@ const ManageStudents = () => {
     fetchDepartments();
   }, [navigate]);
 
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          navigate("/auth/login");
+          return;
+        }
+        const response = await api.get("/course", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+  
+        // ✅ Store both _id and name
+        const formattedCourses = response.data.map(course => ({
+          id: course._id,
+          name: course.name
+        }));
+  
+        setCourses(formattedCourses);
+      } catch (err) {
+        console.error("Error fetching courses:", err);
+      }
+    };
+    fetchCourses();
+  }, [navigate]);
+  
   // Fetch students
   useEffect(() => {
     let isMounted = true;
@@ -156,16 +183,25 @@ const ManageStudents = () => {
   }, [navigate]);
 
   // Courses dropdown derived from students
-  const courses = useMemo(() => {
-    const courseSet = new Set();
+  const availableCourses = useMemo(() => {
+    const courseMap = new Map();
     students.forEach((student) => {
       if (student.course && student.course !== "N/A") {
-        courseSet.add(student.course);
+        const courseId = student.course._id || student.course; 
+        const courseName = student.course.name || student.course;
+        if (courseId && courseName) {
+          courseMap.set(courseId, courseName);
+        }
       }
     });
-    return Array.from(courseSet).sort();
+    return Array.from(courseMap.entries()).map(([id, name]) => ({ id, name }));
   }, [students]);
-
+  
+  // Debugging
+  useEffect(() => {
+    console.log("Available Courses:", availableCourses);
+  }, [availableCourses]);
+  
   // Validate new student form
   const validateForm = () => {
     const errors = {};
@@ -606,7 +642,7 @@ const handleAddStudent = async () => {
                 onChange={(value) => setFilter((prev) => ({ ...prev, course: value }))}
                 allowClear
               >
-                {courses.map((course) => (
+                {availableCourses.map((course) => (
                   <Option key={course} value={course}>
                     {course}
                   </Option>
@@ -741,19 +777,26 @@ const handleAddStudent = async () => {
             <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
           </Form.Item>
           <Form.Item
-            label="Course"
-            name="course"
-            initialValue={newStudent.course}
-            rules={[{ required: true, message: "Course is required" }]}
-          >
-            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))} placeholder="Select Course">
-              {courses.map((course) => (
-                <Option key={course} value={course}>
-                  {course}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
+                  label="Course"
+                  name="course"
+                  rules={[{ required: true, message: "Course is required" }]}
+                >
+                  <Select
+                    placeholder="Select Course"
+                    onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))}
+                  >
+                    {availableCourses.length > 0 ? (
+                      availableCourses.map((course) => (
+                        <Option key={course.id} value={course.id}>
+                          {course.name}
+                        </Option>
+                      ))
+                    ) : (
+                      <Option disabled>No courses available</Option>
+                    )}
+                  </Select>
+                </Form.Item>
+
           <Form.Item
             label="Department"
             name="department"
@@ -846,7 +889,7 @@ const handleAddStudent = async () => {
             <Select onChange={(value) =>
               setSelectedStudent((prev) => ({ ...prev, course: value }))
             } placeholder="Select Course">
-              {courses.map((course) => (
+              {availableCourses.map((course) => (
                 <Option key={course} value={course}>
                   {course}
                 </Option>
