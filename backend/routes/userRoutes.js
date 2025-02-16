@@ -16,26 +16,28 @@ const {
   deleteLecturer,
   importLecturers,
   downloadLecturers,
-  sendResetLink
+  sendResetLink,
+  resetPassword
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 const router = express.Router();
 const quizController = require('../controllers/quizController');
+const { passwordValidation } = require("../validators/authValidation");
 
 // Auth routes
-router.post("/auth/login", [
-  check('email').isEmail().withMessage('Enter a valid email address'),
-  check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
-], login);
-
 router.post("/auth/signup", [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('First name must not contain numbers'),
   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('Last name must not contain numbers'),
   check('email').isEmail().withMessage('Enter a valid email address'),
-  check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
-], registerUser,signup);
+  passwordValidation  // Use the password validation rule
+], registerUser, signup);
+
+router.post("/auth/login", [
+  check('email').isEmail().withMessage('Enter a valid email address'),
+  passwordValidation  // Use the same password validation rule
+], login);
 
 // Profile routes
 router.get("/users/profile", authenticate, getUserProfile);
@@ -74,5 +76,6 @@ router.get('/download', authenticate, authorize(['admin']), downloadLecturers);
 router.post("/auth/reset-password", [
   check('email').isEmail().withMessage('Enter a valid email address')
 ], sendResetLink);
+router.post("/auth/reset-password/:token", resetPassword);
 
 module.exports = router;

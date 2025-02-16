@@ -667,9 +667,12 @@ const sendResetLink = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    // Generate Reset Token and Hash It
     const resetToken = crypto.randomBytes(32).toString("hex");
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    const hashedToken = await bcrypt.hash(resetToken, 10);
+
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
 
     const clientUrl =
@@ -677,21 +680,69 @@ const sendResetLink = async (req, res) => {
         ? process.env.CLIENT_URL_PROD
         : process.env.CLIENT_URL_DEV;
 
+    const resetLink = `${clientUrl}/auth/reset-password/${resetToken}`;
+
+    // Email Template
     const mailOptions = {
-      from: process.env.SMTP_USER,
+      from: `"Smart QR Attendance System" <${process.env.SMTP_USER}>`,
       to: user.email,
-      subject: "Password Reset",
-      html: `<p>Click <a href="${clientUrl}/reset-password/${resetToken}">here</a> to reset your password.</p>`,
+      subject: "Password Reset Request",
+      html: `
+        <div style="font-family: Arial, sans-serif; padding: 20px;">
+          <h2>Password Reset Request</h2>
+          <p>Hi ${user.name},</p>
+          <p>You requested to reset your password. Click the button below to proceed:</p>
+          <a href="${resetLink}" 
+             style="background-color: #007bff; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
+            Reset Password
+          </a>
+          <p>This link will expire in 1 hour.</p>
+          <p>If you did not request this, ignore this email. Your password will remain unchanged.</p>
+          <p>Thank you,</p>
+          <p><strong>Smart QR Attendance System Team</strong></p>
+        </div>
+      `,
     };
 
+    // Send Email
     await transporter.sendMail(mailOptions);
-    res.json({ message: "Reset link sent to email" });
+    res.json({ message: "Password reset link sent to your email." });
   } catch (error) {
     console.error("Error sending reset email:", error);
     res.status(500).json({ message: "Server error", error });
   }
-};
+  };
 
+  const resetPassword = async (req, res) => {
+    try {
+      const { token, newPassword } = req.body;
+      
+      if (!token || !newPassword) {
+        return res.status(400).json({ message: "Invalid request. Missing fields." });
+      }
+  
+      const user = await User.findOne({ resetPasswordToken: token });
+  
+      if (!user || user.resetPasswordExpires < Date.now()) {
+        return res.status(400).json({ message: "Invalid or expired token." });
+      }
+  
+      // Hash new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+  
+      // Clear reset token fields
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+  
+      res.json({ message: "Password has been successfully reset." });
+    } catch (error) {
+      console.error("Error resetting password:", error);
+      res.status(500).json({ message: "Server error" });
+    }
+  };
+  
 module.exports = { 
   login, 
   signup, 
@@ -710,5 +761,6 @@ module.exports = {
   deleteLecturer,
   importLecturers,
   downloadLecturers,
-  sendResetLink
+  sendResetLink,
+  resetPassword
 };
