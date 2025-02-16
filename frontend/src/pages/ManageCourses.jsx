@@ -118,7 +118,7 @@ const ManageCourses = () => {
   // const handleCourseFormChange = (changedValues, allValues) => {
   //   setFormData(allValues);
   // };
-
+  
   const handleCourseSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -127,10 +127,10 @@ const ManageCourses = () => {
       const requestBody = {
         name: values.name,
         code: values.code,
-        departmentId: values.department, // Ensure this is an ID, not an object
+        departmentId: values.department?._id || values.department, // Ensure it's an ID
       };
   
-      console.log("Submitting Course Data:", requestBody); // Debugging
+      console.log("Submitting Course Data:", requestBody);
   
       let response;
       if (selectedCourse) {
@@ -147,7 +147,11 @@ const ManageCourses = () => {
         });
       }
   
-      if (!response.ok) throw new Error("Failed to save course");
+      const data = await response.json(); // Get response JSON
+  
+      if (!response.ok) {
+        throw new Error(data.message || "Failed to save course");
+      }
   
       message.success(selectedCourse ? "Course updated successfully" : "Course added successfully");
       setShowCourseModal(false);
@@ -155,6 +159,7 @@ const ManageCourses = () => {
       form.resetFields();
       fetchData();
     } catch (error) {
+      console.error("Error saving course:", error);
       message.error(`Error: ${error.message}`);
     } finally {
       setLoading(false);

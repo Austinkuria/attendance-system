@@ -442,38 +442,38 @@ export const downloadStudents = async () => {
 };
 
 // create a new course
-export const createCourse = async (courseData) => {
-  const token = localStorage.getItem("token");
-  try {
-    const response = await axios.post(`${API_URL}/course/create`, courseData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error creating course:", error.response?.data || error.message);
-    throw error;
-  }
-};
+// export const createCourse = async (courseData) => {
+//   const token = localStorage.getItem("token");
+//   try {
+//     const response = await axios.post(`${API_URL}/course/create`, courseData, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json"
+//       }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error creating course:", error.response?.data || error.message);
+//     throw error;
+//   }
+// };
 
 // update a course
-export const updateCourse = async (id, courseData) => {
-  const token = localStorage.getItem("token");
-  try {
-    const response = await axios.put(`${API_URL}/course/${id}`, courseData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error updating course:", error.response?.data || error.message);
-    throw error;
-  }
-};
+// export const updateCourse = async (id, courseData) => {
+//   const token = localStorage.getItem("token");
+//   try {
+//     const response = await axios.put(`${API_URL}/course/${id}`, courseData, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json"
+//       }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error updating course:", error.response?.data || error.message);
+//     throw error;
+//   }
+// };
 
 // delete a course
 export const deleteCourse = async (id) => {
