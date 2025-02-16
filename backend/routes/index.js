@@ -11,7 +11,7 @@ const attendanceRoutes = require("../routes/attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
 const quizRoutes = require('./quizRoutes');
-const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -54,5 +54,5 @@ router.delete("/students/:id", deleteStudent);
 
 router.post('/lecturers/create', authenticate, authorize(["admin"]), createLecturer);
 router.put('/lecturers/update/:id', authenticate, authorize(["admin"]), updateLecturer);
-
+router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), deleteLecturer);
 module.exports = router;

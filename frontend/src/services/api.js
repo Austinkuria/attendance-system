@@ -282,7 +282,14 @@ export const updateLecturer = async (id, lecturerData) => {
 };
 
 // Delete a lecturer
-export const deleteLecturer = (id) => api.delete(`/lecturers/${id}`);
+export const deleteLecturer = async (id) => {
+  try {
+    const response = await api.delete(`${API_URL}/lecturers/delete/${id}`);
+    return response.data; // Or handle the success response as needed
+  } catch (error) {
+    throw error.response?.data?.message || 'Failed to delete lecturer';
+  }
+};
 
 // Fetch all units
 export const getUnits = async () => {

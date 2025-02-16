@@ -578,7 +578,7 @@ const ManageCourses = () => {
             <Col xs={24} sm={12} md={4}>
               <Form.Item 
                 name="year" 
-                rules={[{ required: true, message: 'Please enter Year' }]}
+                rules={[{ required: true, message: 'Please enter Year', min: 1 , max: 4 }]}
               >
                 <Input
                   placeholder="Year"
@@ -591,7 +591,7 @@ const ManageCourses = () => {
             <Col xs={24} sm={12} md={4}>
               <Form.Item 
                 name="semester" 
-                rules={[{ required: true, message: 'Please enter Semester' }]}
+                rules={[{ required: true, message: 'Please enter Semester', min: 1 , max: 3 }]}
               >
                 <Input
                   placeholder="Semester"
