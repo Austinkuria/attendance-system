@@ -8,6 +8,7 @@ const {
   updateUserProfile, 
   getStudents,
   createLecturer,
+  updateLecturer,
   updateStudent,
   deleteStudent,
   importStudents,
@@ -60,5 +61,6 @@ router.post("/students/upload", authenticate, authorize(['admin']), upload.singl
 router.get("/students/download", authenticate, authorize(['admin']), downloadStudents);
 
 router.post('/create', authenticate, authorize(["admin"]), createLecturer);
+router.put('/update/:id', authenticate, authorize(["admin"]), updateLecturer);
 
 module.exports = router;
