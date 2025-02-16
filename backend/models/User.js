@@ -27,6 +27,8 @@ const userSchema = new mongoose.Schema({
   course: { type: mongoose.Schema.Types.ObjectId, ref: "Course" }, // For students
   enrolledUnits: [{ type: mongoose.Schema.Types.ObjectId, ref: "Unit" }], // Students
   assignedUnits: [{ type: mongoose.Schema.Types.ObjectId, ref: "Unit" }], // Lecturers
+  resetPasswordToken: String,
+  resetPasswordExpires: Date,
 }, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

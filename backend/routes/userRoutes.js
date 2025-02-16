@@ -15,7 +15,8 @@ const {
   downloadStudents,
   deleteLecturer,
   importLecturers,
-  downloadLecturers
+  downloadLecturers,
+  sendResetLink
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
@@ -68,4 +69,10 @@ router.put('/update/:id', authenticate, authorize(["admin"]), updateLecturer);
 router.delete('/delete/:id', authenticate, authorize(['admin']), deleteLecturer);
 router.post('/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/download', authenticate, authorize(['admin']), downloadLecturers);
+
+
+router.post("/auth/reset-password", [
+  check('email').isEmail().withMessage('Enter a valid email address')
+], sendResetLink);
+
 module.exports = router;
