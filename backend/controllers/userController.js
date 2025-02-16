@@ -529,14 +529,12 @@ const deleteLecturer = async (req, res) => {
   try {
     const { id } = req.params;
 
-    // Find the lecturer by ID
-    const lecturer = await User.findById(id);
+    // Find the lecturer by ID and delete
+    const lecturer = await User.findByIdAndDelete(id); // Using findByIdAndDelete
+
     if (!lecturer) {
       return res.status(404).json({ message: "Lecturer not found" });
     }
-
-    // Delete the lecturer
-    await lecturer.remove();
 
     res.status(200).json({ message: "Lecturer deleted successfully" });
   } catch (error) {
@@ -544,6 +542,7 @@ const deleteLecturer = async (req, res) => {
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
+
 
 module.exports = { 
   login, 
