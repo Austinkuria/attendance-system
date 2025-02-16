@@ -9,6 +9,8 @@ const { parse } = require('json2csv');
 const validationResult = require('express-validator').validationResult;
 const mongoose = require('mongoose');
 const crypto = require('crypto');
+const transporter = require("../config/emailConfig");
+
 // Login API
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -676,19 +678,6 @@ const sendResetLink = async (req, res) => {
       process.env.NODE_ENV === "production"
         ? process.env.CLIENT_URL_PROD
         : process.env.CLIENT_URL_DEV;
-
-    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
-      return res.status(500).json({ message: "Email configuration is missing" });
-    }
-
-    // Configure email transporter
-    const transporter = nodemailer.createTransport({
-      service: "gmail",
-      auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-      },
-    });
 
     // Email content
     const mailOptions = {
