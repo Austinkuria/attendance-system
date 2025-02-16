@@ -250,7 +250,15 @@ export const getLecturerById = async (id) => {
 };
 
 // Add a new lecturer
-export const addLecturer = (lecturer) => api.post("/lecturers", lecturer);
+export const addLecturer = async (lecturerData) => {
+  try {
+    const response = await api.post(`${API_URL}/lecturers`, lecturerData);
+    return response.data;
+  } catch (error) {
+    console.error("Error adding lecturer:", error.response?.data || error.message);
+    throw error;
+  }
+};
 
 // Delete a lecturer
 export const deleteLecturer = (id) => api.delete(`/lecturers/${id}`);
@@ -349,7 +357,7 @@ export const getAttendance = () => api.get("/attendance");
 export const getAttendanceRate = async () => {
   try {
     const response = await api.get("/attendance/rate");
-    return response.data; // Assuming the backend sends { present, absent }
+    return response.data; //  the backend sends { present, absent }
   } catch (error) {
     console.error("Error fetching attendance rate:", error);
     return { present: 0, absent: 0 }; // Default to zero in case of error

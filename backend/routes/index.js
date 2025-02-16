@@ -52,5 +52,7 @@ router.post("/user", authenticate, authorize(["admin"]), createUser);
 router.get("/download", downloadStudents);
 router.delete("/students/:id", deleteStudent);
 
+router.post('/lecturers', authenticate, authorize(["admin"]), createLecturer);
+
 
 module.exports = router;

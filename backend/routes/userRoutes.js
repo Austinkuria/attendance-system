@@ -7,6 +7,7 @@ const {
   getUserProfile,
   updateUserProfile, 
   getStudents,
+  createLecturer,
   updateStudent,
   deleteStudent,
   importStudents,
@@ -57,5 +58,7 @@ router.delete("/students/:id", authenticate, authorize(['admin']), deleteStudent
 
 router.post("/students/upload", authenticate, authorize(['admin']), upload.single('csvFile'), importStudents);
 router.get("/students/download", authenticate, authorize(['admin']), downloadStudents);
+
+router.post('/lecturers', authenticate, authorize(["admin"]), createLecturer);
 
 module.exports = router;
