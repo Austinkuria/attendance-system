@@ -1,7 +1,7 @@
-import { createTransport } from 'nodemailer';
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
-const transporter = createTransport({
+const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT,
   secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
