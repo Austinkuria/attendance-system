@@ -28,15 +28,35 @@ const quizController = require('../controllers/quizController');
 
 // Auth routes
 router.post("/auth/login", [
-  check('email').isEmail().withMessage('Enter a valid email address'),
-  check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
+  check("email").isEmail().withMessage("Enter a valid email address(e.g., example@domain.com"),
+  check("password")
+  .isLength({ min: 8 })
+  .withMessage("Password must be at least 8 characters long")
+  .matches(/[A-Z]/)
+  .withMessage("Password must contain at least one uppercase letter")
+  .matches(/[a-z]/)
+  .withMessage("Password must contain at least one lowercase letter")
+  .matches(/[0-9]/)
+  .withMessage("Password must contain at least one number")
+  .matches(/[@$!%*?&]/)
+  .withMessage("Password must contain at least one special character (@$!%*?&)"),
 ], login);
 
 router.post("/auth/signup", [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('First name must not contain numbers'),
   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('Last name must not contain numbers'),
-  check('email').isEmail().withMessage('Enter a valid email address'),
-  check('password').isLength({ min: 6 }).withMessage('Password must be at least 6 characters long')
+  check("password")
+  .isLength({ min: 8 })
+  .withMessage("Password must be at least 8 characters long")
+  .matches(/[A-Z]/)
+  .withMessage("Password must contain at least one uppercase letter")
+  .matches(/[a-z]/)
+  .withMessage("Password must contain at least one lowercase letter")
+  .matches(/[0-9]/)
+  .withMessage("Password must contain at least one number")
+  .matches(/[@$!%*?&]/)
+  .withMessage("Password must contain at least one special character (@$!%*?&)"),
+  check("email").isEmail().withMessage("Enter a valid email address(e.g., example@domain.com"),
 ], registerUser,signup);
 
 // Profile routes
@@ -44,7 +64,7 @@ router.get("/users/profile", authenticate, getUserProfile);
 router.put("/users/profile/update", authenticate, [
   check('firstName').isLength({ min: 3 }).withMessage('First name must be at least 3 characters long'),
   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long'),
-  check('email').isEmail().withMessage('Enter a valid email address')
+  check("email").isEmail().withMessage("Enter a valid email address(e.g., example@domain.com"),
 ], updateUserProfile);
 
 // Student management routes
