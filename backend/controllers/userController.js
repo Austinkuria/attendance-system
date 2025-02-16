@@ -718,7 +718,7 @@ const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
     
-    const user = await User.findOne({ resetPasswordToken: { $exists: true } });
+    const user = await User.findOne({ resetPasswordToken: token });
 
     if (!user) {
       return res.status(404).json({ message: "User not found" });
