@@ -13,7 +13,9 @@ const {
   deleteStudent,
   importStudents,
   downloadStudents,
-  deleteLecturer
+  deleteLecturer,
+  importLecturers,
+  downloadLecturers
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
@@ -64,4 +66,6 @@ router.get("/students/download", authenticate, authorize(['admin']), downloadStu
 router.post('/create', authenticate, authorize(["admin"]), createLecturer);
 router.put('/update/:id', authenticate, authorize(["admin"]), updateLecturer);
 router.delete('/delete/:id', authenticate, authorize(['admin']), deleteLecturer);
+router.post('/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
+router.get('/download', authenticate, authorize(['admin']), downloadLecturers);
 module.exports = router;
