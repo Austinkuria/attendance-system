@@ -260,36 +260,4 @@ const getUnitsByCourse = async (req, res) => {
     }
   };
 
-// Create a new lecturer
-const createLecturer = async (req, res) => {
-  try {
-    const { firstName, lastName, email, password, department } = req.body;
-
-    // Check if user already exists
-    let existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: "Lecturer already exists" });
-    }
-
-    // Hash password before saving
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create new lecturer
-    const newLecturer = new User({
-      firstName,
-      lastName,
-      email,
-      password: hashedPassword,
-      department,
-      role: "lecturer",
-    });
-
-    await newLecturer.save();
-
-    res.status(201).json({ message: "Lecturer created successfully", lecturer: newLecturer });
-  } catch (error) {
-    res.status(500).json({ message: "Server error", error: error.message });
-  }
-};
-
-module.exports = { createCourse, getCoursesByDepartment,getCoursesByDepartmentById ,createLecturer, getAllCourses, updateCourse, deleteCourse, getUnitsByCourse, addUnitToCourse, removeUnitFromCourse };
+module.exports = { createCourse, getCoursesByDepartment,getCoursesByDepartmentById , getAllCourses, updateCourse, deleteCourse, getUnitsByCourse, addUnitToCourse, removeUnitFromCourse };
