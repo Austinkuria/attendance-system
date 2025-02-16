@@ -9,9 +9,7 @@ const { parse } = require('json2csv');
 const validationResult = require('express-validator').validationResult;
 const mongoose = require('mongoose');
 const crypto = require('crypto');
-const { transporter } = require('../config/emailConfig');
-
-
+const transporter = require("../config/emailConfig");
 
 // Login API
 const login = async (req, res) => {
