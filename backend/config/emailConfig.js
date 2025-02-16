@@ -1,14 +1,27 @@
-const nodemailer = require("nodemailer");
+const nodemailer = require('nodemailer');
 require('dotenv').config();
 
 const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false, // Use true for port 465
+  host: process.env.SMTP_HOST,
+  port: process.env.SMTP_PORT,
+  secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
   auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASS,
   },
 });
 
-module.exports = transporter;
+const mailOptions = {
+  from: process.env.SMTP_USER,
+  to: 'test@example.com',
+  subject: 'Test Email',
+  text: 'This is a test email sent using nodemailer.',
+};
+
+transporter.sendMail(mailOptions, (error, info) => {
+  if (error) {
+    console.error('Error sending test email:', error);
+  } else {
+    console.log('Test email sent:', info.response);
+  }
+});
