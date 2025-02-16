@@ -92,10 +92,10 @@ const Signup = () => {
             rules={[
               { required: true, message: 'Please enter your password!' },
               { min: 8, message: 'Password must be at least 8 characters long!' },
-              { pattern: /[A-Z]/, message: 'Password must contain at least one uppercase letter!' },
+              // { pattern: /[A-Z]/, message: 'Password must contain at least one uppercase letter!' },
               { pattern: /[a-z]/, message: 'Password must contain at least one lowercase letter!' },
               { pattern: /[0-9]/, message: 'Password must contain at least one number!' },
-              { pattern: /[@$!%*?&]/, message: 'Password must contain at least one special character (@$!%*?&)!' }
+              // { pattern: /[@$!%*?&]/, message: 'Password must contain at least one special character (@$!%*?&)!' }
             ]}
             
           >
