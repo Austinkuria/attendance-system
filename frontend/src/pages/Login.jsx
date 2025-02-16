@@ -99,6 +99,10 @@ const Login = () => {
         <Text style={{ display: 'block', textAlign: 'center', marginTop: '10px' }}>
           Don&apos;t have an account? <a href="/auth/signup">Signup</a>
         </Text>
+        <Text style={{ display: 'block', textAlign: 'center', marginTop: '10px' }}>
+          <a href="/auth/reset-password">Forgot Password?</a>
+        </Text>
+
       </Card>
     </div>
   );

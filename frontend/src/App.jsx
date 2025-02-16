@@ -32,6 +32,8 @@ import LecturerProfile from "./pages/profiles/LecturerProfile";
 import LecturerSettings from "./pages/settings/LecturerSettings";
 import AdminSettings from "./pages/settings/AdminSettings";
 import StudentSettings from "./pages/settings/StudentSettings";
+import ResetPasswordRequest from "./pages/ResetPasswordRequest";
+import ResetPassword from "./pages/ResetPassword";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -124,6 +126,8 @@ function App() {
           <Route path="/" element={<Home />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/signup" element={<Signup />} />
+          <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
+          <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* error routes */}
           <Route path="*" element={<NotFound />} />

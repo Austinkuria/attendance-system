@@ -654,6 +654,46 @@ const downloadLecturers = async (req, res) => {
   }
 };
 
+const sendResetLink = async (req, res) => {
+  try {
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate token and expiration time
+    const resetToken = crypto.randomBytes(32).toString('hex');
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
+    await user.save();
+
+    // Configure email transporter
+    const transporter = nodemailer.createTransport({
+      service: 'gmail', // Use any SMTP service
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASS,
+      },
+    });
+
+    // Send email
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: user.email,
+      subject: 'Password Reset',
+      text: `Click the link to reset your password: ${process.env.CLIENT_URL}/reset-password/${resetToken}`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    res.json({ message: 'Reset link sent to email' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error', error });
+  }
+};
+
 module.exports = { 
   login, 
   signup, 
@@ -672,4 +712,5 @@ module.exports = {
   deleteLecturer,
   importLecturers,
   downloadLecturers,
+  sendResetLink
 };
