@@ -690,7 +690,7 @@ const sendResetLink = async (req, res) => {
       html: `
         <div style="font-family: Arial, sans-serif; padding: 20px;">
           <h2>Password Reset Request</h2>
-          <p>Hi ${user.name},</p>
+          <p>Hi ${user.firstName} ${user.lastName},</p>
           <p>You requested to reset your password. Click the button below to proceed:</p>
           <a href="${resetLink}" 
              style="background-color: #007bff; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
@@ -711,7 +711,7 @@ const sendResetLink = async (req, res) => {
     console.error("Error sending reset email:", error);
     res.status(500).json({ message: "Server error", error });
   }
-  };
+};
 
   const resetPassword = async (req, res) => {
     try {

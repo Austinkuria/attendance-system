@@ -15,13 +15,13 @@ const ResetPassword = () => {
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
 
-  //  Password strength validation
+  // Password strength validation
   const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
 
   const validatePassword = () => {
     if (!password) return "Password cannot be empty.";
     if (!passwordRegex.test(password)) {
-      return "Password must be at least 8 characters, with a mix of letters, numbers, and symbols.";
+      return "Password must be at least 8 characters, with letters, numbers, and symbols.";
     }
     if (password !== confirmPassword) return "Passwords do not match.";
     return null;
@@ -79,7 +79,10 @@ const ResetPassword = () => {
         {message && <Alert message={message} type="success" showIcon style={{ marginBottom: "15px" }} />}
 
         <Form layout="vertical">
-          <Form.Item validateStatus={error ? "error" : ""} help={validatePassword()}>
+          <Form.Item 
+            validateStatus={password && !passwordRegex.test(password) ? "error" : ""}
+            help={password && !passwordRegex.test(password) ? "Password must be at least 8 characters, with letters, numbers, and symbols." : ""}
+          >
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="New Password"
@@ -89,7 +92,10 @@ const ResetPassword = () => {
             />
           </Form.Item>
 
-          <Form.Item validateStatus={error ? "error" : ""} help={password && password !== confirmPassword ? "Passwords do not match." : ""}>
+          <Form.Item 
+            validateStatus={password && password !== confirmPassword ? "error" : ""}
+            help={password && password !== confirmPassword ? "Passwords do not match." : ""}
+          >
             <Input.Password
               prefix={<LockOutlined />}
               placeholder="Confirm New Password"
@@ -111,6 +117,14 @@ const ResetPassword = () => {
               Reset Password
             </Button>
           </Form.Item>
+
+          <Button 
+            type="link" 
+            block 
+            onClick={() => navigate("/auth/login")}
+          >
+            Back to Login
+          </Button>
         </Form>
 
         <Text type="secondary" style={{ fontSize: "12px", textAlign: "center", display: "block" }}>
