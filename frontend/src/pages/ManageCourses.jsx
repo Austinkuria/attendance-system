@@ -127,7 +127,7 @@ const ManageCourses = () => {
       const requestBody = {
         name: values.name,
         code: values.code,
-        departmentId: values.department, // Change department to departmentId
+        departmentId: values.department, // Ensure correct field name
       };
   
       console.log("Submitting Course Data:", requestBody); // Debugging
@@ -151,15 +151,15 @@ const ManageCourses = () => {
   
       message.success(selectedCourse ? "Course updated successfully" : "Course added successfully");
       setShowCourseModal(false);
+      setSelectedCourse(null);
       form.resetFields();
-      fetchData();
+      fetchData(); // Refresh course list
     } catch (error) {
       message.error(`Error: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
-  
   
   const handleManageUnits = async (course) => {
     try {
@@ -434,94 +434,49 @@ const ManageCourses = () => {
 
         {/* Course Add/Edit Modal */}
         <Modal
-          open={showCourseModal}
-          title={
-            selectedCourse ? (
-              <>
-                <EditOutlined style={{ marginRight: 8 }} />
-                Edit Course
-              </>
-            ) : (
-              <>
-                <PlusOutlined style={{ marginRight: 8 }} />
-                Add Course
-              </>
-            )
-          }
-          onCancel={() => {
-            setShowCourseModal(false);
-            setSelectedCourse(null);
-            setFormData({ name: '', code: '', department: '' });
-            form.resetFields();
-          }}
-          footer={[
-            <Button key="cancel" onClick={() => {
+            open={showCourseModal}
+            title={selectedCourse ? "Edit Course" : "Add Course"}
+            onCancel={() => {
               setShowCourseModal(false);
               setSelectedCourse(null);
               form.resetFields();
-            }}>
-              Cancel
-            </Button>,
-            <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading}>
-              {loading ? <LoadingOutlined spin /> : 'Save Course'}
-            </Button>,
-          ]}
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={formData}
-            onValuesChange={handleCourseFormChange}
+            }}
+            footer={[
+              <Button key="cancel" onClick={() => setShowCourseModal(false)}>Cancel</Button>,
+              <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading}>Save Course</Button>,
+            ]}
           >
-            <Form.Item
-              label={
-                <>
-                  <IdcardOutlined style={{ marginRight: 4 }} />
-                  Course Code
-                </>
-              }
-              name="code"
-              rules={[{ required: true, message: 'Please input the course code' }]}
+            <Form
+              form={form}
+              layout="vertical"
+              initialValues={{
+                name: selectedCourse?.name || '',
+                code: selectedCourse?.code || '',
+                department: selectedCourse?.department?._id || '', // Ensure department is an ID
+              }}
+              onValuesChange={(_, allValues) => setFormData(allValues)}
             >
-              <Input />
-            </Form.Item>
-            <Form.Item
-              label={
-                <>
-                  <BookOutlined style={{ marginRight: 4 }} />
-                  Course Name
-                </>
-              }
-              name="name"
-              rules={[{ required: true, message: 'Please input the course name' }]}
-            >
-              <Input />
-            </Form.Item>
-            <Form.Item
-  label={
-    <>
-      <ApartmentOutlined style={{ marginRight: 4 }} />
-      Department
-    </>
-  }
-  name="department"
-  rules={[{ required: true, message: 'Please select a department' }]}
->
-  <Select
-    placeholder="Select Department"
-    value={formData.department} // Bind formData.department to the select value
-    onChange={(value) => setFormData({ ...formData, department: value })} // Update formData on change
-  >
-    {departments.map(dept => (
-      <Option key={dept._id} value={dept._id}>
-        {dept.name}
-      </Option>
-    ))}
-  </Select>
-</Form.Item>
-
-          </Form>
-        </Modal>
+              <Form.Item label="Course Code" name="code" rules={[{ required: true, message: 'Please input the course code' }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item label="Course Name" name="name" rules={[{ required: true, message: 'Please input the course name' }]}>
+                <Input />
+              </Form.Item>
+              <Form.Item label="Department" name="department" rules={[{ required: true, message: 'Please select a department' }]}>
+                <Select
+                  placeholder="Select Department"
+                  value={formData.department}
+                  onChange={(value) => setFormData({ ...formData, department: value })}
+                >
+                  {departments.map(dept => (
+                    <Select.Option key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </Select.Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
+          </Modal>
 
         {/* Course Delete Confirmation Modal */}
         <Modal
