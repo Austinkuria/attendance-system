@@ -11,7 +11,7 @@ const attendanceRoutes = require("../routes/attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
 const quizRoutes = require('./quizRoutes');
-const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer,importLecturers,downloadLecturers } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer,importLecturers,downloadLecturers,sendResetLink } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -57,4 +57,9 @@ router.put('/lecturers/update/:id', authenticate, authorize(["admin"]), updateLe
 router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), deleteLecturer);
 router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
+
+router.post("/auth/reset-password", [
+    check('email').isEmail().withMessage('Enter a valid email address')
+  ], sendResetLink);
+  
 module.exports = router;
