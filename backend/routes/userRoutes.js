@@ -96,6 +96,6 @@ router.get('/download', authenticate, authorize(['admin']), downloadLecturers);
 router.post("/auth/reset-password", [
   check('email').isEmail().withMessage('Enter a valid email address')
 ], sendResetLink);
-router.post("/auth/reset-password/:token", resetPassword);
+router.put("/auth/reset-password/:token", resetPassword);
 
 module.exports = router;
