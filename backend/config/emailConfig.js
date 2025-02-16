@@ -11,19 +11,19 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-const mailOptions = {
-  from: process.env.SMTP_USER,
-  to: 'test@example.com',
-  subject: 'Test Email',
-  text: 'This is a test email sent using nodemailer.',
-};
+// const mailOptions = {
+//   from: process.env.SMTP_USER,
+//   to: 'test@example.com',
+//   subject: 'Test Email',
+//   text: 'This is a test email sent using nodemailer.',
+// };
 
-transporter.sendMail(mailOptions, (error, info) => {
-  if (error) {
-    console.error('Error sending test email:', error);
-  } else {
-    console.log('Test email sent:', info.response);
-  }
-});
+// transporter.sendMail(mailOptions, (error, info) => {
+//   if (error) {
+//     console.error('Error sending test email:', error);
+//   } else {
+//     console.log('Test email sent:', info.response);
+//   }
+// });
 
 module.exports = transporter;

@@ -62,8 +62,9 @@ const Login = () => {
             name="email"
             rules={[
               { required: true, message: 'Please enter your email!' },
-              { type: 'email', message: 'Enter a valid email address!' }
-            ]}
+              { type: 'email', message: 'Enter a valid email address (e.g., example@domain.com)!' },
+              { pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email format (e.g., user@example.com)!' }
+            ]}            
           >
             <Input
               prefix={<MailOutlined />}
@@ -78,8 +79,13 @@ const Login = () => {
             name="password"
             rules={[
               { required: true, message: 'Please enter your password!' },
-              { min: 6, message: 'Password must be at least 6 characters long!' }
+              { min: 8, message: 'Password must be at least 8 characters long!' },
+              { pattern: /[A-Z]/, message: 'Password must contain at least one uppercase letter!' },
+              { pattern: /[a-z]/, message: 'Password must contain at least one lowercase letter!' },
+              { pattern: /[0-9]/, message: 'Password must contain at least one number!' },
+              { pattern: /[@$!%*?&]/, message: 'Password must contain at least one special character (@$!%*?&)!' }
             ]}
+            
           >
             <Input.Password
               prefix={<LockOutlined />}
