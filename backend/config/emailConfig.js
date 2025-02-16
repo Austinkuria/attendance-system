@@ -1,7 +1,7 @@
-const nodemailer = require('nodemailer');
+import { createTransport } from 'nodemailer';
 require('dotenv').config();
 
-const transporter = nodemailer.createTransport({
+const transporter = createTransport({
   host: process.env.SMTP_HOST,
   port: process.env.SMTP_PORT,
   secure: process.env.SMTP_PORT == 465, // true for 465, false for other ports
@@ -25,5 +25,3 @@ transporter.sendMail(mailOptions, (error, info) => {
     console.log('Test email sent:', info.response);
   }
 });
-
-export { transporter, mailOptions };
