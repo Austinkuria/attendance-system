@@ -178,12 +178,19 @@ const ManageLecturers = () => {
   
       const response = await addLecturer({ ...values, role: "lecturer" });
   
-      if (response?.message === "User created successfully") {
+      if (response?.message === "Lecturer created successfully") {
+        // ✅ Refresh the lecturers list
         const updated = await getLecturers();
         setLecturers(updated || []);
-        setIsAddModalVisible(false);
-        message.success("Lecturer added successfully");
+  
+        // ✅ Clear the form fields
         addForm.resetFields();
+  
+        // ✅ Close the modal
+        setIsAddModalVisible(false);
+  
+        // ✅ Show success message
+        message.success("Lecturer added successfully");
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to create lecturer";
@@ -198,8 +205,8 @@ const ManageLecturers = () => {
     } finally {
       setLoading(false);
     }
-  };  
-
+  };
+  
   const handleEditLecturer = async () => {
     try {
       const values = await editForm.validateFields();
