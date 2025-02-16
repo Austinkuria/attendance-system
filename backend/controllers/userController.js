@@ -713,36 +713,46 @@ const sendResetLink = async (req, res) => {
   }
 };
 
-  const resetPassword = async (req, res) => {
-    try {
-      const { token, newPassword } = req.body;
-      
-      if (!token || !newPassword) {
-        return res.status(400).json({ message: "Invalid request. Missing fields." });
-      }
-  
-      const user = await User.findOne({ resetPasswordToken: token });
-  
-      if (!user || user.resetPasswordExpires < Date.now()) {
-        return res.status(400).json({ message: "Invalid or expired token." });
-      }
-  
-      // Hash new password
-      const hashedPassword = await bcrypt.hash(newPassword, 10);
-      user.password = hashedPassword;
-  
-      // Clear reset token fields
-      user.resetPasswordToken = undefined;
-      user.resetPasswordExpires = undefined;
-      await user.save();
-  
-      res.json({ message: "Password has been successfully reset." });
-    } catch (error) {
-      console.error("Error resetting password:", error);
-      res.status(500).json({ message: "Server error" });
+const bcrypt = require("bcrypt");
+
+const resetPassword = async (req, res) => {
+  try {
+    const { token, newPassword } = req.body;
+    
+    const user = await User.findOne({ resetPasswordToken: { $exists: true } });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
     }
-  };
-  
+
+    // Compare hashed token with provided token
+    const isMatch = await bcrypt.compare(token, user.resetPasswordToken);
+    if (!isMatch) {
+      return res.status(400).json({ message: "Invalid or expired reset token" });
+    }
+
+    // Check if token is expired
+    if (user.resetPasswordExpires < Date.now()) {
+      return res.status(400).json({ message: "Reset token has expired" });
+    }
+
+    // Hash the new password
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+    // Update user's password and remove reset token fields
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+
+    await user.save();
+
+    res.json({ message: "Password successfully reset" });
+  } catch (error) {
+    console.error("Error resetting password:", error);
+    res.status(500).json({ message: "Server error", error });
+  }
+};
+
 module.exports = { 
   login, 
   signup, 

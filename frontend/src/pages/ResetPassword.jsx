@@ -120,7 +120,8 @@ const ResetPassword = () => {
 
           <Button 
             type="link" 
-            block 
+            block
+            size="large"
             onClick={() => navigate("/auth/login")}
           >
             Back to Login
