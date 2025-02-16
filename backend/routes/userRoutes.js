@@ -1,5 +1,6 @@
 const express = require("express");
 const { check } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 const {
   login,
   signup,
@@ -96,6 +97,12 @@ router.get('/download', authenticate, authorize(['admin']), downloadLecturers);
 router.post("/auth/reset-password", [
   check('email').isEmail().withMessage('Enter a valid email address')
 ], sendResetLink);
-router.put("/auth/reset-password/:token", resetPassword);
+
+const resetPasswordLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // limit each IP to 5 requests per windowMs
+});
+
+router.put("/auth/reset-password/:token", resetPasswordLimiter, resetPassword);
 
 module.exports = router;
