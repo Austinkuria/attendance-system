@@ -1,11 +1,11 @@
 const express = require("express");
 const { check } = require('express-validator');
-const { 
-  registerUser, 
+const {
+  registerUser,
   login,
   signup,
   getUserProfile,
-  updateUserProfile, 
+  updateUserProfile,
   getStudents,
   createLecturer,
   updateLecturer,
@@ -24,7 +24,7 @@ const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 const router = express.Router();
 const quizController = require('../controllers/quizController');
-const { passwordValidation,validateLogin,validateSignup } = require("../validators/authValidation");
+const { passwordValidation, validateLogin, validateSignup } = require("../validators/authValidation");
 
 // Auth routes
 router.post("/auth/signup", [

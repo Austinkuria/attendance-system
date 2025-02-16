@@ -11,7 +11,7 @@ const attendanceRoutes = require("../routes/attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
 const quizRoutes = require('./quizRoutes');
-const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer,importLecturers,downloadLecturers,sendResetLink,resetPassword } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer,registerUser, updateLecturer,deleteLecturer,importLecturers,downloadLecturers,sendResetLink,resetPassword, registerUser } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -20,7 +20,7 @@ router.use('/', userRoutes);
 router.use('/students', studentRoutes);
 
 // User routes
-router.post("/auth/signup", signup);
+router.post("/auth/signup", signup,registerUser);
 router.post("/auth/login", login);
 
 // Department routes
