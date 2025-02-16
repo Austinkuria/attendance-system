@@ -118,7 +118,7 @@ const ManageCourses = () => {
   // const handleCourseFormChange = (changedValues, allValues) => {
   //   setFormData(allValues);
   // };
-  
+
   const handleCourseSubmit = async () => {
     try {
       const values = await form.validateFields();
@@ -182,25 +182,35 @@ const ManageCourses = () => {
   };
 
   const handleAddUnit = async () => {
-    if (!unitInput.name.trim() || !unitInput.code.trim()) {
-      setError('Unit name and code are required');
-      return;
-    }
     try {
+      await unitForm.validateFields(); // Ensure all fields are valid before submission
+  
       setLoading(true);
       const newUnit = await addUnitToCourse(selectedCourseForUnits._id, unitInput);
+      
       setUnits(prevUnits => [...prevUnits, newUnit]);
+      setCourses(prevCourses =>
+        prevCourses.map(course =>
+          course._id === selectedCourseForUnits._id
+            ? { ...course, units: [...(course.units || []), newUnit] }
+            : course
+        )
+      );
+  
       setUnitInput({ name: '', code: '', year: '', semester: '' });
-      unitForm.resetFields();
+      unitForm.resetFields(); // Reset form fields after successful submission
       message.success('Unit added successfully');
     } catch (err) {
+      if (err.errorFields) {
+        return; // Prevent error message if validation fails
+      }
       setError(`Failed to add unit: ${err.message}`);
       message.error('Failed to add unit');
     } finally {
       setLoading(false);
     }
   };
-
+  
   const promptRemoveUnit = (unitId) => {
     setSelectedUnitId(unitId);
     setShowUnitDeleteModal(true);
@@ -487,6 +497,7 @@ const ManageCourses = () => {
         <Modal
           open={showDeleteModal}
           title="Confirm Delete"
+          centered
           onCancel={() => setShowDeleteModal(false)}
           footer={[
             <Button key="cancel" onClick={() => setShowDeleteModal(false)}>
@@ -532,54 +543,77 @@ const ManageCourses = () => {
               Manage Units - {selectedCourseForUnits?.name}
             </>
           }
+          centered
           onCancel={() => setShowUnitsModal(false)}
           width="80%"
           footer={null}
         >
+          <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
           <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
             <Col xs={24} sm={12} md={6}>
-              <Input
-                placeholder="Unit Name"
-                value={unitInput.name}
-                onChange={(e) => setUnitInput({ ...unitInput, name: e.target.value })}
-              />
+              <Form.Item 
+                name="name" 
+                rules={[{ required: true, message: 'Please enter Unit Name' }]}
+              >
+                <Input
+                  placeholder="Unit Name"
+                  value={unitInput.name}
+                  onChange={(e) => setUnitInput({ ...unitInput, name: e.target.value })}
+                />
+              </Form.Item>
             </Col>
             <Col xs={24} sm={12} md={6}>
-              <Input
-                placeholder="Unit Code"
-                value={unitInput.code}
-                onChange={(e) => setUnitInput({ ...unitInput, code: e.target.value })}
-              />
+              <Form.Item 
+                name="code" 
+                rules={[{ required: true, message: 'Please enter Unit Code' }]}
+              >
+                <Input
+                  placeholder="Unit Code"
+                  value={unitInput.code}
+                  onChange={(e) => setUnitInput({ ...unitInput, code: e.target.value })}
+                />
+              </Form.Item>
             </Col>
             <Col xs={24} sm={12} md={4}>
-              <Input
-                placeholder="Year"
-                type="number"
-                value={unitInput.year}
-                onChange={(e) => setUnitInput({ ...unitInput, year: e.target.value })}
-              />
+              <Form.Item 
+                name="year" 
+                rules={[{ required: true, message: 'Please enter Year' }]}
+              >
+                <Input
+                  placeholder="Year"
+                  type="number"
+                  value={unitInput.year}
+                  onChange={(e) => setUnitInput({ ...unitInput, year: e.target.value })}
+                />
+              </Form.Item>
             </Col>
             <Col xs={24} sm={12} md={4}>
-              <Input
-                placeholder="Semester"
-                type="number"
-                value={unitInput.semester}
-                onChange={(e) => setUnitInput({ ...unitInput, semester: e.target.value })}
-              />
+              <Form.Item 
+                name="semester" 
+                rules={[{ required: true, message: 'Please enter Semester' }]}
+              >
+                <Input
+                  placeholder="Semester"
+                  type="number"
+                  value={unitInput.semester}
+                  onChange={(e) => setUnitInput({ ...unitInput, semester: e.target.value })}
+                />
+              </Form.Item>
             </Col>
             <Col xs={24} sm={24} md={4}>
-              <Button
-                type="primary"
-                icon={<PlusOutlined />}
-                onClick={handleAddUnit}
+              <Button 
+                type="primary" 
+                icon={<PlusOutlined />} 
+                htmlType="submit" 
                 disabled={!unitInput.name.trim() || !unitInput.code.trim()}
               >
                 Add Unit
               </Button>
             </Col>
           </Row>
+        </Form>
 
-          {error && (
+    {error && (
             <Alert
               message={error}
               type="error"
