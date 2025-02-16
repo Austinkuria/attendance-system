@@ -59,6 +59,6 @@ router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.sing
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
 router.post("/auth/reset-password",sendResetLink);
-router.post("/auth/reset-password/:token",resetPassword);
+router.put("/auth/reset-password/:token",resetPassword);
   
 module.exports = router;
