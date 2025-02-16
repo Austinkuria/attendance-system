@@ -252,7 +252,7 @@ export const getLecturerById = async (id) => {
 // Add a new lecturer
 export const addLecturer = async (lecturerData) => {
   try {
-    const response = await api.post(`${API_URL}/lecturers`, lecturerData);
+    const response = await api.post(`${API_URL}/lecturers/create`, lecturerData);
     return response.data;
   } catch (error) {
     console.error("Error adding lecturer:", error.response?.data || error.message);
