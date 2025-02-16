@@ -25,3 +25,5 @@ transporter.sendMail(mailOptions, (error, info) => {
     console.log('Test email sent:', info.response);
   }
 });
+
+export { transporter, mailOptions };
