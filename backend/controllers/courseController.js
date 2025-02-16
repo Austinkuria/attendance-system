@@ -4,20 +4,32 @@ const Unit = require('../models/Unit'); // ✅ Import the Unit model
 // Create a new course
 const createCourse = async (req, res) => {
   try {
-    console.log("Received data:", req.body); // Log the request body
+    console.log("Received data:", req.body);
 
     const { name, code, departmentId } = req.body;
-    
+
     if (!name || !code || !departmentId) {
       return res.status(400).json({ message: "Name, code, and department ID are required" });
     }
 
-    console.log("All fields are present, proceeding to save...");
+    console.log("Checking if course already exists...");
+
+    // Check if a course with the same name or code already exists in the department
+    const existingCourse = await Course.findOne({
+      $or: [{ name }, { code }],
+      department: departmentId,
+    });
+
+    if (existingCourse) {
+      return res.status(409).json({ message: "Course with this name or code already exists in this department" });
+    }
+
+    console.log("No duplicate course found, proceeding to save...");
 
     const newCourse = new Course({
       name,
       code,
-      department: departmentId, // Ensure this matches the schema
+      department: departmentId,
     });
 
     await newCourse.save();
@@ -110,20 +122,34 @@ const getAllCourses = async (req, res) => {
 const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, departmentId } = req.body; // Ensure departmentId
+    const { name, code, departmentId } = req.body;
 
-    if (!departmentId || !id) {
-      return res.status(400).json({ error: "Course ID and Department ID are required" });
+    if (!name || !code || !departmentId) {
+      return res.status(400).json({ error: "Name, code, and department ID are required" });
     }
 
-    // Validate ObjectId format before querying
     if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(departmentId)) {
       return res.status(400).json({ error: "Invalid Course ID or Department ID format" });
     }
 
+    console.log("Checking if another course already exists with the same name or code...");
+
+    // Check for duplicates excluding the current course being updated
+    const existingCourse = await Course.findOne({
+      $or: [{ name }, { code }],
+      department: departmentId,
+      _id: { $ne: id }, // Exclude the current course from the check
+    });
+
+    if (existingCourse) {
+      return res.status(409).json({ error: "Another course with this name or code already exists in this department" });
+    }
+
+    console.log("No duplicate course found, proceeding to update...");
+
     const updatedCourse = await Course.findByIdAndUpdate(
       id,
-      { name, code, department: departmentId }, // Store department ID
+      { name, code, department: departmentId },
       { new: true }
     );
 
