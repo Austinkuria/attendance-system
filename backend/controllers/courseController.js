@@ -110,15 +110,27 @@ const getAllCourses = async (req, res) => {
 const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const updatedCourse = await Course.findByIdAndUpdate(id, req.body, { new: true });
+    const { name, code, departmentId } = req.body; // Expect departmentId
 
-    if (!updatedCourse) {
-      return res.status(404).json({ message: "Course not found" });
+    if (!departmentId) {
+      return res.status(400).json({ error: "Department ID is required" });
     }
 
+    const updatedCourse = await Course.findByIdAndUpdate(id, {
+      name,
+      code,
+      department: departmentId, // Store ID, not object
+    }, { new: true });
+
+    if (!updatedCourse) {
+      return res.status(404).json({ error: "Course not found" });
+    }
+
+    console.log("Updated Course:", updatedCourse);
     res.status(200).json(updatedCourse);
-  } catch (err) {
-    res.status(500).json({ message: "Error updating course", error: err.message });
+  } catch (error) {
+    console.error("Error updating course:", error);
+    res.status(500).json({ error: error.message });
   }
 };
 
