@@ -397,59 +397,66 @@ const ManageStudents = () => {
     }
   };
 
-  // Handle CSV import
-  const handleImport = async () => {
-    if (!file) {
-      setGlobalError("Please select a CSV file before importing.");
+// Handle CSV import for students
+const handleImport = async () => {
+  if (!file) {
+    setGlobalError("Please select a CSV file before importing.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth/login");
       return;
     }
 
-    try {
-      setLoading(true);
-      const token = localStorage.getItem("token");
-      if (!token) {
-        navigate("/auth/login");
-        return;
-      }
+    const formData = new FormData();
+    formData.append("csvFile", file);
 
-      const formData = new FormData();
-      formData.append("csvFile", file);
+    const response = await api.post("/students/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      const response = await api.post("/students/upload", formData, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-          Authorization: `Bearer ${token}`,
-        },
-      });
+    if (response.data.successCount > 0) {
+      const updated = await getStudents();
+      const formatted = updated.map((s) => ({
+        firstName: s.firstName || "N/A",
+        lastName: s.lastName || "N/A",
+        email: s.email || "N/A",
+        regNo: s.regNo || "N/A",
+        year: s.year || "N/A",
+        semester: s.semester?.toString() || "N/A",
+        course: (s.course && (s.course.name || s.course)) || "N/A",
+        department: (s.department && (s.department.name || s.department)) || "N/A",
+      }));
 
-      if (response.data.successCount > 0) {
-        const updated = await getStudents();
-        const formatted = updated.map((s) => ({
-          ...s,
-          regNo: s.regNo || "N/A",
-          year: s.year || "N/A",
-          semester: s.semester?.toString() || "N/A",
-          course: (s.course && (s.course.name || s.course)) || "N/A",
-          department: (s.department && (s.department.name || s.department)) || "N/A",
-        }));
-
-        setStudents(formatted);
-        message.success(`Successfully imported ${response.data.successCount} students`);
-      }
-
-      setFile(null);
-
-      if (response.data.errorCount > 0) {
-        setGlobalError(`${response.data.errorCount} records failed to import. Check errors in response.`);
-      }
-    } catch (err) {
-      console.error("CSV import failed:", err);
-      setGlobalError("CSV import failed. Please check file format and try again.");
-      message.error("CSV import failed");
-    } finally {
-      setLoading(false);
+      setStudents(formatted);
+      message.success(`Successfully imported ${response.data.successCount} students`);
     }
-  };
+
+    setFile(null);
+
+    // Show detailed errors if any records failed
+    if (response.data.errorCount > 0) {
+      const errorMessages = response.data.errors.map((err, index) => 
+        `Row ${index + 1}: ${err.error}`
+      ).join("\n");
+
+      setGlobalError(`Some records failed to import:\n${errorMessages}`);
+    }
+  } catch (err) {
+    console.error("CSV import failed:", err);
+    setGlobalError("CSV import failed. Please check file format and try again.");
+    message.error("CSV import failed");
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Filter students based on search and filter criteria
   const filteredStudents = useMemo(() => {

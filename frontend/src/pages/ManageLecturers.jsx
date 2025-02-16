@@ -395,8 +395,13 @@ const handleImport = async () => {
 
     setFile(null);
 
+    // Show detailed errors if any records failed
     if (response.data.errorCount > 0) {
-      setGlobalError(`${response.data.errorCount} records failed to import. Check errors in response.`);
+      const errorMessages = response.data.errors.map((err, index) => 
+        `Row ${index + 1}: ${err.error}`
+      ).join("\n");
+
+      setGlobalError(`Some records failed to import:\n${errorMessages}`);
     }
   } catch (err) {
     console.error("CSV import failed:", err);
