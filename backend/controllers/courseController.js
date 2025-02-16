@@ -1,5 +1,5 @@
 const Course = require('../models/Course');
-const Unit = require('../models/Unit'); // ✅ Import the Unit model
+const Unit = require('../models/Unit'); //  Import the Unit model
 const mongoose = require('mongoose');
 
 // Create a new course
@@ -45,53 +45,53 @@ const createCourse = async (req, res) => {
 // Get all courses for a specific department
 const getCoursesByDepartment = async (req, res) => {
   try {
-      const { department, name } = req.query;
+    const { department, name } = req.query;
 
-      console.log("Received Query Params:", req.query); // Debugging
+    console.log("Received Query Params:", req.query); // Debugging
 
-      if (!department) {
-          return res.status(400).json({ message: "Department ID is required" });
-      }
+    if (!department) {
+      return res.status(400).json({ message: "Department ID is required" });
+    }
 
-      let filter = { department };
+    let filter = { department };
 
-      if (name) {
-          filter.name = { $regex: new RegExp(name.trim(), "i") }; // Case-insensitive search
-      }
+    if (name) {
+      filter.name = { $regex: new RegExp(name.trim(), "i") }; // Case-insensitive search
+    }
 
-      console.log("MongoDB Filter:", filter); // Debugging
+    console.log("MongoDB Filter:", filter); // Debugging
 
-      const courses = await Course.find(filter);
-      console.log("Courses Found:", courses); // Debugging
+    const courses = await Course.find(filter);
+    console.log("Courses Found:", courses); // Debugging
 
-      if (!courses.length) {
-          return res.status(404).json({ message: "No courses found for this department" });
-      }
+    if (!courses.length) {
+      return res.status(404).json({ message: "No courses found for this department" });
+    }
 
-      res.status(200).json(courses);
+    res.status(200).json(courses);
   } catch (err) {
-      console.error("Error fetching courses:", err);
-      res.status(500).json({ message: "Error fetching courses", error: err.message });
+    console.error("Error fetching courses:", err);
+    res.status(500).json({ message: "Error fetching courses", error: err.message });
   }
 };
 
 // Get courses by department using path parameter
 const getCoursesByDepartmentById = async (req, res) => {
   try {
-      const departmentId = req.params.departmentId;
+    const departmentId = req.params.departmentId;
 
-      console.log("Fetching courses for department:", departmentId); // Debugging
+    console.log("Fetching courses for department:", departmentId); // Debugging
 
-      const courses = await Course.find({ department: departmentId });
+    const courses = await Course.find({ department: departmentId });
 
-      if (!courses.length) {
-          return res.status(404).json({ message: "No courses found for this department" });
-      }
+    if (!courses.length) {
+      return res.status(404).json({ message: "No courses found for this department" });
+    }
 
-      res.status(200).json(courses);
+    res.status(200).json(courses);
   } catch (err) {
-      console.error("Error fetching courses:", err);
-      res.status(500).json({ message: "Error fetching courses", error: err.message });
+    console.error("Error fetching courses:", err);
+    res.status(500).json({ message: "Error fetching courses", error: err.message });
   }
 };
 
@@ -169,95 +169,95 @@ const updateCourse = async (req, res) => {
 // Delete a course
 const deleteCourse = async (req, res) => {
   try {
-      const { id } = req.params;
-      const course = await Course.findByIdAndDelete(id);
+    const { id } = req.params;
+    const course = await Course.findByIdAndDelete(id);
 
-      if (!course) {
-          return res.status(404).json({ message: "Course not found" });
-      }
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
 
-      res.status(200).json({ message: "Course deleted successfully" });
+    res.status(200).json({ message: "Course deleted successfully" });
   } catch (err) {
-      res.status(500).json({ message: "Error deleting course", error: err.message });
+    res.status(500).json({ message: "Error deleting course", error: err.message });
   }
 };
 
-  // Remove unit from course
-  const removeUnitFromCourse = async (req, res) => {
-    try {
-      const course = await Course.findById(req.params.courseId);
-      if (!course) {
-        return res.status(404).json({ message: "Course not found" });
-      }
-  
-      // Ensure the unit exists before removing it
-      const unit = await Unit.findById(req.params.unitId);
-      if (!unit) {
-        return res.status(404).json({ message: "Unit not found" });
-      }
-  
-      course.units.pull(req.params.unitId);
-      await course.save();
-      await Unit.findByIdAndDelete(req.params.unitId);
-  
-      res.status(200).json({ message: "Unit removed successfully" });
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: "Server Error", error: error.message });
+// Remove unit from course
+const removeUnitFromCourse = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.courseId);
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
     }
-  };
-  
-  
+
+    // Ensure the unit exists before removing it
+    const unit = await Unit.findById(req.params.unitId);
+    if (!unit) {
+      return res.status(404).json({ message: "Unit not found" });
+    }
+
+    course.units.pull(req.params.unitId);
+    await course.save();
+    await Unit.findByIdAndDelete(req.params.unitId);
+
+    res.status(200).json({ message: "Unit removed successfully" });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: "Server Error", error: error.message });
+  }
+};
+
+
 // Get units for a course
 const getUnitsByCourse = async (req, res) => {
-    try {
-      const course = await Course.findById(req.params.courseId)
-        .populate('units')
-        .exec();
-        
-      if (!course) {
-        return res.status(404).json({ message: 'Course not found' });
-      }
-      
-      res.status(200).json(course.units);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server Error', error: error.message });
-    }
-  };
-  
-  // Add unit to course
-  const addUnitToCourse = async (req, res) => {
-    try {
-      const { name, code } = req.body;
-      
-      if (!name || !code) {
-        return res.status(400).json({ message: "Name and code are required" });
-      }
-  
-      const course = await Course.findById(req.params.courseId);
-      if (!course) {
-        return res.status(404).json({ message: 'Course not found' });
-      }
-  
-      const unit = new Unit({
-        name,
-        code,
-        course: course._id,
-        // Add default values or additional fields as needed
-        year: req.body.year || 1,
-        semester: req.body.semester || 1
-      });
-  
-      await unit.save();
-      course.units.push(unit);
-      await course.save();
-  
-      res.status(201).json(unit);
-    } catch (error) {
-      console.error(error);
-      res.status(500).json({ message: 'Server Error', error: error.message });
-    }
-  };
+  try {
+    const course = await Course.findById(req.params.courseId)
+      .populate('units')
+      .exec();
 
-module.exports = { createCourse, getCoursesByDepartment,getCoursesByDepartmentById , getAllCourses, updateCourse, deleteCourse, getUnitsByCourse, addUnitToCourse, removeUnitFromCourse };
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    res.status(200).json(course.units);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+// Add unit to course
+const addUnitToCourse = async (req, res) => {
+  try {
+    const { name, code } = req.body;
+
+    if (!name || !code) {
+      return res.status(400).json({ message: "Name and code are required" });
+    }
+
+    const course = await Course.findById(req.params.courseId);
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    const unit = new Unit({
+      name,
+      code,
+      course: course._id,
+      // Add default values or additional fields as needed
+      year: req.body.year || 1,
+      semester: req.body.semester || 1
+    });
+
+    await unit.save();
+    course.units.push(unit);
+    await course.save();
+
+    res.status(201).json(unit);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
+module.exports = { createCourse, getCoursesByDepartment, getCoursesByDepartmentById, getAllCourses, updateCourse, deleteCourse, getUnitsByCourse, addUnitToCourse, removeUnitFromCourse };

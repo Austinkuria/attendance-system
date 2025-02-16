@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import {
-  Button,Table,Modal,Select,Input,Space,Card,Tag,Skeleton,message,Grid,Typography,Statistic,Row,Col,
+  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col,
   // Badge,
   // Alert
 } from 'antd';
 import {
-  QrcodeOutlined,DownloadOutlined,SearchOutlined,FilterOutlined,CalendarOutlined,BookOutlined,TeamOutlined,PercentageOutlined,ScheduleOutlined,SyncOutlined,ClockCircleOutlined
+  QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import {
   // generateQRCode,
-  getAttendanceData,downloadAttendanceReport,getLecturerUnits,getDepartments ,detectCurrentSession,createAttendanceSession,
+  getAttendanceData, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createAttendanceSession,
   // submitAttendance
 } from '../services/api';
 
@@ -28,7 +28,7 @@ const AttendanceManagement = () => {
   const [qrData, setQrData] = useState('');
   const [currentSession, setCurrentSession] = useState(null);
   const [anomalies] = useState([]);
-  const [departments,setDepartments] = useState([]);
+  const [departments, setDepartments] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
     units: true,
@@ -62,8 +62,8 @@ const AttendanceManagement = () => {
     return btoa(unescape(encodeURIComponent(deviceData))).slice(0, 32);
   };
 
-   // Fetch departments
-   useEffect(() => {
+  // Fetch departments
+  useEffect(() => {
     const fetchDepartments = async () => {
       try {
         const data = await getDepartments();
@@ -163,7 +163,7 @@ const AttendanceManagement = () => {
     if (lecturerId) fetchData();
   }, [lecturerId]);
 
-  
+
   useEffect(() => {
     const fetchCurrentSession = async () => {
       try {
@@ -183,7 +183,7 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, []);
 
- // Handle department filter change
+  // Handle department filter change
   const handleDepartmentChange = (value) => {
     setUnitFilters(prev => ({ ...prev, department: value }));
   };
@@ -264,27 +264,27 @@ const AttendanceManagement = () => {
   //     message.error("Please select a unit first");
   //     return;
   //   }
-  
+
   //   try {
   //     setLoading((prev) => ({ ...prev, qr: true }));
-  
-  //     // ✅ Get Token from Local Storage
+
+  //     //  Get Token from Local Storage
   //     const token = localStorage.getItem("token");
   //     if (!token) {
   //       throw new Error("No authentication token found");
   //     }
-  
-  //     // ✅ Send Token in API Request
+
+  //     //  Send Token in API Request
   //     const { data } = await axios.get("https://attendance-system-w70n.onrender.com/api/sessions/current", {
   //       headers: { Authorization: `Bearer ${token}` },
   //     });
-  
+
   //     console.log("QR Code API Response:", data); // 🔍 Debugging Step
-  
+
   //     if (!data || !data.qrCode.startsWith("data:image/png;base64")) {
   //       throw new Error("QR Code data is missing or invalid!");
   //     }
-  
+
   //     setQrData(data.qrCode);
   //     setIsQRModalOpen(true);
   //   } catch (error) {
@@ -299,20 +299,20 @@ const AttendanceManagement = () => {
   //     message.error('Please select a unit first');
   //     return;
   //   }
-  
+
   //   try {
   //     setLoading(prev => ({ ...prev, qr: true }));
   //     const token = localStorage.getItem('token');
   //     const { data } = await axios.get("https://attendance-system-w70n.onrender.com/api/sessions/current", {
   //       headers: { Authorization: `Bearer ${token}` },
   //     });
-  
+
   //     console.log("QR Code API Response:", data); // 🔍 Debugging Step
-  
+
   //     if (!data || !data.qrCode.startsWith("data:image/png;base64")) {
   //       throw new Error("QR Code data is missing or invalid!");
   //     }
-  
+
   //     setQrData(data.qrCode);
   //     setIsQRModalOpen(true);
   //   } catch (error) {
@@ -322,25 +322,25 @@ const AttendanceManagement = () => {
   //     setLoading(prev => ({ ...prev, qr: false }));
   //   }
   // };
-    const handleGenerateQR = async () => {
+  const handleGenerateQR = async () => {
     if (!selectedUnit) {
       message.error('Please select a unit first');
       return;
     }
-  
+
     try {
       setLoading(prev => ({ ...prev, qr: true }));
       const token = localStorage.getItem('token');
       const { data } = await axios.get("https://attendance-system-w70n.onrender.com/api/sessions/current", {
         headers: { Authorization: `Bearer ${token}` },
       });
-  
+
       console.log("QR Code API Response:", data); // 🔍 Debugging Step
-  
+
       if (!data || !data.qrCode.startsWith("data:image/png;base64")) {
         throw new Error("QR Code data is missing or invalid!");
       }
-  
+
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
     } catch (error) {
@@ -350,7 +350,7 @@ const AttendanceManagement = () => {
       setLoading(prev => ({ ...prev, qr: false }));
     }
   };
-  
+
   // End session functionality
   const handleEndSession = async () => {
     if (!currentSession) return;
@@ -415,25 +415,25 @@ const AttendanceManagement = () => {
     }
   };
 
-// Add these validation helpers near the top of your component
-const isSessionActive = (session) => {
-  if (!session) return false;
-  const now = new Date();
-  return new Date(session.startTime) < now && now < new Date(session.endTime);
-};
-
-const formatSessionTime = (session) => {
-  if (!session) return '';
-  const options = { 
-    hour: 'numeric', 
-    minute: '2-digit', 
-    hour12: true 
+  // Add these validation helpers near the top of your component
+  const isSessionActive = (session) => {
+    if (!session) return false;
+    const now = new Date();
+    return new Date(session.startTime) < now && now < new Date(session.endTime);
   };
-  return `
+
+  const formatSessionTime = (session) => {
+    if (!session) return '';
+    const options = {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true
+    };
+    return `
     ${new Date(session.startTime).toLocaleTimeString([], options)} - 
     ${new Date(session.endTime).toLocaleTimeString([], options)}
   `;
-};
+  };
 
   // Preserved filter clearing
   const clearFilters = () => {
@@ -559,7 +559,7 @@ const formatSessionTime = (session) => {
   // Session Timer Component
   const SessionTimer = ({ end }) => {
     const [timeLeft, setTimeLeft] = useState(Math.max(0, end - Date.now()));
-    
+
     useEffect(() => {
       const timer = setInterval(() => {
         setTimeLeft(prev => Math.max(0, prev - 1000));
@@ -603,38 +603,38 @@ const formatSessionTime = (session) => {
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
       {/* Replace the current session card with this */}
-{currentSession && isSessionActive(currentSession) && (
-  <Card
-    title={
-      <Space>
-        <ClockCircleOutlined />
-        Active Session: {currentSession.unit?.name}
-      </Space>
-    }
-    style={{ marginBottom: 24 }}
-  >
-    <Row gutter={[16, 16]}>
-      <Col span={24}>
-        <Text strong>Time: </Text>
-        {formatSessionTime(currentSession)}
-      </Col>
-      <Col span={24}>
-        <SessionTimer 
-          end={new Date(currentSession.endTime).getTime()}
-        />
-      </Col>
-      <Col span={24}>
-        <Button 
-          danger 
-          onClick={handleEndSession}
-          loading={loading.session}
+      {currentSession && isSessionActive(currentSession) && (
+        <Card
+          title={
+            <Space>
+              <ClockCircleOutlined />
+              Active Session: {currentSession.unit?.name}
+            </Space>
+          }
+          style={{ marginBottom: 24 }}
         >
-          End Session Early
-        </Button>
-      </Col>
-    </Row>
-  </Card>
-)}
+          <Row gutter={[16, 16]}>
+            <Col span={24}>
+              <Text strong>Time: </Text>
+              {formatSessionTime(currentSession)}
+            </Col>
+            <Col span={24}>
+              <SessionTimer
+                end={new Date(currentSession.endTime).getTime()}
+              />
+            </Col>
+            <Col span={24}>
+              <Button
+                danger
+                onClick={handleEndSession}
+                loading={loading.session}
+              >
+                End Session Early
+              </Button>
+            </Col>
+          </Row>
+        </Card>
+      )}
 
 
       <Card
@@ -658,13 +658,13 @@ const formatSessionTime = (session) => {
               {screens.md ? 'Generate QR Code' : 'QR Code'}
             </Button>
             <Button
-                    type="primary"
-                    icon={<CalendarOutlined />}
-                    onClick={handleCreateSession}
-                    disabled={loading.session}
-                  >
-                    {loading.session ? 'Creating...' : 'Create Attendance Session'}
-                  </Button>
+              type="primary"
+              icon={<CalendarOutlined />}
+              onClick={handleCreateSession}
+              disabled={loading.session}
+            >
+              {loading.session ? 'Creating...' : 'Create Attendance Session'}
+            </Button>
 
           </Space>
         }
@@ -681,66 +681,66 @@ const formatSessionTime = (session) => {
               >
                 Clear Filters
               </Button>
-              
+
             }
           >
-            </Card>
-            <Space wrap style={{ width: '100%' }}>
-              <Select
-                placeholder="Select Department"
-                style={{ width: 160 }}
-                onChange={handleDepartmentChange}
-                allowClear
-                value={unitFilters.department}
-              >
-                {/* {filterOptions.departments.map(dept => (
+          </Card>
+          <Space wrap style={{ width: '100%' }}>
+            <Select
+              placeholder="Select Department"
+              style={{ width: 160 }}
+              onChange={handleDepartmentChange}
+              allowClear
+              value={unitFilters.department}
+            >
+              {/* {filterOptions.departments.map(dept => (
                   // <Option key={dept} value={dept}>
                     <Badge color="blue" text={dept} />
                   </Option> */}
-                  {departments.map(department => (
-              <Option key={department._id} value={department.name}>
-                {department.name}
-                
-              </Option>
-            ))}
-              </Select>
+              {departments.map(department => (
+                <Option key={department._id} value={department.name}>
+                  {department.name}
 
-              <Select
-                placeholder="Course"
-                style={{ width: 180 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
-                allowClear
-                value={unitFilters.course}
-              >
-                {filterOptions.courses.map(course => (
-                  <Option key={course} value={course}>{course}</Option>
-                ))}
-              </Select>
+                </Option>
+              ))}
+            </Select>
 
-              <Select
-                placeholder="Year"
-                style={{ width: 120 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
-                allowClear
-                value={unitFilters.year}
-              >
-                {filterOptions.years.map(year => (
-                  <Option key={year} value={year}>Year {year}</Option>
-                ))}
-              </Select>
+            <Select
+              placeholder="Course"
+              style={{ width: 180 }}
+              onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
+              allowClear
+              value={unitFilters.course}
+            >
+              {filterOptions.courses.map(course => (
+                <Option key={course} value={course}>{course}</Option>
+              ))}
+            </Select>
 
-              <Select
-                placeholder="Semester"
-                style={{ width: 140 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
-                allowClear
-                value={unitFilters.semester}
-              >
-                {filterOptions.semesters.map(sem => (
-                  <Option key={sem} value={sem}>Sem {sem}</Option>
-                ))}
-              </Select>
-            </Space>
+            <Select
+              placeholder="Year"
+              style={{ width: 120 }}
+              onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
+              allowClear
+              value={unitFilters.year}
+            >
+              {filterOptions.years.map(year => (
+                <Option key={year} value={year}>Year {year}</Option>
+              ))}
+            </Select>
+
+            <Select
+              placeholder="Semester"
+              style={{ width: 140 }}
+              onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
+              allowClear
+              value={unitFilters.semester}
+            >
+              {filterOptions.semesters.map(sem => (
+                <Option key={sem} value={sem}>Sem {sem}</Option>
+              ))}
+            </Select>
+          </Space>
           <Space wrap>
             <Select
               placeholder="Select Unit"
@@ -869,41 +869,41 @@ const formatSessionTime = (session) => {
         destroyOnClose
       >
         <div style={{ textAlign: 'center', padding: 24 }}>
-        {qrData ? (
-              <>
-                <img
-                  src={qrData.startsWith("data:image/png;base64,") ? qrData : ""}
-                  alt="Attendance QR Code"
-                  style={{
-                    width: "100%",
-                    maxWidth: 300,
-                    margin: "0 auto",
-                    display: "block",
-                    borderRadius: 8,
-                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                  }}
+          {qrData ? (
+            <>
+              <img
+                src={qrData.startsWith("data:image/png;base64,") ? qrData : ""}
+                alt="Attendance QR Code"
+                style={{
+                  width: "100%",
+                  maxWidth: 300,
+                  margin: "0 auto",
+                  display: "block",
+                  borderRadius: 8,
+                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                }}
+              />
+              {currentSession && (
+                <SessionTimer
+                  start={new Date(currentSession.startTime).getTime()}
+                  end={new Date(currentSession.endTime).getTime()}
                 />
-                {currentSession && (
-                  <SessionTimer
-                    start={new Date(currentSession.startTime).getTime()}
-                    end={new Date(currentSession.endTime).getTime()}
-                  />
-                )}
-                <Typography.Text
-                  type="secondary"
-                  style={{ marginTop: 16, display: "block", fontSize: 16 }}
-                >
-                  Scan this QR code to mark attendance.
-                </Typography.Text>
-              </>
-            ) : (
-              <div style={{ textAlign: "center", padding: 24 }}>
-                <Typography.Text type="danger">
-                  Failed to generate QR Code
-                </Typography.Text>
-                <Skeleton.Image style={{ width: 300, height: 300 }} />
-              </div>
-            )}
+              )}
+              <Typography.Text
+                type="secondary"
+                style={{ marginTop: 16, display: "block", fontSize: 16 }}
+              >
+                Scan this QR code to mark attendance.
+              </Typography.Text>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: 24 }}>
+              <Typography.Text type="danger">
+                Failed to generate QR Code
+              </Typography.Text>
+              <Skeleton.Image style={{ width: 300, height: 300 }} />
+            </div>
+          )}
 
         </div>
       </Modal>

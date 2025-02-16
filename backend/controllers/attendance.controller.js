@@ -5,10 +5,10 @@ exports.submitAttendance = async (req, res) => {
   try {
     const deviceHash = req.deviceFingerprint; // Captured by middleware
     const decoded = jwt.verify(req.body.token, process.env.JWT_SECRET);
-    
+
     // Retrieve session
     const session = await Session.findById(decoded.sessionId);
-    
+
     // Check if session is still valid
     if (!this.validateSessionTime(session)) {
       return res.status(400).json({ error: "Session expired" });
@@ -40,7 +40,7 @@ exports.submitAttendance = async (req, res) => {
       success: true,
       deviceUsage: deviceHistory[0]?.count || 0
     });
-    
+
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -56,11 +56,11 @@ exports.generateQRCode = async (req, res) => {
       return res.status(404).json({ message: "QR token generation failed" });
     }
 
-    // ✅ Generate a Base64 QR Code from the token
+    //  Generate a Base64 QR Code from the token
     console.log("QR Code data:", session.qrCode); // Log the QR code data
     const qrImage = await QRCode.toDataURL(session.qrCode);
 
-    res.json({ qrCode: qrImage }); // ✅ Send Base64 QR Code instead of raw token
+    res.json({ qrCode: qrImage }); //  Send Base64 QR Code instead of raw token
   } catch (error) {
     console.error("Error generating QR code:", error);
     res.status(500).json({ message: "Failed to generate QR code" });

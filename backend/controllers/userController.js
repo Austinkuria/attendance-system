@@ -514,6 +514,7 @@ const updateLecturer = async (req, res) => {
 
     res.status(200).json({ message: "Lecturer updated successfully", lecturer });
   } catch (error) {
+    console.error(error);
     res.status(500).json({ message: "Server error", error: error.message });
   }
 };
