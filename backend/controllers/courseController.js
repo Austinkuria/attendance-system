@@ -1,5 +1,6 @@
 const Course = require('../models/Course');
 const Unit = require('../models/Unit'); // ✅ Import the Unit model
+const mongoose = require('mongoose');
 
 // Create a new course
 const createCourse = async (req, res) => {
