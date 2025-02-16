@@ -8,6 +8,7 @@ const fs = require("fs");
 const { parse } = require('json2csv'); 
 const validationResult = require('express-validator').validationResult;
 const mongoose = require('mongoose');
+const crypto = require('crypto');
 // Login API
 const login = async (req, res) => {
   const { email, password } = req.body;
@@ -654,43 +655,54 @@ const downloadLecturers = async (req, res) => {
   }
 };
 
+// Send reset link
 const sendResetLink = async (req, res) => {
   try {
     const { email } = req.body;
     const user = await User.findOne({ email });
 
     if (!user) {
-      return res.status(404).json({ message: 'User not found' });
+      return res.status(404).json({ message: "User not found" });
     }
 
-    // Generate token and expiration time
-    const resetToken = crypto.randomBytes(32).toString('hex');
+    // Generate reset token and expiry
+    const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
+    // Determine frontend URL
+    const clientUrl =
+      process.env.NODE_ENV === "production"
+        ? process.env.CLIENT_URL_PROD
+        : process.env.CLIENT_URL_DEV;
+
+    if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+      return res.status(500).json({ message: "Email configuration is missing" });
+    }
+
     // Configure email transporter
     const transporter = nodemailer.createTransport({
-      service: 'gmail', // Use any SMTP service
+      service: "gmail",
       auth: {
         user: process.env.EMAIL_USER,
         pass: process.env.EMAIL_PASS,
       },
     });
 
-    // Send email
+    // Email content
     const mailOptions = {
       from: process.env.EMAIL_USER,
       to: user.email,
-      subject: 'Password Reset',
-      text: `Click the link to reset your password: ${process.env.CLIENT_URL}/reset-password/${resetToken}`,
+      subject: "Password Reset",
+      html: `<p>Click <a href="${clientUrl}/reset-password/${resetToken}">here</a> to reset your password.</p>`,
     };
 
     await transporter.sendMail(mailOptions);
-
-    res.json({ message: 'Reset link sent to email' });
+    res.json({ message: "Reset link sent to email" });
   } catch (error) {
-    res.status(500).json({ message: 'Server error', error });
+    console.error("Error sending reset email:", error);
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
