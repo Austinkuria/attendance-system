@@ -291,6 +291,53 @@ export const deleteLecturer = async (id) => {
   }
 };
 
+// import lecturers
+export const importLecturers = async (file) => {
+  const token = localStorage.getItem("token");
+  const formData = new FormData();
+  formData.append("csvFile", file);
+
+  try {
+    const response = await axios.post(`${API_URL}/lecturers/upload`, formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Import error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
+// download lecturers
+export const downloadLecturers = async () => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/lecturers/download`, {
+      responseType: "blob",
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    });
+
+    // Create temporary download link
+    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const link = document.createElement("a");
+    link.href = url;
+    link.setAttribute("download", "lecturers.csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+
+    return true;
+  } catch (error) {
+    console.error("Export error:", error.response?.data || error.message);
+    throw error;
+  }
+};
+
 // Fetch all units
 export const getUnits = async () => {
   const token = localStorage.getItem("token"); // Retrieve stored token

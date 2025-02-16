@@ -29,6 +29,8 @@ import {
   // CheckCircleOutlined,
   ApartmentOutlined,
   ArrowUpOutlined,
+  DownloadOutlined,
+  ImportOutlined,
 } from "@ant-design/icons";
 import {
   getLecturers,
@@ -37,9 +39,10 @@ import {
   updateLecturer,
   getUnits,
   getDepartments,
+  downloadLecturers,
 } from "../services/api";
 import "../styles.css";
-
+import api from "../services/api";
 const { Header, Content } = Layout;
 const { Option } = Select;
 
@@ -74,6 +77,7 @@ const ManageLecturers = () => {
 
   // Back-to-top button state
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [file, setFile] = useState(null);
 
   // ---------------------------
   // Authentication & Scroll
@@ -333,7 +337,74 @@ const ManageLecturers = () => {
       setLoading(false);
     }
   };
-  
+  // Handle CSV file upload (only CSV allowed)
+const handleFileUpload = (e) => {
+  const selectedFile = e.target.files[0];
+  const validCSVTypes = ["text/csv", "application/vnd.ms-excel"];
+
+  if (selectedFile && validCSVTypes.includes(selectedFile.type)) {
+    setFile(selectedFile);
+    setGlobalError(null); // Clear any previous errors
+  } else {
+    setGlobalError("Invalid file type. Please upload a valid CSV file.");
+    setFile(null);
+  }
+};
+
+// Handle CSV import
+const handleImport = async () => {
+  if (!file) {
+    setGlobalError("Please select a CSV file before importing.");
+    return;
+  }
+
+  try {
+    setLoading(true);
+    const token = localStorage.getItem("token");
+    if (!token) {
+      navigate("/auth/login");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("csvFile", file);
+
+    const response = await api.post("/lecturers/upload", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data",
+        Authorization: `Bearer ${token}`,
+      },
+    });
+
+    if (response.data.successCount > 0) {
+      const updated = await getLecturers();
+      const formatted = updated.map((l) => ({
+        ...l,
+        regNo: l.regNo || "N/A",
+        year: l.year || "N/A",
+        semester: l.semester?.toString() || "N/A",
+        course: (l.course && (l.course.name || l.course)) || "N/A",
+        department: (l.department && (l.department.name || l.department)) || "N/A",
+      }));
+
+      setLecturers(formatted);
+      message.success(`Successfully imported ${response.data.successCount} lecturers`);
+    }
+
+    setFile(null);
+
+    if (response.data.errorCount > 0) {
+      setGlobalError(`${response.data.errorCount} records failed to import. Check errors in response.`);
+    }
+  } catch (err) {
+    console.error("CSV import failed:", err);
+    setGlobalError("CSV import failed. Please check file format and try again.");
+    message.error("CSV import failed");
+  } finally {
+    setLoading(false);
+  }
+};
+
   // ---------------------------
   // Table Columns
   // ---------------------------
@@ -484,6 +555,7 @@ const ManageLecturers = () => {
         )}
 
         {/* Filters */}
+      <div style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
         <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
           <Col xs={24} md={8}>
             <Input
@@ -524,7 +596,44 @@ const ManageLecturers = () => {
             </Select>
           </Col>
         </Row>
-
+        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            <Col xs={24} md={8}>
+              <Row gutter={8} align="middle">
+                <Col flex="auto">
+                  <Input type="file" accept=".csv" onChange={handleFileUpload} />
+                </Col>
+                <Col>
+                  <Button
+                    type="primary"
+                    icon={<ImportOutlined />}
+                    disabled={!file}
+                    onClick={handleImport}
+                  >
+                    {file ? `Import ${file.name}` : "CSV Import"}
+                  </Button>
+                </Col>
+              </Row>
+            </Col>
+            <Col xs={12} md={8}>
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                block
+                onClick={async () => {
+                  try {
+                    await downloadLecturers();
+                  } catch (err) {
+                    console.error("Error downloading students:", err);
+                    setGlobalError("Failed to download students");
+                    message.error("Failed to download students");
+                  }
+                }}
+              >
+                Export
+              </Button>
+            </Col>
+          </Row>
+        </div>
         {/* Lecturer Table */}
         {loading ? (
           <Skeleton active />
@@ -558,7 +667,7 @@ const ManageLecturers = () => {
             onClick={handleAddLecturer}
             loading={loading}
           >
-            Create Lecturer
+            Add Lecturer
           </Button>,
         ]}
       >

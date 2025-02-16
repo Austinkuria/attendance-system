@@ -4,7 +4,7 @@ import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, BarChartOutlined, 
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect } from 'react';
 
-const { Header, Content } = Layout;
+const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
 
@@ -161,10 +161,15 @@ const Home = () => {
         <section style={{ padding: '80px 0' }}>
           <Title level={2} style={{ marginBottom: '40px' }}>Trusted By</Title>
           <Row gutter={[40, 40]} justify="center" align="middle">
-            {/* Add your client logos here */}
-            <Col><img src="/path/to/logo1.png" alt="Client 1" style={{ height: '50px' }} /></Col>
-            <Col><img src="/path/to/logo2.png" alt="Client 2" style={{ height: '50px' }} /></Col>
-            <Col><img src="/path/to/logo3.png" alt="Client 3" style={{ height: '50px' }} /></Col>
+            <Col>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" style={{ height: '50px' }} />
+            </Col>
+            <Col>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/8/8c/Microsoft_logo.png" alt="Microsoft" style={{ height: '50px' }} />
+            </Col>
+            <Col>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Canvas_logo.png" alt="Canvas" style={{ height: '50px' }} />
+            </Col>
           </Row>
         </section>
 
@@ -224,9 +229,15 @@ const Home = () => {
         <section style={{ padding: '80px 0', background: '#f0f2f5' }}>
           <Title level={2} style={{ marginBottom: '40px' }}>Integration Partners</Title>
           <Row gutter={[40, 40]} justify="center" align="middle">
-            <Col><img src="/path/to/google-classroom.png" alt="Google Classroom" style={{ height: '50px' }} /></Col>
-            <Col><img src="/path/to/moodle.png" alt="Moodle" style={{ height: '50px' }} /></Col>
-            <Col><img src="/path/to/canvas.png" alt="Canvas" style={{ height: '50px' }} /></Col>
+            <Col>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google Classroom" style={{ height: '50px' }} />
+            </Col>
+            <Col>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/8/8c/Microsoft_logo.png" alt="Moodle" style={{ height: '50px' }} />
+            </Col>
+            <Col>
+              <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Canvas_logo.png" alt="Canvas" style={{ height: '50px' }} />
+            </Col>
           </Row>
         </section>
 
@@ -271,6 +282,35 @@ const Home = () => {
           </Button>
         </section>
       </Content>
+
+      {/* Footer */}
+      <Footer style={{ background: '#001529', color: '#fff', padding: '40px 0', textAlign: 'center' }}>
+        <Row gutter={[40, 40]} justify="center">
+          <Col xs={24} md={8}>
+            <Title level={4} style={{ color: '#fff' }}>EduScan Pro</Title>
+            <Text level={4} style={{ color: '#fff' }}>Revolutionizing attendance tracking for modern education.</Text>
+          </Col>
+          <Col xs={24} md={8}>
+            <Title level={4} style={{ color: '#fff' }}>Quick Links</Title>
+            <Space direction="vertical">
+              <a href="#features" style={{ color: '#fff' }}>Features</a>
+              <a href="#testimonials" style={{ color: '#fff' }}>Testimonials</a>
+              <a href="#faq" style={{ color: '#fff' }}>FAQ</a>
+            </Space>
+          </Col>
+          <Col xs={24} md={8}>
+            <Title level={4} style={{ color: '#fff' }}>Contact Us</Title>
+            <Text level={4} style={{ color: '#fff' }} >Email: support@eduscanpro.com</Text>
+            <br />
+            <Text level={4} style={{ color: '#fff' }}>Phone: +1 (123) 456-7890</Text>
+          </Col>
+        </Row>
+        <Row justify="center" style={{ marginTop: '40px' }}>
+          <Text level={4} style={{ color: '#fff' }}>© 
+            {/* dynamic year */}
+            {new Date().getFullYear()} EduScan Pro. All rights reserved.</Text>
+        </Row>
+      </Footer>
     </Layout>
   );
 };
