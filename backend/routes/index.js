@@ -58,8 +58,6 @@ router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), delet
 router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
-router.post("/auth/reset-password", [
-    check('email').isEmail().withMessage('Enter a valid email address')
-  ], sendResetLink);
+router.post("/auth/reset-password",sendResetLink);
   
 module.exports = router;
