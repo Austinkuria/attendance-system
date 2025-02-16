@@ -110,17 +110,22 @@ const getAllCourses = async (req, res) => {
 const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const { name, code, departmentId } = req.body; // Expect departmentId
+    const { name, code, departmentId } = req.body; // Ensure departmentId
 
-    if (!departmentId) {
-      return res.status(400).json({ error: "Department ID is required" });
+    if (!departmentId || !id) {
+      return res.status(400).json({ error: "Course ID and Department ID are required" });
     }
 
-    const updatedCourse = await Course.findByIdAndUpdate(id, {
-      name,
-      code,
-      department: departmentId, // Store ID, not object
-    }, { new: true });
+    // Validate ObjectId format before querying
+    if (!mongoose.Types.ObjectId.isValid(id) || !mongoose.Types.ObjectId.isValid(departmentId)) {
+      return res.status(400).json({ error: "Invalid Course ID or Department ID format" });
+    }
+
+    const updatedCourse = await Course.findByIdAndUpdate(
+      id,
+      { name, code, department: departmentId }, // Store department ID
+      { new: true }
+    );
 
     if (!updatedCourse) {
       return res.status(404).json({ error: "Course not found" });
