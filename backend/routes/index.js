@@ -11,7 +11,7 @@ const attendanceRoutes = require("../routes/attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
 const quizRoutes = require('./quizRoutes');
-const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer,importLecturers,downloadLecturers,sendResetLink } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer,importLecturers,downloadLecturers,sendResetLink,resetPassword } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -59,5 +59,6 @@ router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.sing
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
 router.post("/auth/reset-password",sendResetLink);
+router.post("/auth/reset-password/:token",resetPassword);
   
 module.exports = router;
