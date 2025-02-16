@@ -466,7 +466,7 @@ const createLecturer = async (req, res) => {
     // Check if user already exists
     let existingUser = await User.findOne({ email });
     if (existingUser) {
-      return res.status(400).json({ message: "Lecturer already exists" });
+      return res.status(400).json({ message: `A lecturer with the email ${email} already exists.` });
     }
 
     // Hash password before saving

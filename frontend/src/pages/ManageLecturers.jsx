@@ -169,12 +169,15 @@ const ManageLecturers = () => {
     try {
       const values = await addForm.validateFields();
       setLoading(true);
+      
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
+  
       const response = await addLecturer({ ...values, role: "lecturer" });
+  
       if (response?.message === "User created successfully") {
         const updated = await getLecturers();
         setLecturers(updated || []);
@@ -183,13 +186,19 @@ const ManageLecturers = () => {
         addForm.resetFields();
       }
     } catch (err) {
-      // Validation errors will be handled by the form.
-      setGlobalError(err.response?.data?.message || "Failed to create lecturer");
-      message.error("Failed to add lecturer");
+      const errorMessage = err.response?.data?.message || "Failed to create lecturer";
+  
+      if (errorMessage.includes("already exists")) {
+        message.warning("This lecturer already exists. Try using a different email.");
+      } else {
+        message.error(errorMessage);
+      }
+  
+      setGlobalError(errorMessage);
     } finally {
       setLoading(false);
     }
-  };
+  };  
 
   const handleEditLecturer = async () => {
     try {
