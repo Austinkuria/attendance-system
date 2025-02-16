@@ -492,6 +492,32 @@ const createLecturer = async (req, res) => {
   }
 };
 
+// Update lecturer
+const updateLecturer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { firstName, lastName, email, department } = req.body;
+
+    // Check if lecturer exists
+    const lecturer = await User.findById(id);
+    if (!lecturer) {
+      return res.status(404).json({ message: "Lecturer not found" });
+    }
+
+    // Update lecturer details
+    lecturer.firstName = firstName || lecturer.firstName;
+    lecturer.lastName = lastName || lecturer.lastName;
+    lecturer.email = email || lecturer.email;
+    lecturer.department = department || lecturer.department;
+
+    await lecturer.save();
+
+    res.status(200).json({ message: "Lecturer updated successfully", lecturer });
+  } catch (error) {
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 module.exports = { 
   login, 
   signup, 
@@ -505,5 +531,6 @@ module.exports = {
   getUserProfile, 
   updateUserProfile,
   importStudents,
-  createLecturer 
+  createLecturer,
+  updateLecturer
 };

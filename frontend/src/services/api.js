@@ -260,6 +260,27 @@ export const addLecturer = async (lecturerData) => {
   }
 };
 
+// edit lecturer
+export const editLecturer = async (id, lecturerData) => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    console.error("No token found in localStorage");
+    return;
+  }
+  try {
+    const response = await api.put(`${API_URL}/lecturers/update/${id}`, lecturerData, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error editing lecturer:", error.response?.data || error.message);
+    return null;
+  }
+};
+
 // Delete a lecturer
 export const deleteLecturer = (id) => api.delete(`/lecturers/${id}`);
 
