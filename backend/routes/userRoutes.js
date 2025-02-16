@@ -1,7 +1,6 @@
 const express = require("express");
 const { check } = require('express-validator');
 const {
-  registerUser,
   login,
   signup,
   getUserProfile,
@@ -24,7 +23,7 @@ const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 const router = express.Router();
 const quizController = require('../controllers/quizController');
-const { passwordValidation, validateLogin, validateSignup } = require("../validators/authValidation");
+const { passwordValidation } = require("../validators/authValidation");
 
 // Auth routes
 router.post("/auth/signup", [
@@ -32,7 +31,7 @@ router.post("/auth/signup", [
   check('lastName').isLength({ min: 3 }).withMessage('Last name must be at least 3 characters long').matches(/^[A-Za-z]+$/).withMessage('Last name must not contain numbers'),
   check('email').isEmail().withMessage('Enter a valid email address'),
   passwordValidation  // Use the password validation rule
-], registerUser, signup);
+], signup);
 
 router.post("/auth/login", [
   check('email').isEmail().withMessage('Enter a valid email address'),
