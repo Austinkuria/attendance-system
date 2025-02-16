@@ -233,7 +233,7 @@ const Home = () => {
               <img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google Classroom" style={{ height: '50px' }} />
             </Col>
             <Col>
-              <img src="https://upload.wikimedia.org/wikipedia/commons/8/8c/Microsoft_logo.png" alt="Moodle" style={{ height: '50px' }} />
+              <img src="https://images.app.goo.gl/WaTsb3WWPJjGwXHC7" alt="Moodle" style={{ height: '50px' }} />
             </Col>
             <Col>
               <img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Canvas_logo.png" alt="Canvas" style={{ height: '50px' }} />
@@ -247,19 +247,19 @@ const Home = () => {
           <Row gutter={[40, 40]}>
             <Col xs={24} md={8}>
               <Card>
-                <Title level={4}>Q4 2023</Title>
+                <Title level={4}>Q1 2026</Title>
                 <Text>AI-powered attendance predictions</Text>
               </Card>
             </Col>
             <Col xs={24} md={8}>
               <Card>
-                <Title level={4}>Q1 2024</Title>
+                <Title level={4}>Q1 2026</Title>
                 <Text>Integration with Zoom and Microsoft Teams</Text>
               </Card>
             </Col>
             <Col xs={24} md={8}>
               <Card>
-                <Title level={4}>Q2 2024</Title>
+                <Title level={4}>Q2 2026</Title>
                 <Text>Multi-language support expansion</Text>
               </Card>
             </Col>

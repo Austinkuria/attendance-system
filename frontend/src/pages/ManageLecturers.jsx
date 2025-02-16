@@ -215,38 +215,38 @@ const ManageLecturers = () => {
     try {
       const values = await editForm.validateFields();
       setLoading(true);
-  
+
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
-  
+
       // Check if selectedLecturer has a valid _id
       if (!selectedLecturer?._id) {
         message.error("Selected lecturer is invalid.");
         return;
       }
-  
+
       // Prepare updated lecturer data
       const updatedLecturer = { ...selectedLecturer, ...values };
-  
+
       // Call the API to update the lecturer
       const response = await updateLecturer(selectedLecturer._id, updatedLecturer);
-  
+
       // Check if the update was successful
       if (response?.message === "Lecturer updated successfully") {
-        // ✅ Update the list of lecturers in the state (refresh)
+        //  Update the list of lecturers in the state (refresh)
         const updated = await getLecturers();
         setLecturers(updated || []);
-        
-        // ✅ Clear the form fields
+
+        //  Clear the form fields
         editForm.resetFields();
-  
-        // ✅ Close the modal
+
+        //  Close the modal
         setIsEditModalVisible(false);
-        
-        // ✅ Show success message
+
+        //  Show success message
         message.success("Lecturer updated successfully");
       } else {
         // Show error message if the response is not successful
@@ -260,7 +260,7 @@ const ManageLecturers = () => {
       setLoading(false);
     }
   };
-  
+
   const handleConfirmDelete = async () => {
     try {
       setLoading(true);
@@ -285,20 +285,20 @@ const ManageLecturers = () => {
     try {
       const { newUnit } = await unitForm.validateFields();
       if (!newUnit || !selectedLecturerForUnits) return;
-  
+
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
-  
+
       // Find the unit to add
       const unitToAdd = units.find((unit) => unit._id === newUnit);
       if (!unitToAdd) {
         throw new Error("Unit not found");
       }
-  
+
       // Prepare updated units array
       const updatedUnits = [
         ...(Array.isArray(selectedLecturerForUnits.assignedUnits)
@@ -306,26 +306,26 @@ const ManageLecturers = () => {
           : []),
         unitToAdd,
       ];
-  
+
       // Prepare the updated lecturer data
       const updatedLecturer = {
         ...selectedLecturerForUnits,
         assignedUnits: updatedUnits,
       };
-  
+
       // Call the API to update lecturer with the new units
       const response = await updateLecturer(selectedLecturerForUnits._id, updatedLecturer);
-  
+
       if (response?.message === "Lecturer updated successfully") {
         // Fetch updated lecturers list and update state
         const updated = await getLecturers();
         setLecturers(updated || []);
         setSelectedLecturerForUnits(updatedLecturer);
-  
+
         // Reset the form and close the modal
         unitForm.resetFields();
         setIsUnitsModalVisible(false);
-  
+
         // Show success message
         message.success("Unit assigned successfully");
       }
@@ -337,6 +337,7 @@ const ManageLecturers = () => {
       setLoading(false);
     }
   };
+
   // Handle CSV file upload (only CSV allowed)
 const handleFileUpload = (e) => {
   const selectedFile = e.target.files[0];
@@ -351,7 +352,7 @@ const handleFileUpload = (e) => {
   }
 };
 
-// Handle CSV import
+// Handle CSV import for lecturers
 const handleImport = async () => {
   if (!file) {
     setGlobalError("Please select a CSV file before importing.");
@@ -379,12 +380,13 @@ const handleImport = async () => {
     if (response.data.successCount > 0) {
       const updated = await getLecturers();
       const formatted = updated.map((l) => ({
-        ...l,
-        regNo: l.regNo || "N/A",
-        year: l.year || "N/A",
-        semester: l.semester?.toString() || "N/A",
-        course: (l.course && (l.course.name || l.course)) || "N/A",
+        firstName: l.firstName || "N/A",
+        lastName: l.lastName || "N/A",
+        email: l.email || "N/A",
         department: (l.department && (l.department.name || l.department)) || "N/A",
+        assignedUnits: (l.assignedUnits && l.assignedUnits.length > 0)
+          ? l.assignedUnits.map(unit => unit.name).join(", ")
+          : "N/A",
       }));
 
       setLecturers(formatted);
@@ -555,48 +557,48 @@ const handleImport = async () => {
         )}
 
         {/* Filters */}
-      <div style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-          <Col xs={24} md={8}>
-            <Input
-              placeholder="Search by name, email, or unit code..."
-              prefix={<SearchOutlined />}
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-            />
-          </Col>
-          <Col xs={24} md={8}>
-            <Select
-              placeholder="All Departments"
-              value={filterDepartment || undefined}
-              onChange={(value) => setFilterDepartment(value)}
-              style={{ width: "100%" }}
-              allowClear
-            >
-              {departments.map((dept) => (
-                <Option key={dept._id} value={dept._id}>
-                  {dept.name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} md={8}>
-            <Select
-              placeholder="All Assigned Units"
-              value={filterUnit || undefined}
-              onChange={(value) => setFilterUnit(value)}
-              style={{ width: "100%" }}
-              allowClear
-            >
-              {units.map((unit) => (
-                <Option key={unit.code} value={unit.code}>
-                  {unit.code} – {unit.name}
-                </Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
-        <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+        <div style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+          <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
+            <Col xs={24} md={8}>
+              <Input
+                placeholder="Search by name, email, or unit code..."
+                prefix={<SearchOutlined />}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </Col>
+            <Col xs={24} md={8}>
+              <Select
+                placeholder="All Departments"
+                value={filterDepartment || undefined}
+                onChange={(value) => setFilterDepartment(value)}
+                style={{ width: "100%" }}
+                allowClear
+              >
+                {departments.map((dept) => (
+                  <Option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={24} md={8}>
+              <Select
+                placeholder="All Assigned Units"
+                value={filterUnit || undefined}
+                onChange={(value) => setFilterUnit(value)}
+                style={{ width: "100%" }}
+                allowClear
+              >
+                {units.map((unit) => (
+                  <Option key={unit.code} value={unit.code}>
+                    {unit.code} – {unit.name}
+                  </Option>
+                ))}
+              </Select>
+            </Col>
+          </Row>
+          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
             <Col xs={24} md={8}>
               <Row gutter={8} align="middle">
                 <Col flex="auto">
@@ -793,71 +795,71 @@ const handleImport = async () => {
 
       {/* Units Management Modal */}
       <Modal
-  title={
-    <>
-      Assigned Units for{" "}
-      {selectedLecturerForUnits &&
-        `${selectedLecturerForUnits.firstName} ${selectedLecturerForUnits.lastName}`}
-    </>
-  }
-  open={isUnitsModalVisible}
-  onCancel={() => setIsUnitsModalVisible(false)}
-  footer={[
-    <Button key="close" onClick={() => setIsUnitsModalVisible(false)}>
-      Close
-    </Button>,
-    <Button key="assign" type="primary" onClick={handleAssignUnit} loading={loading}>
-      Assign Unit
-    </Button>,
-  ]}
->
-  {selectedLecturerForUnits && (
-    <>
-      <p><strong>Current Units:</strong></p>
-      <div style={{ marginBottom: 16 }}>
-        {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
-        selectedLecturerForUnits.assignedUnits.length > 0
-          ? selectedLecturerForUnits.assignedUnits.map((unit) => (
-              <span
-                key={unit._id}
-                style={{
-                  background: "#d9d9d9",
-                  padding: "4px 8px",
-                  marginRight: 4,
-                  borderRadius: 4,
-                  display: "inline-block",
-                }}
+        title={
+          <>
+            Assigned Units for{" "}
+            {selectedLecturerForUnits &&
+              `${selectedLecturerForUnits.firstName} ${selectedLecturerForUnits.lastName}`}
+          </>
+        }
+        open={isUnitsModalVisible}
+        onCancel={() => setIsUnitsModalVisible(false)}
+        footer={[
+          <Button key="close" onClick={() => setIsUnitsModalVisible(false)}>
+            Close
+          </Button>,
+          <Button key="assign" type="primary" onClick={handleAssignUnit} loading={loading}>
+            Assign Unit
+          </Button>,
+        ]}
+      >
+        {selectedLecturerForUnits && (
+          <>
+            <p><strong>Current Units:</strong></p>
+            <div style={{ marginBottom: 16 }}>
+              {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
+                selectedLecturerForUnits.assignedUnits.length > 0
+                ? selectedLecturerForUnits.assignedUnits.map((unit) => (
+                  <span
+                    key={unit._id}
+                    style={{
+                      background: "#d9d9d9",
+                      padding: "4px 8px",
+                      marginRight: 4,
+                      borderRadius: 4,
+                      display: "inline-block",
+                    }}
+                  >
+                    {unit.name || unit.code}
+                  </span>
+                ))
+                : <span style={{ color: "#999" }}>No units assigned</span>}
+            </div>
+            <Form form={unitForm} layout="vertical">
+              <Form.Item
+                name="newUnit"
+                label={<><BookOutlined style={{ marginRight: 4 }} /> Assign New Unit</>}
+                rules={[{ required: true, message: "Please select a unit" }]}
               >
-                {unit.name || unit.code}
-              </span>
-            ))
-          : <span style={{ color: "#999" }}>No units assigned</span>}
-      </div>
-      <Form form={unitForm} layout="vertical">
-        <Form.Item
-          name="newUnit"
-          label={<><BookOutlined style={{ marginRight: 4 }} /> Assign New Unit</>}
-          rules={[{ required: true, message: "Please select a unit" }]}
-        >
-          <Select placeholder="Select a unit">
-            {units
-              .filter(
-                (unit) =>
-                  !selectedLecturerForUnits.assignedUnits.some(
-                    (assignedUnit) => assignedUnit._id === unit._id
-                  )
-              )
-              .map((unit) => (
-                <Option key={unit._id} value={unit._id}>
-                  {unit.name} – {unit.code}
-                </Option>
-              ))}
-          </Select>
-        </Form.Item>
-      </Form>
-    </>
-  )}
-</Modal>
+                <Select placeholder="Select a unit">
+                  {units
+                    .filter(
+                      (unit) =>
+                        !selectedLecturerForUnits.assignedUnits.some(
+                          (assignedUnit) => assignedUnit._id === unit._id
+                        )
+                    )
+                    .map((unit) => (
+                      <Option key={unit._id} value={unit._id}>
+                        {unit.name} – {unit.code}
+                      </Option>
+                    ))}
+                </Select>
+              </Form.Item>
+            </Form>
+          </>
+        )}
+      </Modal>
 
     </Layout>
   );

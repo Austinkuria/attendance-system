@@ -543,6 +543,116 @@ const deleteLecturer = async (req, res) => {
   }
 };
 
+// Import lecturers
+const importLecturers = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ error: "CSV file is required" });
+    }
+
+    const filePath = req.file.path;
+    let lecturersData = [];
+
+    // Read CSV file and parse data
+    await new Promise((resolve, reject) => {
+      fs.createReadStream(filePath)
+        .pipe(csv.parse({ headers: true }))
+        .on("data", (row) => lecturersData.push(row))
+        .on("end", resolve)
+        .on("error", reject);
+    });
+
+    console.log("Parsed CSV Data:", lecturersData);
+
+    const lecturers = [];
+    const errors = [];
+
+    // Process all lecturers in parallel
+    await Promise.all(
+      lecturersData.map(async (row) => {
+        try {
+          // Validate required fields
+          if (!row.firstName || !row.lastName || !row.email || !row.department) {
+            errors.push({ row, error: "Missing required fields" });
+            return;
+          }
+
+          // Check if the department exists
+          const department = await Department.findOne({ name: row.department });
+          if (!department) {
+            errors.push({ row, error: `Department not found: ${row.department}` });
+            return;
+          }
+
+          // Check for duplicate email
+          const existingUser = await User.findOne({ email: row.email });
+          if (existingUser) {
+            errors.push({ row, error: `Lecturer with email ${row.email} already exists` });
+            return;
+          }
+
+          lecturers.push({
+            firstName: row.firstName,
+            lastName: row.lastName,
+            email: row.email,
+            password: bcrypt.hashSync("defaultpassword", 10), // Default password
+            department: department._id,
+            role: "lecturer",
+          });
+        } catch (err) {
+          console.error("Error processing row:", row, err.message);
+          errors.push({ row, error: err.message });
+        }
+      })
+    );
+
+    if (lecturers.length > 0) {
+      await User.insertMany(lecturers);
+    }
+
+    fs.unlinkSync(filePath); // Remove CSV file after processing
+
+    res.json({
+      message: "Lecturers imported successfully",
+      successCount: lecturers.length,
+      errorCount: errors.length,
+      errors,
+    });
+  } catch (error) {
+    console.error("Import error:", error);
+    res.status(500).json({
+      error: error.message,
+      message: "Failed to import lecturers. Please check department names in CSV.",
+    });
+  }
+};
+
+// Download lecturers
+const downloadLecturers = async (req, res) => {
+  try {
+    const lecturers = await User.find({ role: 'lecturer' })
+      .populate('department', 'name')
+      .populate('assignedUnits', 'name') // Populate assigned units
+      .select('firstName lastName email department assignedUnits');
+
+    const csvData = lecturers.map(lecturer => ({
+      firstName: lecturer.firstName,
+      lastName: lecturer.lastName,
+      email: lecturer.email,
+      department: lecturer.department?.name || '',
+      assignedUnits: lecturer.assignedUnits?.map(unit => unit.name).join(', ') || '', // Convert array to string
+    }));
+
+    const csv = parse(csvData, { header: true });
+    
+    res.setHeader('Content-Type', 'text/csv');
+    res.setHeader('Content-Disposition', 'attachment; filename=lecturers.csv');
+    res.status(200).send(csv);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
 
 module.exports = { 
   login, 
@@ -559,5 +669,7 @@ module.exports = {
   importStudents,
   createLecturer,
   updateLecturer,
-  deleteLecturer
+  deleteLecturer,
+  importLecturers,
+  downloadLecturers,
 };
