@@ -444,7 +444,7 @@ const ManageCourses = () => {
           dataSource={filteredCourses}
           columns={columns}
           rowKey="_id"
-          scroll={{ y: 400 }}
+          scroll={{x: "max-content", y: 400 }}
         />
 
         {/* Course Add/Edit Modal */}
@@ -460,6 +460,7 @@ const ManageCourses = () => {
               <Button key="cancel" onClick={() => setShowCourseModal(false)}>Cancel</Button>,
               <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading}>Save Course</Button>,
             ]}
+            width={window.innerWidth < 768 ? "90%" : "50%"} 
           >
             <Form
               form={form}

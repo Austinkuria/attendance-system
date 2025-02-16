@@ -260,8 +260,8 @@ export const addLecturer = async (lecturerData) => {
   }
 };
 
-// edit lecturer
-export const editLecturer = async (id, lecturerData) => {
+// update lecturer
+export const updateLecturer = async (id, lecturerData) => {
   const token = localStorage.getItem("token");
   if (!token) {
     console.error("No token found in localStorage");
@@ -276,7 +276,7 @@ export const editLecturer = async (id, lecturerData) => {
     });
     return response.data;
   } catch (error) {
-    console.error("Error editing lecturer:", error.response?.data || error.message);
+    console.error("Error updating lecturer:", error.response?.data || error.message);
     return null;
   }
 };
@@ -627,23 +627,22 @@ export const getCourseByDepartment = async (departmentId, courseName) => {
   }
 };
 
-
-// update lecturer
-export const updateLecturer = async (id, lecturerData) => {
-  const token = localStorage.getItem("token");
-  try {
-    const response = await axios.put(`${API_URL}/lecturers/${id}`, lecturerData, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error("Error updating lecturer:", error.response?.data || error.message);
-    throw error;
-  }
-};
+// // update lecturer
+// export const updateLecturer = async (id, lecturerData) => {
+//   const token = localStorage.getItem("token");
+//   try {
+//     const response = await axios.put(`${API_URL}/lecturers/${id}`, lecturerData, {
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json"
+//       }
+//     });
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error updating lecturer:", error.response?.data || error.message);
+//     throw error;
+//   }
+// };
 
 // Mark attendance for a student
 // export const markAttendance = (attendance) => api.post("/attendance", attendance);

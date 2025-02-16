@@ -329,7 +329,7 @@ const StudentDashboard = () => {
       setFeedbackModalVisible(false);
       // Reset feedback form if desired
       setFeedbackData({ rating: 3, text: '' });
-    } catch (error) {
+    } catch {
       message.error("Error submitting feedback.");
     }
   };
@@ -350,7 +350,7 @@ const StudentDashboard = () => {
       setQuizModalVisible(false);
       setQuizAnswers({});
       setQuiz(null);
-    } catch (error) {
+    } catch {
       message.error("Error submitting quiz.");
     }
   };
@@ -501,7 +501,7 @@ const StudentDashboard = () => {
         onCancel={() => setFeedbackModalVisible(false)}
         onOk={handleFeedbackSubmit}
       >
-        <p>How was today's class?</p>
+        <p>How was today&apos;s class?</p>
         <Rate
           allowHalf
           value={feedbackData.rating}

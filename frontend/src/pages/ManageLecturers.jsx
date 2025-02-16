@@ -169,69 +169,94 @@ const ManageLecturers = () => {
     try {
       const values = await addForm.validateFields();
       setLoading(true);
-      
+
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
-  
+
       const response = await addLecturer({ ...values, role: "lecturer" });
-  
+
       if (response?.message === "Lecturer created successfully") {
-        // ✅ Refresh the lecturers list
+        //  Refresh the lecturers list
         const updated = await getLecturers();
         setLecturers(updated || []);
-  
-        // ✅ Clear the form fields
+
+        //  Clear the form fields
         addForm.resetFields();
-  
-        // ✅ Close the modal
+
+        //  Close the modal
         setIsAddModalVisible(false);
-  
-        // ✅ Show success message
+
+        //  Show success message
         message.success("Lecturer added successfully");
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to create lecturer";
-  
+
       if (errorMessage.includes("already exists")) {
         message.warning("This lecturer already exists. Try using a different email.");
       } else {
         message.error(errorMessage);
       }
-  
+
       setGlobalError(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-  
+
   const handleEditLecturer = async () => {
     try {
       const values = await editForm.validateFields();
       setLoading(true);
+  
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
+  
+      // Check if selectedLecturer has a valid _id
+      if (!selectedLecturer?._id) {
+        message.error("Selected lecturer is invalid.");
+        return;
+      }
+  
+      // Prepare updated lecturer data
       const updatedLecturer = { ...selectedLecturer, ...values };
+  
+      // Call the API to update the lecturer
       const response = await updateLecturer(selectedLecturer._id, updatedLecturer);
-      if (response?.message === "User updated successfully") {
+  
+      // Check if the update was successful
+      if (response?.message === "Lecturer updated successfully") {
+        // ✅ Update the list of lecturers in the state (refresh)
         const updated = await getLecturers();
         setLecturers(updated || []);
+        
+        // ✅ Clear the form fields
+        editForm.resetFields();
+  
+        // ✅ Close the modal
         setIsEditModalVisible(false);
+        
+        // ✅ Show success message
         message.success("Lecturer updated successfully");
+      } else {
+        // Show error message if the response is not successful
+        message.error("Failed to update lecturer");
       }
     } catch (err) {
-      setGlobalError(err.response?.data?.message || "Failed to update lecturer");
-      message.error("Failed to update lecturer");
+      // Handle errors that might occur during the update process
+      const errorMessage = err.response?.data?.message || "Failed to update lecturer";
+      message.error(errorMessage);
     } finally {
       setLoading(false);
     }
   };
-
+  
   const handleConfirmDelete = async () => {
     try {
       setLoading(true);
@@ -494,7 +519,7 @@ const ManageLecturers = () => {
             dataSource={filteredLecturers}
             columns={columns}
             rowKey="_id"
-            scroll={{ y: 400 }}
+            scroll={{ x: "max-content", y: 400 }}
           />
         )}
       </Content>
