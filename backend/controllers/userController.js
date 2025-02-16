@@ -713,8 +713,7 @@ const sendResetLink = async (req, res) => {
   }
 };
 
-const bcrypt = require("bcrypt");
-
+// Reset password
 const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
