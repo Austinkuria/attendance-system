@@ -115,9 +115,9 @@ const ManageCourses = () => {
   });
 
   // Called when the course form fields change
-  const handleCourseFormChange = (changedValues, allValues) => {
-    setFormData(allValues);
-  };
+  // const handleCourseFormChange = (changedValues, allValues) => {
+  //   setFormData(allValues);
+  // };
 
   const handleCourseSubmit = async () => {
     try {
@@ -127,7 +127,7 @@ const ManageCourses = () => {
       const requestBody = {
         name: values.name,
         code: values.code,
-        departmentId: values.department, // Ensure correct field name
+        departmentId: values.department, // Ensure this is an ID, not an object
       };
   
       console.log("Submitting Course Data:", requestBody); // Debugging
@@ -153,7 +153,7 @@ const ManageCourses = () => {
       setShowCourseModal(false);
       setSelectedCourse(null);
       form.resetFields();
-      fetchData(); // Refresh course list
+      fetchData();
     } catch (error) {
       message.error(`Error: ${error.message}`);
     } finally {
