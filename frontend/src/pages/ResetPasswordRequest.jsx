@@ -22,22 +22,21 @@ const ResetPasswordRequest = () => {
     setMessage(null);
 
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL}/auth/reset-password`,
-        { email }
-      );
-
-      setMessage(response.data.message || "Reset link sent successfully!");
-    } catch (error) {
-        console.error("Error in sendResetLink:", error);
+        const response = await axios.post(
+          `${import.meta.env.VITE_API_URL}/auth/reset-password`,
+          { email }
+        );
+        setMessage(response.data.message || "Reset link sent successfully!");
+      } catch (error) {
+        console.error("Error sending reset link:", error);
         setError(
           error.response?.data?.message ||
           "Something went wrong. Please try again."
         );
-     }
-    finally {
-      setLoading(false);     
-  };
+      } finally {
+        setLoading(false);
+      }
+      
 };
 
   return (
