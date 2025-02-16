@@ -281,45 +281,59 @@ const ManageLecturers = () => {
     try {
       const { newUnit } = await unitForm.validateFields();
       if (!newUnit || !selectedLecturerForUnits) return;
+  
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
+  
+      // Find the unit to add
       const unitToAdd = units.find((unit) => unit._id === newUnit);
       if (!unitToAdd) {
         throw new Error("Unit not found");
       }
+  
+      // Prepare updated units array
       const updatedUnits = [
         ...(Array.isArray(selectedLecturerForUnits.assignedUnits)
           ? selectedLecturerForUnits.assignedUnits
           : []),
         unitToAdd,
       ];
+  
+      // Prepare the updated lecturer data
       const updatedLecturer = {
         ...selectedLecturerForUnits,
         assignedUnits: updatedUnits,
       };
-      const response = await updateLecturer(
-        selectedLecturerForUnits._id,
-        updatedLecturer
-      );
-      if (response?.message === "User updated successfully") {
+  
+      // Call the API to update lecturer with the new units
+      const response = await updateLecturer(selectedLecturerForUnits._id, updatedLecturer);
+  
+      if (response?.message === "Lecturer updated successfully") {
+        // Fetch updated lecturers list and update state
         const updated = await getLecturers();
         setLecturers(updated || []);
         setSelectedLecturerForUnits(updatedLecturer);
+  
+        // Reset the form and close the modal
         unitForm.resetFields();
+        setIsUnitsModalVisible(false);
+  
+        // Show success message
         message.success("Unit assigned successfully");
       }
     } catch (err) {
+      // Handle error if assignment fails
       setGlobalError(err.response?.data?.message || "Failed to assign unit");
       message.error("Failed to assign unit");
     } finally {
       setLoading(false);
     }
   };
-
+  
   // ---------------------------
   // Table Columns
   // ---------------------------
@@ -670,85 +684,72 @@ const ManageLecturers = () => {
 
       {/* Units Management Modal */}
       <Modal
-        title={
-          <>
-            Assigned Units for{" "}
-            {selectedLecturerForUnits &&
-              `${selectedLecturerForUnits.firstName} ${selectedLecturerForUnits.lastName}`}
-          </>
-        }
-        open={isUnitsModalVisible}
-        onCancel={() => setIsUnitsModalVisible(false)}
-        footer={[
-          <Button key="close" onClick={() => setIsUnitsModalVisible(false)}>
-            Close
-          </Button>,
-          <Button
-            key="assign"
-            type="primary"
-            onClick={handleAssignUnit}
-            loading={loading}
-          >
-            Assign Unit
-          </Button>,
-        ]}
-      >
-        {selectedLecturerForUnits && (
-          <>
-            <p>
-              <strong>Current Units:</strong>
-            </p>
-            <div style={{ marginBottom: 16 }}>
-              {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
-                selectedLecturerForUnits.assignedUnits.length > 0 ? (
-                selectedLecturerForUnits.assignedUnits.map((unit) => (
-                  <span
-                    key={unit._id}
-                    style={{
-                      background: "#d9d9d9",
-                      padding: "4px 8px",
-                      marginRight: 4,
-                      borderRadius: 4,
-                      display: "inline-block",
-                    }}
-                  >
-                    {unit.name || unit.code}
-                  </span>
-                ))
-              ) : (
-                <span style={{ color: "#999" }}>No units assigned</span>
-              )}
-            </div>
-            <Form form={unitForm} layout="vertical">
-              <Form.Item
-                name="newUnit"
-                label={
-                  <>
-                    <BookOutlined style={{ marginRight: 4 }} />
-                    Assign New Unit
-                  </>
-                }
-                rules={[{ required: true, message: "Please select a unit" }]}
+  title={
+    <>
+      Assigned Units for{" "}
+      {selectedLecturerForUnits &&
+        `${selectedLecturerForUnits.firstName} ${selectedLecturerForUnits.lastName}`}
+    </>
+  }
+  open={isUnitsModalVisible}
+  onCancel={() => setIsUnitsModalVisible(false)}
+  footer={[
+    <Button key="close" onClick={() => setIsUnitsModalVisible(false)}>
+      Close
+    </Button>,
+    <Button key="assign" type="primary" onClick={handleAssignUnit} loading={loading}>
+      Assign Unit
+    </Button>,
+  ]}
+>
+  {selectedLecturerForUnits && (
+    <>
+      <p><strong>Current Units:</strong></p>
+      <div style={{ marginBottom: 16 }}>
+        {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
+        selectedLecturerForUnits.assignedUnits.length > 0
+          ? selectedLecturerForUnits.assignedUnits.map((unit) => (
+              <span
+                key={unit._id}
+                style={{
+                  background: "#d9d9d9",
+                  padding: "4px 8px",
+                  marginRight: 4,
+                  borderRadius: 4,
+                  display: "inline-block",
+                }}
               >
-                <Select placeholder="Select a unit">
-                  {units
-                    .filter(
-                      (unit) =>
-                        !selectedLecturerForUnits.assignedUnits.some(
-                          (assignedUnit) => assignedUnit._id === unit._id
-                        )
-                    )
-                    .map((unit) => (
-                      <Option key={unit._id} value={unit._id}>
-                        {unit.name} – {unit.code}
-                      </Option>
-                    ))}
-                </Select>
-              </Form.Item>
-            </Form>
-          </>
-        )}
-      </Modal>
+                {unit.name || unit.code}
+              </span>
+            ))
+          : <span style={{ color: "#999" }}>No units assigned</span>}
+      </div>
+      <Form form={unitForm} layout="vertical">
+        <Form.Item
+          name="newUnit"
+          label={<><BookOutlined style={{ marginRight: 4 }} /> Assign New Unit</>}
+          rules={[{ required: true, message: "Please select a unit" }]}
+        >
+          <Select placeholder="Select a unit">
+            {units
+              .filter(
+                (unit) =>
+                  !selectedLecturerForUnits.assignedUnits.some(
+                    (assignedUnit) => assignedUnit._id === unit._id
+                  )
+              )
+              .map((unit) => (
+                <Option key={unit._id} value={unit._id}>
+                  {unit.name} – {unit.code}
+                </Option>
+              ))}
+          </Select>
+        </Form.Item>
+      </Form>
+    </>
+  )}
+</Modal>
+
     </Layout>
   );
 };

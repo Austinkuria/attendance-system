@@ -496,7 +496,7 @@ const createLecturer = async (req, res) => {
 const updateLecturer = async (req, res) => {
   try {
     const { id } = req.params;
-    const { firstName, lastName, email, department } = req.body;
+    const { firstName, lastName, email, department, assignedUnits } = req.body;
 
     // Check if lecturer exists
     const lecturer = await User.findById(id);
@@ -509,6 +509,11 @@ const updateLecturer = async (req, res) => {
     lecturer.lastName = lastName || lecturer.lastName;
     lecturer.email = email || lecturer.email;
     lecturer.department = department || lecturer.department;
+
+    // Update assigned units if provided
+    if (assignedUnits) {
+      lecturer.assignedUnits = assignedUnits;
+    }
 
     await lecturer.save();
 
