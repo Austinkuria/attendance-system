@@ -9,16 +9,20 @@ const userSchema = new mongoose.Schema({
   password: { type: String, required: true },
   year: {
     type: Number,
-    required: true,
     min: 1,
-    max: 4
-  },
+    max: 4,
+    required: function () {
+      return this.role === "student"; // Only required for students
+  }
+},
   semester: {
     type: Number,
-    required: true,
     min: 1,
-    max: 3
-  },
+    max: 3,
+    required: function () {
+      return this.role === "student"; // Only required for students
+  }
+},
   department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" }, // For admins
   course: { type: mongoose.Schema.Types.ObjectId, ref: "Course" }, // For students
   enrolledUnits: [{ type: mongoose.Schema.Types.ObjectId, ref: "Unit" }], // Students

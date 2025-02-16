@@ -480,6 +480,8 @@ const createLecturer = async (req, res) => {
       password: hashedPassword,
       department,
       role: "lecturer",
+      // year: null, // Set as null or a default value
+      // semester: null, // Set as null or a default value
     });
 
     await newLecturer.save();
