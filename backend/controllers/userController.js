@@ -379,7 +379,6 @@ const importStudents = async (req, res) => {
   }
 };
 
-module.exports = { importStudents };
 // Download students
 const downloadStudents = async (req, res) => {
   try {
@@ -470,5 +469,6 @@ module.exports = {
   downloadStudents, 
   registerUser, 
   getUserProfile, 
-  updateUserProfile 
+  updateUserProfile,
+  importStudents 
 };
