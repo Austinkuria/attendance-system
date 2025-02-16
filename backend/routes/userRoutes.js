@@ -2,7 +2,7 @@ const express = require("express");
 const { check } = require('express-validator');
 const {
   login,
-  // signup,
+  signup,
   registerUser,
   getUserProfile,
   updateUserProfile,
