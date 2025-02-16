@@ -28,14 +28,17 @@ const ResetPasswordRequest = () => {
       );
 
       setMessage(response.data.message || "Reset link sent successfully!");
-    } catch (err) {
-      setError(
-        err.response?.data?.message || "Something went wrong. Try again."
-      );
-    } finally {
-      setLoading(false);
-    }
+    } catch (error) {
+        console.error("Error in sendResetLink:", error);
+        setError(
+          error.response?.data?.message ||
+          "Something went wrong. Please try again."
+        );
+     }
+    finally {
+      setLoading(false);     
   };
+};
 
   return (
     <div className="reset-password-container">
