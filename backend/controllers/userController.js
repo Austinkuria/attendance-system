@@ -667,21 +667,18 @@ const sendResetLink = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    // Generate reset token and expiry
     const resetToken = crypto.randomBytes(32).toString("hex");
     user.resetPasswordToken = resetToken;
     user.resetPasswordExpires = Date.now() + 3600000; // 1 hour
     await user.save();
 
-    // Determine frontend URL
     const clientUrl =
       process.env.NODE_ENV === "production"
         ? process.env.CLIENT_URL_PROD
         : process.env.CLIENT_URL_DEV;
 
-    // Email content
     const mailOptions = {
-      from: process.env.EMAIL_USER,
+      from: process.env.SMTP_USER,
       to: user.email,
       subject: "Password Reset",
       html: `<p>Click <a href="${clientUrl}/reset-password/${resetToken}">here</a> to reset your password.</p>`,
