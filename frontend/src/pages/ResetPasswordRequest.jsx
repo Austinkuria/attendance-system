@@ -16,28 +16,29 @@ const ResetPasswordRequest = () => {
       setError("Please enter a valid email address.");
       return;
     }
-
+  
     setLoading(true);
     setError(null);
     setMessage(null);
-
+  
     try {
-        const response = await axios.post(
-          `${import.meta.env.VITE_API_URL}/auth/reset-password`,
-          { email }
-        );
-        setMessage(response.data.message || "Reset link sent successfully!");
-      } catch (error) {
-        console.error("Error sending reset link:", error);
-        setError(
-          error.response?.data?.message ||
-          "Something went wrong. Please try again."
-        );
-      } finally {
-        setLoading(false);
-      }
-      
-};
+      const response = await axios.post(
+        `${import.meta.env.VITE_API_URL}/auth/reset-password`,
+        { email }
+      );
+  
+      setMessage(response.data.message || "Reset link sent successfully!");
+    } catch (error) {
+      console.error("Error sending reset link:", error);
+      setError(
+        error.response?.data?.message ||
+        "Something went wrong. Please try again."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   return (
     <div className="reset-password-container">
