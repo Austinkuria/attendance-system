@@ -15,7 +15,7 @@ const { login, signup, getStudents, getLecturers, downloadStudents, deleteStuden
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
-
+const rateLimit = require('express-rate-limit');
 router.use('/', userRoutes);
 router.use('/students', studentRoutes);
 
@@ -58,7 +58,11 @@ router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), delet
 router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
-router.post("/auth/reset-password",sendResetLink);
-router.put("/auth/reset-password/:token",resetPassword);
+const resetPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 requests per windowMs
+});
+router.post("/auth/reset-password", resetPasswordLimiter, sendResetLink);
+router.put("/auth/reset-password/:token",resetPassword);	router.put("/auth/reset-password/:token",resetPassword);
   
 module.exports = router;
