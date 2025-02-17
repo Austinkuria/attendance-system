@@ -17,6 +17,11 @@ const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = req
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
 const rateLimit = require('express-rate-limit');
 
+const authRateLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 100, // limit each IP to 100 requests per windowMs
+});
+
 router.use('/students', studentRoutes);
 
 // User routes
@@ -33,10 +38,10 @@ router.use("/course", courseRoutes);
 router.use("/unit", unitRoutes);
 
 // Attendance routes
-router.use("/attendance/", authenticate, attendanceRoutes);
+router.use("/attendance/", authRateLimiter, authenticate, attendanceRoutes);
 
 // Session routes
-router.use("/sessions", authenticate, sessionRoutes);
+router.use("/sessions", authRateLimiter, authenticate, sessionRoutes);
 
 router.use('/', userRoutes);
 // Students
