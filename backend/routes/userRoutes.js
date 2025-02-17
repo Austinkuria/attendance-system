@@ -57,7 +57,7 @@ router.post("/auth/signup", [
   // .matches(/[@$!%*?&]/)
   // .withMessage("Password must contain at least one special character (@$!%*?&)"),
   check("email").isEmail().withMessage("Enter a valid email address(e.g., example@domain.com"),
-], registerUser,signup);
+],signup);
 
 // Profile routes
 router.get("/users/profile", authenticate, getUserProfile);
