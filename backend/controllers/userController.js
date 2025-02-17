@@ -45,36 +45,30 @@ const login = async (req, res) => {
 
 // Signup API
 const signup = async (req, res) => {
-  const { firstName, lastName, email, password, role } = req.body;
-
-  // Check validation results
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
   try {
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
-      return res.status(400).json({ message: 'Email already in use' });
+    const { firstName, lastName, email, password, role, year, semester, course } = req.body;
+
+    // Ensure year and semester are provided for students
+    if (role === "student" && (!year || !semester)) {
+      return res.status(400).json({ message: "Year and semester are required for students." });
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
+    // Creating the new user object
     const newUser = new User({
       firstName,
       lastName,
       email,
-      password: hashedPassword,
+      password, // Consider hashing before saving
       role,
+      ...(role === "student" && { year, semester, course }), // Only include if student
+      // ...(role === "admin" && { department }), // Only include if admin
     });
 
     await newUser.save();
-
-    res.status(201).json({ message: 'User created successfully' });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Signup Error:", error);
+    res.status(500).json({ message: "Signup failed", error: error.message });
   }
 };
 

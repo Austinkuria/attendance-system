@@ -16,7 +16,7 @@ const ResetPassword = () => {
   const [loading, setLoading] = useState(false);
 
   // Password strength validation
-  const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+  const passwordRegex = /^(?=.*[a-z])(?=.*\d)[a-z\d]{8,}$/;
 
   const validatePassword = () => {
     if (!password) return "Password cannot be empty.";
@@ -81,7 +81,7 @@ const ResetPassword = () => {
         <Form layout="vertical">
           <Form.Item 
             validateStatus={password && !passwordRegex.test(password) ? "error" : ""}
-            help={password && !passwordRegex.test(password) ? "Password must be at least 8 characters, with letters, numbers, and symbols." : ""}
+            help={password && !passwordRegex.test(password) ? "Password must be at least 8 characters long and contain at least one lowercase letter and one number." : ""}
           >
             <Input.Password
               prefix={<LockOutlined />}

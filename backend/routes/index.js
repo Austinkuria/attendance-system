@@ -16,7 +16,7 @@ const { createDepartment, getDepartments } = require("../controllers/departmentC
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
 const rateLimit = require('express-rate-limit');
-router.use('/', userRoutes);
+
 router.use('/students', studentRoutes);
 
 // User routes
@@ -38,6 +38,7 @@ router.use("/attendance/", authenticate, attendanceRoutes);
 // Session routes
 router.use("/sessions", authenticate, sessionRoutes);
 
+router.use('/', userRoutes);
 // Students
 router.get('/students', getStudents);
 
