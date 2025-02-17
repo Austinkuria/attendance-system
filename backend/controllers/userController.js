@@ -53,12 +53,14 @@ const signup = async (req, res) => {
       return res.status(400).json({ message: "Year and semester are required for students." });
     }
 
+    const hashedPassword = await bcrypt.hash(password, 10);
+
     // Creating the new user object
     const newUser = new User({
       firstName,
       lastName,
       email,
-      password, // Consider hashing before saving
+      password: hashedPassword,
       role,
       ...(role === "student" && { year, semester, course }), // Only include if student
       // ...(role === "admin" && { department }), // Only include if admin
