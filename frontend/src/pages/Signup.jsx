@@ -14,6 +14,8 @@ const Signup = () => {
 
   const onFinish = async (values) => {
     const { firstName, lastName, email, password, confirmPassword, role, year, semester } = values;
+    
+    // const hashedPassword = await bcrypt.hash(password, 10);
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");

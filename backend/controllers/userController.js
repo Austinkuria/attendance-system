@@ -692,10 +692,19 @@ const sendResetLink = async (req, res) => {
              style="background-color: #007bff; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
             Reset Password
           </a>
-          <p>This link will expire in 1 hour.</p>
+          <p>This link will expire in <em>1 hour<em>.</p>
           <p>If you did not request this, ignore this email. Your password will remain unchanged.</p>
+          <p><em>Note: Do not reply to this email.It is an auto-generated email</em></p>
           <p>Thank you,</p>
-          <p><strong>Smart QR Attendance System Team</strong></p>
+          <p><strong>Smart QR Code Attendance System Team</strong></p>
+          <div style="background-color: #f8f9fa; padding: 10px; margin-top: 20px;">
+            <p><strong>Smart QR Code Attendance System</strong></p>
+            <p>1234 Main Street, Kutus, Kenya</p>
+            <p><a href="mailto:kuriaaustin125@gmail.com">Email Us.</a></p>
+            <p><a href="tel:+254797561978">Call Us.</a></p>
+
+          </div>
+
         </div>
       `,
     };
