@@ -74,15 +74,6 @@ function App() {
     };
   }, []);
 
-  // Effect to handle service worker updates
-  useEffect(() => {
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        window.location.reload();
-      });
-    }
-  }, []);
-
   const handleCloseBanner = () => {
     setShowBanner(false);
   };
@@ -139,11 +130,11 @@ function App() {
           <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
           {/* Error routes */}
-          <Route path="*" element={<NotFound />} />
           <Route path="/401" element={<Unauthorized />} />
           <Route path="/403" element={<Forbidden />} />
           <Route path="/500" element={<ServerError />} />
           <Route path="/405" element={<MethodNotAllowed />} />
+          <Route path="*" element={<NotFound />} />
           {/* End of error routes */}
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
           <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />

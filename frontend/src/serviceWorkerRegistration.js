@@ -1,3 +1,5 @@
+// serviceWorkerRegistration.js
+
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
   window.location.hostname === '[::1]' ||
@@ -52,12 +54,12 @@ function checkValidServiceWorker(swUrl) {
         response.status === 404 ||
         response.headers.get('content-type').indexOf('javascript') === -1
       ) {
+        // If the service worker file is not found, unregister it
         navigator.serviceWorker.ready.then((registration) => {
-          registration.unregister().then(() => {
-            window.location.reload();
-          });
+          registration.unregister();
         });
       } else {
+        // Otherwise, register the service worker
         registerValidSW(swUrl);
       }
     })
