@@ -1,12 +1,7 @@
-// serviceWorkerRegistration.js
-
-// Check if service workers are supported
 const isLocalhost = Boolean(
   window.location.hostname === 'localhost' ||
   window.location.hostname === '[::1]' ||
-  window.location.hostname.match(
-    /^127(\.[0-9]{1,3}){3}$/
-  )
+  window.location.hostname.match(/^127(\.[0-9]{1,3}){3}$/)
 );
 
 export function register() {
@@ -34,14 +29,11 @@ function registerValidSW(swUrl) {
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              // New content is available; please refresh.
+              // New content is available; prompt the user to refresh
               console.log('New content is available; please refresh.');
-              // Optionally, you can prompt the user to refresh the page.
-              if (confirm('New content is available. Would you like to refresh?')) {
-                window.location.reload();
-              }
+              showUpdateNotification();
             } else {
-              // Content is cached for offline use.
+              // Content is cached for offline use
               console.log('Content is cached for offline use.');
             }
           }
@@ -79,5 +71,11 @@ export function unregister() {
     navigator.serviceWorker.ready.then((registration) => {
       registration.unregister();
     });
+  }
+}
+
+function showUpdateNotification() {
+  if (confirm('A new version of the app is available. Would you like to refresh to update?')) {
+    window.location.reload();
   }
 }

@@ -21,19 +21,19 @@ const InstallBanner = styled.div`
   padding: 16px;
   background: #ffffff;
   border-radius: 12px;
-  box-shadow: 0 8px 24px rgba(0,0,0,0.12);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
   display: flex;
   align-items: center;
   gap: 16px;
   animation: ${slideIn} 0.3s ease-out;
-  
+
   &.dismissing {
     animation: ${fadeOut} 0.2s ease-in forwards;
   }
 
   @media (max-width: 768px) {
     bottom: 0;
-    top: auto;  /* Ensures it doesn't remain at the top */
+    top: auto;
     right: 0;
     left: 0;
     border-radius: 0;
@@ -47,32 +47,33 @@ const InstallButton = () => {
   const [dismissed, setDismissed] = useState(
     localStorage.getItem('installPromptDismissed') === 'true'
   );
-  
+
   const deferredPrompt = useRef(null);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
-      console.log("beforeinstallprompt event fired");
+      console.log('beforeinstallprompt event fired');
       if (dismissed) return;
-      
+
       event.preventDefault();
       deferredPrompt.current = event;
-      
+
+      // Show the banner after a short delay
       setTimeout(() => {
         setInstallable(true);
       }, 3000);
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-    
+
     window.addEventListener('appinstalled', () => {
+      console.log('App installed');
       setInstallable(false);
       localStorage.setItem('installPromptDismissed', 'true');
     });
 
     return () => {
       window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
-      deferredPrompt.current = null;
     };
   }, [dismissed]);
 
@@ -91,14 +92,17 @@ const InstallButton = () => {
     try {
       await deferredPrompt.current.prompt();
       const { outcome } = await deferredPrompt.current.userChoice;
-      
+
       if (outcome === 'accepted') {
+        console.log('User accepted the install prompt');
         localStorage.setItem('installPromptDismissed', 'true');
+      } else {
+        console.log('User dismissed the install prompt');
       }
     } catch (error) {
       console.error('Installation failed:', error);
     }
-    
+
     deferredPrompt.current = null;
     handleDismiss();
   };

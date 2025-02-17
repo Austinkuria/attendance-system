@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react-swc';
 import { VitePWA } from 'vite-plugin-pwa';
 import envCompatible from 'vite-plugin-env-compatible';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -42,7 +41,28 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        clientsClaim: true, // Ensures the new service worker takes control immediately
+        skipWaiting: true, // Skips the waiting phase and activates the new service worker immediately
+        runtimeCaching: [
+          {
+            urlPattern: ({ request }) => request.destination === 'document',
+            handler: 'NetworkFirst', // Always try to fetch fresh content from the network
+            options: {
+              cacheName: 'html-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+              },
+            },
+          },
+        ],
+      },
+      registerType: 'autoUpdate', // Automatically updates the service worker
+      devOptions: {
+        enabled: true, // Enable PWA in development mode
+      },
     }),
-    envCompatible(), // Enable process.env compatible environment variables
+    envCompatible(),
   ],
 });

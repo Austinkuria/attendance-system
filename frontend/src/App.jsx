@@ -15,7 +15,6 @@ import ManageCourses from "./pages/ManageCourses";
 import ManageLecturers from "./pages/ManageLecturers";
 import StudentProfile from "./pages/profiles/StudentProfile";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import InstallButton from './components/InstallButton';
 import BackToTop from "./components/BackToTop";
 import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/Analytics";
@@ -34,10 +33,10 @@ import AdminSettings from "./pages/settings/AdminSettings";
 import StudentSettings from "./pages/settings/StudentSettings";
 import ResetPasswordRequest from "./pages/ResetPasswordRequest";
 import ResetPassword from "./pages/ResetPassword";
+import InstallButton from './components/InstallButton';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // Initialize showBanner to true if online (to display banner on first load) or false otherwise.
   const [showBanner, setShowBanner] = useState(false);
 
   // Effect to auto-hide the banner on initial load if online.
@@ -49,6 +48,7 @@ function App() {
     }
   }, []);
 
+  // Effect to handle online/offline status
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
@@ -74,6 +74,15 @@ function App() {
     };
   }, []);
 
+  // Effect to handle service worker updates
+  useEffect(() => {
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        window.location.reload();
+      });
+    }
+  }, []);
+
   const handleCloseBanner = () => {
     setShowBanner(false);
   };
@@ -81,8 +90,8 @@ function App() {
   return (
     <Router>
       <ToastContainer />
-      <InstallButton />
       <BackToTop />
+      <InstallButton /> {/* Add the InstallButton here */}
 
       {/* Connectivity Banner */}
       {showBanner && (
@@ -129,18 +138,18 @@ function App() {
           <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
           <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          {/* error routes */}
+          {/* Error routes */}
           <Route path="*" element={<NotFound />} />
           <Route path="/401" element={<Unauthorized />} />
           <Route path="/403" element={<Forbidden />} />
           <Route path="/500" element={<ServerError />} />
           <Route path="/405" element={<MethodNotAllowed />} />
-          {/* end */}
+          {/* End of error routes */}
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
-          <Route path="/lecturer/profile" element={<ProtectedRoute>< LecturerProfile /></ProtectedRoute>} />
-          <Route path="/Lecturer/settings" element={<ProtectedRoute><LecturerSettings/></ProtectedRoute>} />
+          <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
+          <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
-          <Route path="/admin/settings" element ={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
@@ -150,7 +159,7 @@ function App() {
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
+          <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
           <Route path="/qr-scanner/:unitId" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>
       </div>
