@@ -62,7 +62,7 @@ const Login = () => {
             name="email"
             rules={[
               { required: true, message: 'Please enter your email!' },
-              { type: 'email', message: 'Enter a valid email address (e.g., example@domain.com)!' },
+              // { type: 'email', message: 'Enter a valid email address (e.g., example@domain.com)!' },
               { pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, message: 'Enter a valid email format (e.g., user@example.com)!' }
             ]}            
           >
