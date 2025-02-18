@@ -1,4 +1,5 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
+
 import {
   Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col,
   // Badge,
@@ -66,27 +67,28 @@ const AttendanceManagement = () => {
     fetchDepartments();
   }, []);
 
-  // Automatic session detection
-  useEffect(() => {
-    const checkCurrentSession = async () => {
-      try {
-        setLoading(prev => ({ ...prev, session: true }));
-        const { data } = await detectCurrentSession(lecturerId);
-        if (data) {
-          setCurrentSession(data);
-          setQrData(data.qrToken);
-        }
-      } catch {
-        message.error('Failed to detect current session');
-      } finally {
-        setLoading(prev => ({ ...prev, session: false }));
+  // Manual session detection
+  const checkCurrentSession = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, session: true }));
+      const { data } = await detectCurrentSession(lecturerId);
+      if (data) {
+        setCurrentSession(data);
+        setQrData(data.qrToken);
       }
-    };
-
-    const interval = setInterval(checkCurrentSession, 30000);
-    checkCurrentSession();
-    return () => clearInterval(interval);
+    } catch {
+      message.error('Failed to detect current session');
+    } finally {
+      setLoading(prev => ({ ...prev, session: false }));
+    }
   }, [lecturerId]);
+
+
+  // Check session on component mount
+  useEffect(() => {
+    checkCurrentSession();
+  }, [lecturerId]);
+
 
   // Existing filter options calculation
   const filterOptions = useMemo(() => {
@@ -837,7 +839,17 @@ const AttendanceManagement = () => {
       <Modal
         title="Class QR Code"
         open={isQRModalOpen}
-        onCancel={() => setIsQRModalOpen(false)}
+        onCancel={() => {
+          Modal.confirm({
+            title: 'Are you sure you want to close?',
+            content: 'The QR code will no longer be accessible.',
+            okText: 'Yes',
+            cancelText: 'No',
+            onOk() {
+              setIsQRModalOpen(false);
+            }
+          });
+        }}
         footer={[
           <Button
             key="copy"
@@ -849,13 +861,25 @@ const AttendanceManagement = () => {
           >
             Copy QR Data
           </Button>,
-          <Button key="close" onClick={() => setIsQRModalOpen(false)}>
+          <Button key="close" onClick={() => {
+            Modal.confirm({
+              title: 'Are you sure you want to close?',
+              content: 'The QR code will no longer be accessible.',
+              okText: 'Yes',
+              cancelText: 'No',
+              onOk() {
+                setIsQRModalOpen(false);
+              }
+            });
+          }}>
             Close
           </Button>,
         ]}
         centered
         destroyOnClose
+        maskClosable={false}
       >
+
         <div style={{ textAlign: 'center', padding: 24 }}>
           {qrData ? (
             <>
