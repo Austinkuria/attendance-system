@@ -811,6 +811,7 @@ const resetPassword = async (req, res) => {
     console.error("Error resetting password:", error);
     res.status(500).json({ message: "An error occurred. Please try again later." });
   }
+};
 
 module.exports = { 
   login, 
