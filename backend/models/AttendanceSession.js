@@ -6,6 +6,8 @@ const attendanceSchema = new mongoose.Schema({
   qrCode: String,
   startTime: Date,
   endTime: Date,
+  ended: { type: Boolean, default: false },
+
   attendance: [{
     student: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     timestamp: Date,

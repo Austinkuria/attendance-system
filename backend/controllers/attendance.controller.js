@@ -154,18 +154,18 @@ exports.markStudentAttendance = async (req, res) => {
     try {
       // Remove the data URL prefix if present
       const base64Data = qrCode.replace(/^data:image\/\w+;base64,/, '');
-      
+
       // Decode the base64 data
       const decodedData = Buffer.from(base64Data, 'base64').toString();
-      
+
       // Parse the JSON data
       qrData = JSON.parse(decodedData);
-      
+
       // Validate QR code data structure
       if (!qrData || !qrData.s || !qrData.u || !qrData.t) {
         throw new Error('Invalid QR code data structure');
       }
-      
+
       // Validate timestamp (QR code must be less than 5 minutes old)
       const currentTime = Math.floor(Date.now() / 1000);
       if (currentTime - qrData.t > 300) {
@@ -175,14 +175,14 @@ exports.markStudentAttendance = async (req, res) => {
 
     } catch (error) {
       console.error('QR code processing error:', error);
-      return res.status(400).json({ 
-        message: 'Invalid QR code: ' + error.message 
+      return res.status(400).json({
+        message: 'Invalid QR code: ' + error.message
       });
     }
 
 
     // Find the session associated with the QR code
-    const session = await Session.findOne({ 
+    const session = await Session.findOne({
       _id: qrData.s,
       unit: qrData.u,
       ended: false
@@ -192,8 +192,8 @@ exports.markStudentAttendance = async (req, res) => {
 
     if (!session) {
       console.error('Session not found for QR code:', qrData);
-      return res.status(404).json({ 
-        message: 'Invalid or expired QR code. Session not found' 
+      return res.status(404).json({
+        message: 'Invalid or expired QR code. Session not found'
       });
     }
 
@@ -219,16 +219,16 @@ exports.markStudentAttendance = async (req, res) => {
 
     await newAttendance.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: 'Attendance marked successfully',
       attendance: newAttendance
     });
 
   } catch (error) {
     console.error('Attendance marking error:', error);
-    res.status(500).json({ 
+    res.status(500).json({
       message: 'Error marking attendance: ' + error.message,
-      error: error.stack 
+      error: error.stack
     });
   }
 
