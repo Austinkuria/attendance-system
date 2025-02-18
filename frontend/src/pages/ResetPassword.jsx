@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
 import { Card, Input, Button, Typography, Alert, Form, Progress, theme } from "antd";
@@ -51,7 +51,9 @@ const ResetPassword = () => {
     try {
       const response = await axios.put(
         `${import.meta.env.VITE_API_URL}/auth/reset-password/${token}`,
-        { newPassword: values.password }
+        { password: values.password },
+        { withCredentials: true }
+
       );
 
       setMessage({
@@ -61,13 +63,19 @@ const ResetPassword = () => {
 
       setTimeout(() => navigate("/auth/login"), 3000);
     } catch (err) {
-      console.error("Password reset error:", err);
+      console.error("Password reset error:", err.response?.data || err.message);
       setError(err.response?.data?.message || "Invalid or expired reset token. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
+  useEffect(() => {
+    if (!token) {
+      navigate("/auth/request-reset");
+    }
+  }, [token, navigate]);
+  
   return (
     <div style={{ 
       minHeight: "100vh",

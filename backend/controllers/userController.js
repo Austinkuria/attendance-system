@@ -667,12 +667,10 @@ const sendResetLink = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = await bcrypt.hash(resetToken, 10);
 
-    if (!user.resetPasswordToken || new Date(user.resetPasswordExpires) < new Date()) {
-      const resetToken = crypto.randomBytes(32).toString("hex");
-      user.resetPasswordToken = await bcrypt.hash(resetToken, 10);
-      user.resetPasswordExpires = Date.now() + 3600000;
-      await user.save();
-    }
+    // Store hashed token and expiry
+    user.resetPasswordToken = hashedToken;
+    user.resetPasswordExpires = Date.now() + 3600000; // Expires in 1 hour
+    await user.save();
     console.log("Stored token:", user.resetPasswordToken);
     console.log("Stored expiry:", new Date(user.resetPasswordExpires));
     console.log("Current time:", new Date());
@@ -781,58 +779,38 @@ const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    // Validate new password
     if (!newPassword || newPassword.length < 8) {
       return res.status(400).json({ message: "Password must be at least 8 characters long" });
     }
 
-    // Validate token
-    if (!token || typeof token !== 'string') {
-      return res.status(400).json({ message: "Invalid reset token" });
-    }
-
-    // Find user by reset token
     const user = await User.findOne({
       resetPasswordToken: { $exists: true },
-      resetPasswordExpires: { $gt: Date.now() }
+      resetPasswordExpires: { $gt: Date.now() },
     });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
-    // Compare tokens
     const isTokenValid = await bcrypt.compare(token, user.resetPasswordToken);
     if (!isTokenValid) {
       return res.status(400).json({ message: "Invalid reset token" });
-    }
-
-    console.log("Token validation successful for user:", user.email);
-    
-
-    // Check if token is expired
-    if (!user.resetPasswordExpires || user.resetPasswordExpires < Date.now()) {
-      return res.status(400).json({ message: "Reset token has expired" });
     }
 
     // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update user password and remove reset token fields
-    await User.updateOne(
-      { _id: user._id },
-      {
-        $set: { password: hashedPassword },
-        $unset: { resetPasswordToken: "", resetPasswordExpires: "" },
-      }
-    );
+    user.password = hashedPassword;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
 
     res.json({ message: "Password successfully reset" });
   } catch (error) {
     console.error("Error resetting password:", error);
     res.status(500).json({ message: "An error occurred. Please try again later." });
   }
-};
 
 module.exports = { 
   login, 
