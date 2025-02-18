@@ -361,22 +361,44 @@ const AttendanceManagement = () => {
     try {
       setLoading(prev => ({ ...prev, session: true }));
       const token = localStorage.getItem('token');
-      await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/end', {
-        sessionId: currentSession._id
-      }, {
-        headers: { 'Authorization': `Bearer ${token}` }
+      
+      // Confirm before ending session
+      Modal.confirm({
+        title: 'Are you sure you want to end this session?',
+        content: 'This action cannot be undone.',
+        okText: 'End Session',
+        okType: 'danger',
+        cancelText: 'Cancel',
+        onOk: async () => {
+          try {
+            await axios.delete(
+              'https://attendance-system-w70n.onrender.com/api/sessions/end', 
+              { data: { sessionId: currentSession._id },
+              headers: { 'Authorization': `Bearer ${token}` } }
+            );
+
+            
+            message.success('Session ended successfully');
+            // Mark session as ended and clear QR data
+            setCurrentSession(prev => ({ ...prev, ended: true }));
+            setQrData('');
+
+            // Refresh attendance data
+            handleViewAttendance();
+          } catch (error) {
+            message.error(error.response?.data?.message || 'Failed to end session');
+          } finally {
+            setLoading(prev => ({ ...prev, session: false }));
+          }
+        }
       });
-
-      message.success('Session ended successfully');
-      // Keep the session data for reference
-      setCurrentSession(prev => ({ ...prev, ended: true }));
-
-    } catch (error) {
-      message.error(error.response?.data?.message || 'Failed to end session');
-    } finally {
+    } catch {
+      message.error('An unexpected error occurred');
       setLoading(prev => ({ ...prev, session: false }));
     }
+
   };
+
 
   // Preserved attendance data fetching
   const handleViewAttendance = async () => {
@@ -641,10 +663,6 @@ const AttendanceManagement = () => {
                 End Session Early
               </Button>
             </Col>
-
-
-
-
           </Row>
         </Card>
       )}
@@ -862,6 +880,7 @@ const AttendanceManagement = () => {
       <Modal
         title="Class QR Code"
         open={isQRModalOpen}
+        centered
         onCancel={() => {
           Modal.confirm({
             title: 'Are you sure you want to close?',
@@ -898,7 +917,6 @@ const AttendanceManagement = () => {
             Close
           </Button>,
         ]}
-        centered
         destroyOnClose
         maskClosable={false}
       >

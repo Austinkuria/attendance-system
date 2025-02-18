@@ -759,13 +759,13 @@ export const detectCurrentSession = () => {
   });
 };
 
-export const endCurrentSession = () => {
-  return axios.patch(`${API_URL}/sessions/current`, {
-    action: 'end'
-  }, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-  });
-};
+// export const endCurrentSession = () => {
+//   return axios.patch(`${API_URL}/sessions/current`, {
+//     action: 'end'
+//   }, {
+//     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+//   });
+// };
 
 // Function to mark student attendance
 export const markStudentAttendance = async (unitId, qrCode, token) => {

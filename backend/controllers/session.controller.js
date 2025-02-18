@@ -11,49 +11,20 @@ exports.detectCurrentSession = async (req, res) => {
     if (!currentSession) {
       return res.status(404).json({ message: 'No current session found' });
     }
-    
+
     // Generate QR code for the current session
     const qrCode = await generateQRToken(currentSession);
     const sessionWithQR = {
       ...currentSession.toObject(),
       qrCode
     };
-    
+
     res.json(sessionWithQR);
 
   } catch (error) {
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
 };
-
-// exports.createAttendanceSession = async (req, res) => {
-//   try {
-//     const { unitId, lecturerId, startTime, endTime } = req.body;
-
-//     // Ensure startTime and endTime are valid dates
-//     const start = new Date(startTime);
-//     const end = new Date(endTime);
-
-//     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-//       return res.status(400).json({ message: 'Invalid startTime or endTime' });
-//     }
-
-//     // Create a new session in the database
-//     const session = new Session({
-//       unit: unitId,
-//       lecturer: lecturerId,
-//       startTime: start,
-//       endTime: end,
-//       qrCode: generateQRToken(), // Generate the QR token
-//     });
-
-//     await session.save();
-
-//     res.status(201).json({ message: 'Session created successfully', session });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error creating session', error: error.message });
-//   }
-// };
 
 exports.createAttendanceSession = async (req, res) => {
   try {
@@ -79,8 +50,8 @@ exports.createAttendanceSession = async (req, res) => {
     session.qrCode = await generateQRToken(session);
     await session.save();
 
-    res.status(201).json({ 
-      message: 'Session created successfully', 
+    res.status(201).json({
+      message: 'Session created successfully',
       session,
       qrCode: session.qrCode
     });
@@ -90,27 +61,23 @@ exports.createAttendanceSession = async (req, res) => {
   }
 };
 
-// exports.createAttendanceSession = async (req, res) => {
-//   try {
-//     const { unitId, duration } = req.body;
-//     const lecturerId = req.user.id; // Get the lecturer's ID from the authenticated user
+// New function to end a session
+exports.endSession = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
 
-//     const startTime = new Date();
-//     const endTime = new Date(startTime.getTime() + duration * 60000); // Calculate end time based on duration
+    // Find the session by ID
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: 'Session not found' });
+    }
 
-//     // Create a new session in the database
-//     const session = new Session({
-//       unit: unitId,
-//       lecturer: lecturerId,
-//       startTime,
-//       endTime,
-//       qrToken: generateQRToken(), // Generate the QR token
-//     });
+    // Mark the session as ended
+    session.ended = true; // Assuming there's an 'ended' field in the model
+    await session.save();
 
-//     await session.save();
-
-//     res.status(201).json({ message: 'Session created successfully', session });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error creating session', error: error.message });
-//   }
-// };
+    res.status(200).json({ message: 'Session ended successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Error ending session', error: error.message });
+  }
+};
