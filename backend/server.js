@@ -59,14 +59,23 @@ app.use(cors({
     "https://attendance-system-w70n.onrender.com"
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
   credentials: true,
   exposedHeaders: ["Content-Length", "Authorization"]
 }));
 
 // Handle preflight requests
-app.options('*', cors());
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
+  res.header("Access-Control-Allow-Credentials", "true");
 
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204); // No Content for preflight
+  }
+  next();
+});
 
 app.use(morgan("dev"));
 app.use(helmet());
