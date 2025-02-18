@@ -87,7 +87,8 @@ const AttendanceManagement = () => {
   // Check session on component mount
   useEffect(() => {
     checkCurrentSession();
-  }, [lecturerId]);
+  }, [lecturerId, checkCurrentSession]);
+
 
 
   // Existing filter options calculation
@@ -213,16 +214,18 @@ const AttendanceManagement = () => {
   }, [filteredUnits, selectedUnit]);
 
   // Existing statistics calculation
-  const { totalAssignedUnits, attendanceRate, totalEnrolledStudents } = useMemo(() => {
+  const totalAssignedUnits = useMemo(() => units.length, [units]);
+  
+  const { attendanceRate, totalEnrolledStudents } = useMemo(() => {
     const presentCount = attendance.filter(a => a.status === 'present').length;
     const totalStudents = attendance.length || 1;
     return {
-      totalAssignedUnits: units.length,
       attendanceRate: totalStudents > 0 ?
         Number(((presentCount / totalStudents) * 100).toFixed(1)) : 0,
       totalEnrolledStudents: attendance.length
     };
-  }, [units, attendance]);
+  }, [attendance]);
+
 
   // Original attendance processing
   const processedAttendance = useMemo(() => {
