@@ -11,7 +11,16 @@ exports.detectCurrentSession = async (req, res) => {
     if (!currentSession) {
       return res.status(404).json({ message: 'No current session found' });
     }
-    res.json(currentSession);
+    
+    // Generate QR code for the current session
+    const qrCode = await generateQRToken(currentSession);
+    const sessionWithQR = {
+      ...currentSession.toObject(),
+      qrCode
+    };
+    
+    res.json(sessionWithQR);
+
   } catch (error) {
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
@@ -63,16 +72,19 @@ exports.createAttendanceSession = async (req, res) => {
       unit: unitId,
       lecturer: lecturerId,
       startTime: start,
-      endTime: end,
-      qrCode: generateQRToken(), // Generate the QR token
+      endTime: end
     });
 
+    // Generate QR code and save it with the session
+    session.qrCode = await generateQRToken(session);
     await session.save();
 
-    // Generate a base64-encoded QR code image
-    const qrImage = await QRCode.toDataURL(session.qrCode);
+    res.status(201).json({ 
+      message: 'Session created successfully', 
+      session,
+      qrCode: session.qrCode
+    });
 
-    res.status(201).json({ message: 'Session created successfully', session, qrCode: qrImage });
   } catch (error) {
     res.status(500).json({ message: 'Error creating session', error: error.message });
   }
