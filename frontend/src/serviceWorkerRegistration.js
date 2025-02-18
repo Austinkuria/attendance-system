@@ -1,66 +1,81 @@
-// serviceWorkerRegistration.js
+export function register(config) {
+  const isProduction = import.meta.env.MODE === 'production';
+  if (isProduction && 'serviceWorker' in navigator) {
+    const publicUrl = new URL(import.meta.env.BASE_URL, window.location.href);
+    if (publicUrl.origin !== window.location.origin) {
+      return;
+    }
 
-const isLocalhost = Boolean(
-  window.location.hostname === 'localhost' ||
-  window.location.hostname === '[::1]' ||
-  window.location.hostname.match(/^127(\.[0-9]{1,3}){3}$/)
-);
 
-export function register() {
-  if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      const swUrl = `${window.location.origin}/sw.js`;
+      const swUrl = `${import.meta.env.BASE_URL}/service-worker.js`;
+
 
       if (isLocalhost) {
-        checkValidServiceWorker(swUrl);
+        checkValidServiceWorker(swUrl, config);
       } else {
-        registerValidSW(swUrl);
+        registerValidSW(swUrl, config);
       }
     });
   }
 }
 
-function registerValidSW(swUrl) {
+function registerValidSW(swUrl, config) {
   navigator.serviceWorker
     .register(swUrl)
-    .then((registration) => {
-      console.log('Service Worker registered:', registration);
-
+    .then(registration => {
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
+        if (installingWorker == null) {
+          return;
+        }
+        
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              // New content is available; prompt the user to refresh
-              console.log('New content is available; please refresh.');
-              showUpdateNotification();
+              console.log(
+                'New content is available and will be used when all ' +
+                  'tabs for this page are closed. See https://cra.link/PWA.'
+              );
+
+              if (config && config.onUpdate) {
+                config.onUpdate(registration);
+              }
             } else {
-              // Content is cached for offline use
               console.log('Content is cached for offline use.');
+
+              if (config && config.onSuccess) {
+                config.onSuccess(registration);
+              }
             }
           }
         };
       };
     })
-    .catch((error) => {
-      console.error('Service Worker registration failed:', error);
+    .catch(error => {
+      if (error.name === 'InvalidStateError') {
+        console.log('Service worker already active. Skipping registration.');
+        return;
+      }
+      console.error('Error during service worker registration:', error);
     });
 }
 
-function checkValidServiceWorker(swUrl) {
+function checkValidServiceWorker(swUrl, config) {
   fetch(swUrl)
-    .then((response) => {
+    .then(response => {
+      const contentType = response.headers.get('content-type');
       if (
         response.status === 404 ||
-        response.headers.get('content-type').indexOf('javascript') === -1
+        (contentType != null && contentType.indexOf('javascript') === -1)
       ) {
-        // If the service worker file is not found, unregister it
-        navigator.serviceWorker.ready.then((registration) => {
-          registration.unregister();
+        navigator.serviceWorker.ready.then(registration => {
+          registration.unregister().then(() => {
+            window.location.reload();
+          });
         });
       } else {
-        // Otherwise, register the service worker
-        registerValidSW(swUrl);
+        registerValidSW(swUrl, config);
       }
     })
     .catch(() => {
@@ -70,14 +85,16 @@ function checkValidServiceWorker(swUrl) {
 
 export function unregister() {
   if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((registration) => {
+    navigator.serviceWorker.ready.then(registration => {
       registration.unregister();
     });
   }
 }
 
-function showUpdateNotification() {
-  if (confirm('A new version of the app is available. Would you like to refresh to update?')) {
-    window.location.reload();
-  }
-}
+const isLocalhost = Boolean(
+  window.location.hostname === 'localhost' ||
+    window.location.hostname === '[::1]' ||
+    window.location.hostname.match(
+      /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
+    )
+);

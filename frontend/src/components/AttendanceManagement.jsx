@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 
 import {
-  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col,
-  // Badge,
-  // Alert
+  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col
 } from 'antd';
+
+
 import {
   QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined
 } from '@ant-design/icons';
@@ -19,6 +19,7 @@ import {
 const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { Title, Text } = Typography;
+
 
 const AttendanceManagement = () => {
   const screens = useBreakpoint();
@@ -197,8 +198,15 @@ const AttendanceManagement = () => {
         endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour session
       });
       message.success('Session created successfully');
-      setCurrentSession(data);
-      setQrData(data.qrToken); // Optional: you can generate the QR for this session too
+      // Ensure dates are properly parsed
+      const sessionData = {
+        ...data,
+        startTime: new Date(data.startTime),
+        endTime: new Date(data.endTime)
+      };
+      setCurrentSession(sessionData);
+      setQrData(data.qrToken);
+
     } catch {
       message.error('Failed to create session');
     } finally {
@@ -215,7 +223,7 @@ const AttendanceManagement = () => {
 
   // Existing statistics calculation
   const totalAssignedUnits = useMemo(() => units.length, [units]);
-  
+
   const { attendanceRate, totalEnrolledStudents } = useMemo(() => {
     const presentCount = attendance.filter(a => a.status === 'present').length;
     const totalStudents = attendance.length || 1;
@@ -415,17 +423,25 @@ const AttendanceManagement = () => {
 
 
   const formatSessionTime = (session) => {
-    if (!session) return '';
-    const options = {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true
-    };
-    return `
-    ${new Date(session.startTime).toLocaleTimeString([], options)} - 
-    ${new Date(session.endTime).toLocaleTimeString([], options)}
-  `;
+    if (!session || !session.startTime || !session.endTime) return '';
+    try {
+      const options = {
+        hour: 'numeric',
+        minute: '2-digit',
+        hour12: true
+      };
+      const startTime = new Date(session.startTime);
+      const endTime = new Date(session.endTime);
+      return `
+      ${startTime.toLocaleTimeString([], options)} - 
+      ${endTime.toLocaleTimeString([], options)}
+    `;
+    } catch (error) {
+      console.error('Error formatting session time:', error);
+      return '';
+    }
   };
+
 
   // Preserved filter clearing
   const clearFilters = () => {
@@ -625,6 +641,10 @@ const AttendanceManagement = () => {
                 End Session Early
               </Button>
             </Col>
+
+
+
+
           </Row>
         </Card>
       )}
