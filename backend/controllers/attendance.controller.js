@@ -152,42 +152,26 @@ exports.markStudentAttendance = async (req, res) => {
     // Decode the QR code
     let qrData;
     try {
-      // Decode the QR code from base64 image
-      const decodedData = await new Promise((resolve, reject) => {
-        // Remove the data URL prefix if present
-        const base64Data = qrCode.replace(/^data:image\/\w+;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-        
-        // Use QRCode's image decoder
-        QRCode.toDataURL(buffer, (err, url) => {
-          if (err) {
-            console.error('QR code decoding error:', err);
-            return reject(new Error('Invalid QR code format'));
-          }
-          // Extract the actual data from the URL
-          const qrContent = url.split(',')[1];
-          try {
-            // Parse the extracted data as JSON
-            const parsedData = JSON.parse(Buffer.from(qrContent, 'base64').toString());
-            resolve(parsedData);
-          } catch (parseError) {
-            console.error('QR code data parsing error:', parseError);
-            reject(new Error('Invalid QR code data format'));
-          }
-        });
-      });
-
-
-
-      // Parse the decoded data
+      // Remove the data URL prefix if present
+      const base64Data = qrCode.replace(/^data:image\/\w+;base64,/, '');
+      
+      // Decode the base64 data
+      const decodedData = Buffer.from(base64Data, 'base64').toString();
+      
+      // Parse the JSON data
       qrData = JSON.parse(decodedData);
-
       
       // Validate QR code data structure
-      if (!qrData || !qrData.sessionId || !qrData.unitId) {
-        console.error('Invalid QR code data structure:', qrData);
+      if (!qrData || !qrData.s || !qrData.u || !qrData.t) {
         throw new Error('Invalid QR code data structure');
       }
+      
+      // Validate timestamp (QR code must be less than 5 minutes old)
+      const currentTime = Math.floor(Date.now() / 1000);
+      if (currentTime - qrData.t > 300) {
+        throw new Error('QR code has expired');
+      }
+
 
     } catch (error) {
       console.error('QR code processing error:', error);
@@ -199,12 +183,11 @@ exports.markStudentAttendance = async (req, res) => {
 
     // Find the session associated with the QR code
     const session = await Session.findOne({ 
-      _id: qrData.sessionId,
-      unit: unitId,
-      ended: false,
-      startTime: { $lte: new Date() },
-      endTime: { $gte: new Date() }
+      _id: qrData.s,
+      unit: qrData.u,
+      ended: false
     });
+
 
 
     if (!session) {
