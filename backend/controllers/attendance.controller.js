@@ -141,16 +141,57 @@ exports.markAttendance = async (req, res) => {
 // markStudentAttendance function
 exports.markStudentAttendance = async (req, res) => {
   try {
-    const { studentId, unitId, attendanceDate } = req.body;
+    const { unitId, qrCode } = req.body;
+    const studentId = req.user.id; // Get student ID from authenticated user
+
+    // Validate input
+    if (!unitId || !qrCode) {
+      return res.status(400).json({ message: 'Unit ID and QR code are required' });
+    }
+
+    // Find the session associated with the QR code
+    const session = await Session.findOne({ 
+      qrCode,
+      unit: unitId,
+      ended: false,
+      startTime: { $lte: new Date() },
+      endTime: { $gte: new Date() }
+    });
+
+    if (!session) {
+      return res.status(404).json({ message: 'Invalid or expired QR code' });
+    }
+
+    // Check if attendance is already marked
+    const existingAttendance = await AttendanceSession.findOne({
+      session: session._id,
+      student: studentId
+    });
+
+    if (existingAttendance) {
+      return res.status(400).json({ message: 'Attendance already marked' });
+    }
+
+    // Create new attendance record
     const newAttendance = new AttendanceSession({
+      session: session._id,
       student: studentId,
       unit: unitId,
-      attendanceDate,
+      status: 'present',
+      timestamp: new Date()
     });
+
     await newAttendance.save();
-    res.status(201).json({ message: 'Attendance marked successfully', data: newAttendance });
-  }
-  catch (error) {
-    res.status(500).json({ error: error.message });
+
+    res.status(200).json({ 
+      message: 'Attendance marked successfully',
+      attendance: newAttendance
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Error marking attendance', 
+      error: error.message 
+    });
   }
 }
