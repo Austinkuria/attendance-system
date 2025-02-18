@@ -667,9 +667,15 @@ const sendResetLink = async (req, res) => {
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = await bcrypt.hash(resetToken, 10);
 
-    user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // Token valid for 1 hour
-    await user.save();
+    if (!user.resetPasswordToken || new Date(user.resetPasswordExpires) < new Date()) {
+      const resetToken = crypto.randomBytes(32).toString("hex");
+      user.resetPasswordToken = await bcrypt.hash(resetToken, 10);
+      user.resetPasswordExpires = Date.now() + 3600000;
+      await user.save();
+    }
+    console.log("Stored token:", user.resetPasswordToken);
+    console.log("Stored expiry:", new Date(user.resetPasswordExpires));
+    console.log("Current time:", new Date());
 
     const clientUrl =
       process.env.NODE_ENV === "production"
@@ -781,11 +787,12 @@ const resetPassword = async (req, res) => {
     }
 
     // Find user by reset token
-    const user = await User.findOne({ resetPasswordToken: token });
+    const user = await User.findOne({ resetPasswordToken: { $exists: true } });
 
-    if (!user) {
+    if (!user || !(await bcrypt.compare(token, user.resetPasswordToken))) {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
+    
 
     // Check if token is expired
     if (!user.resetPasswordExpires || user.resetPasswordExpires < Date.now()) {
