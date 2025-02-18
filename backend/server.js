@@ -29,6 +29,12 @@ app.use(express.json({ limit: "10mb" }));
 //     origin: ["http://localhost:5173", "https://attendance-system-w70n.onrender.com", "https://qr-attendance-system2.vercel.app"],
 //     credentials: true
 // }));
+// Add CORS logging middleware
+app.use((req, res, next) => {
+  console.log(`Incoming request from origin: ${req.headers.origin}`);
+  next();
+});
+
 app.use(cors({
   origin: [
     "https://attendance-system123.vercel.app",
@@ -37,7 +43,8 @@ app.use(cors({
   ],
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
-  credentials: true
+  credentials: true,
+  exposedHeaders: ["Content-Length", "Authorization"]
 }));
 
 // Handle preflight requests
