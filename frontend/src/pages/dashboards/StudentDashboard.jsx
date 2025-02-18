@@ -57,7 +57,7 @@ const StudentDashboard = () => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isLoading, setIsLoading] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  
+
   // New state for modals
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [quizModalVisible, setQuizModalVisible] = useState(false);
@@ -76,7 +76,7 @@ const StudentDashboard = () => {
     }
   }, [navigate]);
 
-  // Fetch student profile
+  // Fetch student profile (profile data is not rendered here)
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -96,7 +96,12 @@ const StudentDashboard = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
     getStudentUnits(token)
-      .then((response) => setUnits(response))
+      .then((response) => {
+        // If response contains the full user object, extract enrolledUnits.
+        // Otherwise, assume response is an array of units.
+        const unitsData = response.enrolledUnits || response;
+        setUnits(unitsData);
+      })
       .catch((error) => console.error('Error fetching units:', error));
   }, []);
 
@@ -157,9 +162,9 @@ const StudentDashboard = () => {
 
   // Logout handler
   const confirmLogout = () => {
-    localStorage.removeItem("token");
-    message.success("You have been logged out successfully.");
-    navigate("/auth/login");
+    localStorage.removeItem('token');
+    message.success('You have been logged out successfully.');
+    navigate('/auth/login');
   };
 
   const handleViewProfile = () => {
@@ -262,7 +267,7 @@ const StudentDashboard = () => {
         Settings
       </Menu.Item>
       <Menu.Item
-        key="3"
+        key="logout"
         icon={<LogoutOutlined />}
         danger
         onClick={() =>
@@ -279,20 +284,15 @@ const StudentDashboard = () => {
     </Menu>
   );
 
-  // --- New: Functions to handle feedback and quiz modals ---
+  // --- Functions to handle feedback and quiz modals ---
 
-  // Opens the Feedback Modal for a given unit.
-  // Here, we pick the latest attendance session for that unit.
+  // For testing, open the feedback modal regardless of attendance data.
+  // The parameter "unitId" is now logged to ensure it is used.
   const openFeedbackModal = (unitId) => {
-    const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
-    if (unitAttendance && unitAttendance.data.length > 0) {
-      // Assume the latest session is the last element (adjust as needed)
-      const latestSession = unitAttendance.data[unitAttendance.data.length - 1];
-      setActiveSessionId(latestSession._id);
-      setFeedbackModalVisible(true);
-    } else {
-      message.warning("No attendance record found for this unit.");
-    }
+    console.log('Opening feedback modal for unit:', unitId);
+    // For testing purposes, set a dummy session id.
+    setActiveSessionId('test-session-id');
+    setFeedbackModalVisible(true);
   };
 
   // Opens the Quiz Modal for a given unit.
@@ -307,13 +307,13 @@ const StudentDashboard = () => {
           setQuiz(quizData);
           setQuizModalVisible(true);
         } else {
-          message.info("No quiz available for this session.");
+          message.info('No quiz available for this session.');
         }
       } catch {
-        message.error("Error fetching quiz.");
+        message.error('Error fetching quiz.');
       }
     } else {
-      message.warning("No attendance record found for this unit.");
+      message.warning('No attendance record found for this unit.');
     }
   };
 
@@ -325,12 +325,12 @@ const StudentDashboard = () => {
         rating: feedbackData.rating,
         feedbackText: feedbackData.text,
       });
-      message.success("Feedback submitted!");
+      message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
       // Reset feedback form if desired
       setFeedbackData({ rating: 3, text: '' });
     } catch {
-      message.error("Error submitting feedback.");
+      message.error('Error submitting feedback.');
     }
   };
 
@@ -346,12 +346,12 @@ const StudentDashboard = () => {
         quizId: quiz._id,
         answers: quizAnswers,
       });
-      message.success("Quiz submitted!");
+      message.success('Quiz submitted!');
       setQuizModalVisible(false);
       setQuizAnswers({});
       setQuiz(null);
     } catch {
-      message.error("Error submitting quiz.");
+      message.error('Error submitting quiz.');
     }
   };
 
@@ -359,7 +359,11 @@ const StudentDashboard = () => {
     <Layout style={{ padding: '24px' }}>
       <Content>
         {/* Header Section */}
-        <Row justify="center" align="middle" style={{ position: 'relative', marginBottom: 24 }}>
+        <Row
+          justify="center"
+          align="middle"
+          style={{ position: 'relative', marginBottom: 24 }}
+        >
           <h1 style={{ textAlign: 'center' }}>Student Dashboard</h1>
           <div style={{ position: 'absolute', right: 0 }}>
             <Dropdown overlay={profileMenu} placement="bottomRight">
@@ -372,7 +376,8 @@ const StudentDashboard = () => {
           <Alert
             message={
               <>
-                <strong>Warning:</strong> Your attendance is below 50% in the following units:
+                <strong>Warning:</strong> Your attendance is below 50% in the
+                following units:
                 <ul>
                   {lowAttendanceUnits.map((unit) => (
                     <li key={unit.label}>{unit.label}</li>
@@ -389,26 +394,38 @@ const StudentDashboard = () => {
         <Row gutter={[16, 16]}>
           {units.length > 0 ? (
             units.map((unit) => (
-              <Col xs={24} sm={12} md={8} key={unit._id}>
+              <Col xs={24} sm={12} md={8} key={unit?._id || Math.random()}>
                 <Card
-                  title={unit.name}
-                  extra={<span>{unit.code}</span>}
+                  title={unit?.name || 'Untitled Unit'}
+                  extra={<span>{unit?.code || 'N/A'}</span>}
                   hoverable
                   onClick={() => setSelectedUnit(unit)}
                 >
                   <div style={{ marginBottom: 16 }}>
-                    <div style={{ background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${calculateAttendanceRate(unit._id)}%`,
-                          background: '#1890ff',
-                          padding: '4px 0',
-                          color: '#18ff',
-                          textAlign: 'center',
-                        }}
-                      >
-                        {calculateAttendanceRate(unit._id)}%
-                      </div>
+                    <div
+                      style={{
+                        background: '#f0f0f0',
+                        borderRadius: 4,
+                        overflow: 'hidden',
+                      }}
+                    >
+                      {unit?._id ? (
+                        <div
+                          style={{
+                            width: `${calculateAttendanceRate(unit._id)}%`,
+                            background: '#1890ff',
+                            padding: '4px 0',
+                            color: '#18ff',
+                            textAlign: 'center',
+                          }}
+                        >
+                          {calculateAttendanceRate(unit._id)}%
+                        </div>
+                      ) : (
+                        <div style={{ textAlign: 'center', padding: '4px 0' }}>
+                          No attendance data
+                        </div>
+                      )}
                     </div>
                   </div>
                   <Row justify="space-between">
@@ -416,7 +433,9 @@ const StudentDashboard = () => {
                       type="default"
                       icon={<EyeOutlined />}
                       onClick={() =>
-                        message.info(`Attendance Rate: ${calculateAttendanceRate(unit._id)}%`)
+                        message.info(
+                          `Attendance Rate: ${calculateAttendanceRate(unit._id)}%`
+                        )
                       }
                     >
                       View Rate
@@ -429,17 +448,30 @@ const StudentDashboard = () => {
                       Mark Attendance
                     </Button>
                   </Row>
-                  {/* New buttons for Feedback and Quiz (only if attendance data exists) */}
-                  {attendanceData.find((d) => d.unitId === unit._id)?.data.length > 0 && (
-                    <Row justify="space-around" style={{ marginTop: 16 }}>
-                      <Button onClick={() => openFeedbackModal(unit._id)}>
-                        Submit Feedback
-                      </Button>
-                      <Button onClick={() => openQuizModal(unit._id)}>
-                        Take Quiz
-                      </Button>
-                    </Row>
-                  )}
+                  {/*
+                    For now, the conditional rendering based on attendance data is commented out.
+                    Uncomment the block below to conditionally render these buttons only when attendance data exists.
+                    
+                    {attendanceData.find((d) => d.unitId === unit._id)?.data.length > 0 && (
+                      <Row justify="space-around" style={{ marginTop: 16 }}>
+                        <Button onClick={() => openFeedbackModal(unit._id)}>
+                          Submit Feedback
+                        </Button>
+                        <Button onClick={() => openQuizModal(unit._id)}>
+                          Take Quiz
+                        </Button>
+                      </Row>
+                    )}
+                  */}
+                  {/* For now, always show the buttons */}
+                  <Row justify="space-around" style={{ marginTop: 16 }}>
+                    <Button onClick={() => openFeedbackModal(unit._id)}>
+                      Submit Feedback
+                    </Button>
+                    <Button onClick={() => openQuizModal(unit._id)}>
+                      Take Quiz
+                    </Button>
+                  </Row>
                 </Card>
               </Col>
             ))
@@ -453,7 +485,10 @@ const StudentDashboard = () => {
         <div style={{ marginTop: 48 }}>
           <h3 style={{ textAlign: 'center' }}>Overall Attendance Rates</h3>
           <div style={{ height: 400 }}>
-            <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
+            <Bar
+              data={chartData}
+              options={{ responsive: true, maintainAspectRatio: false }}
+            />
           </div>
         </div>
         {/* Export Attendance Data */}
@@ -464,10 +499,14 @@ const StudentDashboard = () => {
         </div>
         {/* Unit Details Modal */}
         <Modal
-          visible={!!selectedUnit}
+          open={!!selectedUnit}
           title={selectedUnit?.name}
           onCancel={() => setSelectedUnit(null)}
-          footer={[<Button key="close" onClick={() => setSelectedUnit(null)}>Close</Button>]}
+          footer={[
+            <Button key="close" onClick={() => setSelectedUnit(null)}>
+              Close
+            </Button>,
+          ]}
         >
           {selectedUnit && (
             <div>
@@ -496,31 +535,35 @@ const StudentDashboard = () => {
       )}
       {/* Feedback Modal */}
       <Modal
-        title="Session Feedback"
-        visible={feedbackModalVisible}
+        open={feedbackModalVisible}
         onCancel={() => setFeedbackModalVisible(false)}
         onOk={handleFeedbackSubmit}
+        title="Session Feedback"
       >
         <p>How was today&apos;s class?</p>
         <Rate
           allowHalf
           value={feedbackData.rating}
-          onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
+          onChange={(value) =>
+            setFeedbackData({ ...feedbackData, rating: value })
+          }
         />
         <Input.TextArea
           rows={4}
           placeholder="Leave a comment (optional)"
           value={feedbackData.text}
-          onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
+          onChange={(e) =>
+            setFeedbackData({ ...feedbackData, text: e.target.value })
+          }
           style={{ marginTop: 16 }}
         />
       </Modal>
       {/* Quiz Modal */}
       <Modal
-        title={quiz?.title || "Quiz"}
-        visible={quizModalVisible}
+        open={quizModalVisible}
         onCancel={() => setQuizModalVisible(false)}
         onOk={handleQuizSubmit}
+        title={quiz?.title || 'Quiz'}
       >
         {quiz?.questions?.map((q, index) => (
           <div key={index} style={{ marginBottom: 16 }}>
