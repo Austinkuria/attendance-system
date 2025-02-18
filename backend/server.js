@@ -25,11 +25,11 @@ if (!fs.existsSync(uploadDir)) {
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
-// app.use(cors({
-//     origin: ["http://localhost:5173", "https://attendance-system-w70n.onrender.com", "https://qr-attendance-system2.vercel.app"],
-//     credentials: true
-// }));
-app.use(cors({ origin: "*", credentials: true }));
+app.use(cors({
+    origin: ["http://localhost:5173", "https://attendance-system-w70n.onrender.com", "https://attendance-system123.vercel.app/"],
+    credentials: true
+}));
+// app.use(cors({ origin: "*", credentials: true }));
 
 
 app.use(morgan("dev"));
