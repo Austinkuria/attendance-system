@@ -153,7 +153,7 @@ exports.markStudentAttendance = async (req, res) => {
     let qrData;
     try {
       const decodedData = await new Promise((resolve, reject) => {
-        QRCode.toDataURL(qrCode, (err, decoded) => {
+        QRCode.decode(qrCode, (err, decoded) => {
           if (err) {
             console.error('QR code decoding error:', err);
             return reject(new Error('Invalid QR code format'));
@@ -164,11 +164,14 @@ exports.markStudentAttendance = async (req, res) => {
 
       // Parse the decoded data
       qrData = JSON.parse(decodedData);
+
       
       // Validate QR code data structure
       if (!qrData || !qrData.sessionId || !qrData.unitId) {
+        console.error('Invalid QR code data structure:', qrData);
         throw new Error('Invalid QR code data structure');
       }
+
     } catch (error) {
       console.error('QR code processing error:', error);
       return res.status(400).json({ 
