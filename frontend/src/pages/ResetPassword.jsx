@@ -1,39 +1,49 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import axios from "axios";
-import { Card, Input, Button, Typography, Alert, Form } from "antd";
-import { LockOutlined } from "@ant-design/icons";
+import { Card, Input, Button, Typography, Alert, Form, Progress, theme } from "antd";
+import { LockOutlined, ArrowLeftOutlined } from "@ant-design/icons";
+import styled from "styled-components";
 
 const { Title, Text } = Typography;
+const { useToken } = theme;
+
+const StyledCard = styled(Card)`
+  max-width: 440px;
+  margin: 40px auto;
+  border-radius: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  
+  .ant-card-body {
+    padding: 40px;
+  }
+`;
+
+const PasswordStrength = styled.div`
+  margin: -12px 0 16px;
+`;
 
 const ResetPassword = () => {
   const { token } = useParams();
+  const { token: themeToken } = useToken();
   const navigate = useNavigate();
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [form] = Form.useForm();
   const [error, setError] = useState(null);
   const [message, setMessage] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [strength, setStrength] = useState(0);
 
-  // Password strength validation
-  const passwordRegex = /^(?=.*[a-z])(?=.*\d)[a-z\d]{8,}$/;
-
-  const validatePassword = () => {
-    if (!password) return "Password cannot be empty.";
-    if (!passwordRegex.test(password)) {
-      return "Password must be at least 8 characters, with letters, numbers, and symbols.";
-    }
-    if (password !== confirmPassword) return "Passwords do not match.";
-    return null;
+  const calculateStrength = (password) => {
+    let score = 0;
+    if (password.length >= 8) score += 1;
+    if (password.match(/[A-Z]/)) score += 1;
+    if (password.match(/[a-z]/)) score += 1;
+    if (password.match(/[0-9]/)) score += 1;
+    if (password.match(/[\W]/)) score += 1;
+    return (score / 5) * 100;
   };
 
-  const handleResetPassword = async () => {
-    const validationError = validatePassword();
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
+  const handleSubmit = async (values) => {
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -41,97 +51,162 @@ const ResetPassword = () => {
     try {
       const response = await axios.put(
         `${import.meta.env.VITE_API_URL}/auth/reset-password/${token}`,
-        { token, newPassword: password }
+        { newPassword: values.password }
       );
 
-      setMessage(response.data.message || "Password reset successfully! Redirecting...");
-      setPassword("");
-      setConfirmPassword("");
+      setMessage({
+        title: "Password Updated!",
+        content: response.data.message || "Redirecting to login page..."
+      });
 
       setTimeout(() => navigate("/auth/login"), 3000);
     } catch (err) {
       console.error("Password reset error:", err);
-      setError(err.response?.data?.message || "Invalid or expired reset token. Try again.");
+      setError(err.response?.data?.message || "Invalid or expired reset token. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="reset-password-container" style={{ padding: "20px" }}>
-      <Card
-        className="reset-password-card"
-        bordered={false}
-        style={{
-          maxWidth: "400px",
-          margin: "0 auto",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.1)",
-          borderRadius: "8px",
-          padding: "20px"
-        }}
-      >
-        <Title level={2} style={{ textAlign: "center" }}>Set New Password</Title>
-        <Text style={{ display: "block", marginBottom: "15px", textAlign: "center" }}>
-          Ensure your password is strong and unique.
+    <div style={{ 
+      minHeight: "100vh",
+      display: "flex",
+      alignItems: "center",
+      background: themeToken.colorBgContainer 
+    }}>
+      <StyledCard>
+        <Button 
+          type="text" 
+          icon={<ArrowLeftOutlined />} 
+          onClick={() => navigate("/auth/login")}
+          style={{ marginBottom: 24 }}
+        />
+
+        <Title level={3} style={{ textAlign: "center", marginBottom: 8 }}>
+          Create New Password
+        </Title>
+        <Text type="secondary" style={{ display: "block", textAlign: "center", marginBottom: 32 }}>
+          Your new password must be different from previous passwords
         </Text>
 
-        {error && <Alert message={error} type="error" showIcon style={{ marginBottom: "15px" }} />}
-        {message && <Alert message={message} type="success" showIcon style={{ marginBottom: "15px" }} />}
+        {error && (
+          <Alert 
+            message={error}
+            type="error" 
+            showIcon
+            closable
+            style={{ marginBottom: 24 }}
+          />
+        )}
 
-        <Form layout="vertical">
-          <Form.Item 
-            validateStatus={password && !passwordRegex.test(password) ? "error" : ""}
-            help={password && !passwordRegex.test(password) ? "Password must be at least 8 characters long and contain at least one lowercase letter and one number." : ""}
+        {message && (
+          <Alert
+            message={
+              <>
+                <div style={{ fontWeight: 500 }}>{message.title}</div>
+                <div>{message.content}</div>
+              </>
+            }
+            type="success"
+            showIcon
+            style={{ marginBottom: 24 }}
+          />
+        )}
+
+        <Form
+          form={form}
+          layout="vertical"
+          onFinish={handleSubmit}
+          disabled={loading}
+        >
+          <Form.Item
+            name="password"
+            rules={[
+              { required: true, message: 'Please input your password!' },
+              { min: 8, message: 'Password must be at least 8 characters' },
+              // { pattern: /[A-Z]/, message: 'Requires at least one uppercase letter' },
+              { pattern: /[a-z]/, message: 'Requires at least one lowercase letter' },
+              { pattern: /[0-9]/, message: 'Requires at least one number' }
+            ]}
           >
             <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="New Password"
+              prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary }} />}
+              placeholder="New password"
               size="large"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
+              autoFocus
+              onChange={(e) => setStrength(calculateStrength(e.target.value))}
             />
           </Form.Item>
 
-          <Form.Item 
-            validateStatus={password && password !== confirmPassword ? "error" : ""}
-            help={password && password !== confirmPassword ? "Passwords do not match." : ""}
+          <PasswordStrength>
+            <Progress
+              percent={strength}
+              showInfo={false}
+              strokeColor={
+                strength < 40 ? '#ff4d4f' :
+                strength < 70 ? '#faad14' : '#52c41a'
+              }
+            />
+            <Text type="secondary" style={{ fontSize: 12 }}>
+              Password strength: {
+                strength < 40 ? 'Weak' :
+                strength < 70 ? 'Medium' : 'Strong'
+              }
+            </Text>
+          </PasswordStrength>
+
+          <Form.Item
+            name="confirm"
+            dependencies={['password']}
+            rules={[
+              { required: true, message: 'Please confirm your password!' },
+              ({ getFieldValue }) => ({
+                validator(_, value) {
+                  if (!value || getFieldValue('password') === value) {
+                    return Promise.resolve();
+                  }
+                  return Promise.reject(new Error('Passwords do not match!'));
+                },
+              }),
+            ]}
           >
             <Input.Password
-              prefix={<LockOutlined />}
-              placeholder="Confirm New Password"
+              prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary }} />}
+              placeholder="Confirm password"
               size="large"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
             />
           </Form.Item>
 
-          <Form.Item>
+          <Form.Item style={{ marginTop: 32 }}>
             <Button
               type="primary"
+              htmlType="submit"
               size="large"
               block
-              onClick={handleResetPassword}
               loading={loading}
-              disabled={!!validatePassword()}
             >
               Reset Password
             </Button>
           </Form.Item>
-
-          <Button 
-            type="link" 
-            block
-            size="large"
-            onClick={() => navigate("/auth/login")}
-          >
-            Back to Login
-          </Button>
         </Form>
 
-        <Text type="secondary" style={{ fontSize: "12px", textAlign: "center", display: "block" }}>
-          After resetting, you&apos;ll be redirected to the login page.
-        </Text>
-      </Card>
+        <div style={{ 
+          textAlign: "center", 
+          marginTop: 24,
+          fontSize: themeToken.fontSizeSM,
+          color: themeToken.colorTextSecondary
+        }}>
+          Remember your password?{" "}
+          <Button 
+            type="link" 
+            onClick={() => navigate("/auth/login")}
+            style={{ padding: 0 }}
+          >
+            Login here
+          </Button>
+        </div>
+      </StyledCard>
     </div>
   );
 };
