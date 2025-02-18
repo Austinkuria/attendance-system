@@ -215,9 +215,11 @@ exports.markStudentAttendance = async (req, res) => {
       session: session._id,
       student: studentId,
       unit: unitId,
+      lecturer: session.lecturer,
       status: 'present',
       timestamp: new Date()
     });
+
 
     await newAttendance.save();
 
