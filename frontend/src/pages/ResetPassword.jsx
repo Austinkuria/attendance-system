@@ -44,31 +44,32 @@ const ResetPassword = () => {
   };
 
   const handleSubmit = async (values) => {
-    setLoading(true);
-    setError(null);
-    setMessage(null);
-
-    try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/auth/reset-password/${token}`,
-        { password: values.password },
-        { withCredentials: true }
-
-      );
-
-      setMessage({
-        title: "Password Updated!",
-        content: response.data.message || "Redirecting to login page..."
-      });
-
-      setTimeout(() => navigate("/auth/login"), 3000);
-    } catch (err) {
-      console.error("Password reset error:", err.response?.data || err.message);
-      setError(err.response?.data?.message || "Invalid or expired reset token. Please try again.");
-    } finally {
-      setLoading(false);
-    }
-  };
+      setLoading(true);
+      setError(null);
+      setMessage(null);
+  
+      const { password } = values;
+  
+      try {
+        const response = await axios.put(
+          `${import.meta.env.VITE_API_URL}/auth/reset-password/${token}`,
+          { token, newPassword: password }
+  
+        );
+  
+        setMessage({
+          title: "Password Updated!",
+          content: response.data.message || "Redirecting to login page..."
+        });
+  
+        setTimeout(() => navigate("/auth/login"), 3000);
+      } catch (err) {
+        console.error("Password reset error:", err.response?.data || err.message);
+        setError(err.response?.data?.message || "Invalid or expired reset token. Please try again.");
+      } finally {
+        setLoading(false);
+      }
+    };
 
   useEffect(() => {
     if (!token) {

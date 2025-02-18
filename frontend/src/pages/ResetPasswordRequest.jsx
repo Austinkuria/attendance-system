@@ -33,6 +33,7 @@ const SuccessMessage = styled.div`
 `;
 
 const ResetPasswordRequest = () => {
+  const [email, setEmail] = useState("");
   const { token } = useToken();
   const [form] = Form.useForm();
   const [message, setMessage] = useState(null);
@@ -40,7 +41,21 @@ const ResetPasswordRequest = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleResetRequest = async (values) => {
+  const handleEmailChange = (e) => {
+    const newEmail = e.target.value.trim();
+    setEmail(newEmail);
+
+    if (!newEmail) {
+      setError("Email field cannot be empty.");
+    } else if (!emailRegex.test(newEmail)) {
+      setError("Invalid email format (e.g. example@domain.com).");
+    } else {
+      setError(null);
+    }
+  };
+  const handleResetRequest = async () => {
+    if (error || !email) return;
+
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -48,7 +63,7 @@ const ResetPasswordRequest = () => {
     try {
       const response = await axios.post(
         `${import.meta.env.VITE_API_URL}/auth/reset-password`,
-        { email: values.email }
+        {email}
       );
 
       setMessage({
@@ -128,6 +143,8 @@ const ResetPasswordRequest = () => {
               { pattern: emailRegex, message: "Please enter a valid email address (e.g. example@domain.com)." }
             ]}
             validateTrigger="onBlur"
+            value={email}
+              onChange={handleEmailChange}
           >
             <Input
               prefix={<MailOutlined style={{ color: token.colorTextSecondary }} />}

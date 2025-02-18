@@ -663,14 +663,18 @@ const sendResetLink = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     // Generate Reset Token and Hash It
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = await bcrypt.hash(resetToken, 10);
 
-    // Store hashed token and expiry
     user.resetPasswordToken = hashedToken;
-    user.resetPasswordExpires = Date.now() + 3600000; // Expires in 1 hour
+    user.resetPasswordExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
+
     console.log("Stored token:", user.resetPasswordToken);
     console.log("Stored expiry:", new Date(user.resetPasswordExpires));
     console.log("Current time:", new Date());
@@ -779,22 +783,26 @@ const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    if (!newPassword || newPassword.length < 8) {
-      return res.status(400).json({ message: "Password must be at least 8 characters long" });
-    }
+    // Find user(s) with a reset token (hashed token cannot be directly searched)
+    const users = await User.find({ resetPasswordToken: { $exists: true } });
 
-    const user = await User.findOne({
-      resetPasswordToken: { $exists: true },
-      resetPasswordExpires: { $gt: Date.now() },
-    });
+    // Check if any user has the token (compare using bcrypt)
+    let user = null;
+    for (const u of users) {
+      const isMatch = await bcrypt.compare(token, u.resetPasswordToken);
+      if (isMatch) {
+        user = u;
+        break;
+      }
+    }
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
-    const isTokenValid = await bcrypt.compare(token, user.resetPasswordToken);
-    if (!isTokenValid) {
-      return res.status(400).json({ message: "Invalid reset token" });
+    // Check if token is expired
+    if (user.resetPasswordExpires < Date.now()) {
+      return res.status(400).json({ message: "Reset token has expired" });
     }
 
     // Hash the new password
@@ -804,12 +812,13 @@ const resetPassword = async (req, res) => {
     user.password = hashedPassword;
     user.resetPasswordToken = undefined;
     user.resetPasswordExpires = undefined;
+
     await user.save();
 
     res.json({ message: "Password successfully reset" });
   } catch (error) {
     console.error("Error resetting password:", error);
-    res.status(500).json({ message: "An error occurred. Please try again later." });
+    res.status(500).json({ message: "Server error", error });
   }
 };
 
