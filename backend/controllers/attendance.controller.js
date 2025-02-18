@@ -1,6 +1,8 @@
 const jwt = require('jsonwebtoken');
 const generateQRToken = require('../utils/session.utils');
 const Session = require('../models/AttendanceSession');
+const QRCode = require("qrcode");
+
 exports.submitAttendance = async (req, res) => {
   try {
     const deviceHash = req.deviceFingerprint; // Captured by middleware
@@ -45,8 +47,6 @@ exports.submitAttendance = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-const QRCode = require("qrcode");
 
 exports.generateQRCode = async (req, res) => {
   try {
@@ -139,8 +139,6 @@ exports.markAttendance = async (req, res) => {
 };
 
 // markStudentAttendance function
-const QRCode = require('qrcode');
-
 exports.markStudentAttendance = async (req, res) => {
   try {
     const { unitId, qrCode } = req.body;
