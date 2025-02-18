@@ -165,9 +165,18 @@ exports.markStudentAttendance = async (req, res) => {
             return reject(new Error('Invalid QR code format'));
           }
           // Extract the actual data from the URL
-          resolve(url.split(',')[1]);
+          const qrContent = url.split(',')[1];
+          try {
+            // Parse the extracted data as JSON
+            const parsedData = JSON.parse(Buffer.from(qrContent, 'base64').toString());
+            resolve(parsedData);
+          } catch (parseError) {
+            console.error('QR code data parsing error:', parseError);
+            reject(new Error('Invalid QR code data format'));
+          }
         });
       });
+
 
 
       // Parse the decoded data
