@@ -775,25 +775,20 @@ const resetPassword = async (req, res) => {
   try {
     const { token, newPassword } = req.body;
 
-    // Find user(s) with a reset token (hashed token cannot be directly searched)
-    const users = await User.find({ resetPasswordToken: { $exists: true } });
-
-    // Check if any user has the token (compare using bcrypt)
-    let user = null;
-    for (const u of users) {
-      const isMatch = await bcrypt.compare(token, u.resetPasswordToken);
-      if (isMatch) {
-        user = u;
-        break;
-      }
+    // Validate new password
+    if (!newPassword || newPassword.length < 8) {
+      return res.status(400).json({ message: "Password must be at least 8 characters long" });
     }
+
+    // Find user by reset token
+    const user = await User.findOne({ resetPasswordToken: token });
 
     if (!user) {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
     // Check if token is expired
-    if (user.resetPasswordExpires < Date.now()) {
+    if (!user.resetPasswordExpires || user.resetPasswordExpires < Date.now()) {
       return res.status(400).json({ message: "Reset token has expired" });
     }
 
@@ -801,16 +796,18 @@ const resetPassword = async (req, res) => {
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update user password and remove reset token fields
-    user.password = hashedPassword;
-    user.resetPasswordToken = undefined;
-    user.resetPasswordExpires = undefined;
-
-    await user.save();
+    await User.updateOne(
+      { _id: user._id },
+      {
+        $set: { password: hashedPassword },
+        $unset: { resetPasswordToken: "", resetPasswordExpires: "" },
+      }
+    );
 
     res.json({ message: "Password successfully reset" });
   } catch (error) {
     console.error("Error resetting password:", error);
-    res.status(500).json({ message: "Server error", error });
+    res.status(500).json({ message: "An error occurred. Please try again later." });
   }
 };
 
