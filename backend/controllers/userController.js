@@ -680,35 +680,87 @@ const sendResetLink = async (req, res) => {
 
     // Email Template
     const mailOptions = {
-      from: `"Smart QR Attendance System" <${process.env.SMTP_USER}>`,
+      from: `"Smart QR Code Attendance System" <${process.env.SMTP_USER}>`,
       to: user.email,
       subject: "Password Reset Request",
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Password Reset Request</h2>
-          <p>Hi ${user.firstName} ${user.lastName},</p>
-          <p>You requested to reset your password. Click the button below to proceed:</p>
-          <a href="${resetLink}" 
-             style="background-color: #007bff; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Reset Password
-          </a>
-          <p>This link will expire in <em>1 hour<em>.</p>
-          <p>If you did not request this, ignore this email. Your password will remain unchanged.</p>
-          <p><em>Note: Do not reply to this email.It is an auto-generated email</em></p>
-          <p>Thank you,</p>
-          <p><strong>Smart QR Code Attendance System Team</strong></p>
-          <div style="background-color: #f8f9fa; padding: 10px; margin-top: 20px;">
-            <p><strong>Smart QR Code Attendance System</strong></p>
-            <p>1234 Main Street, Kutus, Kenya</p>
-            <p><a href="mailto:kuriaaustin125@gmail.com">Email Us.</a></p>
-            <p><a href="tel:+254797561978">Call Us.</a></p>
-
+        <div style="max-width: 600px; margin: 0 auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333;">
+          <!-- Header Section -->
+          <div style="padding: 20px; background-color: #f8f9fa; border-bottom: 3px solid #007bff;">
+            <img src="[Your-Logo-URL]" alt="Company Logo" style="max-height: 40px; display: block; margin: 0 auto;">
           </div>
-
+    
+          <!-- Main Content -->
+          <div style="padding: 30px 20px; background-color: #ffffff;">
+            <h1 style="color: #2d3956; font-size: 24px; margin-bottom: 25px; text-align: center;">
+              Password Reset Request
+            </h1>
+    
+            <p style="margin-bottom: 15px; line-height: 1.6;">Hi ${user.firstName} ${user.lastName},</p>
+            <p style="margin-bottom: 20px; line-height: 1.6;">You requested to reset your password. Click the button below to set up a new password:</p>
+    
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" 
+                 style="background-color: #007bff; color: #ffffff; padding: 12px 30px; 
+                        text-decoration: none; border-radius: 25px; display: inline-block; 
+                        font-weight: 500; letter-spacing: 0.5px; transition: all 0.3s ease;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                Reset Password
+              </a>
+            </div>
+    
+            <!-- Details Section -->
+            <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px;">
+              <p style="margin: 0; color: #64748b; font-size: 14px;">
+                ⏳ Link expires in: <strong>1 hour</strong><br>
+                🔒 Not your request? Ignore this email
+              </p>
+            </div>
+    
+            <!-- Fallback Text -->
+            <p style="color: #94a3b8; font-size: 13px; margin: 20px 0;">
+              If the button doesn't work, copy and paste this link in your browser:<br>
+              <span style="color: #007bff; word-break: break-all;">${resetLink}</span>
+            </p>
+    
+            <!-- Thank You & Auto-Reply Notice -->
+            <div style="margin-top: 30px;">
+              <p style="margin: 0 0 15px 0; color: #2d3956; line-height: 1.6;">
+                Thank you for choosing Smart QR Code Attendance System.<br>
+                <strong>Best regards,</strong><br>
+                <span style="color: #007bff;">Customer Support Team</span>
+              </p>
+              
+              <p style="margin: 0; color: #64748b; font-size: 12px; font-style: italic;">
+                ⚠️ Please note: This is an automated message. Do not reply to this email. 
+                For assistance, please contact us using the information in the footer below.
+              </p>
+            </div>
+          </div>
+    
+          <!-- Footer -->
+          <div style="padding: 25px 20px; background-color: #2d3956; color: #ffffff; text-align: center;">
+            <div style="margin-bottom: 15px;">
+              <a href="https://attendance-system123.vercel.app/" style="color: #ffffff; text-decoration: none; font-weight: 500;">
+                Smart QR Code Attendance System
+              </a>
+            </div>
+            
+            <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+              <p style="margin: 5px 0;">12 Main Street, Kutus, Kenya</p>
+              <p style="margin: 5px 0;">
+                📧 <a href="mailto:kuriaaustin125@gmail.com" style="color: #cbd5e1; text-decoration: none;">Email Support</a> | 
+                📞 <a href="tel:+254797561978" style="color: #cbd5e1; text-decoration: none;">+254 797 561978</a>
+              </p>
+              <p style="margin: 15px 0 0; color: #94a3b8;">
+                © ${new Date().getFullYear()} Smart QR Code Attendance System. All rights reserved
+              </p>
+            </div>
+          </div>
         </div>
       `,
     };
-
     // Send Email
     await transporter.sendMail(mailOptions);
     res.json({ message: "Password reset link sent to your email." });
