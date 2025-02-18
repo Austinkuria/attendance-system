@@ -50,17 +50,7 @@ const AttendanceManagement = () => {
     semester: null
   });
 
-  // Device fingerprint generation
-  const getDeviceFingerprint = () => {
-    const deviceData = [
-      navigator.platform,
-      navigator.userAgent,
-      `${screen.width}x${screen.height}`,
-      new Date().getTimezoneOffset(),
-      navigator.hardwareConcurrency
-    ].join('|');
-    return btoa(unescape(encodeURIComponent(deviceData))).slice(0, 32);
-  };
+
 
   // Fetch departments
   useEffect(() => {
@@ -364,9 +354,10 @@ const AttendanceManagement = () => {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 
-      setCurrentSession(null);
-      setQrData('');
       message.success('Session ended successfully');
+      // Keep the session data for reference
+      setCurrentSession(prev => ({ ...prev, ended: true }));
+
     } catch (error) {
       message.error(error.response?.data?.message || 'Failed to end session');
     } finally {
@@ -415,12 +406,8 @@ const AttendanceManagement = () => {
     }
   };
 
-  // Add these validation helpers near the top of your component
-  const isSessionActive = (session) => {
-    if (!session) return false;
-    const now = new Date();
-    return new Date(session.startTime) < now && now < new Date(session.endTime);
-  };
+
+
 
   const formatSessionTime = (session) => {
     if (!session) return '';
@@ -603,7 +590,8 @@ const AttendanceManagement = () => {
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
       {/* Replace the current session card with this */}
-      {currentSession && isSessionActive(currentSession) && (
+      {currentSession && !currentSession.ended && (
+
         <Card
           title={
             <Space>
