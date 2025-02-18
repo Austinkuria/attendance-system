@@ -8,6 +8,9 @@ const routes = require("./routes/index");  // Import the combined routes
 dotenv.config();
 const app = express();
 
+// Configure Express to trust proxy headers
+app.set('trust proxy', true);
+
 const fs = require("fs");
 const path = require("path");
 
@@ -29,9 +32,23 @@ app.use(express.json({ limit: "10mb" }));
 //     origin: ["http://localhost:5173", "https://attendance-system-w70n.onrender.com", "https://qr-attendance-system2.vercel.app"],
 //     credentials: true
 // }));
-// Add CORS logging middleware
+// Add CORS logging and validation middleware
 app.use((req, res, next) => {
-  console.log(`Incoming request from origin: ${req.headers.origin}`);
+  const origin = req.headers.origin;
+  console.log(`Incoming request from origin: ${origin || 'undefined'}`);
+  
+  // Validate origin if present
+  if (origin && ![
+    "https://attendance-system123.vercel.app",
+    "http://localhost:5173",
+    "https://attendance-system-w70n.onrender.com"
+  ].includes(origin)) {
+    return res.status(403).json({ 
+      success: false,
+      message: "Origin not allowed"
+    });
+  }
+  
   next();
 });
 
