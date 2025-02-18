@@ -1,10 +1,9 @@
-// const express = require("express");
-// const { generateQR, scanQR, getAttendanceHistory, createAttendanceSession } = require("../controllers/attendance.controller");
-// const router = express.Router();
+const express = require('express');
+const router = express.Router();
+const attendanceController = require('../controllers/attendanceController');
+const authMiddleware = require('../middleware/authMiddleware');
 
-// router.post("/generateQR", generateQR); // Lecturer generates QR
-// router.post("/scan", scanQR); // Student scans QR
-// router.get("/history", getAttendanceHistory); // Get attendance records
-// router.post("/attendance", createAttendanceSession); // Create a new attendance session
+// Mark attendance via QR code
+router.post('/mark', authMiddleware, attendanceController.markAttendance);
 
-// module.exports = router;
+module.exports = router;

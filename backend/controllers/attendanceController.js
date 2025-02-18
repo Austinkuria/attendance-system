@@ -1,35 +1,59 @@
-// const AttendanceSession = require("../models/AttendanceSession");
+const Attendance = require('../models/Attendance');
+const Session = require('../models/AttendanceSession');
 
-// // Function to create a new attendance session
-// const createAttendanceSession = async (req, res) => {
-//     try {
-//         const { unit, lecturer, qrCode, startTime, endTime, attendance } = req.body;
+exports.markAttendance = async (req, res) => {
+  try {
+    const { unitId, qrCode } = req.body;
+    const studentId = req.user.id; // Assuming user ID is available in req.user
 
-//         // Validate incoming data
-//         if (!unit || !lecturer || !startTime || !endTime) {
-//             return res.status(400).json({ message: "Missing required fields" });
-//         }
+    // Validate input
+    if (!unitId || !qrCode) {
+      return res.status(400).json({ message: 'Unit ID and QR code are required' });
+    }
 
-//         // Create a new attendance session
-//         const newSession = new AttendanceSession({
-//             unit,
-//             lecturer,
-//             qrCode,
-//             startTime,
-//             endTime,
-//             attendance
-//         });
+    // Find the session associated with the QR code
+    const session = await Session.findOne({ 
+      qrCode,
+      unit: unitId,
+      ended: false,
+      startTime: { $lte: new Date() },
+      endTime: { $gte: new Date() }
+    });
 
-//         // Save the session to the database
-//         await newSession.save();
+    if (!session) {
+      return res.status(404).json({ message: 'Invalid or expired QR code' });
+    }
 
-//         return res.status(201).json({ message: "Attendance session created successfully", session: newSession });
-//     } catch (error) {
-//         return res.status(500).json({ message: "Error creating attendance session", error: error.message });
-//     }
-// };
+    // Check if attendance is already marked
+    const existingAttendance = await Attendance.findOne({
+      session: session._id,
+      student: studentId
+    });
 
-// module.exports = {
-//     createAttendanceSession,
-//     // other existing functions...
-// };
+    if (existingAttendance) {
+      return res.status(400).json({ message: 'Attendance already marked' });
+    }
+
+    // Create new attendance record
+    const newAttendance = new Attendance({
+      session: session._id,
+      student: studentId,
+      unit: unitId,
+      status: 'present',
+      timestamp: new Date()
+    });
+
+    await newAttendance.save();
+
+    res.status(200).json({ 
+      message: 'Attendance marked successfully',
+      attendance: newAttendance
+    });
+
+  } catch (error) {
+    res.status(500).json({ 
+      message: 'Error marking attendance', 
+      error: error.message 
+    });
+  }
+};
