@@ -152,15 +152,23 @@ exports.markStudentAttendance = async (req, res) => {
     // Decode the QR code
     let qrData;
     try {
+      // Decode the QR code from base64 image
       const decodedData = await new Promise((resolve, reject) => {
-        QRCode.decode(qrCode, (err, decoded) => {
+        // Remove the data URL prefix if present
+        const base64Data = qrCode.replace(/^data:image\/\w+;base64,/, '');
+        const buffer = Buffer.from(base64Data, 'base64');
+        
+        // Use QRCode's image decoder
+        QRCode.toDataURL(buffer, (err, url) => {
           if (err) {
             console.error('QR code decoding error:', err);
             return reject(new Error('Invalid QR code format'));
           }
-          resolve(decoded);
+          // Extract the actual data from the URL
+          resolve(url.split(',')[1]);
         });
       });
+
 
       // Parse the decoded data
       qrData = JSON.parse(decodedData);
