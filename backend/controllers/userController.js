@@ -786,12 +786,28 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Password must be at least 8 characters long" });
     }
 
-    // Find user by reset token
-    const user = await User.findOne({ resetPasswordToken: { $exists: true } });
+    // Validate token
+    if (!token || typeof token !== 'string') {
+      return res.status(400).json({ message: "Invalid reset token" });
+    }
 
-    if (!user || !(await bcrypt.compare(token, user.resetPasswordToken))) {
+    // Find user by reset token
+    const user = await User.findOne({
+      resetPasswordToken: { $exists: true },
+      resetPasswordExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
+
+    // Compare tokens
+    const isTokenValid = await bcrypt.compare(token, user.resetPasswordToken);
+    if (!isTokenValid) {
+      return res.status(400).json({ message: "Invalid reset token" });
+    }
+
+    console.log("Token validation successful for user:", user.email);
     
 
     // Check if token is expired
