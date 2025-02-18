@@ -49,7 +49,7 @@ const signup = async (req, res) => {
     const { firstName, lastName, email, password, role, year, semester, course } = req.body;
 
     // Check if email already exists
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email: { $eq: email } });
     if (existingUser) {
       return res.status(400).json({ 
         message: "Email already registered",
