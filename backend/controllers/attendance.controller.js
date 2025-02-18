@@ -150,15 +150,32 @@ exports.markStudentAttendance = async (req, res) => {
     }
 
     // Decode the QR code
-    const decodedData = await new Promise((resolve, reject) => {
-      QRCode.toDataURL(qrCode, (err, decoded) => {
-        if (err) reject(err);
-        resolve(decoded);
+    let qrData;
+    try {
+      const decodedData = await new Promise((resolve, reject) => {
+        QRCode.toDataURL(qrCode, (err, decoded) => {
+          if (err) {
+            console.error('QR code decoding error:', err);
+            return reject(new Error('Invalid QR code format'));
+          }
+          resolve(decoded);
+        });
       });
-    });
 
-    // Parse the decoded data
-    const qrData = JSON.parse(decodedData);
+      // Parse the decoded data
+      qrData = JSON.parse(decodedData);
+      
+      // Validate QR code data structure
+      if (!qrData || !qrData.sessionId || !qrData.unitId) {
+        throw new Error('Invalid QR code data structure');
+      }
+    } catch (error) {
+      console.error('QR code processing error:', error);
+      return res.status(400).json({ 
+        message: 'Invalid QR code: ' + error.message 
+      });
+    }
+
 
     // Find the session associated with the QR code
     const session = await Session.findOne({ 
@@ -171,8 +188,12 @@ exports.markStudentAttendance = async (req, res) => {
 
 
     if (!session) {
-      return res.status(404).json({ message: 'Invalid or expired QR code' });
+      console.error('Session not found for QR code:', qrData);
+      return res.status(404).json({ 
+        message: 'Invalid or expired QR code. Session not found' 
+      });
     }
+
 
     // Check if attendance is already marked
     const existingAttendance = await AttendanceSession.findOne({
@@ -201,9 +222,11 @@ exports.markStudentAttendance = async (req, res) => {
     });
 
   } catch (error) {
+    console.error('Attendance marking error:', error);
     res.status(500).json({ 
-      message: 'Error marking attendance', 
-      error: error.message 
+      message: 'Error marking attendance: ' + error.message,
+      error: error.stack 
     });
   }
+
 }
