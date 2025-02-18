@@ -52,7 +52,7 @@ const ResetPassword = () => {
       const response = await axios.put(
         `${import.meta.env.VITE_API_URL}/auth/reset-password/${token}`,
         { password: values.password },
-        { withCredentials: true }
+        // { withCredentials: true }
 
       );
 
