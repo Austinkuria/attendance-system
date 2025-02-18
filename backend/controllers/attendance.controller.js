@@ -139,6 +139,8 @@ exports.markAttendance = async (req, res) => {
 };
 
 // markStudentAttendance function
+const QRCode = require('qrcode');
+
 exports.markStudentAttendance = async (req, res) => {
   try {
     const { unitId, qrCode } = req.body;
@@ -149,14 +151,26 @@ exports.markStudentAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Unit ID and QR code are required' });
     }
 
+    // Decode the QR code
+    const decodedData = await new Promise((resolve, reject) => {
+      QRCode.toDataURL(qrCode, (err, decoded) => {
+        if (err) reject(err);
+        resolve(decoded);
+      });
+    });
+
+    // Parse the decoded data
+    const qrData = JSON.parse(decodedData);
+
     // Find the session associated with the QR code
     const session = await Session.findOne({ 
-      qrCode,
+      _id: qrData.sessionId,
       unit: unitId,
       ended: false,
       startTime: { $lte: new Date() },
       endTime: { $gte: new Date() }
     });
+
 
     if (!session) {
       return res.status(404).json({ message: 'Invalid or expired QR code' });
