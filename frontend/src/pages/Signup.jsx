@@ -57,8 +57,29 @@ const Signup = () => {
       }
     } catch (error) {
       console.error("Signup error:", error.response?.data);
-      setError(error.response?.data?.message || "Registration failed. Please try again.");
+      
+      // Handle structured error responses
+      if (error.response?.data?.errors) {
+        // Handle field-specific validation errors
+        const fieldErrors = error.response.data.errors.reduce((acc, err) => {
+          acc[err.field] = err.message;
+          return acc;
+        }, {});
+
+        // Set form errors for specific fields
+        form.setFields(Object.keys(fieldErrors).map(field => ({
+          name: field,
+          errors: [fieldErrors[field]]
+        })));
+
+        // Set general error message
+        setError("Please fix the errors in the form.");
+      } else {
+        // Handle other error types
+        setError(error.response?.data?.message || "Registration failed. Please try again.");
+      }
     } finally {
+
       setLoading(false);
     }
   };
@@ -71,10 +92,10 @@ const Signup = () => {
       background: themeToken.colorBgContainer 
     }}>
       <StyledCard>
-        <Title level={3} style={{ textAlign: "center", marginBottom: 8 , fontSize: "30px" }}>
+        <Title level={3} style={{ textAlign: "center", marginBottom: 8, fontSize: "24px" }}>
           Create New Account
         </Title>
-        <Text type="secondary" style={{ display: "block", textAlign: "center", marginBottom: 32 , fontSize: "20px" }}>
+        <Text type="secondary" style={{ display: "block", textAlign: "center", marginBottom: 32, fontSize: "16px" }}>
           Join our attendance management system
         </Text>
 
@@ -83,13 +104,17 @@ const Signup = () => {
             message={error}
             type="error"
             closable
-            onClose={() => setError(null)}
-            style={{ marginBottom: 24,fontSize: '16px'  }}
+            onClose={() => {
+              setError(null);
+              form.resetFields();
+            }}
+            style={{ marginBottom: 24, fontSize: "16px" }}
           />
         )}
 
+
         <Form form={form} layout="vertical" onFinish={onFinish} disabled={loading}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: "20px" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <Form.Item
               name="firstName"
               rules={[
@@ -99,9 +124,10 @@ const Signup = () => {
               ]}
             >
               <Input
-                prefix={<UserOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px'  }} />}
+                prefix={<UserOutlined style={{ color: themeToken.colorTextSecondary }} />}
                 placeholder="First name"
                 size="large"
+                style={{ fontSize: "16px" }}
               />
             </Form.Item>
 
@@ -114,9 +140,10 @@ const Signup = () => {
               ]}
             >
               <Input
-                prefix={<UserOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px'  }} />}
+                prefix={<UserOutlined style={{ color: themeToken.colorTextSecondary }} />}
                 placeholder="Last name"
                 size="large"
+                style={{ fontSize: "16px" }}
               />
             </Form.Item>
           </div>
@@ -124,57 +151,60 @@ const Signup = () => {
           <Form.Item
             name="email"
             rules={[
-              { required: true, message: 'Please enter your email!' },
+              { required: true, message: "Please enter your email!" },
               { 
                 pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 
-                message: 'Enter a valid email format (e.g., user@example.com)!' 
+                message: "Enter a valid email format (e.g., user@example.com)!" 
               }
             ]}
           >
             <Input
-              prefix={<MailOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px'  }} />}
+              prefix={<MailOutlined style={{ color: themeToken.colorTextSecondary }} />}
               placeholder="Email address"
               size="large"
               autoComplete="email"
+              style={{ fontSize: "16px" }}
             />
           </Form.Item>
 
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px", fontSize: '20px'  }}>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
             <Form.Item
               name="password"
               rules={[
-                { required: true, message: 'Please enter your password!' },
-                { min: 8, message: 'Password must be at least 8 characters long!' },
-                { pattern: /[a-z]/, message: 'Password must contain at least one lowercase letter!' },
-                { pattern: /[0-9]/, message: 'Password must contain at least one number!' }
+                { required: true, message: "Please enter your password!" },
+                { min: 8, message: "Password must be at least 8 characters long!" },
+                { pattern: /[a-z]/, message: "Password must contain at least one lowercase letter!" },
+                { pattern: /[0-9]/, message: "Password must contain at least one number!" }
               ]}
             >
               <Input.Password
-                prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px' }} />}
+                prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary }} />}
                 placeholder="Create password"
                 size="large"
+                style={{ fontSize: "16px" }}
               />
             </Form.Item>
 
             <Form.Item
               name="confirmPassword"
-              dependencies={['password']}
+              dependencies={["password"]}
               rules={[
                 { required: true, message: "Confirm your password" },
                 ({ getFieldValue }) => ({
                   validator(_, value) {
-                    if (!value || getFieldValue('password') === value) {
+                    if (!value || getFieldValue("password") === value) {
                       return Promise.resolve();
                     }
-                    return Promise.reject('Passwords do not match');
+                    return Promise.reject("Passwords do not match");
                   },
                 }),
               ]}
             >
               <Input.Password
-                prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px' }} />}
+                prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary }} />}
                 placeholder="Confirm password"
                 size="large"
+                style={{ fontSize: "16px" }}
               />
             </Form.Item>
           </div>
@@ -188,6 +218,7 @@ const Signup = () => {
               size="large"
               onChange={setRole}
               placeholder="Select role"
+              style={{ fontSize: "16px" }}
             >
               <Option value="student">Student</Option>
               <Option value="lecturer">Lecturer</Option>
@@ -196,7 +227,7 @@ const Signup = () => {
           </Form.Item>
 
           {role === "student" && (
-            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" , fontSize: "20px" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "16px" }}>
               <Form.Item
                 name="year"
                 rules={[{ required: true, message: "Select year" }]}
@@ -204,6 +235,7 @@ const Signup = () => {
                 <Select
                   size="large"
                   placeholder="Academic year"
+                  style={{ fontSize: "16px" }}
                 >
                   {[1, 2, 3, 4].map(year => (
                     <Option key={year} value={year}>Year {year}</Option>
@@ -218,6 +250,7 @@ const Signup = () => {
                 <Select
                   size="large"
                   placeholder="Current semester"
+                  style={{ fontSize: "16px" }}
                 >
                   {[1, 2, 3].map(sem => (
                     <Option key={sem} value={sem}>Semester {sem}</Option>
@@ -227,7 +260,7 @@ const Signup = () => {
             </div>
           )}
 
-          <Form.Item style={{ marginTop: 32 , fontSize: "20px" }}>
+          <Form.Item style={{ marginTop: 32 }}>
             <Button
               type="primary"
               htmlType="submit"
@@ -235,6 +268,7 @@ const Signup = () => {
               block
               loading={loading}
               icon={<ArrowRightOutlined />}
+              style={{ fontSize: "16px" }}
             >
               Create Account
             </Button>
@@ -246,7 +280,7 @@ const Signup = () => {
             display: "block", 
             textAlign: "center", 
             marginTop: 24,
-            fontSize: "18px",
+            fontSize: "16px",
             color: themeToken.colorTextSecondary
           }}
         >
@@ -254,7 +288,7 @@ const Signup = () => {
           <Button 
             type="link" 
             onClick={() => navigate("/auth/login")}
-            style={{ padding: 0 , fontSize: "18px" }}
+            style={{ padding: 0, fontSize: "16px" }}
           >
             Login here
           </Button>

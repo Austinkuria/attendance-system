@@ -5,7 +5,7 @@ const Department = require('../models/Department');
 const Course = require('../models/Course');
 const csv = require("fast-csv");
 const fs = require("fs");
-const { parse } = require('json2csv'); 
+const { parse } = require('json2csv');
 const validationResult = require('express-validator').validationResult;
 const mongoose = require('mongoose');
 const crypto = require('crypto');
@@ -34,7 +34,7 @@ const login = async (req, res) => {
 
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '4h' });
     res.json({
-      token, 
+      token,
       user: { id: user._id, role: user.role }
     });
   } catch (error) {
@@ -48,31 +48,74 @@ const signup = async (req, res) => {
   try {
     const { firstName, lastName, email, password, role, year, semester, course } = req.body;
 
-    // Ensure year and semester are provided for students
-    if (role === "student" && (!year || !semester)) {
-      return res.status(400).json({ message: "Year and semester are required for students." });
+    // Check if email already exists
+    const existingUser = await User.findOne({ email });
+    if (existingUser) {
+      return res.status(400).json({ 
+        message: "Email already registered",
+        field: "email"
+      });
+    }
+
+    // Validate student-specific fields
+    if (role === "student") {
+      if (!year || !semester) {
+        return res.status(400).json({ 
+          message: "Year and semester are required for students",
+          fields: ["year", "semester"]
+        });
+      }
+      
+      if (year < 1 || year > 4) {
+        return res.status(400).json({
+          message: "Invalid academic year (must be between 1 and 4)",
+          field: "year"
+        });
+      }
+
+      if (semester < 1 || semester > 3) {
+        return res.status(400).json({
+          message: "Invalid semester (must be between 1 and 3)",
+          field: "semester"
+        });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Creating the new user object
     const newUser = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
       role,
-      ...(role === "student" && { year, semester, course }), // Only include if student
-      // ...(role === "admin" && { department }), // Only include if admin
+      ...(role === "student" && { year, semester, course }),
     });
 
     await newUser.save();
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     console.error("Signup Error:", error);
-    res.status(500).json({ message: "Signup failed", error: error.message });
+    
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => ({
+        message: err.message,
+        field: err.path
+      }));
+      return res.status(400).json({ 
+        message: "Validation failed",
+        errors 
+      });
+    }
+
+    res.status(500).json({ 
+      message: "Signup failed. Please try again later.",
+      error: error.message 
+    });
   }
 };
+
 
 // Register user
 const registerUser = async (req, res) => {
@@ -88,9 +131,9 @@ const registerUser = async (req, res) => {
     // Check if email or regNo already exists
     const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
     if (existingUser) {
-      return res.status(400).json({ 
-        message: existingUser.email === email 
-          ? "Email already in use" 
+      return res.status(400).json({
+        message: existingUser.email === email
+          ? "Email already in use"
           : "Registration number already exists"
       });
     }
@@ -125,11 +168,11 @@ const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      ...(role === "student" && { 
-        regNo, 
-        course: courseId, 
-        department: departmentId, 
-        year: Number(year) || 1, 
+      ...(role === "student" && {
+        regNo,
+        course: courseId,
+        department: departmentId,
+        year: Number(year) || 1,
         semester: Number(semester) || 1
       }),
     });
@@ -199,9 +242,9 @@ const updateStudent = async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({ 
-        message: existingUser.email === email 
-          ? 'Email already in use' 
+      return res.status(400).json({
+        message: existingUser.email === email
+          ? 'Email already in use'
           : 'Registration number already exists'
       });
     }
@@ -213,9 +256,9 @@ const updateStudent = async (req, res) => {
     }
 
     // Find course by name and department
-    const course = await Course.findOne({ 
+    const course = await Course.findOne({
       name: courseName,
-      department: department._id 
+      department: department._id
     });
     if (!course) {
       return res.status(400).json({ message: 'Course not found in the specified department' });
@@ -397,7 +440,7 @@ const downloadStudents = async (req, res) => {
     }));
 
     const csv = parse(csvData, { header: true });
-    
+
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=students.csv');
     res.status(200).send(csv);
@@ -643,7 +686,7 @@ const downloadLecturers = async (req, res) => {
     }));
 
     const csv = parse(csvData, { header: true });
-    
+
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=lecturers.csv');
     res.status(200).send(csv);
@@ -822,17 +865,17 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { 
-  login, 
-  signup, 
-  getStudents, 
-  getLecturers, 
+module.exports = {
+  login,
+  signup,
+  getStudents,
+  getLecturers,
   updateStudent,
-  deleteStudent, 
-  importStudents, 
-  downloadStudents, 
-  registerUser, 
-  getUserProfile, 
+  deleteStudent,
+  importStudents,
+  downloadStudents,
+  registerUser,
+  getUserProfile,
   updateUserProfile,
   importStudents,
   createLecturer,
