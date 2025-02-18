@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Form, Input, Select, Button, Alert, Typography, Card, theme } from "antd";
+import { Form, Input, Select, Button, Alert, Typography, Card, theme,message } from "antd";
 import { UserOutlined, MailOutlined, LockOutlined, ArrowRightOutlined } from "@ant-design/icons";
 import axios from "axios";
 import styled from "styled-components";
@@ -28,61 +28,52 @@ const Signup = () => {
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
-  const onFinish = async (values) => {
+const onFinish = async (values) => {
     setLoading(true);
     setError(null);
 
     try {
-      const userData = {
-        ...values,
-        ...(values.role === "student" && { 
-          year: values.year,
-          semester: values.semester 
-        })
-      };
+        const userData = {
+            ...values,
+            ...(values.role === "student" && { 
+                year: values.year,
+                semester: values.semester 
+            })
+        };
 
-      const response = await axios.post(
-        "https://attendance-system-w70n.onrender.com/api/auth/signup",
-        userData
-      );
+        const response = await axios.post(
+            "https://attendance-system-w70n.onrender.com/api/auth/signup",
+            userData
+        );
 
-      if (response.status === 201) {
-        form.resetFields();
-        Alert.success({
-          message: "Account Created!",
-          description: "Redirecting to login page...",
-          duration: 2
-        });
-        setTimeout(() => navigate("/auth/login"), 2000);
-      }
+        if (response.status === 201) {
+            form.resetFields();
+            message.success("Account Created! Redirecting to login...", 2); // Use message.success instead of Alert
+
+            setTimeout(() => navigate("/auth/login"), 2000);
+        }
     } catch (error) {
-      console.error("Signup error:", error.response?.data);
-      
-      // Handle structured error responses
-      if (error.response?.data?.errors) {
-        // Handle field-specific validation errors
-        const fieldErrors = error.response.data.errors.reduce((acc, err) => {
-          acc[err.field] = err.message;
-          return acc;
-        }, {});
+        console.error("Signup error:", error.response?.data);
+        
+        if (error.response?.data?.errors) {
+            const fieldErrors = error.response.data.errors.reduce((acc, err) => {
+                acc[err.field] = err.message;
+                return acc;
+            }, {});
 
-        // Set form errors for specific fields
-        form.setFields(Object.keys(fieldErrors).map(field => ({
-          name: field,
-          errors: [fieldErrors[field]]
-        })));
+            form.setFields(Object.keys(fieldErrors).map(field => ({
+                name: field,
+                errors: [fieldErrors[field]]
+            })));
 
-        // Set general error message
-        setError("Please fix the errors in the form.");
-      } else {
-        // Handle other error types
-        setError(error.response?.data?.message || "Registration failed. Please try again.");
-      }
+            setError("Please fix the errors in the form.");
+        } else {
+            setError(error.response?.data?.message || "Registration failed. Please try again.");
+        }
     } finally {
-
-      setLoading(false);
+        setLoading(false);
     }
-  };
+};
 
   return (
     <div style={{ 
