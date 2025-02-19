@@ -194,8 +194,10 @@ const AttendanceManagement = () => {
       const data = await createSession({
         unitId: selectedUnit,
         lecturerId,
-        startTime: new Date(), // or any desired start time
-        endTime: new Date(new Date().getTime() + 60 * 60 * 1000), // 1 hour session
+        startTime: new Date().toISOString(), // or any desired start time
+        endTime: new Date(new Date().getTime() + 60 * 60 * 1000).toISOString(), // 1 hour session
+
+
       });
       message.success('Session created successfully');
       // Ensure dates are properly parsed
