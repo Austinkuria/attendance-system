@@ -1,5 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react"; 
 import { ToastContainer, toast } from "react-toastify";
 import { IoCloseCircleOutline } from "react-icons/io5";
 import "react-toastify/dist/ReactToastify.css";
@@ -34,29 +34,79 @@ import StudentSettings from "./pages/settings/StudentSettings";
 import ResetPasswordRequest from "./pages/ResetPasswordRequest";
 import ResetPassword from "./pages/ResetPassword";
 import InstallButton from './components/InstallButton';
+import { register } from './serviceWorkerRegistration';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showBanner, setShowBanner] = useState(false);
+  const [data, setData] = useState(null);
+  const [isFetching, setIsFetching] = useState(false); 
 
-  // Effect to auto-hide the banner on initial load if online.
-  useEffect(() => {
-    if (navigator.onLine) {
-      setTimeout(() => {
-        setShowBanner(false);
-      }, 1000);
+  // Memoize fetchData to avoid recreating it on every render
+  const fetchData = useCallback(async () => {
+    if (isFetching || !isOnline) return; 
+
+    setIsFetching(true);
+    try {
+      const response = await fetch('https://attendance-system-w70n.onrender.com/api/data');
+      if (!response.ok) throw new Error('Network response was not ok');
+      const newData = await response.json();
+      setData(newData);
+      console.log('Data fetched:', newData);
+      toast.success('Data synced successfully');
+    } catch (error) {
+      console.error('Failed to fetch data:', error);
+      toast.error('Failed to sync data. Retrying when online.');
+    } finally {
+      setIsFetching(false);
     }
-  }, []);
+  }, [isOnline, isFetching]); // Added isFetching to dependency array
 
-  // Effect to handle online/offline status
+  // Register service worker and handle updates
+  useEffect(() => {
+    let registration;
+
+    const handleRegistration = async () => {
+      registration = await register({
+        onUpdate: (reg) => {
+          if (reg.waiting) {
+            toast.info('A new version is available. Click to refresh.', {
+              onClick: () => {
+                if (reg.waiting) {
+                  reg.waiting.postMessage({ type: 'SKIP_WAITING' });
+                  window.location.reload(); 
+                }
+              },
+            });
+          }
+        },
+        onSuccess: () => toast.success('App is ready for offline use.'),
+      });
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.addEventListener('message', (event) => {
+          if (event.data.type === 'online') {
+            fetchData();
+          }
+        });
+      }
+    };
+
+    handleRegistration();
+
+    return () => {
+      if (registration) registration.unregister(); 
+    };
+  }, [fetchData]); 
+
+  // Handle online/offline status
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
-      toast.success("You're back online", { autoClose: 3000 });
+      toast.success("You're back online. Syncing data...", { autoClose: 3000 });
       setShowBanner(true);
-      setTimeout(() => {
-        setShowBanner(false);
-      }, 3000);
+      setTimeout(() => setShowBanner(false), 3000);
+      fetchData(); 
     };
 
     const handleOffline = () => {
@@ -66,13 +116,13 @@ function App() {
     };
 
     window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
+    window.removeEventListener("offline", handleOffline);
 
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
-  }, []);
+  }, [fetchData]); 
 
   const handleCloseBanner = () => {
     setShowBanner(false);
@@ -82,9 +132,8 @@ function App() {
     <Router>
       <ToastContainer />
       <BackToTop />
-      <InstallButton /> {/* Add the InstallButton here */}
+      <InstallButton />
 
-      {/* Connectivity Banner */}
       {showBanner && (
         <div
           style={{
@@ -120,38 +169,35 @@ function App() {
         </div>
       )}
 
-      {/* Add padding to main content to avoid being hidden behind the banner */}
       <div style={{ paddingTop: showBanner ? "40px" : "0" }}>
         <Routes>
-          <Route path="/" element={<Home />} />
+          <Route path="/" element={<Home data={data} />} />
           <Route path="/auth/login" element={<Login />} />
           <Route path="/auth/signup" element={<Signup />} />
           <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
           <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          {/* Error routes */}
+          <Route path="/dashboard" element={<Dashboard data={data} />} />
           <Route path="/401" element={<Unauthorized />} />
           <Route path="/403" element={<Forbidden />} />
           <Route path="/500" element={<ServerError />} />
           <Route path="/405" element={<MethodNotAllowed />} />
           <Route path="*" element={<NotFound />} />
-          {/* End of error routes */}
-          <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
+          <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard data={data} /></ProtectedRoute>} />
           <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
           <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />
-          <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+          <Route path="/admin" element={<ProtectedRoute><AdminPanel data={data} /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
-          <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+          <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard data={data} /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
-          <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
+          <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents data={data} /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
-          <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
-          <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
-          <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
-          <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
-          <Route path="/qr-scanner/:unitId" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
+          <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses data={data} /></ProtectedRoute>} />
+          <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers data={data} /></ProtectedRoute>} />
+          <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement data={data} /></ProtectedRoute>} />
+          <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics data={data} /></ProtectedRoute>} />
+          <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage data={data} /></ProtectedRoute>} />
+          <Route path="/qr-scanner/:unitId" element={<ProtectedRoute><QRScanner data={data} /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>
