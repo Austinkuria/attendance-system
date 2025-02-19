@@ -33,10 +33,20 @@ exports.createSession = async (req, res) => {
     // Ensure startTime and endTime are valid dates
     const start = new Date(startTime);
     const end = new Date(endTime);
+    const now = new Date();
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: 'Invalid startTime or endTime' });
+      return res.status(400).json({ message: 'Invalid startTime or endTime format' });
     }
+
+    if (start >= end) {
+      return res.status(400).json({ message: 'startTime must be before endTime' });
+    }
+
+    if (start < now || end < now) {
+      return res.status(400).json({ message: 'startTime and endTime must be in the future' });
+    }
+
 
     // Create and save basic session first
     const session = new Session({
