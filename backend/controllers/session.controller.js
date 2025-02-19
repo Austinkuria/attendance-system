@@ -1,4 +1,4 @@
-const Session = require('../models/AttendanceSession');
+const Session = require('../models/Session');
 const generateQRToken = require('../utils/session.utils');
 
 exports.detectCurrentSession = async (req, res) => {
