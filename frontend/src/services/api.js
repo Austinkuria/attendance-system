@@ -1118,7 +1118,7 @@ export const markAbsent = async (sessionId) => {
 
 export const getCurrentSession = async (selectedUnit) => {
   try {
-    const response = await fetch(`${API_URL}/api/sessions/current/${selectedUnit}`);
+    const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`);
     const data = await response.json();
     return data;
   } catch (error) {
