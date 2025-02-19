@@ -171,22 +171,31 @@ useEffect(() => {
 
 useEffect(() => {
   const fetchCurrentSession = async () => {
+    if (!selectedUnit) return;
+
     try {
-      const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-      const response = await axios.get('https://attendance-system-w70n.onrender.com/api/sessions/current', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
+      const token = localStorage.getItem('token');
+      const response = await axios.get(`https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`, {
+        headers: { 'Authorization': `Bearer ${token}` },
       });
-      setCurrentSession(response.data);
+
+      console.log("Fetched session:", response.data);
+
+      if (response.data && response.data._id) {
+        setCurrentSession(response.data);
+      } else {
+        message.warning("No active session found.");
+        setCurrentSession(null);
+      }
     } catch (error) {
-      console.error('Error fetching current session:', error.response ? error.response.data : error.message);
-      message.error('Failed to fetch current session');
+      console.error("Error fetching current session:", error.response?.data || error.message);
+      message.error("Failed to fetch current session");
+      setCurrentSession(null);
     }
   };
 
   fetchCurrentSession();
-}, []);
+}, [selectedUnit]); // Ensure selectedUnit is in dependency array
 
 // Handle department filter change
 const handleDepartmentChange = (value) => {

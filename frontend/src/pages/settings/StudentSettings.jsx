@@ -1,8 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../services/api';
 import { Layout, Card, Typography, Button, Form, Input, message, Spin } from 'antd';
-import { UserOutlined, MailOutlined, BookOutlined } from '@ant-design/icons';
+import { UserOutlined, MailOutlined } from '@ant-design/icons';
 
 const { Content } = Layout;
 const { Title } = Typography;
