@@ -1118,7 +1118,19 @@ export const markAbsent = async (sessionId) => {
 
 export const getCurrentSession = async (selectedUnit) => {
   try {
-    const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`);
+    const token = localStorage.getItem('token'); // Retrieve token from localStorage
+    const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}` // Include token in headers
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP Error: ${response.status}`); 
+    }
+
     const data = await response.json();
     return data;
   } catch (error) {
