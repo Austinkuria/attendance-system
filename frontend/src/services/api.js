@@ -1043,6 +1043,14 @@ export const submitQuizAnswers = async (quizSubmissionData) => {
 export const createSession = async (unitId, lecturerId, startTime, endTime) => {
   try {
     const token = localStorage.getItem('token');
+    
+    // Validate date formats
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+      throw new Error('Invalid startTime or endTime format');
+    }
+
     const response = await axios.post(
       `${API_URL}/sessions/create`,
       { unitId, lecturerId, startTime, endTime },
@@ -1050,10 +1058,11 @@ export const createSession = async (unitId, lecturerId, startTime, endTime) => {
     );
     return response.data;
   } catch (error) {
-    console.error('Error creating session:', error);
+    console.error('Error creating session:', error.response ? error.response.data : error.message);
     throw error;
   }
 };
+
 
 export const getSession = async (sessionId) => {
   try {
