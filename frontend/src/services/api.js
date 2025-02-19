@@ -2,7 +2,7 @@ import axios from "axios";
 // import mongoose from "mongoose";
 const API_URL = import.meta.env.VITE_API_URL;
 const api = axios.create({
-  baseURL: "https://attendance-system-w70n.onrender.com/api", // backend URL
+  API_URL: "https://attendance-system-w70n.onrender.com/api", // backend URL
 });
 
 
@@ -123,10 +123,6 @@ export const getStudentUnits = async (token) => {
 // Fetch student's courses
 export const getStudentCourses = () => api.get("/student/courses");
 
-// Fetch attendance data for a student in a specific unit
-export const getStudentAttendance = (unitId) => api.get(`/attendance/student/${unitId}`);
-
-// Fetch units assigned to the lecturer
 // Add proper parameter handling
 export const getLecturerUnits = async () => {
   const token = localStorage.getItem("token");
@@ -384,38 +380,38 @@ export const getCourses = async (departmentId, courseName = "") => {
   const token = localStorage.getItem("token");
 
   if (!token) {
-      console.error("No token found in localStorage");
-      return [];
+    console.error("No token found in localStorage");
+    return [];
   }
 
   try {
-      let url = `https://attendance-system-w70n.onrender.com/api/course?department=${departmentId}`;
-      if (courseName) {
-          url += `&name=${encodeURIComponent(courseName)}`;
-      }
+    let url = `https://attendance-system-w70n.onrender.com/api/course?department=${departmentId}`;
+    if (courseName) {
+      url += `&name=${encodeURIComponent(courseName)}`;
+    }
 
-      console.log("Fetching courses from URL:", url); // Debugging
+    console.log("Fetching courses from URL:", url); // Debugging
 
-      const response = await fetch(url, {
-          method: "GET",
-          headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${token}`,
-          },
-      });
+    const response = await fetch(url, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+    });
 
-      if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || "Failed to fetch courses");
-      }
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || "Failed to fetch courses");
+    }
 
-      const data = await response.json();
-      console.log("Courses received:", data); // Debugging
+    const data = await response.json();
+    console.log("Courses received:", data); // Debugging
 
-      return data;
+    return data;
   } catch (error) {
-      console.error("Error fetching courses:", error);
-      return [];
+    console.error("Error fetching courses:", error);
+    return [];
   }
 };
 
@@ -788,39 +784,39 @@ export const markStudentAttendance = async (unitId, qrCode, token) => {
 export const createQuiz = async (quizData) => {
   const token = localStorage.getItem("token");
   if (!token) {
-      throw new Error("No token found. Please log in.");
+    throw new Error("No token found. Please log in.");
   }
 
   // Validate required fields
   if (!quizData.title || !quizData.unit || !quizData.questions) {
-      throw new Error("Missing required fields: title, unit, or questions.");
+    throw new Error("Missing required fields: title, unit, or questions.");
   }
 
   // Format the quiz data
   const formattedQuizData = {
-      ...quizData,
-      createdAt: new Date().toISOString(), // Automatically add the current date
+    ...quizData,
+    createdAt: new Date().toISOString(), // Automatically add the current date
   };
 
   try {
-      const response = await fetch(`${API_URL}/quizzes`, {
-          method: 'POST',
-          headers: {
-              'Content-Type': 'application/json',
-              Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify(formattedQuizData),
-      });
+    const response = await fetch(`${API_URL}/quizzes`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify(formattedQuizData),
+    });
 
-      if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.message || 'Failed to create quiz');
-      }
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to create quiz');
+    }
 
-      return await response.json();
+    return await response.json();
   } catch (error) {
-      console.error("Network error:", error);
-      throw new Error(error.message || "Network error. Please check your connection.");
+    console.error("Network error:", error);
+    throw new Error(error.message || "Network error. Please check your connection.");
   }
 };
 
@@ -831,18 +827,18 @@ export const createQuiz = async (quizData) => {
 */
 export const getQuizzes = async (filters = {}) => {
   try {
-      // Construct query parameters from filters
-      const queryParams = new URLSearchParams(filters).toString();
-      const response = await fetch(`${API_URL}/quizzes?${queryParams}`);
+    // Construct query parameters from filters
+    const queryParams = new URLSearchParams(filters).toString();
+    const response = await fetch(`${API_URL}/quizzes?${queryParams}`);
 
-      if (!response.ok) {
-          throw new Error('Failed to fetch quizzes');
-      }
+    if (!response.ok) {
+      throw new Error('Failed to fetch quizzes');
+    }
 
-      return await response.json();
+    return await response.json();
   } catch (error) {
-      console.error("Error fetching quizzes:", error);
-      return [];
+    console.error("Error fetching quizzes:", error);
+    return [];
   }
 };
 
@@ -895,19 +891,19 @@ export const getPastQuizzes = async (lecturerId, filters = {}) => {
 */
 export const getQuizzesByDate = async (date) => {
   if (!date) {
-      throw new Error("Date is required.");
+    throw new Error("Date is required.");
   }
 
   try {
-      const response = await fetch(`${API_URL}/quizzes?date=${date}`);
-      if (!response.ok) {
-          throw new Error('Failed to fetch quizzes by date');
-      }
+    const response = await fetch(`${API_URL}/quizzes?date=${date}`);
+    if (!response.ok) {
+      throw new Error('Failed to fetch quizzes by date');
+    }
 
-      return await response.json();
+    return await response.json();
   } catch (error) {
-      console.error("Error fetching quizzes by date:", error);
-      return [];
+    console.error("Error fetching quizzes by date:", error);
+    return [];
   }
 };
 
@@ -1047,5 +1043,77 @@ export const submitQuizAnswers = async (quizSubmissionData) => {
   }
 };
 
+// Session related endpoints
+export const createSession = async (unitId, lecturerId, startTime, endTime) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/sessions`,
+      { unitId, lecturerId, startTime, endTime },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error creating session:', error);
+    throw error;
+  }
+};
 
+export const getSession = async (sessionId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(
+      `${API_URL}/sessions/${sessionId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching session:', error);
+    throw error;
+  }
+};
+
+// Attendance related endpoints
+export const markAttendance = async (sessionId, qrCode) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/attendance`,
+      { sessionId, qrCode },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error marking attendance:', error);
+    throw error;
+  }
+};
+
+export const getStudentAttendance = async (studentId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(
+      `${API_URL}/attendance/student/${studentId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching student attendance:', error);
+    throw error;
+  }
+};
+
+export const getSessionAttendance = async (sessionId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(
+      `${API_URL}/attendance/session/${sessionId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching session attendance:', error);
+    throw error;
+  }
+};
 export default api;

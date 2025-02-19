@@ -2,7 +2,8 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, message } from "antd";
 import QrScanner from "qr-scanner";
-import { markStudentAttendance } from "../services/api";
+import { markStudentAttendance } from "../services/api"; // Updated to use new API structure
+
 import "./QrStyles.css"; // Custom styles for the QR scanner
 
 const QRScanner = () => {
@@ -14,21 +15,28 @@ const QRScanner = () => {
   const [scannedResult, setScannedResult] = useState("");
   const { unitId } = useParams();
   const navigate = useNavigate();
+  const scanTimeoutRef = useRef(null); // Ref to store the timeout ID
 
   // Success handler
   const onScanSuccess = useCallback(async (result) => {
+    // Stop scanner immediately after first scan
+    stopScanner();
+    
     setScannedResult(result?.data);
     setLoading(true);
+    clearTimeout(scanTimeoutRef.current); // Clear timeout on successful scan
     try {
-      const token = localStorage.getItem("token");
-      await markStudentAttendance(unitId, result?.data, token);
-      message.success("Attendance marked successfully!");
+      await markStudentAttendance(unitId, result?.data); // Use unitId from params
+
+      message.success("Attendance marked successfully!"); // Success message
+
       navigate("/student-dashboard");
     } catch (err) {
       message.error(err.response?.data?.message || "Error marking attendance");
+      // Re-enable scanner if there was an error
+      scanner.current?.start();
     } finally {
       setLoading(false);
-      stopScanner();
     }
   }, [unitId, navigate]);
 
@@ -50,6 +58,8 @@ const QRScanner = () => {
         highlightScanRegion: true,
         highlightCodeOutline: true,
         overlay: qrBoxEl.current || undefined,
+        maxScansPerSecond: 1, // Limit scan rate
+        returnDetailedScanResult: true
       }
     );
 
@@ -60,7 +70,14 @@ const QRScanner = () => {
         if (err) setQrOn(false);
       });
 
+    // Set a timeout for scanning
+    scanTimeoutRef.current = setTimeout(() => {
+      stopScanner();
+      message.error("Scanning timed out. Please try again.");
+    }, 30000); // 30 seconds timeout
+
     return () => {
+      clearTimeout(scanTimeoutRef.current); // Clear timeout on unmount
       if (scanner.current) {
         scanner.current.stop();
         scanner.current.destroy();
@@ -105,6 +122,7 @@ const QRScanner = () => {
       </div>
 
       <div className="qr-video-container">
+        {loading && <div className="scanning-indicator">Scanning...</div>} {/* Visual scanning indicator */}
         <video ref={videoEl} className="qr-video" />
         <div ref={qrBoxEl} className="qr-box">
           <img

@@ -5,14 +5,8 @@ const sessionSchema = new mongoose.Schema({
   lecturer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
-  qrToken: { type: String, unique: true },
-  date: {
-    type: Date,
-    default: Date.now
-  },
-  feedback: [{
-    type: mongoose.Schema.Types.ObjectId,
-    ref: "Feedback"
-  }],
-  deviceFingerprints: [String] // Tracks student devices for fraud detection
+  qrCode: { type: String, required: true },
+  ended: { type: Boolean, default: false }
 }, { timestamps: true });
+
+module.exports = mongoose.model("Session", sessionSchema);
