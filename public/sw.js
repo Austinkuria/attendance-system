@@ -30,6 +30,7 @@ self.addEventListener('activate', (event) => {
       })
     )).catch(error => console.error('Cache cleanup failed:', error))
   );
+  self.clients.claim(); // Take control immediately
 });
 
 self.addEventListener('fetch', (event) => {
@@ -49,7 +50,7 @@ self.addEventListener('fetch', (event) => {
         }).catch(error => {
           if (event.request.mode === 'navigate') {
             return caches.match('/offline.html');
-          } else if (event.request.url.includes('/api/')) { // Assume API calls for MongoDB
+          } else if (event.request.url.includes('/api/')) {
             queueRequest(event.request);
             return new Response(JSON.stringify({ error: 'Offline, request queued' }), {
               status: 503,
@@ -57,11 +58,11 @@ self.addEventListener('fetch', (event) => {
               headers: { 'Content-Type': 'application/json' },
             });
           }
-          return caches.match(event.request);
+          return caches.match(event.request) || new Response('No internet connection', { status: 503 });
         });
       })
     );
-  } else if (event.request.method === 'POST' || event.request.method === 'PUT') { // For API calls
+  } else if (event.request.method === 'POST' || event.request.method === 'PUT') {
     event.respondWith(
       fetch(event.request).catch(error => {
         queueRequest(event.request);
@@ -80,6 +81,8 @@ self.addEventListener('message', (event) => {
     self.skipWaiting();
   } else if (event.data.action === 'checkForUpdates') {
     self.skipWaiting().then(() => self.clients.claim());
+  } else if (event.data.action === 'checkConnectivity') {
+    checkConnectivity();
   }
 });
 
@@ -89,6 +92,9 @@ let requestQueue = [];
 function queueRequest(request) {
   requestQueue.push(request);
   saveQueue();
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => client.postMessage({ type: 'offline', message: 'Went offline, requests queued.' }));
+  });
 }
 
 function saveQueue() {
@@ -115,6 +121,9 @@ self.addEventListener('sync', event => {
             if (response.ok) {
               requestQueue = requestQueue.filter(r => r.url !== request.url);
               saveQueue();
+              self.clients.matchAll().then(clients => {
+                clients.forEach(client => client.postMessage({ type: 'online', message: 'Back online, data synced.' }));
+              });
             }
           }).catch(error => console.error('Sync failed for request:', error));
         }));
@@ -123,24 +132,19 @@ self.addEventListener('sync', event => {
   }
 });
 
-// Check for connectivity and sync when online
-self.addEventListener('online', () => {
-  self.registration.sync.register('sync-queued-requests').catch(error => console.error('Sync registration failed:', error));
-  self.clients.matchAll().then(clients => {
-    clients.forEach(client => client.postMessage({ type: 'online', message: 'Back online, syncing data...' }));
+function checkConnectivity() {
+  fetch('https://www.google.com', { mode: 'no-cors' }).then(() => {
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => client.postMessage({ type: 'online', message: 'Connection restored.' }));
+    });
+    self.registration.sync.register('sync-queued-requests').catch(error => console.error('Sync registration failed:', error));
+  }).catch(() => {
+    self.clients.matchAll().then(clients => {
+      clients.forEach(client => client.postMessage({ type: 'offline', message: 'No internet connection.' }));
+    });
   });
-});
+}
 
-// Notify about updates
-self.addEventListener('install', () => {
-  self.skipWaiting();
-});
-
-self.addEventListener('activate', () => {
-  self.clients.claim();
-  self.registration.showNotification('Update Available', {
-    body: 'A new version of the app is available. Please refresh to update.',
-    icon: '/icon-192x192.png',
-    actions: [{ action: 'refresh', title: 'Refresh Now' }]
-  });
-});
+// Check connectivity on activation and periodically
+self.addEventListener('activate', () => checkConnectivity());
+setInterval(checkConnectivity, 5000); // Check every 5 seconds

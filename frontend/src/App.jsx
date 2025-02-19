@@ -42,7 +42,6 @@ function App() {
   const [data, setData] = useState(null);
   const [isFetching, setIsFetching] = useState(false); 
 
-  // Memoize fetchData to avoid recreating it on every render
   const fetchData = useCallback(async () => {
     if (isFetching || !isOnline) return; 
 
@@ -60,9 +59,8 @@ function App() {
     } finally {
       setIsFetching(false);
     }
-  }, [isOnline, isFetching]); // Added isFetching to dependency array
+  }, [isOnline, isFetching]); 
 
-  // Register service worker and handle updates
   useEffect(() => {
     let registration;
 
@@ -86,9 +84,18 @@ function App() {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker.addEventListener('message', (event) => {
           if (event.data.type === 'online') {
+            setIsOnline(true);
+            toast.success("Back online, syncing data...", { autoClose: 3000 });
             fetchData();
+          } else if (event.data.type === 'offline') {
+            setIsOnline(false);
+            toast.error("You're offline. Some features may not work.", { autoClose: 3000 });
+            setShowBanner(true);
           }
         });
+
+        // Ask service worker to check connectivity
+        navigator.serviceWorker.controller?.postMessage({ action: 'checkConnectivity' });
       }
     };
 
@@ -99,26 +106,39 @@ function App() {
     };
   }, [fetchData]); 
 
-  // Handle online/offline status
   useEffect(() => {
+    let onlineTimer;
+
     const handleOnline = () => {
+      clearTimeout(onlineTimer);
       setIsOnline(true);
       toast.success("You're back online. Syncing data...", { autoClose: 3000 });
       setShowBanner(true);
       setTimeout(() => setShowBanner(false), 3000);
       fetchData(); 
+
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.controller?.postMessage({ type: 'online' });
+      }
     };
 
     const handleOffline = () => {
-      setIsOnline(false);
-      toast.error("You're offline. Some features may not work.", { autoClose: 3000 });
-      setShowBanner(true);
+      onlineTimer = setTimeout(() => {
+        setIsOnline(false);
+        toast.error("You're offline. Some features may not work.", { autoClose: 3000 });
+        setShowBanner(true);
+
+        if ('serviceWorker' in navigator) {
+          navigator.serviceWorker.controller?.postMessage({ type: 'offline' });
+        }
+      }, 1000); // Debounce to avoid false positives
     };
 
     window.addEventListener("online", handleOnline);
-    window.removeEventListener("offline", handleOffline);
+    window.addEventListener("offline", handleOffline);
 
     return () => {
+      clearTimeout(onlineTimer);
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
     };
