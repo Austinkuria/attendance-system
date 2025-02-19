@@ -1043,25 +1043,26 @@ export const submitQuizAnswers = async (quizSubmissionData) => {
 export const createSession = async ({ unitId, lecturerId, startTime, endTime }) => {
   try {
     const token = localStorage.getItem('token');
-    
-    // Validate date formats
-    // const start = new Date(startTime);
-    // const end = new Date(endTime);
-    // if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-    //   throw new Error('Invalid startTime or endTime format');
-    // }
+
+    // Log the request payload before making the API call
+    console.log("API Call - Creating session with:", { unitId, lecturerId, startTime, endTime });
 
     const response = await axios.post(
       `${API_URL}/sessions/create`,
-      { unitId, lecturerId, startTime, endTime },
+      { unitId, lecturerId, startTime, endTime },  // Ensure correct payload
       { headers: { Authorization: `Bearer ${token}` } }
     );
+
+    console.log("API Response:", response.data);
     return response.data;
   } catch (error) {
-    console.error('Error creating session:', error.response ? error.response.data : error.message);
+    console.error("Error in API Call - createSession:", error.response ? error.response.data : error.message);
+    
+    // Re-throw the error so it can be caught in the frontend
     throw error;
   }
 };
+
 
 
 export const getSession = async (sessionId) => {

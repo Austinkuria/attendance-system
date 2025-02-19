@@ -188,37 +188,22 @@ const AttendanceManagement = () => {
       message.error('Please select a unit first');
       return;
     }
-
+  
     try {
       setLoading(prev => ({ ...prev, session: true }));
-      const startTime = new Date().toISOString();
-      const endTime = new Date(new Date().getTime() + 60 * 60 * 1000).toISOString();
-
-      console.log("Creating session with:", { 
-        unitId: selectedUnit, 
-        lecturerId: lecturerId, 
-        startTime: startTime, 
-        endTime: endTime 
-      });
-
-      const data = await createSession({
-        unitId: selectedUnit, 
-        lecturerId, 
-        startTime: new Date(startTime).toISOString(), 
-        endTime: new Date(endTime).toISOString()
-      });
       
-
+      const startTime = new Date().toISOString();
+      const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+  
+      console.log("Creating session with:", { unitId: selectedUnit, lecturerId, startTime, endTime });
+  
+      const data = await createSession({ unitId: selectedUnit, lecturerId, startTime, endTime });
+  
       message.success('Session created successfully');
-      // Ensure dates are properly parsed
-      const sessionData = {
-        ...data,
-        startTime: new Date(data.startTime),
-        endTime: new Date(data.endTime)
-      };
-      setCurrentSession(sessionData);
+  
+      setCurrentSession({ ...data, startTime: new Date(data.startTime), endTime: new Date(data.endTime) });
       setQrData(data.qrToken);
-
+  
     } catch (error) {
       console.error("Error creating session:", error);
       message.error('Failed to create session');
@@ -226,6 +211,7 @@ const AttendanceManagement = () => {
       setLoading(prev => ({ ...prev, session: false }));
     }
   };
+  
 
   // Preserved selected unit update logic
   useEffect(() => {

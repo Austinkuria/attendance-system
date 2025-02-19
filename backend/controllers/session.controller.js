@@ -28,50 +28,32 @@ exports.detectCurrentSession = async (req, res) => {
 
 exports.createSession = async (req, res) => {
   try {
+    console.log("Received raw body:", req.body);
+
     const { unitId, lecturerId, startTime, endTime } = req.body;
 
     if (!unitId || !lecturerId || !startTime || !endTime) {
       return res.status(400).json({ message: 'Missing required fields' });
     }
 
-    console.log("Received body:", req.body);
-
     const start = new Date(startTime);
     const end = new Date(endTime);
-    const now = new Date();
 
     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ 
-        message: 'Invalid startTime or endTime format',
-        receivedStartTime: startTime,
-        receivedEndTime: endTime 
-      });
+      return res.status(400).json({ message: 'Invalid startTime or endTime format' });
     }
 
     if (start >= end) {
       return res.status(400).json({ message: 'startTime must be before endTime' });
     }
 
-    if (start < now || end < now) {
-      return res.status(400).json({ message: 'startTime and endTime must be in the future' });
-    }
-
-    const session = new Session({
-      unit: unitId,
-      lecturer: lecturerId,
-      startTime: start,
-      endTime: end
-    });
+    const session = new Session({ unit: unitId, lecturer: lecturerId, startTime: start, endTime: end });
     await session.save();
 
     session.qrCode = await generateQRToken(session);
     await session.save();
 
-    res.status(201).json({
-      message: 'Session created successfully',
-      session,
-      qrCode: session.qrCode
-    });
+    res.status(201).json({ message: 'Session created successfully', session, qrCode: session.qrCode });
 
   } catch (error) {
     res.status(500).json({ message: 'Error creating session', error: error.message });
