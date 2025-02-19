@@ -26,8 +26,8 @@ const userSchema = new mongoose.Schema(
         return this.role === "student"; // Only required for students
       },
     },
-    department: { type: mongoose.Schema.Types.ObjectId, ref: "Department", default: undefined }, // For admins
-    course: { type: mongoose.Schema.Types.ObjectId, ref: "Course", default: undefined }, // For students
+    department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" }, // For admins
+    course: { type: mongoose.Schema.Types.ObjectId, ref: "Course"}, // For students
     enrolledUnits: [{ type: mongoose.Schema.Types.ObjectId, ref: "Unit" }], // Students
     assignedUnits: [{ type: mongoose.Schema.Types.ObjectId, ref: "Unit" }], // Lecturers
     resetPasswordToken: String,
