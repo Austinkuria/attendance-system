@@ -1,7 +1,7 @@
 const Session = require('../models/Session');
 const generateQRToken = require('../utils/session.utils');
 const schedule = require("node-schedule");
-const { markAbsentees } = require("./attendance.controller");
+const { markAbsentees } = require("../controllers/attendance.controller");
 
 exports.detectCurrentSession = async (req, res) => {
   try {
