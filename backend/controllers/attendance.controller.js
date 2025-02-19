@@ -88,44 +88,24 @@ exports.createAttendanceSession = async (req, res) => {
 
 exports.markStudentAttendance = async (req, res) => {
   try {
-    const { unitId, qrCode } = req.body;
+    const { sessionId, qrCode } = req.body;
     const studentId = req.user.id;
 
-    if (!unitId || !qrCode) {
-      return res.status(400).json({ message: 'Unit ID and QR code are required' });
+    if (!sessionId || !qrCode || !studentId) {
+      return res.status(400).json({ 
+        message: 'Session ID, QR code, and student ID are required' 
+      });
     }
 
-    let qrData;
-    try {
-      const base64Data = qrCode.replace(/^data:image\/\w+;base64,/, '');
-      const decodedData = Buffer.from(base64Data, 'base64').toString();
-      qrData = JSON.parse(decodedData);
-
-      if (!qrData || !qrData.s || !qrData.u || !qrData.t) {
-        throw new Error('Invalid QR code data structure');
-      }
-
-      const currentTime = Math.floor(Date.now() / 1000);
-      if (currentTime - qrData.t > 300) {
-        throw new Error('QR code has expired');
-      }
-
-    } catch (error) {
-      return res.status(400).json({ message: 'Invalid QR code: ' + error.message });
+    // Validate session exists and is active
+    const session = await Session.findById(sessionId);
+    if (!session || session.ended) {
+      return res.status(404).json({ message: 'Invalid or expired session' });
     }
 
-    const session = await Session.findOne({
-      _id: qrData.s,
-      unit: qrData.u,
-      ended: false
-    });
-
-    if (!session) {
-      return res.status(404).json({ message: 'Invalid or expired QR code. Session not found' });
-    }
-
+    // Check if attendance already exists
     const existingAttendance = await Attendance.findOne({
-      session: session._id,
+      session: sessionId,
       student: studentId
     });
 
@@ -133,8 +113,9 @@ exports.markStudentAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Attendance already marked' });
     }
 
+    // Create new attendance record
     const newAttendance = new Attendance({
-      session: session._id,
+      session: sessionId,
       student: studentId,
       status: 'present'
     });

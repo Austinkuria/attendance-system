@@ -734,20 +734,7 @@ export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 //   }
 // };
 
-export const createAttendanceSession = async (sessionData) => {
-  try {
-    const token = localStorage.getItem('token'); // Assuming the token is stored in localStorage
-    const response = await axios.post('https://attendance-system-w70n.onrender.com/api/sessions/create', sessionData, {
-      headers: {
-        'Authorization': `Bearer ${token}`
-      }
-    });
-    return response.data;
-  } catch (error) {
-    console.error('Error creating attendance session:', error.response ? error.response.data : error.message);
-    throw error;
-  }
-};
+
 
 export const detectCurrentSession = () => {
   return axios.get(`${API_URL}/sessions/current`, {
@@ -764,17 +751,21 @@ export const detectCurrentSession = () => {
 // };
 
 // Function to mark student attendance
-export const markStudentAttendance = async (unitId, qrCode, token) => {
+export const markStudentAttendance = async (sessionId, qrCode) => {
   try {
-    const response = await axios.post(`${API_URL}/attendance/mark`, { unitId, qrCode }, {
-      headers: { Authorization: `Bearer ${token}` }
-    });
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/attendance/mark`,
+      { sessionId, qrCode },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
     return response.data;
   } catch (error) {
-    console.error("Error marking attendance:", error.response?.data || error.message);
+    console.error('Error marking attendance:', error);
     throw error;
   }
 };
+
 
 /**
  * Create a new quiz
@@ -955,7 +946,12 @@ export const getSessionFeedback = async (sessionId) => {
         Authorization: `Bearer ${token}`,
       },
     });
-    return handleResponse(response);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to fetch feedback');
+    }
+    return await response.json();
+
   } catch (error) {
     throw new Error(error.message || "Failed to fetch feedback");
   }

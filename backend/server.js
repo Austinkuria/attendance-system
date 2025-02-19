@@ -36,19 +36,19 @@ app.use(express.json({ limit: "10mb" }));
 app.use((req, res, next) => {
   const origin = req.headers.origin;
   console.log(`Incoming request from origin: ${origin || 'undefined'}`);
-  
+
   // Validate origin if present
   if (origin && ![
     "https://attendance-system123.vercel.app",
     "http://localhost:5173",
     "https://attendance-system-w70n.onrender.com"
   ].includes(origin)) {
-    return res.status(403).json({ 
+    return res.status(403).json({
       success: false,
       message: "Origin not allowed"
     });
   }
-  
+
   next();
 });
 
