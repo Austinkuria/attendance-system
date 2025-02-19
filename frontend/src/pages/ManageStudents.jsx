@@ -10,7 +10,6 @@ import {
   Button,
   Alert,
   message,
-  // Skeleton,
   Row,
   Col,
 } from "antd";
@@ -30,7 +29,6 @@ import {
   CalendarOutlined,
   BookOutlined,
   FilterOutlined,
-  // CheckCircleOutlined,
 } from "@ant-design/icons";
 import { getStudents, deleteStudent, downloadStudents } from "../services/api";
 import api from "../services/api";
@@ -70,7 +68,6 @@ const ManageStudents = () => {
     year: "",
     semester: "",
   });
-  // const [formErrors, setFormErrors] = useState({});
   const [departments, setDepartments] = useState([]);
   const [courses, setCourses] = useState([]);
 
@@ -110,6 +107,7 @@ const ManageStudents = () => {
     fetchDepartments();
   }, [navigate]);
 
+  // Fetch courses data
   useEffect(() => {
     const fetchCourses = async () => {
       try {
@@ -121,9 +119,6 @@ const ManageStudents = () => {
         const response = await api.get("/course", {
           headers: { Authorization: `Bearer ${token}` },
         });
-
-        console.log("Fetched Courses:", response.data); // Debugging
-
         setCourses(response.data);
       } catch (err) {
         console.error("Error fetching courses:", err);
@@ -150,13 +145,8 @@ const ManageStudents = () => {
             regNo: student.regNo || "N/A",
             year: student.year || "N/A",
             semester: student.semester?.toString() || "N/A",
-            course:
-              (student.course && (student.course.name || student.course)) ||
-              "N/A",
-            department:
-              (student.department &&
-                (student.department.name || student.department)) ||
-              "N/A",
+            course: student.course?.name || "N/A",
+            department: student.department?.name || "N/A",
           }));
           setStudents(formattedStudents);
           setGlobalError("");
@@ -186,11 +176,6 @@ const ManageStudents = () => {
     }));
   }, [courses]);
 
-  // Debugging
-  useEffect(() => {
-    console.log("Available Courses:", availableCourses);
-  }, [availableCourses]);
-
   // Validate new student form
   const validateForm = () => {
     const errors = {};
@@ -207,13 +192,15 @@ const ManageStudents = () => {
     if (!newStudent.department) errors.department = "Department is required";
     if (!newStudent.year) errors.year = "Year is required";
     if (!newStudent.semester) errors.semester = "Semester is required";
-    // setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
 
   // Handle add student
   const handleAddStudent = async () => {
-    if (!validateForm()) return;
+    if (!validateForm()) {
+      message.error("Please fill in all required fields correctly");
+      return;
+    }
 
     try {
       setLoading(true);
@@ -223,35 +210,15 @@ const ManageStudents = () => {
         return;
       }
 
-      //  Directly use department and course IDs (they are already selected in the form)
-      const departmentId = newStudent.department;
-      const courseId = newStudent.course;
-
-      // Debugging logs (remove after testing)
-      console.log("Selected Department ID:", departmentId);
-      console.log("Selected Course ID:", courseId);
-
-      if (!departmentId) {
-        message.error("Please select a valid department");
-        return;
-      }
-
-      if (!courseId) {
-        message.error("Please select a valid course");
-        return;
-      }
-
-      // Prepare payload
       const payload = {
         ...newStudent,
         role: "student",
-        department: departmentId,  //  Use _id directly
-        course: newStudent.course, //  Use _id directly
+        department: newStudent.department,
+        course: newStudent.course,
         year: Number(newStudent.year) || 1,
         semester: Number(newStudent.semester) || 1,
       };
 
-      // Send request to create student
       const response = await api.post("/students", payload, {
         headers: { Authorization: `Bearer ${token}` },
       });
@@ -263,15 +230,13 @@ const ManageStudents = () => {
           regNo: s.regNo || "N/A",
           year: s.year || "N/A",
           semester: s.semester?.toString() || "N/A",
-          course: (s.course && (s.course.name || s.course)) || "N/A",
-          department: (s.department && (s.department.name || s.department)) || "N/A",
+          course: s.course?.name || "N/A",
+          department: s.department?.name || "N/A",
         }));
 
         setStudents(formatted);
         setIsAddModalVisible(false);
         message.success("Student added successfully");
-
-        // Reset form
         setNewStudent({
           firstName: "",
           lastName: "",
@@ -287,7 +252,7 @@ const ManageStudents = () => {
       }
     } catch (err) {
       console.error("Error creating student:", err);
-      setGlobalError(err.response?.data?.message || err.message || "Failed to create student");
+      setGlobalError(err.response?.data?.message || "Failed to create student");
       message.error("Failed to create student");
     } finally {
       setLoading(false);
@@ -304,21 +269,21 @@ const ManageStudents = () => {
         return;
       }
 
-      const formattedStudent = {
+      const payload = {
         ...selectedStudent,
-        course: selectedStudent.course.name || selectedStudent.course,
-        department: selectedStudent.department.name || selectedStudent.department,
+        course: selectedStudent.course, // Ensure this is the ID, not the object
+        department: selectedStudent.department, // Ensure this is the ID, not the object
       };
 
       const response = await api.put(
         `/students/${selectedStudent._id}`,
-        formattedStudent,
+        payload,
         { headers: { Authorization: `Bearer ${token}` } }
       );
 
       if (response.status === 200) {
         const updated = await getStudents();
-        setStudents(formatStudentData(updated));
+        setStudents(updateStudentData(updated));
         setIsEditModalVisible(false);
         message.success("Student updated successfully");
       }
@@ -332,14 +297,14 @@ const ManageStudents = () => {
   };
 
   // Helper Function
-  const formatStudentData = (students) => {
+  const updateStudentData = (students) => {
     return students.map((s) => ({
       ...s,
       regNo: s.regNo || "N/A",
       year: s.year || "N/A",
       semester: s.semester?.toString() || "N/A",
-      course: (s.course && (s.course.name || s.course)) || "N/A",
-      department: (s.department && (s.department.name || s.department)) || "N/A",
+      course: s.course?.name || "N/A",
+      department: s.department?.name || "N/A",
     }));
   };
 
@@ -353,19 +318,14 @@ const ManageStudents = () => {
         return;
       }
 
-      // Ensure student ID is valid
       if (!studentToDelete) {
         message.error("No student selected for deletion");
         setLoading(false);
         return;
       }
 
-      console.log("Deleting student ID:", studentToDelete); // Debugging log
-
-      // Call API to delete student
       const response = await deleteStudent(studentToDelete);
 
-      // Ensure deletion was successful
       if (response.message === "Student deleted successfully") {
         setStudents((prev) => prev.filter((s) => s._id !== studentToDelete));
         message.success("Student deleted successfully");
@@ -383,82 +343,78 @@ const ManageStudents = () => {
     }
   };
 
-  // Handle CSV file upload (only CSV allowed)
+  // Handle CSV file upload
   const handleFileUpload = (e) => {
     const selectedFile = e.target.files[0];
     const validCSVTypes = ["text/csv", "application/vnd.ms-excel"];
 
     if (selectedFile && validCSVTypes.includes(selectedFile.type)) {
       setFile(selectedFile);
-      setGlobalError(null); // Clear any previous errors
+      setGlobalError(null);
     } else {
       setGlobalError("Invalid file type. Please upload a valid CSV file.");
       setFile(null);
     }
   };
 
-// Handle CSV import for students
-const handleImport = async () => {
-  if (!file) {
-    setGlobalError("Please select a CSV file before importing.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/auth/login");
+  // Handle CSV import
+  const handleImport = async () => {
+    if (!file) {
+      setGlobalError("Please select a CSV file before importing.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("csvFile", file);
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/auth/login");
+        return;
+      }
 
-    const response = await api.post("/students/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const formData = new FormData();
+      formData.append("csvFile", file);
 
-    if (response.data.successCount > 0) {
-      const updated = await getStudents();
-      const formatted = updated.map((s) => ({
-        firstName: s.firstName || "N/A",
-        lastName: s.lastName || "N/A",
-        email: s.email || "N/A",
-        regNo: s.regNo || "N/A",
-        year: s.year || "N/A",
-        semester: s.semester?.toString() || "N/A",
-        course: (s.course && (s.course.name || s.course)) || "N/A",
-        department: (s.department && (s.department.name || s.department)) || "N/A",
-      }));
+      const response = await api.post("/students/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      setStudents(formatted);
-      message.success(`Successfully imported ${response.data.successCount} students`);
+      if (response.data.successCount > 0) {
+        const updated = await getStudents();
+        const formatted = updated.map((s) => ({
+          ...s,
+          regNo: s.regNo || "N/A",
+          year: s.year || "N/A",
+          semester: s.semester?.toString() || "N/A",
+          course: s.course?.name || "N/A",
+          department: s.department?.name || "N/A",
+        }));
+
+        setStudents(formatted);
+        message.success(`Successfully imported ${response.data.successCount} students`);
+      }
+
+      setFile(null);
+
+      if (response.data.errorCount > 0) {
+        const errorMessages = response.data.errors.map((err, index) => 
+          `Row ${index + 1}: ${err.error}`
+        ).join("\n");
+        setGlobalError(`Some records failed to import:\n${errorMessages}`);
+      }
+    } catch (err) {
+      console.error("CSV import failed:", err);
+      setGlobalError("CSV import failed. Please check file format and try again.");
+      message.error("CSV import failed");
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setFile(null);
-
-    // Show detailed errors if any records failed
-    if (response.data.errorCount > 0) {
-      const errorMessages = response.data.errors.map((err, index) => 
-        `Row ${index + 1}: ${err.error}`
-      ).join("\n");
-
-      setGlobalError(`Some records failed to import:\n${errorMessages}`);
-    }
-  } catch (err) {
-    console.error("CSV import failed:", err);
-    setGlobalError("CSV import failed. Please check file format and try again.");
-    message.error("CSV import failed");
-  } finally {
-    setLoading(false);
-  }
-};
-
-  // Filter students based on search and filter criteria
+  // Filter students
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
       const searchLower = searchQuery.toLowerCase().trim();
@@ -475,7 +431,7 @@ const handleImport = async () => {
     });
   }, [students, searchQuery, filter]);
 
-  // Define table columns using Ant Design's Table component
+  // Table columns
   const columns = [
     {
       title: (
@@ -542,7 +498,6 @@ const handleImport = async () => {
             size="small"
             onClick={() => {
               setSelectedStudent(record);
-              // Pre-fill edit form fields
               editForm.setFieldsValue({
                 firstName: record.firstName,
                 lastName: record.lastName,
@@ -614,7 +569,6 @@ const handleImport = async () => {
           />
         )}
 
-        {/* Header */}
         <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
           <Button type="link" icon={<LeftOutlined />} onClick={() => navigate("/admin")}>
             Back to Admin
@@ -635,7 +589,6 @@ const handleImport = async () => {
           </Button>
         </Row>
 
-        {/* Filters and Actions */}
         <div style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
           <Row gutter={[16, 16]} align="middle">
             <Col xs={24} md={8}>
@@ -678,8 +631,8 @@ const handleImport = async () => {
                 allowClear
               >
                 {availableCourses.map((course) => (
-                  <Option key={course} value={course}>
-                    {course}
+                  <Option key={course.id} value={course.id}>
+                    {course.name}
                   </Option>
                 ))}
               </Select>
@@ -739,241 +692,229 @@ const handleImport = async () => {
           </Row>
         </div>
 
-        {/* Students Table */}
         <Table
           dataSource={filteredStudents}
           columns={columns}
           rowKey="_id"
           scroll={{ x: "max-content", y: 400 }}
         />
+
+        {/* Add Student Modal */}
+        <Modal
+          title={
+            <>
+              <UserAddOutlined style={{ marginRight: 8 }} />
+              Add New Student
+            </>
+          }
+          open={isAddModalVisible}
+          onCancel={() => setIsAddModalVisible(false)}
+          footer={[
+            <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>
+              Cancel
+            </Button>,
+            <Button key="submit" type="primary" onClick={handleAddStudent} loading={loading}>
+              Create Student
+            </Button>,
+          ]}
+        >
+          <Form form={addForm} layout="vertical">
+            <Form.Item
+              label="First Name"
+              name="firstName"
+              rules={[{ required: true, message: "First name is required" }]}
+            >
+              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, firstName: e.target.value }))} />
+            </Form.Item>
+            <Form.Item
+              label="Last Name"
+              name="lastName"
+              rules={[{ required: true, message: "Last name is required" }]}
+            >
+              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, lastName: e.target.value }))} />
+            </Form.Item>
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { required: true, message: "Email is required" },
+                { type: "email", message: "Invalid email format" },
+              ]}
+            >
+              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, email: e.target.value }))} />
+            </Form.Item>
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[{ required: true, message: "Password is required" }]}
+            >
+              <Input.Password onChange={(e) => setNewStudent((prev) => ({ ...prev, password: e.target.value }))} />
+            </Form.Item>
+            <Form.Item
+              label="Registration Number"
+              name="regNo"
+              rules={[{ required: true, message: "Registration number is required" }]}
+            >
+              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
+            </Form.Item>
+            <Form.Item
+              label="Course"
+              name="course"
+              rules={[{ required: true, message: "Course is required" }]}
+            >
+              <Select
+                placeholder="Select Course"
+                onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))}
+              >
+                {availableCourses.map((course) => (
+                  <Option key={course.id} value={course.id}>
+                    {course.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              label="Department"
+              name="department"
+              rules={[{ required: true, message: "Department is required" }]}
+            >
+              <Select
+                onChange={(value) => setNewStudent((prev) => ({ ...prev, department: value }))}
+                placeholder="Select Department"
+              >
+                {departments.map((dept) => (
+                  <Option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              label="Year"
+              name="year"
+              rules={[{ required: true, message: "Year is required" }]}
+            >
+              <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, year: value }))} placeholder="Select Year">
+                {["1", "2", "3", "4"].map((year) => (
+                  <Option key={year} value={year}>
+                    Year {year}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item
+              label="Semester"
+              name="semester"
+              rules={[{ required: true, message: "Semester is required" }]}
+            >
+              <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, semester: value }))} placeholder="Select Semester">
+                {["1", "2", "3"].map((sem) => (
+                  <Option key={sem} value={sem}>
+                    Semester {sem}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Edit Student Modal */}
+        <Modal
+          title={
+            <>
+              <EditOutlined style={{ marginRight: 8 }} />
+              Edit Student
+            </>
+          }
+          open={isEditModalVisible}
+          onCancel={() => setIsEditModalVisible(false)}
+          footer={[
+            <Button key="cancel" onClick={() => setIsEditModalVisible(false)}>
+              Cancel
+            </Button>,
+            <Button key="submit" type="primary" onClick={handleEditStudent} loading={loading}>
+              Save Changes
+            </Button>,
+          ]}
+        >
+          <Form form={editForm} layout="vertical">
+            <Form.Item label="First Name" name="firstName">
+              <Input onChange={(e) =>
+                setSelectedStudent((prev) => ({ ...prev, firstName: e.target.value }))
+              } />
+            </Form.Item>
+            <Form.Item label="Last Name" name="lastName">
+              <Input onChange={(e) =>
+                setSelectedStudent((prev) => ({ ...prev, lastName: e.target.value }))
+              } />
+            </Form.Item>
+            <Form.Item label="Email" name="email">
+              <Input onChange={(e) =>
+                setSelectedStudent((prev) => ({ ...prev, email: e.target.value }))
+              } />
+            </Form.Item>
+            <Form.Item label="Registration Number" name="regNo">
+              <Input onChange={(e) =>
+                setSelectedStudent((prev) => ({ ...prev, regNo: e.target.value }))
+              } />
+            </Form.Item>
+            <Form.Item label="Course" name="course">
+              <Select onChange={(value) =>
+                setSelectedStudent((prev) => ({ ...prev, course: value }))
+              } placeholder="Select Course">
+                {availableCourses.map((course) => (
+                  <Option key={course.id} value={course.id}>
+                    {course.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item label="Year" name="year">
+              <Select onChange={(value) =>
+                setSelectedStudent((prev) => ({ ...prev, year: value }))
+              } placeholder="Select Year">
+                {["1", "2", "3", "4"].map((year) => (
+                  <Option key={year} value={year}>
+                    Year {year}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+            <Form.Item label="Semester" name="semester">
+              <Select onChange={(value) =>
+                setSelectedStudent((prev) => ({ ...prev, semester: value }))
+              } placeholder="Select Semester">
+                {["1", "2", "3"].map((sem) => (
+                  <Option key={sem} value={sem}>
+                    Semester {sem}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Modal>
+
+        {/* Delete Confirmation Modal */}
+        <Modal
+          title="Confirm Deletion"
+          open={isDeleteModalVisible}
+          centered
+          onCancel={() => setIsDeleteModalVisible(false)}
+          footer={[
+            <Button key="cancel" onClick={() => setIsDeleteModalVisible(false)}>
+              Cancel
+            </Button>,
+            <Button key="delete" type="primary" danger onClick={handleConfirmDelete} loading={loading}>
+              Delete Student
+            </Button>,
+          ]}
+        >
+          <p>
+            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+            Are you sure you want to delete this student? This action cannot be undone.
+          </p>
+        </Modal>
       </Content>
-
-      {/* Add Student Modal */}
-      <Modal
-        title={
-          <>
-            <UserAddOutlined style={{ marginRight: 8 }} />
-            Add New Student
-          </>
-        }
-        open={isAddModalVisible}
-        onCancel={() => setIsAddModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>
-            Cancel
-          </Button>,
-          <Button key="submit" type="primary" onClick={handleAddStudent} loading={loading}>
-            Create Student
-          </Button>,
-        ]}
-      >
-        <Form form={addForm} layout="vertical">
-          <Form.Item
-            label="First Name"
-            name="firstName"
-            initialValue={newStudent.firstName}
-            rules={[{ required: true, message: "First name is required" }]}
-          >
-            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, firstName: e.target.value }))} />
-          </Form.Item>
-          <Form.Item
-            label="Last Name"
-            name="lastName"
-            initialValue={newStudent.lastName}
-            rules={[{ required: true, message: "Last name is required" }]}
-          >
-            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, lastName: e.target.value }))} />
-          </Form.Item>
-          <Form.Item
-            label="Email"
-            name="email"
-            initialValue={newStudent.email}
-            rules={[
-              { required: true, message: "Email is required" },
-              { type: "email", message: "Invalid email format" },
-            ]}
-          >
-            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, email: e.target.value }))} />
-          </Form.Item>
-          <Form.Item
-            label="Password"
-            name="password"
-            initialValue={newStudent.password}
-            rules={[{ required: true, message: "Password is required" }]}
-          >
-            <Input.Password onChange={(e) => setNewStudent((prev) => ({ ...prev, password: e.target.value }))} />
-          </Form.Item>
-          <Form.Item
-            label="Registration Number"
-            name="regNo"
-            initialValue={newStudent.regNo}
-            rules={[{ required: true, message: "Registration number is required" }]}
-          >
-            <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
-          </Form.Item>
-          <Form.Item
-            label="Course"
-            name="course"
-            rules={[{ required: true, message: "Course is required" }]}
-          >
-            <Select
-              placeholder="Select Course"
-              onChange={(value) => {
-                console.log("Selected Course ID:", value);
-                setNewStudent((prev) => ({ ...prev, course: value }));
-              }}
-            >
-              {availableCourses.map((course) => (
-                <Option key={course.id} value={course.id}>
-                  {course.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            label="Department"
-            name="department"
-            initialValue={newStudent.department}
-            rules={[{ required: true, message: "Department is required" }]}
-          >
-            <Select
-              onChange={(value) => setNewStudent((prev) => ({ ...prev, department: value }))}
-              placeholder="Select Department"
-            >
-              {departments.map((dept) => (
-                <Option key={dept._id} value={dept._id}> {/*  Use _id, not name */}
-                  {dept.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            label="Year"
-            name="year"
-            initialValue={newStudent.year}
-            rules={[{ required: true, message: "Year is required" }]}
-          >
-            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, year: value }))} placeholder="Select Year">
-              {["1", "2", "3", "4"].map((year) => (
-                <Option key={year} value={year}>
-                  Year {year}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item
-            label="Semester"
-            name="semester"
-            initialValue={newStudent.semester}
-            rules={[{ required: true, message: "Semester is required" }]}
-          >
-            <Select onChange={(value) => setNewStudent((prev) => ({ ...prev, semester: value }))} placeholder="Select Semester">
-              {["1", "2", "3"].map((sem) => (
-                <Option key={sem} value={sem}>
-                  Semester {sem}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Edit Student Modal */}
-      <Modal
-        title={
-          <>
-            <EditOutlined style={{ marginRight: 8 }} />
-            Edit Student
-          </>
-        }
-        open={isEditModalVisible}
-        onCancel={() => setIsEditModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setIsEditModalVisible(false)}>
-            Cancel
-          </Button>,
-          <Button key="submit" type="primary" onClick={handleEditStudent} loading={loading}>
-            Save Changes
-          </Button>,
-        ]}
-      >
-        <Form form={editForm} layout="vertical">
-          <Form.Item label="First Name" name="firstName">
-            <Input onChange={(e) =>
-              setSelectedStudent((prev) => ({ ...prev, firstName: e.target.value }))
-            } />
-          </Form.Item>
-          <Form.Item label="Last Name" name="lastName">
-            <Input onChange={(e) =>
-              setSelectedStudent((prev) => ({ ...prev, lastName: e.target.value }))
-            } />
-          </Form.Item>
-          <Form.Item label="Email" name="email">
-            <Input onChange={(e) =>
-              setSelectedStudent((prev) => ({ ...prev, email: e.target.value }))
-            } />
-          </Form.Item>
-          <Form.Item label="Registration Number" name="regNo">
-            <Input onChange={(e) =>
-              setSelectedStudent((prev) => ({ ...prev, regNo: e.target.value }))
-            } />
-          </Form.Item>
-          <Form.Item label="Course" name="course">
-            <Select onChange={(value) =>
-              setSelectedStudent((prev) => ({ ...prev, course: value }))
-            } placeholder="Select Course">
-              {availableCourses.map((course) => (
-                <Option key={course} value={course}>
-                  {course}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item label="Year" name="year">
-            <Select onChange={(value) =>
-              setSelectedStudent((prev) => ({ ...prev, year: value }))
-            } placeholder="Select Year">
-              {["1", "2", "3", "4"].map((year) => (
-                <Option key={year} value={year}>
-                  Year {year}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-          <Form.Item label="Semester" name="semester">
-            <Select onChange={(value) =>
-              setSelectedStudent((prev) => ({ ...prev, semester: value }))
-            } placeholder="Select Semester">
-              {["1", "2", "3"].map((sem) => (
-                <Option key={sem} value={sem}>
-                  Semester {sem}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
-      </Modal>
-
-      {/* Delete Confirmation Modal */}
-      <Modal
-        title="Confirm Deletion"
-        open={isDeleteModalVisible}
-        centered
-        onCancel={() => setIsDeleteModalVisible(false)}
-        footer={[
-          <Button key="cancel" onClick={() => setIsDeleteModalVisible(false)}>
-            Cancel
-          </Button>,
-          <Button key="delete" type="primary" danger onClick={handleConfirmDelete} loading={loading}>
-            Delete Student
-          </Button>,
-        ]}
-      >
-        <p>
-          <ExclamationCircleOutlined style={{ marginRight: 8 }} />
-          Are you sure you want to delete this student? This action cannot be undone.
-        </p>
-      </Modal>
     </Layout>
   );
 };

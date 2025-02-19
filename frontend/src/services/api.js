@@ -1,10 +1,11 @@
 import axios from "axios";
-// import mongoose from "mongoose";
-const API_URL = import.meta.env.VITE_API_URL;
-const api = axios.create({
-  API_URL: "https://attendance-system-w70n.onrender.com/api", // backend URL
-});
 
+// Use environment variable for base URL, with fallback
+const API_URL = import.meta.env.VITE_API_URL || "https://attendance-system-w70n.onrender.com/api";
+
+const api = axios.create({
+  baseURL: API_URL, // Use baseURL instead of API_URL as a property
+});
 
 // Function to get token from local storage
 const getToken = () => localStorage.getItem("token");
@@ -63,6 +64,7 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
 // get userprofile
 export const getUserProfile = async () => {
