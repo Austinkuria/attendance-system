@@ -11,7 +11,7 @@ const attendanceRoutes = require("../routes/attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const router = express.Router();
 const quizRoutes = require('./quizRoutes');
-const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer,importLecturers,downloadLecturers,sendResetLink,resetPassword, registerUser } = require("../controllers/userController");
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createSession, createLecturer, updateLecturer, deleteLecturer, importLecturers, downloadLecturers, sendResetLink, resetPassword, registerUser } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
@@ -69,6 +69,6 @@ const resetPasswordLimiter = rateLimit({
     max: 5, // limit each IP to 5 requests per windowMs
 });
 router.post("/auth/reset-password", resetPasswordLimiter, sendResetLink);
-router.put("/auth/reset-password/:token",resetPassword);	router.put("/auth/reset-password/:token",resetPassword);
-  
+router.put("/auth/reset-password/:token", resetPassword); router.put("/auth/reset-password/:token", resetPassword);
+
 module.exports = router;

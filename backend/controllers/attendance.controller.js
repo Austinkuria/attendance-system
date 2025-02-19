@@ -58,7 +58,7 @@ exports.generateQRCode = async (req, res) => {
   }
 };
 
-exports.createAttendanceSession = async (req, res) => {
+exports.createSession = async (req, res) => {
   try {
     const { unitId, lecturerId, startTime, endTime } = req.body;
 
@@ -92,8 +92,8 @@ exports.markStudentAttendance = async (req, res) => {
     const studentId = req.user.id;
 
     if (!sessionId || !qrCode || !studentId) {
-      return res.status(400).json({ 
-        message: 'Session ID, QR code, and student ID are required' 
+      return res.status(400).json({
+        message: 'Session ID, QR code, and student ID are required'
       });
     }
 

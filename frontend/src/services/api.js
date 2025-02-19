@@ -718,7 +718,7 @@ export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 
 
 // export const getUnitEnrollments = (unitId) => api.get(`/unit/${unitId}/students`);
-// export const createAttendanceSession = async (attendanceData) => {
+// export const createSession = async (attendanceData) => {
 //   const token = localStorage.getItem("token"); // Retrieve the token from local storage
 //   try {
 //     const response = await api.post("https://attendance-system-w70n.onrender.com/api/attendance/create", attendanceData, {

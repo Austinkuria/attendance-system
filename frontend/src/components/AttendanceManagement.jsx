@@ -12,7 +12,7 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import {
   // generateQRCode,
-  getAttendanceData, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createAttendanceSession,
+  getAttendanceData, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession,createSession,
   // submitAttendance
 } from '../services/api';
 
@@ -191,7 +191,7 @@ const AttendanceManagement = () => {
 
     try {
       setLoading(prev => ({ ...prev, session: true }));
-      const data = await createAttendanceSession({
+      const data = await createSession({
         unitId: selectedUnit,
         lecturerId,
         startTime: new Date(), // or any desired start time
@@ -361,7 +361,7 @@ const AttendanceManagement = () => {
     try {
       setLoading(prev => ({ ...prev, session: true }));
       const token = localStorage.getItem('token');
-      
+
       // Confirm before ending session
       Modal.confirm({
         title: 'Are you sure you want to end this session?',
@@ -372,12 +372,14 @@ const AttendanceManagement = () => {
         onOk: async () => {
           try {
             await axios.delete(
-              'https://attendance-system-w70n.onrender.com/api/sessions/end', 
-              { data: { sessionId: currentSession._id },
-              headers: { 'Authorization': `Bearer ${token}` } }
+              'https://attendance-system-w70n.onrender.com/api/sessions/end',
+              {
+                data: { sessionId: currentSession._id },
+                headers: { 'Authorization': `Bearer ${token}` }
+              }
             );
 
-            
+
             message.success('Session ended successfully');
             // Mark session as ended and clear QR data
             setCurrentSession(prev => ({ ...prev, ended: true }));

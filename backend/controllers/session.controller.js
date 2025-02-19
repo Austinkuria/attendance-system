@@ -26,7 +26,7 @@ exports.detectCurrentSession = async (req, res) => {
   }
 };
 
-exports.createAttendanceSession = async (req, res) => {
+exports.createSession = async (req, res) => {
   try {
     const { unitId, lecturerId, startTime, endTime } = req.body;
 
