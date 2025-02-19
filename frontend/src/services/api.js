@@ -1040,7 +1040,7 @@ export const submitQuizAnswers = async (quizSubmissionData) => {
 };
 
 // Session related endpoints
-export const createSession = async (unitId, lecturerId, startTime, endTime) => {
+export const createSession = async ({ unitId, lecturerId, startTime, endTime }) => {
   try {
     const token = localStorage.getItem('token');
     

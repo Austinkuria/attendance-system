@@ -202,11 +202,12 @@ const AttendanceManagement = () => {
       });
 
       const data = await createSession({
-        unitId: selectedUnit,
-        lecturerId: lecturerId,
-        startTime: startTime,
-        endTime: endTime,
+        unitId: selectedUnit, 
+        lecturerId, 
+        startTime: new Date(startTime).toISOString(), 
+        endTime: new Date(endTime).toISOString()
       });
+      
 
       message.success('Session created successfully');
       // Ensure dates are properly parsed
