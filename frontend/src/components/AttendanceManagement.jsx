@@ -191,14 +191,23 @@ const AttendanceManagement = () => {
 
     try {
       setLoading(prev => ({ ...prev, session: true }));
+      const startTime = new Date().toISOString();
+      const endTime = new Date(new Date().getTime() + 60 * 60 * 1000).toISOString();
+
+      console.log("Creating session with:", { 
+        unitId: selectedUnit, 
+        lecturerId: lecturerId, 
+        startTime: startTime, 
+        endTime: endTime 
+      });
+
       const data = await createSession({
         unitId: selectedUnit,
-        lecturerId,
-        startTime: new Date().toISOString(), // or any desired start time
-        endTime: new Date(new Date().getTime() + 60 * 60 * 1000).toISOString(), // 1 hour session
-
-
+        lecturerId: lecturerId,
+        startTime: startTime,
+        endTime: endTime,
       });
+
       message.success('Session created successfully');
       // Ensure dates are properly parsed
       const sessionData = {
@@ -209,7 +218,8 @@ const AttendanceManagement = () => {
       setCurrentSession(sessionData);
       setQrData(data.qrToken);
 
-    } catch {
+    } catch (error) {
+      console.error("Error creating session:", error);
       message.error('Failed to create session');
     } finally {
       setLoading(prev => ({ ...prev, session: false }));
