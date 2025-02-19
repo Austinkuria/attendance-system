@@ -1,12 +1,20 @@
 const Session = require('../models/Session');
 const Attendance = require('../models/Attendance');
 const User = require("../models/User");
+const mongoose = require('mongoose');
+
 
 exports.markAttendance = async (req, res) => {
   try {
     const { sessionId, studentId } = req.body;
 
+    // Validate studentId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID format" });
+    }
+
     // Validate session existence and time validity
+
     const session = await Session.findById(sessionId);
     if (!session) {
       return res.status(404).json({ message: "Session not found" });

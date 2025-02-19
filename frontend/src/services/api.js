@@ -1082,6 +1082,11 @@ export const getSession = async (sessionId) => {
 // ✅ Mark Attendance (Student Scans QR Code)
 export const markAttendance = async (sessionId, studentId, token) => {
   try {
+    // Validate studentId is a valid ObjectId format
+    if (!/^[0-9a-fA-F]{24}$/.test(studentId)) {
+      throw new Error("Invalid student ID format");
+    }
+
     const response = await axios.post(
       `${API_URL}/attendance/mark`,
       { sessionId, studentId },
@@ -1093,9 +1098,10 @@ export const markAttendance = async (sessionId, studentId, token) => {
     );
     return response.data;
   } catch (error) {
-    throw error.response ? error.response.data : new Error("Network error");
+    throw error.response ? error.response.data : new Error(error.message || "Network error");
   }
 };
+
 
 // ✅ End Session (Lecturer Ends the Attendance Session)
 export const endSession = async (sessionId) => {

@@ -56,8 +56,14 @@ const QRScanner = () => {
     clearTimeout(scanTimeoutRef.current);
   
     try {
-      const token = localStorage.getItem("token");  // Retrieve token
-      await markAttendance(sessionId, result?.data, token);  // Pass token
+      const token = localStorage.getItem("token");
+      const studentId = localStorage.getItem("userId"); // Get actual student ID from localStorage
+      
+      if (!studentId) {
+        throw new Error("Student ID not found. Please log in again.");
+      }
+
+      await markAttendance(sessionId, studentId, token);
       message.success("Attendance marked successfully!");
       navigate("/student-dashboard");
     } catch (err) {
@@ -67,6 +73,7 @@ const QRScanner = () => {
       setLoading(false);
     }
   }, [sessionId, sessionEnded, navigate]);
+
   
   // Start scanner
   useEffect(() => {

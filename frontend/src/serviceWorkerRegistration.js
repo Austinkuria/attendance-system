@@ -6,7 +6,6 @@ export function register(config) {
       return;
     }
 
-
     window.addEventListener('load', () => {
       const swUrl = '/sw.js';
       if (isLocalhost) {
@@ -19,80 +18,67 @@ export function register(config) {
 }
 
 function registerValidSW(swUrl, config) {
-  navigator.serviceWorker
-    .register(swUrl)
+  navigator.serviceWorker.register(swUrl)
     .then(registration => {
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
-        if (installingWorker == null) {
-          return;
-        }
-        
+        if (!installingWorker) return;
+
         installingWorker.onstatechange = () => {
           if (installingWorker.state === 'installed') {
             if (navigator.serviceWorker.controller) {
-              console.log(
-                'New content is available and will be used when all ' +
-                  'tabs for this page are closed. See https://cra.link/PWA.'
-              );
-
-              if (config && config.onUpdate) {
-                config.onUpdate(registration);
-              }
+              console.log('New content available; please refresh.');
+              if (config && config.onUpdate) config.onUpdate(registration);
             } else {
-              console.log('Content is cached for offline use.');
-
-              if (config && config.onSuccess) {
-                config.onSuccess(registration);
-              }
+              console.log('Content cached for offline use.');
+              if (config && config.onSuccess) config.onSuccess(registration);
             }
           }
         };
       };
     })
     .catch(error => {
-      if (error.name === 'InvalidStateError') {
-        console.log('Service worker already active. Skipping registration.');
-        return;
+      console.error('Service worker registration failed:', error);
+      if (error.name !== 'InvalidStateError') {
+        // Log but don't block execution for InvalidStateError
       }
-      console.error('Error during service worker registration:', error);
     });
 }
 
 function checkValidServiceWorker(swUrl, config) {
-  fetch(swUrl)
+  fetch(swUrl, { cache: 'no-cache' })
     .then(response => {
-      const contentType = response.headers.get('content-type');
-      if (
-        response.status === 404 ||
-        (contentType != null && contentType.indexOf('javascript') === -1)
-      ) {
+      if (response.status === 404 || 
+          !response.headers.get('content-type')?.includes('javascript')) {
         navigator.serviceWorker.ready.then(registration => {
           registration.unregister().then(() => {
             window.location.reload();
+          }).catch(error => {
+            console.error('Unregistration failed:', error);
           });
         });
       } else {
         registerValidSW(swUrl, config);
       }
     })
-    .catch(() => {
-      console.log('No internet connection found. App is running in offline mode.');
+    .catch(error => {
+      console.log('Network error checking service worker. Running online:', error);
+      registerValidSW(swUrl, config); // Try to register anyway
     });
 }
 
 export function unregister() {
   if ('serviceWorker' in navigator) {
     navigator.serviceWorker.ready.then(registration => {
-      registration.unregister();
+      registration.unregister().catch(error => {
+        console.error('Service worker unregistration failed:', error);
+      });
     });
   }
 }
 
 const isLocalhost = Boolean(
-  window.location.hostname === 'localhost' ||
-    window.location.hostname === '[::1]' ||
-    window.location.hostname.match(
-      /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/
-    )
+  window.location.hostname === 'localhost' || 
+  window.location.hostname === '[::1]' || 
+  /^127(?:\.(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)){3}$/.test(window.location.hostname)
 );
