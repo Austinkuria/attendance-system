@@ -1153,14 +1153,28 @@ export const getCurrentSession = async (selectedUnit) => {
 export const getStudentAttendance = async (studentId) => {
   try {
     const token = localStorage.getItem('token');
+    if (!token) {
+      throw new Error('No authentication token found');
+    }
+
     const response = await axios.get(
       `${API_URL}/attendance/student/${studentId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
+
+    if (!response.data || !response.data.attendanceRecords) {
+      console.warn('Unexpected response format:', response.data);
+      return { attendanceRecords: [] }; // Return empty array if no data
+    }
+
     return response.data;
   } catch (error) {
     console.error('Error fetching student attendance:', error);
-    throw error;
+    if (error.response) {
+      throw new Error(`Failed to fetch attendance: ${error.response.status} - ${error.response.data.message || error.message}`);
+    } else {
+      throw new Error(`Network error: ${error.message}`);
+    }
   }
 };
 

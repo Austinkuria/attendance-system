@@ -80,3 +80,24 @@ exports.handleSessionEnd = async (req, res) => {
     res.status(500).json({ message: "Error processing absentees", error: error.message });
   }
 };
+
+// Get attendance records for a specific student
+exports.getStudentAttendance = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+
+    // Validate studentId is a valid ObjectId
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID format" });
+    }
+
+    // Get all attendance records for the student, populated with session details
+    const attendanceRecords = await Attendance.find({ student: studentId })
+      .populate('session', 'unit startTime endTime')
+      .sort({ 'session.startTime': -1 });
+
+    res.status(200).json({ attendanceRecords });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching attendance records", error: error.message });
+  }
+};
