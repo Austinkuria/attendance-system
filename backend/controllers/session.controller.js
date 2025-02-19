@@ -1,5 +1,7 @@
 const Session = require('../models/Session');
 const generateQRToken = require('../utils/session.utils');
+const schedule = require("node-schedule");
+const { markAbsentees } = require("./attendance.controller");
 
 exports.detectCurrentSession = async (req, res) => {
   try {
@@ -8,18 +10,14 @@ exports.detectCurrentSession = async (req, res) => {
       startTime: { $lte: currentTime },
       endTime: { $gte: currentTime }
     });
+
     if (!currentSession) {
       return res.status(404).json({ message: 'No current session found' });
     }
 
     // Generate QR code for the current session
     const qrCode = await generateQRToken(currentSession);
-    const sessionWithQR = {
-      ...currentSession.toObject(),
-      qrCode
-    };
-
-    res.json(sessionWithQR);
+    res.json({ ...currentSession.toObject(), qrCode });
 
   } catch (error) {
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
@@ -60,24 +58,18 @@ exports.createSession = async (req, res) => {
   }
 };
 
-
-// New function to end a session
+// Schedule absentee marking after session ends
 exports.endSession = async (req, res) => {
   try {
-    const { sessionId } = req.body;
+    const { sessionId, endTime } = req.body;
 
-    // Find the session by ID
-    const session = await Session.findById(sessionId);
-    if (!session) {
-      return res.status(404).json({ message: 'Session not found' });
-    }
+    // Set a job to mark absentees when session ends
+    schedule.scheduleJob(new Date(endTime), async () => {
+      await markAbsentees(sessionId);
+    });
 
-    // Mark the session as ended
-    session.ended = true; // Assuming there's an 'ended' field in the model
-    await session.save();
-
-    res.status(200).json({ message: 'Session ended successfully' });
+    res.status(200).json({ message: "Session ended. Absentees will be marked automatically." });
   } catch (error) {
-    res.status(500).json({ message: 'Error ending session', error: error.message });
+    res.status(500).json({ message: "Error ending session", error: error.message });
   }
 };

@@ -1,136 +1,74 @@
-const jwt = require('jsonwebtoken');
-const generateQRToken = require('../utils/session.utils');
 const Session = require('../models/Session');
-const Attendance = require('../models/AttendanceSession');
-const QRCode = require("qrcode");
+const Attendance = require('../models/Attendance');
+const User = require("../models/User");
 
-exports.submitAttendance = async (req, res) => {
+exports.markAttendance = async (req, res) => {
   try {
-    const deviceHash = req.deviceFingerprint;
-    const decoded = jwt.verify(req.body.token, process.env.JWT_SECRET);
+    const { sessionId, studentId } = req.body;
 
-    const session = await Session.findById(decoded.sessionId);
-
-    if (!this.validateSessionTime(session)) {
-      return res.status(400).json({ error: "Session expired" });
-    }
-
-    const isEnrolled = await Enrollment.exists({
-      student: req.user.id,
-      unit: session.unit,
-      course: session.course
-    });
-
-    if (!isEnrolled) {
-      return res.status(403).json({ error: "Not enrolled" });
-    }
-
-    const deviceHistory = await Session.aggregate([
-      { $match: { 'deviceFingerprints': deviceHash } },
-      { $group: { _id: null, count: { $sum: 1 } } }
-    ]);
-
-    await Session.findByIdAndUpdate(session._id, {
-      $addToSet: { deviceFingerprints: deviceHash }
-    });
-
-    res.json({
-      success: true,
-      deviceUsage: deviceHistory[0]?.count || 0
-    });
-
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
-
-exports.generateQRCode = async (req, res) => {
-  try {
-    const session = await detectCurrentSession(req, res);
-    if (!session || !session.qrCode) {
-      return res.status(404).json({ message: "QR token generation failed" });
-    }
-
-    const qrImage = await QRCode.toDataURL(session.qrCode);
-    res.json({ qrCode: qrImage });
-  } catch (error) {
-    res.status(500).json({ message: "Failed to generate QR code" });
-  }
-};
-
-exports.createSession = async (req, res) => {
-  try {
-    const { unitId, lecturerId, startTime, endTime } = req.body;
-
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: 'Invalid startTime or endTime' });
-    }
-
-    const session = new Session({
-      unit: unitId,
-      lecturer: lecturerId,
-      startTime: start,
-      endTime: end,
-      qrCode: generateQRToken()
-    });
-
-    await session.save();
-
-    const qrImage = await QRCode.toDataURL(session.qrCode);
-    res.status(201).json({ message: 'Session created successfully', session, qrCode: qrImage });
-  } catch (error) {
-    res.status(500).json({ message: 'Error creating session', error: error.message });
-  }
-};
-
-exports.markStudentAttendance = async (req, res) => {
-  try {
-    const { sessionId, qrCode } = req.body;
-    const studentId = req.user.id;
-
-    if (!sessionId || !qrCode || !studentId) {
-      return res.status(400).json({
-        message: 'Session ID, QR code, and student ID are required'
-      });
-    }
-
-    // Validate session exists and is active
+    // Validate session existence and time validity
     const session = await Session.findById(sessionId);
-    if (!session || session.ended) {
-      return res.status(404).json({ message: 'Invalid or expired session' });
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
     }
 
-    // Check if attendance already exists
-    const existingAttendance = await Attendance.findOne({
-      session: sessionId,
-      student: studentId
-    });
-
-    if (existingAttendance) {
-      return res.status(400).json({ message: 'Attendance already marked' });
+    const now = new Date();
+    if (now < session.startTime || now > session.endTime) {
+      return res.status(400).json({ message: "Session is not active" });
     }
 
-    // Create new attendance record
-    const newAttendance = new Attendance({
+    // Check if student has already marked attendance
+    const existingRecord = await Attendance.findOne({ session: sessionId, student: studentId });
+    if (existingRecord) {
+      return res.status(400).json({ message: "Attendance already marked" });
+    }
+
+    // Mark student as present
+    const attendance = new Attendance({
       session: sessionId,
       student: studentId,
-      status: 'present'
+      status: "Present"
     });
 
-    await newAttendance.save();
+    await attendance.save();
 
-    res.status(200).json({
-      message: 'Attendance marked successfully',
-      attendance: newAttendance
-    });
-
+    res.status(201).json({ message: "Attendance marked as Present" });
   } catch (error) {
-    res.status(500).json({
-      message: 'Error marking attendance: ' + error.message,
-      error: error.stack
-    });
+    res.status(500).json({ message: "Error marking attendance", error: error.message });
+  }
+};
+
+// Function to mark absentees after session ends
+const markAbsentees = async (sessionId) => {
+  try {
+    const session = await Session.findById(sessionId);
+    if (!session) return;
+
+    // Get all students who should have attended
+    const allStudents = await User.find({ role: "student" });
+
+    for (let student of allStudents) {
+      const attendance = await Attendance.findOne({ session: sessionId, student: student._id });
+
+      if (!attendance) {
+        // Mark student as absent if they didn't scan
+        await Attendance.create({ session: sessionId, student: student._id, status: "Absent" });
+      }
+    }
+
+    console.log("Absent students marked for session:", sessionId);
+  } catch (error) {
+    console.error("Error marking absentees:", error.message);
+  }
+};
+
+// Function to trigger absentee marking when a session ends
+exports.handleSessionEnd = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    await markAbsentees(sessionId);
+    res.status(200).json({ message: "Absent students marked" });
+  } catch (error) {
+    res.status(500).json({ message: "Error processing absentees", error: error.message });
   }
 };

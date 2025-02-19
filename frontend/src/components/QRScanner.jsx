@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, message } from "antd";
 import QrScanner from "qr-scanner";
-import { markStudentAttendance } from "../services/api"; // Updated to use new API structure
+import { markAttendance, getCurrentSession } from "../services/api"; // Updated API imports
 
 import "./QrStyles.css"; // Custom styles for the QR scanner
 
@@ -13,79 +13,94 @@ const QRScanner = () => {
   const [qrOn, setQrOn] = useState(true);
   const [loading, setLoading] = useState(false);
   const [scannedResult, setScannedResult] = useState("");
+  const [sessionId, setSessionId] = useState(null);
+  const [sessionEnded, setSessionEnded] = useState(false);
+
   const { unitId } = useParams();
   const navigate = useNavigate();
-  const scanTimeoutRef = useRef(null); // Ref to store the timeout ID
+  const scanTimeoutRef = useRef(null);
+
+  // Fetch the current session
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        const session = await getCurrentSession(unitId);
+        if (session && session._id) {
+          setSessionId(session._id);
+          // Check if the session is already ended
+          const now = new Date();
+          if (new Date(session.endTime) <= now) {
+            setSessionEnded(true);
+          }
+        } else {
+          setSessionEnded(true); // No session found, prevent scanning
+        }
+      } catch {
+        message.error("Error fetching session details.");
+        setSessionEnded(true);
+      }
+    };
+    fetchSession();
+  }, [unitId]);
 
   // Success handler
   const onScanSuccess = useCallback(async (result) => {
-    // Stop scanner immediately after first scan
+    if (!sessionId || sessionEnded) {
+      message.error("Session has ended. Attendance cannot be marked.");
+      return;
+    }
+
     stopScanner();
-    
     setScannedResult(result?.data);
     setLoading(true);
-    clearTimeout(scanTimeoutRef.current); // Clear timeout on successful scan
+    clearTimeout(scanTimeoutRef.current);
+
     try {
-      await markStudentAttendance(unitId, result?.data); // Use unitId from params
-
-      message.success("Attendance marked successfully!"); // Success message
-
+      await markAttendance(sessionId, result?.data);
+      message.success("Attendance marked successfully!");
       navigate("/student-dashboard");
     } catch (err) {
       message.error(err.response?.data?.message || "Error marking attendance");
-      // Re-enable scanner if there was an error
-      scanner.current?.start();
+      scanner.current?.start(); // Re-enable scanner if error occurs
     } finally {
       setLoading(false);
     }
-  }, [unitId, navigate]);
+  }, [sessionId, sessionEnded, navigate]);
 
-  // Fail handler
-  const onScanFail = (err) => {
-    console.error("QR Scan Error:", err);
-  };
-
-  // Start the scanner
+  // Start scanner
   useEffect(() => {
-    if (!videoEl.current) return;
+    if (!videoEl.current || sessionEnded) return;
 
-    scanner.current = new QrScanner(
-      videoEl.current,
-      onScanSuccess,
-      {
-        onDecodeError: onScanFail,
-        preferredCamera: "environment",
-        highlightScanRegion: true,
-        highlightCodeOutline: true,
-        overlay: qrBoxEl.current || undefined,
-        maxScansPerSecond: 1, // Limit scan rate
-        returnDetailedScanResult: true
-      }
-    );
+    scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
+      onDecodeError: (err) => console.error("QR Scan Error:", err),
+      preferredCamera: "environment",
+      highlightScanRegion: true,
+      highlightCodeOutline: true,
+      overlay: qrBoxEl.current || undefined,
+      maxScansPerSecond: 1,
+      returnDetailedScanResult: true
+    });
 
     scanner.current
       .start()
       .then(() => setQrOn(true))
-      .catch((err) => {
-        if (err) setQrOn(false);
-      });
+      .catch(() => setQrOn(false));
 
-    // Set a timeout for scanning
     scanTimeoutRef.current = setTimeout(() => {
       stopScanner();
       message.error("Scanning timed out. Please try again.");
-    }, 30000); // 30 seconds timeout
+    }, 30000);
 
     return () => {
-      clearTimeout(scanTimeoutRef.current); // Clear timeout on unmount
+      clearTimeout(scanTimeoutRef.current);
       if (scanner.current) {
         scanner.current.stop();
         scanner.current.destroy();
       }
     };
-  }, [onScanSuccess]);
+  }, [onScanSuccess, sessionEnded]);
 
-  // Stop the scanner
+  // Stop scanner
   const stopScanner = () => {
     if (scanner.current) {
       scanner.current.stop();
@@ -96,19 +111,17 @@ const QRScanner = () => {
     }
   };
 
-  // Handle camera permission errors
+  // Handle camera permissions
   useEffect(() => {
     if (!qrOn) {
-      message.error(
-        "Camera access denied. Please allow camera permissions and reload."
-      );
+      message.error("Camera access denied. Please allow permissions.");
     }
   }, [qrOn]);
 
   return (
     <div className="qr-scanner-container">
       <div className="qr-scanner-header">
-        <h2>Scan QR Code to Mark Attendance</h2>
+        <h2>{sessionEnded ? "Session Ended" : "Scan QR Code to Mark Attendance"}</h2>
         <Button
           type="primary"
           danger
@@ -122,15 +135,21 @@ const QRScanner = () => {
       </div>
 
       <div className="qr-video-container">
-        {loading && <div className="scanning-indicator">Scanning...</div>} {/* Visual scanning indicator */}
-        <video ref={videoEl} className="qr-video" />
-        <div ref={qrBoxEl} className="qr-box">
-          <img
-            src="/static/images/icons/scan_qr1.svg"
-            alt="QR Frame"
-            className="qr-frame"
-          />
-        </div>
+        {loading && <div className="scanning-indicator">Scanning...</div>}
+        {sessionEnded ? (
+          <p className="session-ended-text">Attendance is closed. The session has ended.</p>
+        ) : (
+          <>
+            <video ref={videoEl} className="qr-video" />
+            <div ref={qrBoxEl} className="qr-box">
+              <img
+                src="/static/images/icons/scan_qr1.svg"
+                alt="QR Frame"
+                className="qr-frame"
+              />
+            </div>
+          </>
+        )}
         {loading && (
           <div className="qr-loading-overlay">
             <Spin size="large" tip="Marking Attendance..." />

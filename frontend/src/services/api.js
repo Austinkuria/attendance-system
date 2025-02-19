@@ -750,21 +750,21 @@ export const detectCurrentSession = () => {
 //   });
 // };
 
-// Function to mark student attendance
-export const markStudentAttendance = async (sessionId, qrCode) => {
-  try {
-    const token = localStorage.getItem('token');
-    const response = await axios.post(
-      `${API_URL}/attendance/mark`,
-      { sessionId, qrCode },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
-    return response.data;
-  } catch (error) {
-    console.error('Error marking attendance:', error);
-    throw error;
-  }
-};
+// // Function to mark student attendance
+// export const markStudentAttendance = async (sessionId, qrCode) => {
+//   try {
+//     const token = localStorage.getItem('token');
+//     const response = await axios.post(
+//       `${API_URL}/attendance/mark`,
+//       { sessionId, qrCode },
+//       { headers: { Authorization: `Bearer ${token}` } }
+//     );
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error marking attendance:', error);
+//     throw error;
+//   }
+// };
 
 
 /**
@@ -1079,19 +1079,40 @@ export const getSession = async (sessionId) => {
   }
 };
 
-// Attendance related endpoints
-export const markAttendance = async (sessionId, qrCode) => {
+// ✅ Mark Attendance (Student Scans QR Code)
+export const markAttendance = async (sessionId, studentId) => {
   try {
-    const token = localStorage.getItem('token');
-    const response = await axios.post(
-      `${API_URL}/attendance`,
-      { sessionId, qrCode },
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+    const response = await axios.post(`${API_URL}/attendance/mark`, {
+      sessionId,
+      studentId
+    });
     return response.data;
   } catch (error) {
-    console.error('Error marking attendance:', error);
-    throw error;
+    throw error.response ? error.response.data : new Error("Network error");
+  }
+};
+
+// ✅ End Session (Lecturer Ends the Attendance Session)
+export const endSession = async (sessionId) => {
+  try {
+    const response = await axios.post(`${API_URL}/sessions/end`, {
+      sessionId
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error("Network error");
+  }
+};
+
+// ✅ Mark Absent Students (After Session Ends)
+export const markAbsent = async (sessionId) => {
+  try {
+    const response = await axios.post(`${API_URL}/attendance/mark-absent`, {
+      sessionId
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error("Network error");
   }
 };
 
