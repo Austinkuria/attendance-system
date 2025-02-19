@@ -1080,12 +1080,17 @@ export const getSession = async (sessionId) => {
 };
 
 // ✅ Mark Attendance (Student Scans QR Code)
-export const markAttendance = async (sessionId, studentId) => {
+export const markAttendance = async (sessionId, studentId, token) => {
   try {
-    const response = await axios.post(`${API_URL}/attendance/mark`, {
-      sessionId,
-      studentId
-    });
+    const response = await axios.post(
+      `${API_URL}/attendance/mark`,
+      { sessionId, studentId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
     return response.data;
   } catch (error) {
     throw error.response ? error.response.data : new Error("Network error");
