@@ -920,23 +920,6 @@ export const deleteQuiz = async (quizId) => {
 };
 
 
-// // Feedback API functions
-// export const submitFeedback = async (feedbackData) => {
-//   const token = localStorage.getItem("token");
-//   try {
-//     const response = await fetch(`${API_URL}/feedback`, {
-//       method: 'POST',
-//       headers: {
-//         'Content-Type': 'application/json',
-//         Authorization: `Bearer ${token}`,
-//       },
-//       body: JSON.stringify(feedbackData),
-//     });
-//     return handleResponse(response);
-//   } catch (error) {
-//     throw new Error(error.message || "Failed to submit feedback");
-//   }
-// };
 
 export const getSessionFeedback = async (sessionId) => {
   const token = localStorage.getItem("token");
@@ -957,19 +940,8 @@ export const getSessionFeedback = async (sessionId) => {
   }
 };
 
-// export const getUnitsWithFeedback = async (lecturerId) => {
-//   const token = localStorage.getItem("token");
-//   try {
-//     const response = await fetch(`${API_URL}/feedback/units/${lecturerId}`, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//       },
-//     });
-//     return handleResponse(response);
-//   } catch (error) {
-//     throw new Error(error.message || "Failed to fetch sessions");
-//   }
-// };
+
+
 
 export const submitFeedback = async (feedbackData) => {
   const token = localStorage.getItem("token");

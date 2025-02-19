@@ -9,8 +9,8 @@ const courseRoutes = require("../routes/courseRoutes");
 const unitRoutes = require("../routes/unitRoutes");
 const attendanceRoutes = require("./attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
-const router = express.Router();
 const quizRoutes = require('./quizRoutes');
+const router = express.Router();
 const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createSession, createLecturer, updateLecturer, deleteLecturer, importLecturers, downloadLecturers, sendResetLink, resetPassword, registerUser } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
@@ -22,10 +22,18 @@ const authRateLimiter = rateLimit({
     max: 100, // limit each IP to 100 requests per windowMs
 });
 
+const resetPasswordLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, // 15 minutes
+    max: 5, // limit each IP to 5 requests per windowMs
+});
+
+console.log('Loading main routes...');
+console.log('Attendance Routes:', attendanceRoutes);
+
 router.use('/students', studentRoutes);
 
 // User routes
-router.post("/auth/signup", signup,);
+router.post("/auth/signup", signup); // Removed trailing comma
 router.post("/auth/login", login);
 
 // Department routes
@@ -44,6 +52,7 @@ router.use("/attendance/", authRateLimiter, authenticate, attendanceRoutes);
 router.use("/sessions", authRateLimiter, authenticate, sessionRoutes);
 
 router.use('/', userRoutes);
+
 // Students
 router.get('/students', getStudents);
 
@@ -64,11 +73,7 @@ router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), delet
 router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
-const resetPasswordLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 requests per windowMs
-});
 router.post("/auth/reset-password", resetPasswordLimiter, sendResetLink);
-router.put("/auth/reset-password/:token", resetPassword); router.put("/auth/reset-password/:token", resetPassword);
+router.put("/auth/reset-password/:token", resetPassword); // Note: You have this line twice; remove one
 
 module.exports = router;

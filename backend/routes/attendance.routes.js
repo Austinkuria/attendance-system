@@ -1,10 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const attendanceController = require('../controllers/attendance.controller');
-const { authMiddleware } = require('../middleware/authMiddleware');
+const authenticate = require('../middleware/authMiddleware');
 
-router.post('/mark', authMiddleware, attendanceController.markAttendance);
-router.post('/handle-session-end', authMiddleware, attendanceController.handleSessionEnd);
-router.get('/student/:studentId', authMiddleware, attendanceController.getStudentAttendance);
+router.post('/mark', authenticate, attendanceController.markAttendance);
+router.post('/handle-session-end', authenticate, attendanceController.handleSessionEnd);
+router.get('/student/:studentId', authenticate, attendanceController.getStudentAttendance);
 
 module.exports = router;
