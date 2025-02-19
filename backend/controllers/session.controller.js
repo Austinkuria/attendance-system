@@ -38,17 +38,19 @@ exports.createAttendanceSession = async (req, res) => {
       return res.status(400).json({ message: 'Invalid startTime or endTime' });
     }
 
-    // Create a new session in the database
+    // Create and save basic session first
     const session = new Session({
       unit: unitId,
       lecturer: lecturerId,
       startTime: start,
       endTime: end
     });
+    await session.save();
 
-    // Generate QR code and save it with the session
+    // Generate and save QR code
     session.qrCode = await generateQRToken(session);
     await session.save();
+
 
     res.status(201).json({
       message: 'Session created successfully',

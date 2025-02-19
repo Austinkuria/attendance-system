@@ -5,7 +5,7 @@ const sessionSchema = new mongoose.Schema({
   lecturer: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
   startTime: { type: Date, required: true },
   endTime: { type: Date, required: true },
-  qrCode: { type: String, required: true },
+  qrCode: { type: String }, // Changed from required: true
   ended: { type: Boolean, default: false }
 }, { timestamps: true });
 
