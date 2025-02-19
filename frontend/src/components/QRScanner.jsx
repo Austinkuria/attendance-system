@@ -49,14 +49,15 @@ const QRScanner = () => {
       message.error("Session has ended. Attendance cannot be marked.");
       return;
     }
-
+  
     stopScanner();
     setScannedResult(result?.data);
     setLoading(true);
     clearTimeout(scanTimeoutRef.current);
-
+  
     try {
-      await markAttendance(sessionId, result?.data);
+      const token = localStorage.getItem("token");  // Retrieve token
+      await markAttendance(sessionId, result?.data, token);  // Pass token
       message.success("Attendance marked successfully!");
       navigate("/student-dashboard");
     } catch (err) {
@@ -66,7 +67,7 @@ const QRScanner = () => {
       setLoading(false);
     }
   }, [sessionId, sessionEnded, navigate]);
-
+  
   // Start scanner
   useEffect(() => {
     if (!videoEl.current || sessionEnded) return;
