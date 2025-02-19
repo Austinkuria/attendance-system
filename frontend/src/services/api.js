@@ -1116,6 +1116,18 @@ export const markAbsent = async (sessionId) => {
   }
 };
 
+export const getCurrentSession = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    const response = await axios.get(`${API_URL}/sessions/current`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error("Network error");
+  }
+};
+
 export const getStudentAttendance = async (studentId) => {
   try {
     const token = localStorage.getItem('token');
