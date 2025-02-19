@@ -16,7 +16,7 @@ const QRScanner = () => {
   const [sessionId, setSessionId] = useState(null);
   const [sessionEnded, setSessionEnded] = useState(false);
 
-  const { unitId } = useParams();
+  const { selectedUnit } = useParams();
   const navigate = useNavigate();
   const scanTimeoutRef = useRef(null);
 
@@ -24,7 +24,7 @@ const QRScanner = () => {
   useEffect(() => {
     const fetchSession = async () => {
       try {
-        const session = await getCurrentSession(unitId);
+        const session = await getCurrentSession(selectedUnit);
         if (session && session._id) {
           setSessionId(session._id);
           // Check if the session is already ended
@@ -41,7 +41,7 @@ const QRScanner = () => {
       }
     };
     fetchSession();
-  }, [unitId]);
+  }, [selectedUnit]);
 
   // Success handler
   const onScanSuccess = useCallback(async (result) => {

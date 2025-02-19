@@ -7,7 +7,7 @@ router.get('/current', authenticate, detectCurrentSession);
 router.post('/create', authenticate, createSession);
 router.delete('/end', authenticate, endSession);
 
-router.get('/sessions/current/:unitId',authenticate, async (req, res) => {
+router.get('/sessions/current/:selectedUnit',authenticate, async (req, res) => {
     try {
       const { unitId } = req.params;
       const session = await Session.findOne({ unitId, isActive: true });
