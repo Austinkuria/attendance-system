@@ -1044,7 +1044,7 @@ export const createSession = async (unitId, lecturerId, startTime, endTime) => {
   try {
     const token = localStorage.getItem('token');
     const response = await axios.post(
-      `${API_URL}/sessions`,
+      `${API_URL}/sessions/create`,
       { unitId, lecturerId, startTime, endTime },
       { headers: { Authorization: `Bearer ${token}` } }
     );
