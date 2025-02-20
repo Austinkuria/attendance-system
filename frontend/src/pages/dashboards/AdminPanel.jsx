@@ -36,6 +36,7 @@ import {
   getUnitsByCourse
 } from '../../services/api';
 import AttendanceChart from '../../components/AttendanceChart';
+import { Unit } from '../../models/Unit'; // Assuming Unit model is exported from a models folder
 
 const { Option } = Select;
 const { Header, Sider, Content } = Layout;
@@ -124,9 +125,19 @@ const AdminPanel = () => {
         getLecturers(),
         getCourses(),
       ]);
+
+      const enrichedCourses = await Promise.all(coursesRes.map(async (course) => {
+        const units = await Unit.find({ course: course._id }).limit(1);
+        return {
+          ...course,
+          year: units[0]?.year || 'N/A',
+          semester: units[0]?.semester || 'N/A'
+        };
+      }));
+
       setStudents(studentsRes);
       setLecturers(lecturersRes);
-      setCourses(coursesRes);
+      setCourses(enrichedCourses);
       setLoading(false);
     } catch {
       message.error('Error loading data');
@@ -146,6 +157,7 @@ const AdminPanel = () => {
         ...acc,
         [cur.courseId]: cur.data
       }), {});
+      console.log('Attendance Rates:', rates);
       setAttendanceRates(rates);
     } catch {
       message.error('Error loading attendance data');
@@ -160,7 +172,6 @@ const AdminPanel = () => {
     if (courses.length > 0) fetchCourseAttendanceRates();
   }, [courses, fetchCourseAttendanceRates]);
 
-  // Calculate overall attendance rate
   const calculateOverallRate = () => {
     const totalPresent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.present || 0), 0);
     const totalAbsent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.absent || 0), 0);
@@ -354,6 +365,7 @@ const AdminPanel = () => {
                     title={`${course.name} (Year ${course.year}, Sem ${course.semester})`}
                     loading={loading}
                     hoverable
+                    style={{ height: '100%' }}
                   >
                     <div style={{ height: 250 }}>
                       {!loading && (
