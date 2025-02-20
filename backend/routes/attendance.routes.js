@@ -8,4 +8,5 @@ router.post('/handle-session-end', authenticate, attendanceController.handleSess
 router.get('/student/:studentId', authenticate, attendanceController.getStudentAttendance);
 router.get('/session/:sessionId', authenticate, attendanceController.getSessionAttendance);
 router.put('/:attendanceId', authenticate, attendanceController.updateAttendanceStatus);
+router.get('/trends/:unitId', authenticate, attendanceController.getAttendanceTrends);
 module.exports = router;

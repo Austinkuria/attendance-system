@@ -705,9 +705,6 @@ export const downloadAttendanceReport = (courseId, semester, year) =>
     responseType: "blob",
   });
 
-// attendance trends
-export const getAttendanceTrends = (courseId) =>
-  api.get(`/attendance/trends/${courseId}`);
 
 // getquiz
 export const getQuiz = (unitId) => api.get(`/quiz/${unitId}`);
@@ -1101,50 +1098,6 @@ export const markAbsent = async (sessionId) => {
   }
 };
 
-// export const getCurrentSession = async (selectedUnit) => {
-//   try {
-//     const token = localStorage.getItem('token');
-//     const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`, {
-//       method: "GET",
-//       headers: {
-//         "Content-Type": "application/json",
-//         "Authorization": `Bearer ${token}`
-//       },
-//     });
-//     if (!response.ok) {
-//       throw new Error(`HTTP Error: ${response.status}`);
-//     }
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error("API Error:", error);
-//     return null;
-//   }
-// };
-
-// export const getCurrentSession = async (selectedUnit) => {
-//   try {
-//     const token = localStorage.getItem('token'); // Retrieve token from localStorage
-//     const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`, {
-//       method: "GET",
-//       headers: {
-//         "Content-Type": "application/json",
-//         "Authorization": `Bearer ${token}` // Include token in headers
-//       },
-//     });
-
-//     if (!response.ok) {
-//       throw new Error(`HTTP Error: ${response.status}`); 
-//     }
-
-//     const data = await response.json();
-//     return data;
-//   } catch (error) {
-//     console.error("API Error:", error);
-//     return null;
-//   }
-// };
-
 export const getStudentAttendance = async (studentId) => {
   try {
     const token = localStorage.getItem('token');
@@ -1172,51 +1125,6 @@ export const getStudentAttendance = async (studentId) => {
     }
   }
 };
-
-// export const getSessionAttendance = async (sessionId) => {
-//   try {
-//     const token = localStorage.getItem('token');
-//     const response = await axios.get(
-//       `${API_URL}/attendance/session/${sessionId}`,
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error fetching session attendance:', error);
-//     throw error;
-//   }
-// };
-// export const getSessionAttendance = async (sessionId) => {
-//   try {
-//     const token = getToken();
-//     const response = await axios.get(
-//       `${API_URL}/attendance/session/${sessionId}`,
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-//     if (!Array.isArray(response.data)) {
-//       console.warn('Unexpected response format, expected array:', response.data);
-//       return [];
-//     }
-//     // Enrich data to match frontend expectations
-//     const enrichedData = response.data.map(record => ({
-//       _id: record._id,
-//       regNo: record.student?.regNo || 'N/A',
-//       course: record.student?.course?.name || 'N/A',
-//       year: record.student?.year || 'N/A',
-//       semester: record.student?.semester || 'N/A',
-//       status: record.status ? record.status.toLowerCase() : 'N/A',
-//       unit: record.session?.unit || 'N/A'
-//     }));
-//     return enrichedData;
-//   } catch (error) {
-//     console.error('Error fetching session attendance:', error);
-//     if (error.response) {
-//       throw new Error(`Failed to fetch session attendance: ${error.response.status} - ${error.response.data.message || error.message}`);
-//     } else {
-//       throw new Error(`Network error: ${error.message}`);
-//     }
-//   }
-// };
 
 export const getSessionAttendance = async (sessionId) => {
   try {
@@ -1292,6 +1200,25 @@ export const getLastSession = async (unitId) => {
       console.error("Error fetching last session:", error);
       throw error;
     }
+  }
+};
+
+export const getAttendanceTrends = async (unitId) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Authentication token missing");
+    
+    const response = await axios.get(`${API_URL}/attendance/trends/${unitId}`, {
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
+    });
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching attendance trends:", error);
+    throw error.response?.data || new Error("Failed to fetch attendance trends");
   }
 };
 

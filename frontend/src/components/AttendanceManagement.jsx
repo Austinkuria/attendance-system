@@ -23,7 +23,6 @@ const AttendanceManagement = () => {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [qrData, setQrData] = useState('');
   const [currentSession, setCurrentSession] = useState(() => {
-    // Initialize from localStorage to persist across refreshes
     const savedSession = localStorage.getItem('currentSession');
     return savedSession ? JSON.parse(savedSession) : null;
   });
@@ -50,7 +49,6 @@ const AttendanceManagement = () => {
     semester: null
   });
 
-  // Persist currentSession to localStorage whenever it changes
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem('currentSession', JSON.stringify(currentSession));
@@ -59,7 +57,6 @@ const AttendanceManagement = () => {
     }
   }, [currentSession]);
 
-  // Fetch departments
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
@@ -72,7 +69,6 @@ const AttendanceManagement = () => {
     fetchDepartments();
   }, []);
 
-  // Manual session detection
   const checkCurrentSession = useCallback(async () => {
     try {
       setLoading(prevState => ({ ...prevState, session: true }));
@@ -103,12 +99,10 @@ const AttendanceManagement = () => {
     }
   }, [lecturerId]);
 
-  // Check session on component mount
   useEffect(() => {
     checkCurrentSession();
   }, [checkCurrentSession]);
 
-  // Continuously update session time only if not ended
   useEffect(() => {
     let intervalId;
     if (currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended) {
@@ -116,14 +110,14 @@ const AttendanceManagement = () => {
         const now = new Date();
         if (now > new Date(currentSession.endSession)) {
           setCurrentSession(prev => ({ ...prev, ended: true }));
+          localStorage.removeItem('currentSession');
           clearInterval(intervalId);
         }
-      }, 60000); // Check every minute
+      }, 60000);
       return () => clearInterval(intervalId);
     }
   }, [currentSession]);
 
-  // Fetch units
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -148,10 +142,8 @@ const AttendanceManagement = () => {
     if (lecturerId) fetchData();
   }, [lecturerId]);
 
-  // Fetch current session
   useEffect(() => {
     if (!selectedUnit) {
-      console.log("Invalid or no selected unit:", selectedUnit);
       setLoadingSessionData(false);
       setCurrentSession(null);
       return;
@@ -191,7 +183,6 @@ const AttendanceManagement = () => {
             setQrData(response.data.qrCode);
           }
         } else {
-          message.warning("No active session found.");
           setCurrentSession(null);
         }
       } catch (error) {
@@ -205,7 +196,6 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, [selectedUnit, units]);
 
-  // Fetch attendance data for the selected unit and session
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
@@ -221,14 +211,12 @@ const AttendanceManagement = () => {
     }
   }, [selectedUnit, currentSession]);
 
-  // Trigger attendance fetch when session changes
   useEffect(() => {
     if (currentSession && selectedUnit && !currentSession.ended) {
       handleViewAttendance();
     }
   }, [currentSession, selectedUnit, handleViewAttendance]);
 
-  // Unit filter options
   const filterOptions = useMemo(() => {
     const departments = new Set();
     const courses = new Set();
@@ -298,7 +286,7 @@ const AttendanceManagement = () => {
         ...data, 
         startSession: validStartTime, 
         endSession: validEndTime,
-        ended: false // Explicitly set ended to false for new session
+        ended: false
       });
       setQrData(data.qrCode);
     } catch (error) {
@@ -349,20 +337,31 @@ const AttendanceManagement = () => {
         cancelText: 'Cancel',
         onOk: async () => {
           try {
-            await axios.delete(
+            if (!currentSession?._id) {
+              throw new Error('Invalid session ID');
+            }
+            console.log('Ending session with ID:', currentSession._id);
+            const response = await axios.delete(
               'https://attendance-system-w70n.onrender.com/api/sessions/end',
               {
                 data: { sessionId: currentSession._id },
                 headers: { 'Authorization': `Bearer ${token}` }
               }
             );
+            console.log('Session end response:', response.data);
             message.success('Session ended successfully');
             setCurrentSession(prev => ({ ...prev, ended: true }));
             setQrData('');
             setAttendance([]);
-            localStorage.removeItem('currentSession'); // Clear persisted session
+            localStorage.removeItem('currentSession');
           } catch (error) {
-            message.error(error.response?.data?.message || 'Failed to end session');
+            console.error('Error ending session:', {
+              message: error.message,
+              response: error.response?.data,
+              sessionId: currentSession?._id
+            });
+            message.error(error.response?.data?.message || 'Failed to end session. Please check console for details.');
+
           } finally {
             setLoading(prevState => ({ ...prevState, session: false }));
           }
@@ -398,61 +397,16 @@ const AttendanceManagement = () => {
   };
 
   const columns = [
-    {
-      title: 'Reg Number',
-      dataIndex: 'regNo',
-      key: 'regNo',
-      sorter: (a, b) => a.regNo.localeCompare(b.regNo)
-    },
-    {
-      title: 'Course',
-      dataIndex: 'course',
-      key: 'course',
-      sorter: (a, b) => a.course.localeCompare(b.course)
-    },
-    {
-      title: 'Year',
-      dataIndex: 'year',
-      key: 'year',
-      render: year => <Tag color="blue">Year {year}</Tag>,
-      sorter: (a, b) => a.year - b.year
-    },
-    {
-      title: 'Semester',
-      dataIndex: 'semester',
-      key: 'semester',
-      render: semester => <Tag color="geekblue">Semester {semester}</Tag>,
-      sorter: (a, b) => a.semester - b.semester
-    },
-    {
-      title: 'Status',
-      dataIndex: 'status',
-      key: 'status',
-      render: status => (
-        <Tag color={status === 'present' ? 'green' : 'volcano'}>
-          {status.toUpperCase()}
-        </Tag>
-      ),
-      filters: [
-        { text: 'Present', value: 'present' },
-        { text: 'Absent', value: 'absent' }
-      ],
-      onFilter: (value, record) => record.status === value
-    },
-    {
-      title: 'Action',
-      key: 'action',
-      render: (_, record) => (
-        <Button
-          type="link"
-          onClick={() => handleToggleStatus(record._id)}
-          icon={<SyncOutlined />}
-          disabled={currentSession?.ended} // Disable if session is ended
-        >
-          Toggle Status
-        </Button>
-      )
-    }
+    { title: 'Reg Number', dataIndex: 'regNo', key: 'regNo', sorter: (a, b) => a.regNo.localeCompare(b.regNo) },
+    { title: 'Course', dataIndex: 'course', key: 'course', sorter: (a, b) => a.course.localeCompare(b.course) },
+    { title: 'Year', dataIndex: 'year', key: 'year', render: year => <Tag color="blue">Year {year}</Tag>, sorter: (a, b) => a.year - b.year },
+    { title: 'Semester', dataIndex: 'semester', key: 'semester', render: semester => <Tag color="geekblue">Semester {semester}</Tag>, sorter: (a, b) => a.semester - b.semester },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, filters: [{ text: 'Present', value: 'present' }, { text: 'Absent', value: 'absent' }], onFilter: (value, record) => record.status === value },
+    { title: 'Action', key: 'action', render: (_, record) => (
+      <Button type="link" onClick={() => handleToggleStatus(record._id)} icon={<SyncOutlined />} disabled={currentSession?.ended}>
+        Toggle Status
+      </Button>
+    )}
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
@@ -467,37 +421,9 @@ const AttendanceManagement = () => {
 
   const summaryCards = (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-      <Col xs={24} sm={12} md={8}>
-        <Card>
-          <Statistic
-            title="Assigned Units"
-            value={totalAssignedUnits}
-            prefix={<TeamOutlined />}
-            loading={loading.stats}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={8}>
-        <Card>
-          <Statistic
-            title="Attendance Rate"
-            value={attendanceRate}
-            suffix="%"
-            prefix={<PercentageOutlined />}
-            loading={loading.stats}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={8}>
-        <Card>
-          <Statistic
-            title="Enrolled Students"
-            value={totalEnrolledStudents}
-            prefix={<ScheduleOutlined />}
-            loading={loading.stats}
-          />
-        </Card>
-      </Col>
+      <Col xs={24} sm={12} md={8}><Card><Statistic title="Assigned Units" value={totalAssignedUnits} prefix={<TeamOutlined />} loading={loading.stats} /></Card></Col>
+      <Col xs={24} sm={12} md={8}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.stats} /></Card></Col>
+      <Col xs={24} sm={12} md={8}><Card><Statistic title="Enrolled Students" value={totalEnrolledStudents} prefix={<ScheduleOutlined />} loading={loading.stats} /></Card></Col>
     </Row>
   );
 
@@ -560,27 +486,16 @@ const AttendanceManagement = () => {
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
       {loadingSessionData ? (
-        <Card loading style={{ marginBottom: 24 }}>
-          <Skeleton active />
-        </Card>
+        <Card loading style={{ marginBottom: 24 }}><Skeleton active /></Card>
       ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
         <Card
           title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown Unit'}</Space>}
           style={{ marginBottom: 24 }}
         >
           <Row gutter={[16, 16]}>
-            <Col span={24}>
-              <Text strong>Time: </Text>
-              {formatSessionTime(currentSession)}
-            </Col>
-            <Col span={24}>
-              <SessionTimer end={currentSession.endSession} />
-            </Col>
-            <Col span={24}>
-              <Button danger onClick={handleEndSession} loading={loading.session}>
-                End Session Early
-              </Button>
-            </Col>
+            <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
+            <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
+            <Col span={24}><Button danger onClick={handleEndSession} loading={loading.session}>End Session Early</Button></Col>
           </Row>
         </Card>
       ) : null}
@@ -589,11 +504,7 @@ const AttendanceManagement = () => {
         title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
         extra={
           <Space wrap>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => downloadAttendanceReport(selectedUnit)}
-              disabled={!selectedUnit}
-            >
+            <Button icon={<DownloadOutlined />} onClick={() => downloadAttendanceReport(selectedUnit)} disabled={!selectedUnit}>
               {screens.md ? 'Download Report' : 'Export'}
             </Button>
             <Button
@@ -620,15 +531,7 @@ const AttendanceManagement = () => {
           <Card
             title="Real-time Unit Filters"
             size="small"
-            extra={
-              <Button
-                type="link"
-                onClick={clearFilters}
-                disabled={!Object.values(unitFilters).some(Boolean)}
-              >
-                Clear Filters
-              </Button>
-            }
+            extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
           >
             <Space wrap style={{ width: '100%' }}>
               <Select
@@ -639,9 +542,7 @@ const AttendanceManagement = () => {
                 value={unitFilters.department}
               >
                 {departments.map(department => (
-                  <Option key={department._id} value={department.name}>
-                    {department.name}
-                  </Option>
+                  <Option key={department._id} value={department.name}>{department.name}</Option>
                 ))}
               </Select>
               <Select
@@ -686,10 +587,9 @@ const AttendanceManagement = () => {
               onChange={setSelectedUnit}
               value={selectedUnit}
               loading={loading.units}
-              optionLabelProp="label"
             >
               {filteredUnits.map(unit => (
-                <Option key={unit._id} value={unit._id} label={unit.name}>
+                <Option key={unit._id} value={unit._id}>
                   <Space>
                     <BookOutlined />
                     {unit.name}
@@ -773,12 +673,7 @@ const AttendanceManagement = () => {
               dataSource={filteredAttendance}
               rowKey="_id"
               scroll={{ x: true }}
-              pagination={{
-                pageSize: 8,
-                responsive: true,
-                showSizeChanger: false,
-                showTotal: total => `Total ${total} students`
-              }}
+              pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
               locale={{ emptyText: 'No attendance records found' }}
               bordered
               size="middle"
@@ -825,14 +720,7 @@ const AttendanceManagement = () => {
               <img
                 src={qrData}
                 alt="Attendance QR Code"
-                style={{
-                  width: "100%",
-                  maxWidth: 300,
-                  margin: "0 auto",
-                  display: "block",
-                  borderRadius: 8,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
-                }}
+                style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
               />
               {currentSession && !currentSession.ended && (
                 <SessionTimer end={currentSession.endSession} />

@@ -170,5 +170,7 @@ module.exports = {
   markAbsentees,
   getStudentAttendance,
   getSessionAttendance,
-  updateAttendanceStatus
+  updateAttendanceStatus,
+  getAttendanceTrends,
+  handleSessionEnd
 };
