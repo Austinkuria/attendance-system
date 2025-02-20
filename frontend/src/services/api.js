@@ -1208,7 +1208,7 @@ export const getAttendanceTrends = async (unitId) => {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Authentication token missing");
     
-    const response = await axios.get(`${API_URL}/attendance/trends/${unitId}`, {
+    const response = await axios.get(`${API_URL}/api/attendance/trends/${unitId}`, {
       headers: {
         "Authorization": `Bearer ${token}`,
         "Content-Type": "application/json"

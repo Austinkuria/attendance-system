@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Line } from "react-chartjs-2";
-import { Select, Card, Spin, Typography, Grid } from "antd";
+import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
 import { 
   Chart as ChartJS, 
@@ -27,35 +27,38 @@ ChartJS.register(
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
-const { Title: AntTitle } = Typography;
+const { Title: AntTitle, Text } = Typography;
 
 const Analytics = () => {
   const screens = useBreakpoint();
-  const lecturerId = localStorage.getItem("userId"); // Ensure lecturerId is available
+  const lecturerId = localStorage.getItem("userId");
   const [trends, setTrends] = useState({ labels: [], data: [] });
   const [units, setUnits] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState({ units: true, trends: false });
+  const [error, setError] = useState(null);
 
   // Fetch lecturer's units
   useEffect(() => {
     const fetchUnits = async () => {
       try {
         if (!lecturerId) {
-          console.error("No lecturer ID found in localStorage");
-          return;
+          throw new Error("No lecturer ID found in localStorage");
         }
         setLoading(prev => ({ ...prev, units: true }));
+        setError(null);
         const unitsData = await getLecturerUnits(lecturerId);
         if (unitsData.length > 0) {
           setUnits(unitsData);
-          setSelectedUnit(unitsData[0]._id); // Use _id as per MongoDB convention
+          setSelectedUnit(unitsData[0]._id);
         } else {
           console.warn("No units returned for lecturer:", lecturerId);
           setUnits([]);
+          setError("No units found for this lecturer");
         }
       } catch (error) {
         console.error('Failed to fetch units:', error);
+        setError(error.message || "Failed to load units");
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
       }
@@ -64,33 +67,35 @@ const Analytics = () => {
     fetchUnits();
   }, [lecturerId]);
 
-  // Fetch attendance trends when selectedUnit changes
+  // Fetch attendance trends
+  const fetchTrends = async () => {
+    if (!selectedUnit) {
+      setTrends({ labels: [], data: [] });
+      return;
+    }
+
+    try {
+      setLoading(prev => ({ ...prev, trends: true }));
+      setError(null);
+      const trendsRes = await getAttendanceTrends(selectedUnit);
+      if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.data)) {
+        throw new Error("Invalid trends data format received");
+      }
+      setTrends({
+        labels: trendsRes.labels,
+        data: trendsRes.data
+      });
+    } catch (error) {
+      console.error('Failed to fetch trends:', error);
+      setError(error.message || "Failed to load attendance trends");
+      setTrends({ labels: [], data: [] });
+    } finally {
+      setLoading(prev => ({ ...prev, trends: false }));
+    }
+  };
+
+  // Fetch trends when selectedUnit changes
   useEffect(() => {
-    const fetchTrends = async () => {
-      if (!selectedUnit) {
-        setTrends({ labels: [], data: [] });
-        return;
-      }
-
-      try {
-        setLoading(prev => ({ ...prev, trends: true }));
-        const trendsRes = await getAttendanceTrends(selectedUnit);
-        // Validate response structure
-        if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.data)) {
-          throw new Error("Invalid trends data format received");
-        }
-        setTrends({
-          labels: trendsRes.labels,
-          data: trendsRes.data
-        });
-      } catch (error) {
-        console.error('Failed to fetch trends:', error);
-        setTrends({ labels: [], data: [] }); // Fallback to empty chart
-      } finally {
-        setLoading(prev => ({ ...prev, trends: false }));
-      }
-    };
-
     fetchTrends();
   }, [selectedUnit]);
 
@@ -155,28 +160,51 @@ const Analytics = () => {
       title={<AntTitle level={4} style={{ margin: 0 }}>Attendance Analytics</AntTitle>}
       style={{ marginTop: 24 }}
       extra={
-        <Select
-          placeholder="Select Unit"
-          style={{ width: screens.md ? 240 : 180 }}
-          onChange={setSelectedUnit}
-          value={selectedUnit}
-          loading={loading.units}
-          disabled={loading.units || units.length === 0}
-        >
-          {units.map(unit => (
-            <Option key={unit._id} value={unit._id}>
-              {unit.name}
-            </Option>
-          ))}
-        </Select>
+        <div style={{ display: 'flex', gap: 8 }}>
+          <Select
+            placeholder="Select Unit"
+            style={{ width: screens.md ? 240 : 180 }}
+            onChange={setSelectedUnit}
+            value={selectedUnit}
+            loading={loading.units}
+            disabled={loading.units || units.length === 0}
+          >
+            {units.map(unit => (
+              <Option key={unit._id} value={unit._id}>
+                {unit.name}
+              </Option>
+            ))}
+          </Select>
+          <Button 
+            onClick={fetchTrends} 
+            loading={loading.trends}
+            disabled={loading.trends || !selectedUnit}
+          >
+            Refresh
+          </Button>
+        </div>
       }
     >
       <Spin spinning={loading.trends} tip="Loading trends...">
         <div style={{ height: screens.md ? 400 : 300, position: 'relative' }}>
-          {trends.labels.length === 0 && !loading.trends ? (
-            <Typography.Text type="secondary" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>
-              No attendance data available for this unit.
-            </Typography.Text>
+          {error ? (
+            <Text type="danger" style={{ 
+              position: 'absolute', 
+              top: '50%', 
+              left: '50%', 
+              transform: 'translate(-50%, -50%)' 
+            }}>
+              {error}
+            </Text>
+          ) : trends.labels.length === 0 && !loading.trends ? (
+            <Text type="secondary" style={{ 
+              position: 'absolute', 
+              top: '50%', 
+              left: '50%', 
+              transform: 'translate(-50%, -50%)' 
+            }}>
+              No attendance data available for this unit
+            </Text>
           ) : (
             <Line data={chartData} options={options} />
           )}
