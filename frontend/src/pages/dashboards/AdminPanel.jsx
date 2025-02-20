@@ -36,7 +36,6 @@ import {
   getUnitsByCourse
 } from '../../services/api';
 import AttendanceChart from '../../components/AttendanceChart';
-import { Unit } from '../../models/Unit'; // Assuming Unit model is exported from a models folder
 
 const { Option } = Select;
 const { Header, Sider, Content } = Layout;
@@ -126,12 +125,14 @@ const AdminPanel = () => {
         getCourses(),
       ]);
 
+      // Enrich courses with unit data via API (assuming getCourses doesn't include this)
       const enrichedCourses = await Promise.all(coursesRes.map(async (course) => {
-        const units = await Unit.find({ course: course._id }).limit(1);
+        const units = await getUnitsByCourse(course._id);
+        const firstUnit = units[0] || {};
         return {
           ...course,
-          year: units[0]?.year || 'N/A',
-          semester: units[0]?.semester || 'N/A'
+          year: firstUnit.year || 'N/A',
+          semester: firstUnit.semester || 'N/A'
         };
       }));
 
@@ -173,10 +174,9 @@ const AdminPanel = () => {
   }, [courses, fetchCourseAttendanceRates]);
 
   const calculateOverallRate = () => {
-    const totalPresent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.present || 0), 0);
-    const totalAbsent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.absent || 0), 0);
-    const total = totalPresent + totalAbsent;
-    return total > 0 ? Math.round((totalPresent / total) * 100) : 0;
+    const totalPresent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.totalPresent || 0), 0);
+    const totalPossible = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.totalPossible || 0), 0);
+    return totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
   };
 
   const profileItems = [
@@ -367,9 +367,9 @@ const AdminPanel = () => {
                     hoverable
                     style={{ height: '100%' }}
                   >
-                    <div style={{ height: 250 }}>
+                    <div style={{ height: 300 }}>
                       {!loading && (
-                        <AttendanceChart data={attendanceRates[course._id] || { present: 0, absent: 0 }} />
+                        <AttendanceChart data={attendanceRates[course._id] || { totalPresent: 0, totalPossible: 0, trends: [] }} />
                       )}
                     </div>
                   </Card>
