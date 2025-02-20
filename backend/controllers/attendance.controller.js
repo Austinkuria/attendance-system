@@ -243,6 +243,32 @@ exports.getAttendanceTrends = async (req, res) => {
   }
 };
 
+exports.getCourseAttendanceRate = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: "Invalid course ID format" });
+    }
+
+    const sessions = await Session.find({ course: courseId }); // Assuming course field exists
+    if (!sessions.length) {
+      return res.status(200).json({ present: 0, absent: 0 });
+    }
+
+    const stats = await Attendance.aggregate([
+      { $match: { session: { $in: sessions.map(s => s._id) } } },
+      { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+
+    const present = stats.find(s => s._id === "Present")?.count || 0;
+    const absent = stats.find(s => s._id === "Absent")?.count || 0;
+
+    res.status(200).json({ present, absent });
+  } catch (error) {
+    console.error("Error fetching course attendance rate:", error);
+    res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
+  }
+};
 // exports.getAttendanceTrends = async (req, res) => {
 //   try {
 //     const { unitId } = req.params;

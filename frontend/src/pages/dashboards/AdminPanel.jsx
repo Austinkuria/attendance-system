@@ -50,41 +50,30 @@ const AdminPanel = () => {
   const [loading, setLoading] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Filter states – using hard-coded academic years and semesters
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
 
-  // Hard-coded options for academic years and semesters
   const hardCodedYears = [1, 2, 3, 4];
   const hardCodedSemesters = [1, 2, 3];
 
-  // When no course is selected, extract unique unit names from all courses (filtering out null/undefined)
   const uniqueUnits = [...new Set(
-    courses
-      .map(c => c.unit)
-      .filter(unit => unit != null)
+    courses.map(c => c.unit).filter(unit => unit != null)
   )].sort();
 
-  // New state for storing the real units for a selected course
   const [courseUnits, setCourseUnits] = useState([]);
 
-  // Fetch real units for the selected course
   useEffect(() => {
     if (selectedCourse) {
       getUnitsByCourse(selectedCourse)
-        .then(units => {
-          // Expecting each unit to be an object with _id and name
-          setCourseUnits(units.filter(u => u && u._id && u.name));
-        })
+        .then(units => setCourseUnits(units.filter(u => u && u._id && u.name)))
         .catch(() => message.error('Failed to fetch course units'));
     } else {
       setCourseUnits([]);
     }
   }, [selectedCourse]);
 
-  // Filtered courses based on selections
   const filteredCourses = courses.filter(course => {
     return (
       (!selectedCourse || course._id === selectedCourse) &&
@@ -94,45 +83,32 @@ const AdminPanel = () => {
     );
   });
 
-  // Responsive layout
   useEffect(() => {
     const handleResize = () => {
       setIsMobile(window.innerWidth < 768);
       if (window.innerWidth < 768) setCollapsed(true);
     };
-
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
-  // Authentication check
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
-      if (!token) {
-        window.location.href = '/auth/login';
-      }
+      if (!token) window.location.href = '/auth/login';
     };
-
     checkAuth();
     window.addEventListener('storage', checkAuth);
-
-    const handlePopState = () => {
-      if (!localStorage.getItem('token')) {
-        window.location.href = '/auth/login';
-      }
-    };
-
-    window.addEventListener('popstate', handlePopState);
-
+    window.addEventListener('popstate', () => {
+      if (!localStorage.getItem('token')) window.location.href = '/auth/login';
+    });
     return () => {
       window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('popstate', handlePopState);
+      window.removeEventListener('popstate', checkAuth);
     };
   }, []);
 
-  // Logout handler
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
@@ -141,7 +117,6 @@ const AdminPanel = () => {
     window.location.reload(true);
   };
 
-  // Data fetching
   const fetchData = useCallback(async () => {
     try {
       const [studentsRes, lecturersRes, coursesRes] = await Promise.all([
@@ -149,7 +124,6 @@ const AdminPanel = () => {
         getLecturers(),
         getCourses(),
       ]);
-
       setStudents(studentsRes);
       setLecturers(lecturersRes);
       setCourses(coursesRes);
@@ -168,11 +142,11 @@ const AdminPanel = () => {
           data: await getCourseAttendanceRate(course._id)
         }))
       );
-
-      setAttendanceRates(attendanceData.reduce((acc, cur) => ({
+      const rates = attendanceData.reduce((acc, cur) => ({
         ...acc,
         [cur.courseId]: cur.data
-      }), {}));
+      }), {});
+      setAttendanceRates(rates);
     } catch {
       message.error('Error loading attendance data');
     }
@@ -186,35 +160,24 @@ const AdminPanel = () => {
     if (courses.length > 0) fetchCourseAttendanceRates();
   }, [courses, fetchCourseAttendanceRates]);
 
-  // Dropdown menu items for profile/settings/logout
+  // Calculate overall attendance rate
+  const calculateOverallRate = () => {
+    const totalPresent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.present || 0), 0);
+    const totalAbsent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.absent || 0), 0);
+    const total = totalPresent + totalAbsent;
+    return total > 0 ? Math.round((totalPresent / total) * 100) : 0;
+  };
+
   const profileItems = [
-    {
-      key: '1',
-      label: 'View Profile',
-      icon: <UserOutlined />,
-      onClick: () => window.location.href = '/admin/profile'
-    },
-    {
-      key: '2',
-      label: 'Settings',
-      icon: <SettingOutlined />,
-      onClick: () => window.location.href = '/admin/settings'
-    },
-    {
-      type: 'divider',
-    },
-    {
-      key: '3',
-      label: 'Logout',
-      icon: <LogoutOutlined />,
-      danger: true,
-      onClick: () => Modal.confirm({
-        title: 'Confirm Logout',
-        content: 'Are you sure you want to logout?',
-        onOk: logout,
-        centered: true,
-      })
-    }
+    { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => window.location.href = '/admin/profile' },
+    { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => window.location.href = '/admin/settings' },
+    { type: 'divider' },
+    { key: '3', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: () => Modal.confirm({
+      title: 'Confirm Logout',
+      content: 'Are you sure you want to logout?',
+      onOk: logout,
+      centered: true,
+    }) }
   ];
 
   return (
@@ -235,42 +198,16 @@ const AdminPanel = () => {
           mode="inline"
           defaultSelectedKeys={['1']}
           items={[
-            {
-              key: '1',
-              icon: <TeamOutlined />,
-              label: 'Students',
-              onClick: () => window.location.href = '/admin/manage-students'
-            },
-            {
-              key: '2',
-              icon: <BookOutlined />,
-              label: 'Courses',
-              onClick: () => window.location.href = '/admin/manage-courses'
-            },
-            {
-              key: '3',
-              icon: <CheckCircleOutlined />,
-              label: 'Attendance',
-              onClick: () => window.location.href = '/admin/attendance-reports'
-            },
-            {
-              key: '4',
-              icon: <UserOutlined />,
-              label: 'Lecturers',
-              onClick: () => window.location.href = '/admin/manage-lecturers'
-            }
+            { key: '1', icon: <TeamOutlined />, label: 'Students', onClick: () => window.location.href = '/admin/manage-students' },
+            { key: '2', icon: <BookOutlined />, label: 'Courses', onClick: () => window.location.href = '/admin/manage-courses' },
+            { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => window.location.href = '/admin/attendance-reports' },
+            { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' }
           ]}
         />
       </Sider>
 
       <Layout>
-        <Header style={{
-          padding: 0,
-          background: colorBgContainer,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center'
-        }}>
+        <Header style={{ padding: 0, background: colorBgContainer, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
@@ -278,11 +215,7 @@ const AdminPanel = () => {
             style={{ fontSize: '16px', width: 64, height: 64 }}
           />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button
-              type="text"
-              icon={<UserOutlined style={{ fontSize: 24 }} />}
-              style={{ marginRight: 24 }}
-            />
+            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
           </Dropdown>
         </Header>
 
@@ -294,11 +227,7 @@ const AdminPanel = () => {
                   <TeamOutlined style={{ fontSize: 24 }} />
                   <h3>Total Students</h3>
                   <h1>{loading ? <Skeleton.Input active /> : students.length}</h1>
-                  <Button
-                    type="primary"
-                    block
-                    onClick={() => window.location.href = '/admin/manage-students'}
-                  >
+                  <Button type="primary" block onClick={() => window.location.href = '/admin/manage-students'}>
                     Manage
                   </Button>
                 </Space>
@@ -311,11 +240,7 @@ const AdminPanel = () => {
                   <BookOutlined style={{ fontSize: 24 }} />
                   <h3>Total Courses</h3>
                   <h1>{loading ? <Skeleton.Input active /> : courses.length}</h1>
-                  <Button
-                    type="primary"
-                    block
-                    onClick={() => window.location.href = '/admin/manage-courses'}
-                  >
+                  <Button type="primary" block onClick={() => window.location.href = '/admin/manage-courses'}>
                     Manage
                   </Button>
                 </Space>
@@ -328,11 +253,7 @@ const AdminPanel = () => {
                   <UserOutlined style={{ fontSize: 24 }} />
                   <h3>Total Lecturers</h3>
                   <h1>{loading ? <Skeleton.Input active /> : lecturers.length}</h1>
-                  <Button
-                    type="primary"
-                    block
-                    onClick={() => window.location.href = '/admin/manage-lecturers'}
-                  >
+                  <Button type="primary" block onClick={() => window.location.href = '/admin/manage-lecturers'}>
                     Manage
                   </Button>
                 </Space>
@@ -340,16 +261,12 @@ const AdminPanel = () => {
             </Col>
 
             <Col xs={24} sm={12} md={6}>
-              <Card loading={loading}>
+              <Card loading={loading || Object.keys(attendanceRates).length === 0}>
                 <Space direction="vertical">
                   <CheckCircleOutlined style={{ fontSize: 24 }} />
                   <h3>Attendance Rate</h3>
-                  <h1>85%</h1>
-                  <Button
-                    type="primary"
-                    block
-                    onClick={() => window.location.href = '/admin/attendance-reports'}
-                  >
+                  <h1>{loading || Object.keys(attendanceRates).length === 0 ? <Skeleton.Input active /> : `${calculateOverallRate()}%`}</h1>
+                  <Button type="primary" block onClick={() => window.location.href = '/admin/attendance-reports'}>
                     View Reports
                   </Button>
                 </Space>
@@ -360,12 +277,7 @@ const AdminPanel = () => {
           <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
             <Col xs={24} md={12}>
               <Card
-                title={
-                  <Space>
-                    <FilterOutlined />
-                    <span>Filter Attendance Data</span>
-                  </Space>
-                }
+                title={<Space><FilterOutlined /><span>Filter Attendance Data</span></Space>}
                 style={{ marginBottom: 24 }}
               >
                 <Row gutter={[16, 16]}>
@@ -373,17 +285,11 @@ const AdminPanel = () => {
                     <Select
                       placeholder="Select Course"
                       allowClear
-                      onChange={value => {
-                        setSelectedCourse(value);
-                        // Also clear the unit filter when a course is selected
-                        setSelectedUnit(null);
-                      }}
+                      onChange={value => { setSelectedCourse(value); setSelectedUnit(null); }}
                       style={{ width: '100%' }}
                     >
                       {courses.map(course => (
-                        <Option key={course._id} value={course._id}>
-                          {course.name}
-                        </Option>
+                        <Option key={course._id} value={course._id}>{course.name}</Option>
                       ))}
                     </Select>
                   </Col>
@@ -409,22 +315,13 @@ const AdminPanel = () => {
                       style={{ width: '100%' }}
                       value={selectedUnit}
                     >
-                      {(selectedCourse ? courseUnits : uniqueUnits).map(unit => {
-                        // If the unit is an object (real unit), use its _id and name;
-                        // Otherwise, assume it's a string
-                        if (typeof unit === 'object' && unit !== null) {
-                          return (
-                            <Option key={unit._id} value={unit._id}>
-                              {unit.name}
-                            </Option>
-                          );
-                        }
-                        return (
-                          <Option key={unit} value={unit}>
-                            {`Unit ${unit}`}
-                          </Option>
-                        );
-                      })}
+                      {(selectedCourse ? courseUnits : uniqueUnits).map(unit => (
+                        typeof unit === 'object' && unit !== null ? (
+                          <Option key={unit._id} value={unit._id}>{unit.name}</Option>
+                        ) : (
+                          <Option key={unit} value={unit}>{`Unit ${unit}`}</Option>
+                        )
+                      ))}
                     </Select>
                   </Col>
 
@@ -448,10 +345,7 @@ const AdminPanel = () => {
           <Divider orientation="left" style={{ fontSize: 18 }}>Attendance Charts</Divider>
 
           {filteredCourses.length === 0 ? (
-            <Empty
-              image={Empty.PRESENTED_IMAGE_SIMPLE}
-              description="No courses found matching the filters"
-            />
+            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No courses found matching the filters" />
           ) : (
             <Row gutter={[24, 24]}>
               {filteredCourses.map(course => (
@@ -463,9 +357,7 @@ const AdminPanel = () => {
                   >
                     <div style={{ height: 250 }}>
                       {!loading && (
-                        <AttendanceChart
-                          data={attendanceRates[course._id]}
-                        />
+                        <AttendanceChart data={attendanceRates[course._id] || { present: 0, absent: 0 }} />
                       )}
                     </div>
                   </Card>

@@ -14,4 +14,5 @@ router.get('/trends/:unitId', authenticate, (req, res) => {
     console.log('Trends route hit with unitId:', req.params.unitId);
     attendanceController.getAttendanceTrends(req, res);
   });
+  router.get('/course-rate/:courseId', authenticate, attendanceController.getCourseAttendanceRate);
 module.exports = router;

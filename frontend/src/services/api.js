@@ -438,15 +438,15 @@ export const getAttendanceRate = async () => {
 };
 
 // Fetch attendance rate for a specific course
-export const getCourseAttendanceRate = async (courseId) => {
-  try {
-    const response = await api.get(`/attendance/rate/${courseId}`);
-    return response.data;
-  } catch (error) {
-    console.error("Error fetching course attendance rate:", error);
-    return { present: 0, absent: 0 };
-  }
-};
+// export const getCourseAttendanceRate = async (courseId) => {
+//   try {
+//     const response = await api.get(`/attendance/rate/${courseId}`);
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error fetching course attendance rate:", error);
+//     return { present: 0, absent: 0 };
+//   }
+// };
 export const deleteStudent = async (studentId) => {
   const token = localStorage.getItem("token");
 
@@ -1222,4 +1222,12 @@ export const getAttendanceTrends = async (unitId) => {
   }
 };
 
+export const getCourseAttendanceRate = async (courseId) => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error("Authentication token missing");
+  const response = await axios.get(`${API_URL}/attendance/course-rate/${courseId}`, {
+    headers: { "Authorization": `Bearer ${token}` }
+  });
+  return response.data;
+};
 export default api;
