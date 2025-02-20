@@ -131,6 +131,40 @@ exports.updateAttendanceStatus = async (req, res) => {
   }
 };
 
+exports.getAttendanceTrends = async (req, res) => {
+  try {
+    const { unitId } = req.params; // Assuming unitId comes from route params
+    if (!mongoose.Types.ObjectId.isValid(unitId)) {
+      return res.status(400).json({ message: "Invalid unit ID format" });
+    }
+
+    const sessions = await Session.find({ unit: unitId, ended: true })
+      .sort({ startTime: 1 })
+      .select('startTime');
+
+    const trends = await Promise.all(sessions.map(async (session) => {
+      const attendanceRecords = await Attendance.find({ session: session._id });
+      const totalStudents = attendanceRecords.length;
+      const presentCount = attendanceRecords.filter(r => r.status === 'Present').length;
+      const rate = totalStudents > 0 ? (presentCount / totalStudents) * 100 : 0;
+      return {
+        date: session.startTime.toISOString().split('T')[0], // e.g., "2025-02-20"
+        rate: Number(rate.toFixed(1))
+      };
+    }));
+
+    const response = {
+      labels: trends.map(t => t.date),
+      data: trends.map(t => t.rate)
+    };
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching attendance trends:", error);
+    res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
+  }
+};
+
 module.exports = {
   markAttendance,
   markAbsentees,
