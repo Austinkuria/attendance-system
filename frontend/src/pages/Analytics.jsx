@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-import { Chart } from "react-chartjs-2"; // Use Chart for mixed chart types
+import { Chart } from "react-chartjs-2";
 import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
 
@@ -39,7 +39,9 @@ const Analytics = () => {
         }
         setLoading(prev => ({ ...prev, units: true }));
         setError(null);
+        console.log('Fetching units for lecturer:', lecturerId); // Debug log
         const unitsData = await getLecturerUnits(lecturerId);
+        console.log('Units received:', unitsData); // Debug log
         if (!Array.isArray(unitsData)) {
           throw new Error("Invalid units data format received");
         }
@@ -74,9 +76,9 @@ const Analytics = () => {
     try {
       setLoading(prev => ({ ...prev, trends: true }));
       setError(null);
-      console.log('Fetching trends for unit:', selectedUnit); // Debug log
+      console.log('Fetching trends for unit:', selectedUnit);
       const trendsRes = await getAttendanceTrends(selectedUnit);
-      console.log('Trends received:', trendsRes); // Debug log
+      console.log('Trends received:', trendsRes);
       if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.present) || 
           !Array.isArray(trendsRes.absent) || !Array.isArray(trendsRes.rates)) {
         throw new Error("Invalid trends data format received from server");
@@ -173,7 +175,7 @@ const Analytics = () => {
         beginAtZero: true,
         suggestedMax: Math.max(...trends.present.concat(trends.absent)) + 5 || 10,
         grid: {
-          drawOnChartArea: false // Avoid clutter
+          drawOnChartArea: false
         }
       },
       'y-rate': {
@@ -253,7 +255,7 @@ const Analytics = () => {
               No attendance data available for this unit
             </Text>
           ) : (
-            <Chart type="bar" data={chartData} options={options} />
+            <Chart data={chartData} options={options} />
           )}
         </div>
       </Spin>
