@@ -1,13 +1,23 @@
 import { useState, useEffect, useCallback } from "react";
-import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Chart } from "react-chartjs-2";
-import { registerables } from 'chart.js';
-    Chart.register(...registerables);
+import { 
+  CategoryScale, 
+  LinearScale, 
+  PointElement, 
+  LineElement, 
+  BarElement, 
+  Title, 
+  Tooltip, 
+  Legend, 
+  Filler, 
+  LineController,  // Added for line chart support
+  BarController    // Added for bar chart support
+} from 'chart.js';
 import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
 
-// Register ChartJS components
-ChartJS.register(
+// Register Chart.js components
+Chart.register(
   CategoryScale,
   LinearScale,
   PointElement,
@@ -16,7 +26,9 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler
+  Filler,
+  LineController,  // Crucial for line charts
+  BarController    // Crucial for bar charts
 );
 
 const { Option } = Select;
@@ -41,9 +53,9 @@ const Analytics = () => {
         }
         setLoading(prev => ({ ...prev, units: true }));
         setError(null);
-        console.log('Fetching units for lecturer:', lecturerId); // Debug log
+        console.log('Fetching units for lecturer:', lecturerId);
         const unitsData = await getLecturerUnits(lecturerId);
-        console.log('Units received:', unitsData); // Debug log
+        console.log('Units received:', unitsData);
         if (!Array.isArray(unitsData)) {
           throw new Error("Invalid units data format received");
         }
