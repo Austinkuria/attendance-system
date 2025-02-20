@@ -226,16 +226,17 @@ const ManageStudents = () => {
       const token = localStorage.getItem("token");
       if (!token) return navigate("/auth/login");
 
-      const formattedStudent = {
-        firstName: selectedStudent.firstName,
-        lastName: selectedStudent.lastName,
-        email: selectedStudent.email,
-        regNo: selectedStudent.regNo,
-        course: selectedStudent.courseId, // Use course ID
-        department: selectedStudent.departmentId, // Use department ID
-        year: Number(selectedStudent.year) || selectedStudent.year,
-        semester: Number(selectedStudent.semester) || selectedStudent.semester,
-      };
+          const formattedStudent = {
+            firstName: selectedStudent.firstName,
+            lastName: selectedStudent.lastName,
+            email: selectedStudent.email,
+            regNo: selectedStudent.regNo,
+            course: selectedStudent.courseId || selectedStudent.course, // Fallback to course if courseId not available
+            department: selectedStudent.departmentId || selectedStudent.department, // Fallback to department if departmentId not available
+            year: Number(selectedStudent.year) || selectedStudent.year,
+            semester: Number(selectedStudent.semester) || selectedStudent.semester,
+          };
+
 
       console.log("Payload sent to API:", formattedStudent); // Debugging
 
@@ -385,8 +386,9 @@ const ManageStudents = () => {
             lastName: record.lastName,
             email: record.email,
             regNo: record.regNo,
-            course: record.courseId, // Pre-fill with ID
-            department: record.departmentId, // Pre-fill with ID
+            course: record.courseId || record.course, // Pre-fill with ID, fallback to course
+            department: record.departmentId || record.department, // Pre-fill with ID, fallback to department
+
             year: record.year,
             semester: record.semester
           });

@@ -79,7 +79,6 @@ exports.endSession = async (req, res) => {
     session.ended = true;
     await session.save();
 
-    // Optionally mark absentees immediately instead of scheduling
     await markAbsentees(sessionId);
 
     res.status(200).json({ message: "Session ended successfully", session });
