@@ -210,7 +210,6 @@ exports.getAttendanceTrends = async (req, res) => {
       return res.status(200).json({ labels: [], data: [] });
     }
 
-    // Optimize by aggregating attendance counts
     const trends = await Promise.all(sessions.map(async (session) => {
       const stats = await Attendance.aggregate([
         { $match: { session: session._id } },
