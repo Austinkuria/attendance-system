@@ -218,9 +218,10 @@ const getLecturers = async (req, res) => {
   }
 };
 
+
 // Update student
 const updateStudent = async (req, res) => {
-  const { firstName, lastName, email, regNo, course: courseName, department: deptName, year, semester } = req.body;
+  const { firstName, lastName, email, regNo, course, department, year, semester } = req.body;
 
   // Check validation results
   const errors = validationResult(req);
@@ -261,18 +262,21 @@ const updateStudent = async (req, res) => {
       return res.status(400).json({ message: 'Course not found' });
     }
 
+    // Verify department exists (assuming you have a Department model)
+    const deptDoc = await Department.findById(department);
+    if (!deptDoc) {
+      return res.status(400).json({ message: 'Department not found' });
+    }
 
-
-
+    // Update student fields
     student.firstName = firstName;
     student.lastName = lastName;
     student.email = email;
     student.regNo = regNo;
-    student.course = course;
-    student.department = department;
+    student.course = course; // Use the ID
+    student.department = department; // Use the ID
     student.year = year;
     student.semester = semester;
-
 
     await student.save();
     res.json({ message: 'Student updated successfully' });

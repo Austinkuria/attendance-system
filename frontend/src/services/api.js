@@ -1101,28 +1101,49 @@ export const markAbsent = async (sessionId) => {
   }
 };
 
-export const getCurrentSession = async (selectedUnit) => {
-  try {
-    const token = localStorage.getItem('token'); // Retrieve token from localStorage
-    const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}` // Include token in headers
-      },
-    });
+// export const getCurrentSession = async (selectedUnit) => {
+//   try {
+//     const token = localStorage.getItem('token');
+//     const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`, {
+//       method: "GET",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Authorization": `Bearer ${token}`
+//       },
+//     });
+//     if (!response.ok) {
+//       throw new Error(`HTTP Error: ${response.status}`);
+//     }
+//     const data = await response.json();
+//     return data;
+//   } catch (error) {
+//     console.error("API Error:", error);
+//     return null;
+//   }
+// };
 
-    if (!response.ok) {
-      throw new Error(`HTTP Error: ${response.status}`); 
-    }
+// export const getCurrentSession = async (selectedUnit) => {
+//   try {
+//     const token = localStorage.getItem('token'); // Retrieve token from localStorage
+//     const response = await fetch(`${API_URL}/sessions/current/${selectedUnit}`, {
+//       method: "GET",
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Authorization": `Bearer ${token}` // Include token in headers
+//       },
+//     });
 
-    const data = await response.json();
-    return data;
-  } catch (error) {
-    console.error("API Error:", error);
-    return null;
-  }
-};
+//     if (!response.ok) {
+//       throw new Error(`HTTP Error: ${response.status}`); 
+//     }
+
+//     const data = await response.json();
+//     return data;
+//   } catch (error) {
+//     console.error("API Error:", error);
+//     return null;
+//   }
+// };
 
 export const getStudentAttendance = async (studentId) => {
   try {
@@ -1211,7 +1232,11 @@ export const getSessionAttendance = async (sessionId) => {
     const enrichedData = response.data.map(record => ({
       _id: record._id,
       regNo: record.student?.regNo || 'N/A',
-      course: record.student?.course?.name || record.student?.course || 'N/A', // Handle both object and string
+      course: typeof record.student?.course === 'object' && record.student?.course?.name 
+        ? record.student.course.name 
+        : typeof record.student?.course === 'string' 
+          ? record.student.course 
+          : 'N/A',
       year: record.student?.year || 'N/A',
       semester: record.student?.semester || 'N/A',
       status: record.status ? record.status.toLowerCase() : 'N/A',
@@ -1220,10 +1245,52 @@ export const getSessionAttendance = async (sessionId) => {
     return enrichedData;
   } catch (error) {
     console.error('Error fetching session attendance:', error);
-    if (error.response) {
-      throw new Error(`Failed to fetch session attendance: ${error.response.status} - ${error.response.data.message || error.message}`);
-    } else {
-      throw new Error(`Network error: ${error.message}`);
+    throw error;
+  }
+};
+
+// Get current session for a specific unit
+export const getCurrentSession = async (selectedUnit) => {
+  try {
+    const token = getToken();
+    if (!token) throw new Error("Authentication token missing");
+    const response = await axios.get(`${API_URL}/sessions/current/${selectedUnit}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    return response.data; // Return the session object
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return null; // Return null if no current session exists
+    }
+    console.error("Error fetching current session:", error);
+    throw error;
+  }
+};
+
+// Get last ended session for a specific unit
+export const getLastSession = async (unitId) => {
+  const maxRetries = 3;
+  let retryCount = 0;
+  while (retryCount < maxRetries) {
+    try {
+      const token = getToken();
+      if (!token) throw new Error("Authentication token missing");
+      const response = await axios.get(`${API_URL}/sessions/last/${unitId}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 429 && retryCount < maxRetries - 1) {
+        const delay = Math.pow(2, retryCount) * 1000; // Exponential backoff: 1s, 2s, 4s
+        await new Promise(resolve => setTimeout(resolve, delay));
+        retryCount++;
+        continue;
+      }
+      console.error("Error fetching last session:", error);
+      throw error;
     }
   }
 };
