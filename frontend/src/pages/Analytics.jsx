@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Line } from "react-chartjs-2";
 import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
@@ -14,7 +14,6 @@ import {
   Filler
 } from 'chart.js';
 
-// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -39,7 +38,7 @@ const Analytics = () => {
   const [loading, setLoading] = useState({ units: true, trends: false });
   const [error, setError] = useState(null);
 
-  // Fetch lecturer's units on component mount
+  // Fetch lecturer's units
   useEffect(() => {
     const fetchUnits = async () => {
       try {
@@ -72,8 +71,8 @@ const Analytics = () => {
     fetchUnits();
   }, [lecturerId]);
 
-  // Fetch attendance trends for the selected unit
-  const fetchTrends = async () => {
+  // Memoized fetchTrends
+  const fetchTrends = useCallback(async () => {
     if (!selectedUnit) {
       setTrends({ labels: [], data: [] });
       setError("Please select a unit");
@@ -98,14 +97,13 @@ const Analytics = () => {
     } finally {
       setLoading(prev => ({ ...prev, trends: false }));
     }
-  };
-
-  // Trigger trends fetch when selectedUnit changes
-  useEffect(() => {
-    fetchTrends();
   }, [selectedUnit]);
 
-  // Chart configuration
+  // Fetch trends when fetchTrends changes (which happens when selectedUnit changes)
+  useEffect(() => {
+    fetchTrends();
+  }, [fetchTrends]);
+
   const chartData = {
     labels: trends.labels.length ? trends.labels : ['No Data'],
     datasets: [

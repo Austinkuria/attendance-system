@@ -8,5 +8,10 @@ router.post('/handle-session-end', authenticate, attendanceController.handleSess
 router.get('/student/:studentId', authenticate, attendanceController.getStudentAttendance);
 router.get('/session/:sessionId', authenticate, attendanceController.getSessionAttendance);
 router.put('/:attendanceId', authenticate, attendanceController.updateAttendanceStatus);
-router.get('/trends/:unitId', authenticate, attendanceController.getAttendanceTrends);
+// router.get('/trends/:unitId', authenticate, attendanceController.getAttendanceTrends);
+// In attendance.routes.js
+router.get('/trends/:unitId', authenticate, (req, res) => {
+    console.log('Trends route hit with unitId:', req.params.unitId);
+    attendanceController.getAttendanceTrends(req, res);
+  });
 module.exports = router;
