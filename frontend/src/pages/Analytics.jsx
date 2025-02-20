@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
-import { Chart } from "react-chartjs-2";
+import { Chart as ChartComponent } from "react-chartjs-2"; // Renamed to avoid confusion
 import { 
+  Chart, // Import the core Chart class
   CategoryScale, 
   LinearScale, 
   PointElement, 
@@ -10,13 +11,13 @@ import {
   Tooltip, 
   Legend, 
   Filler, 
-  LineController,  // Added for line chart support
-  BarController    // Added for bar chart support
+  LineController, 
+  BarController 
 } from 'chart.js';
 import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
 
-// Register Chart.js components
+// Register Chart.js components with the core Chart class
 Chart.register(
   CategoryScale,
   LinearScale,
@@ -27,8 +28,8 @@ Chart.register(
   Tooltip,
   Legend,
   Filler,
-  LineController,  // Crucial for line charts
-  BarController    // Crucial for bar charts
+  LineController,
+  BarController
 );
 
 const { Option } = Select;
@@ -269,7 +270,7 @@ const Analytics = () => {
               No attendance data available for this unit
             </Text>
           ) : (
-            <Chart data={chartData} options={options} />
+            <ChartComponent data={chartData} options={options} />
           )}
         </div>
       </Spin>
