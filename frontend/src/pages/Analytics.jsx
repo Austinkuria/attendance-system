@@ -14,6 +14,7 @@ import {
   Filler
 } from 'chart.js';
 
+// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -38,16 +39,19 @@ const Analytics = () => {
   const [loading, setLoading] = useState({ units: true, trends: false });
   const [error, setError] = useState(null);
 
-  // Fetch lecturer's units
+  // Fetch lecturer's units on component mount
   useEffect(() => {
     const fetchUnits = async () => {
       try {
         if (!lecturerId) {
-          throw new Error("No lecturer ID found in localStorage");
+          throw new Error("No lecturer ID found in localStorage. Please log in.");
         }
         setLoading(prev => ({ ...prev, units: true }));
         setError(null);
         const unitsData = await getLecturerUnits(lecturerId);
+        if (!Array.isArray(unitsData)) {
+          throw new Error("Invalid units data format received");
+        }
         if (unitsData.length > 0) {
           setUnits(unitsData);
           setSelectedUnit(unitsData[0]._id);
@@ -59,6 +63,7 @@ const Analytics = () => {
       } catch (error) {
         console.error('Failed to fetch units:', error);
         setError(error.message || "Failed to load units");
+        setUnits([]);
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
       }
@@ -67,10 +72,11 @@ const Analytics = () => {
     fetchUnits();
   }, [lecturerId]);
 
-  // Fetch attendance trends
+  // Fetch attendance trends for the selected unit
   const fetchTrends = async () => {
     if (!selectedUnit) {
       setTrends({ labels: [], data: [] });
+      setError("Please select a unit");
       return;
     }
 
@@ -79,7 +85,7 @@ const Analytics = () => {
       setError(null);
       const trendsRes = await getAttendanceTrends(selectedUnit);
       if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.data)) {
-        throw new Error("Invalid trends data format received");
+        throw new Error("Invalid trends data format received from server");
       }
       setTrends({
         labels: trendsRes.labels,
@@ -94,11 +100,12 @@ const Analytics = () => {
     }
   };
 
-  // Fetch trends when selectedUnit changes
+  // Trigger trends fetch when selectedUnit changes
   useEffect(() => {
     fetchTrends();
   }, [selectedUnit]);
 
+  // Chart configuration
   const chartData = {
     labels: trends.labels.length ? trends.labels : ['No Data'],
     datasets: [
@@ -160,7 +167,7 @@ const Analytics = () => {
       title={<AntTitle level={4} style={{ margin: 0 }}>Attendance Analytics</AntTitle>}
       style={{ marginTop: 24 }}
       extra={
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
           <Select
             placeholder="Select Unit"
             style={{ width: screens.md ? 240 : 180 }}
@@ -179,6 +186,7 @@ const Analytics = () => {
             onClick={fetchTrends} 
             loading={loading.trends}
             disabled={loading.trends || !selectedUnit}
+            type="primary"
           >
             Refresh
           </Button>
@@ -192,7 +200,8 @@ const Analytics = () => {
               position: 'absolute', 
               top: '50%', 
               left: '50%', 
-              transform: 'translate(-50%, -50%)' 
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center'
             }}>
               {error}
             </Text>
@@ -201,7 +210,8 @@ const Analytics = () => {
               position: 'absolute', 
               top: '50%', 
               left: '50%', 
-              transform: 'translate(-50%, -50%)' 
+              transform: 'translate(-50%, -50%)',
+              textAlign: 'center'
             }}>
               No attendance data available for this unit
             </Text>

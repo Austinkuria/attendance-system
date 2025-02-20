@@ -243,7 +243,6 @@ exports.getAttendanceTrends = async (req, res) => {
 };
 
 module.exports = {
-  markAttendance,
   markAbsentees,
   getStudentAttendance,
   getSessionAttendance,
