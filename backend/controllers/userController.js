@@ -249,29 +249,27 @@ const updateStudent = async (req, res) => {
       });
     }
 
-    // Find department by name
-    const department = await Department.findOne({ name: deptName });
-    if (!department) {
-      return res.status(400).json({ message: 'Department not found' });
+    // Validate department and course IDs
+    if (!mongoose.isValidObjectId(department) || !mongoose.isValidObjectId(course)) {
+      return res.status(400).json({ message: 'Invalid department or course ID format' });
     }
 
-    // Find course by name and department
-    const course = await Course.findOne({
-      name: courseName,
-      department: department._id
-    });
-    if (!course) {
+    // Verify course belongs to department
+    const courseDoc = await Course.findById(course);
+    if (!courseDoc || courseDoc.department.toString() !== department.toString()) {
       return res.status(400).json({ message: 'Course not found in the specified department' });
     }
+
 
     student.firstName = firstName;
     student.lastName = lastName;
     student.email = email;
     student.regNo = regNo;
-    student.course = course._id;
-    student.department = department._id;
+    student.course = course;
+    student.department = department;
     student.year = year;
     student.semester = semester;
+
 
     await student.save();
     res.json({ message: 'Student updated successfully' });

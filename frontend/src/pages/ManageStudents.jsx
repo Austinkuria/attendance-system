@@ -276,9 +276,10 @@ const ManageStudents = () => {
 
       const payload = {
         ...selectedStudent,
-        course: selectedStudent.course, // Ensure this is the ID, not the object
-        department: selectedStudent.department, // Ensure this is the ID, not the object
+        course: selectedStudent.course?._id || selectedStudent.course, // Use ID from object or direct ID
+        department: selectedStudent.department?._id || selectedStudent.department // Use ID from object or direct ID
       };
+
 
       const response = await api.put(
         `/students/${selectedStudent._id}`,
@@ -502,16 +503,21 @@ const ManageStudents = () => {
             icon={<EditOutlined />}
             size="small"
             onClick={() => {
-              setSelectedStudent(record);
+              setSelectedStudent({
+                ...record,
+                course: record.course?._id || record.course, // Ensure course ID is stored
+                department: record.department?._id || record.department // Ensure department ID is stored
+              });
               editForm.setFieldsValue({
                 firstName: record.firstName,
                 lastName: record.lastName,
                 email: record.email,
                 regNo: record.regNo,
-                course: record.course,
+                course: record.course?._id || record.course, // Use ID in form
                 year: record.year,
                 semester: record.semester,
               });
+
               setIsEditModalVisible(true);
             }}
           >

@@ -1152,17 +1152,48 @@ export const getStudentAttendance = async (studentId) => {
   }
 };
 
+// export const getSessionAttendance = async (sessionId) => {
+//   try {
+//     const token = localStorage.getItem('token');
+//     const response = await axios.get(
+//       `${API_URL}/attendance/session/${sessionId}`,
+//       { headers: { Authorization: `Bearer ${token}` } }
+//     );
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error fetching session attendance:', error);
+//     throw error;
+//   }
+// };
 export const getSessionAttendance = async (sessionId) => {
   try {
-    const token = localStorage.getItem('token');
+    const token = getToken();
     const response = await axios.get(
       `${API_URL}/attendance/session/${sessionId}`,
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    return response.data;
+    if (!Array.isArray(response.data)) {
+      console.warn('Unexpected response format, expected array:', response.data);
+      return [];
+    }
+    // Enrich data to match frontend expectations
+    const enrichedData = response.data.map(record => ({
+      _id: record._id,
+      regNo: record.student?.regNo || 'N/A',
+      course: record.student?.course?.name || 'N/A',
+      year: record.student?.year || 'N/A',
+      semester: record.student?.semester || 'N/A',
+      status: record.status ? record.status.toLowerCase() : 'N/A',
+      unit: record.session?.unit || 'N/A'
+    }));
+    return enrichedData;
   } catch (error) {
     console.error('Error fetching session attendance:', error);
-    throw error;
+    if (error.response) {
+      throw new Error(`Failed to fetch session attendance: ${error.response.status} - ${error.response.data.message || error.message}`);
+    } else {
+      throw new Error(`Network error: ${error.message}`);
+    }
   }
 };
 export default api;

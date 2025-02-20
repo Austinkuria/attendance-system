@@ -101,3 +101,39 @@ exports.getStudentAttendance = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance records", error: error.message });
   }
 };
+
+exports.getSessionAttendance = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID format" });
+    }
+    const attendanceRecords = await Attendance.find({ session: sessionId })
+      .populate('student', 'regNo firstName lastName course year semester')
+      .populate('session', 'unit');
+    res.status(200).json(attendanceRecords);
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching session attendance", error: error.message });
+  }
+};
+
+exports.updateAttendanceStatus = async (req, res) => {
+  try {
+    const { attendanceId } = req.params;
+    const { status } = req.body;
+    if (!mongoose.Types.ObjectId.isValid(attendanceId)) {
+      return res.status(400).json({ message: "Invalid attendance ID format" });
+    }
+    const attendance = await Attendance.findByIdAndUpdate(
+      attendanceId,
+      { status },
+      { new: true }
+    );
+    if (!attendance) {
+      return res.status(404).json({ message: "Attendance record not found" });
+    }
+    res.status(200).json(attendance);
+  } catch (error) {
+    res.status(500).json({ message: "Error updating attendance status", error: error.message });
+  }
+};
