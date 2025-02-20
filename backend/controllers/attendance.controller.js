@@ -202,7 +202,7 @@ exports.getAttendanceTrends = async (req, res) => {
       return res.status(400).json({ message: "Invalid unit ID format" });
     }
 
-    const sessions = await Session.find({ unit: unitId, ended: true })
+    const sessions = await Session.find({ unit: unitId }) // Keep ended: false for active sessions
       .sort({ startTime: 1 })
       .select('startTime _id');
 
