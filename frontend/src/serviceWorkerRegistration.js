@@ -1,15 +1,22 @@
 export function register(config) {
   const isProduction = import.meta.env.MODE === 'production';
   if (isProduction && 'serviceWorker' in navigator) {
-    const publicUrl = new URL(import.meta.env.BASE_URL, window.location.href);
+    const baseUrl = import.meta.env.BASE_URL || '/'; // Default to '/' if BASE_URL is undefined
+    const publicUrl = new URL(baseUrl, window.location.href);
+    
+    // Check if origins match to avoid cross-origin issues
     if (publicUrl.origin !== window.location.origin) {
+      console.log('Origin mismatch, skipping Service Worker registration:', {
+        publicUrl: publicUrl.origin,
+        currentOrigin: window.location.origin
+      });
       return;
     }
 
-
     window.addEventListener('load', () => {
-      const swUrl = `${import.meta.env.BASE_URL}/public/sw.js`;
-
+      // Use root-level path for sw.js since Vercel serves public/ files at root
+      const swUrl = `${baseUrl}sw.js`;
+      console.log('Attempting to register Service Worker at:', swUrl); // Debug log
 
       if (isLocalhost) {
         checkValidServiceWorker(swUrl, config);
@@ -24,6 +31,7 @@ function registerValidSW(swUrl, config) {
   navigator.serviceWorker
     .register(swUrl)
     .then(registration => {
+      console.log('Service Worker registered with scope:', registration.scope); // Debug log
       registration.onupdatefound = () => {
         const installingWorker = registration.installing;
         if (installingWorker == null) {
