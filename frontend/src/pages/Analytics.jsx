@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Chart } from "react-chartjs-2";
+import { registerables } from 'chart.js';
+    Chart.register(...registerables);
 import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
 
