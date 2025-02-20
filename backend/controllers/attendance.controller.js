@@ -202,12 +202,12 @@ exports.getAttendanceTrends = async (req, res) => {
       return res.status(400).json({ message: "Invalid unit ID format" });
     }
 
-    const sessions = await Session.find({ unit: unitId }) // Remove ended: true
+    const sessions = await Session.find({ unit: unitId, ended: true })
       .sort({ startTime: 1 })
       .select('startTime _id');
 
     if (!sessions.length) {
-      return res.status(200).json({ labels: [], data: [] });
+      return res.status(200).json({ labels: [], present: [], absent: [], rates: [] });
     }
 
     const trends = await Promise.all(sessions.map(async (session) => {
@@ -216,19 +216,24 @@ exports.getAttendanceTrends = async (req, res) => {
         { $group: { _id: "$status", count: { $sum: 1 } } }
       ]);
 
-      const total = stats.reduce((sum, stat) => sum + stat.count, 0);
       const presentCount = stats.find(stat => stat._id === "Present")?.count || 0;
+      const absentCount = stats.find(stat => stat._id === "Absent")?.count || 0;
+      const total = presentCount + absentCount;
       const rate = total > 0 ? (presentCount / total) * 100 : 0;
 
       return {
         date: session.startTime.toISOString().split('T')[0],
+        present: presentCount,
+        absent: absentCount,
         rate: Number(rate.toFixed(1))
       };
     }));
 
     const response = {
       labels: trends.map(t => t.date),
-      data: trends.map(t => t.rate)
+      present: trends.map(t => t.present),
+      absent: trends.map(t => t.absent),
+      rates: trends.map(t => t.rate)
     };
 
     res.status(200).json(response);
@@ -239,6 +244,48 @@ exports.getAttendanceTrends = async (req, res) => {
 };
 
 // exports.getAttendanceTrends = async (req, res) => {
+//   try {
+//     const { unitId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(unitId)) {
+//       return res.status(400).json({ message: "Invalid unit ID format" });
+//     }
+
+//     const sessions = await Session.find({ unit: unitId }) // Remove ended: true
+//       .sort({ startTime: 1 })
+//       .select('startTime _id');
+
+//     if (!sessions.length) {
+//       return res.status(200).json({ labels: [], data: [] });
+//     }
+
+//     const trends = await Promise.all(sessions.map(async (session) => {
+//       const stats = await Attendance.aggregate([
+//         { $match: { session: session._id } },
+//         { $group: { _id: "$status", count: { $sum: 1 } } }
+//       ]);
+
+//       const total = stats.reduce((sum, stat) => sum + stat.count, 0);
+//       const presentCount = stats.find(stat => stat._id === "Present")?.count || 0;
+//       const rate = total > 0 ? (presentCount / total) * 100 : 0;
+
+//       return {
+//         date: session.startTime.toISOString().split('T')[0],
+//         rate: Number(rate.toFixed(1))
+//       };
+//     }));
+
+//     const response = {
+//       labels: trends.map(t => t.date),
+//       data: trends.map(t => t.rate)
+//     };
+
+//     res.status(200).json(response);
+//   } catch (error) {
+//     console.error("Error fetching attendance trends:", error);
+//     res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
+//   }
+// };
+
 //   try {
 //     const { unitId } = req.params;
 //     if (!mongoose.Types.ObjectId.isValid(unitId)) {

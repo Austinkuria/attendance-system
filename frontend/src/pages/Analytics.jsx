@@ -1,24 +1,17 @@
+
 import { useState, useEffect, useCallback } from "react";
-import { Line } from "react-chartjs-2";
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
+import { Chart } from "react-chartjs-2"; // Use Chart instead of Line for mixed charts
 import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
-import { 
-  Chart as ChartJS, 
-  CategoryScale, 
-  LinearScale, 
-  PointElement, 
-  LineElement, 
-  Title, 
-  Tooltip, 
-  Legend,
-  Filler
-} from 'chart.js';
 
+// Register ChartJS components, including BarElement for bar charts
 ChartJS.register(
   CategoryScale,
   LinearScale,
   PointElement,
   LineElement,
+  BarElement,
   Title,
   Tooltip,
   Legend,
@@ -32,7 +25,7 @@ const { Title: AntTitle, Text } = Typography;
 const Analytics = () => {
   const screens = useBreakpoint();
   const lecturerId = localStorage.getItem("userId");
-  const [trends, setTrends] = useState({ labels: [], data: [] });
+  const [trends, setTrends] = useState({ labels: [], present: [], absent: [], rates: [] });
   const [units, setUnits] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState({ units: true, trends: false });
@@ -74,7 +67,7 @@ const Analytics = () => {
   // Memoized fetchTrends
   const fetchTrends = useCallback(async () => {
     if (!selectedUnit) {
-      setTrends({ labels: [], data: [] });
+      setTrends({ labels: [], present: [], absent: [], rates: [] });
       setError("Please select a unit");
       return;
     }
@@ -83,23 +76,26 @@ const Analytics = () => {
       setLoading(prev => ({ ...prev, trends: true }));
       setError(null);
       const trendsRes = await getAttendanceTrends(selectedUnit);
-      if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.data)) {
+      if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.present) || 
+          !Array.isArray(trendsRes.absent) || !Array.isArray(trendsRes.rates)) {
         throw new Error("Invalid trends data format received from server");
       }
       setTrends({
         labels: trendsRes.labels,
-        data: trendsRes.data
+        present: trendsRes.present,
+        absent: trendsRes.absent,
+        rates: trendsRes.rates
       });
     } catch (error) {
       console.error('Failed to fetch trends:', error);
       setError(error.message || "Failed to load attendance trends");
-      setTrends({ labels: [], data: [] });
+      setTrends({ labels: [], present: [], absent: [], rates: [] });
     } finally {
       setLoading(prev => ({ ...prev, trends: false }));
     }
   }, [selectedUnit]);
 
-  // Fetch trends when fetchTrends changes (which happens when selectedUnit changes)
+  // Fetch trends when fetchTrends changes
   useEffect(() => {
     fetchTrends();
   }, [fetchTrends]);
@@ -108,14 +104,34 @@ const Analytics = () => {
     labels: trends.labels.length ? trends.labels : ['No Data'],
     datasets: [
       {
+        type: 'bar',
+        label: 'Present Students',
+        data: trends.present.length ? trends.present : [0],
+        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        borderColor: 'rgba(75, 192, 192, 1)',
+        borderWidth: 1,
+        yAxisID: 'y-count'
+      },
+      {
+        type: 'bar',
+        label: 'Absent Students',
+        data: trends.absent.length ? trends.absent : [0],
+        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        borderColor: 'rgba(255, 99, 132, 1)',
+        borderWidth: 1,
+        yAxisID: 'y-count'
+      },
+      {
+        type: 'line',
         label: 'Attendance Rate (%)',
-        data: trends.data.length ? trends.data : [0],
+        data: trends.rates.length ? trends.rates : [0],
         borderColor: '#1890ff',
         backgroundColor: 'rgba(24, 144, 255, 0.2)',
-        fill: true,
+        fill: false,
         tension: 0.4,
         pointRadius: 4,
-        pointHoverRadius: 6
+        pointHoverRadius: 6,
+        yAxisID: 'y-rate'
       }
     ]
   };
@@ -128,18 +144,36 @@ const Analytics = () => {
       },
       title: {
         display: true,
-        text: 'Attendance Trend Over Time',
+        text: 'Attendance Analytics (Count and Rate)',
       },
       tooltip: {
         mode: 'index',
         intersect: false,
         callbacks: {
-          label: (context) => `${context.dataset.label}: ${context.parsed.y}%`
+          label: (context) => {
+            const dataset = context.dataset;
+            if (dataset.type === 'line') {
+              return `${dataset.label}: ${context.parsed.y}%`;
+            }
+            return `${dataset.label}: ${context.parsed.y}`;
+          }
         }
       }
     },
     scales: {
-      y: {
+      'y-count': {
+        type: 'linear',
+        position: 'left',
+        title: {
+          display: true,
+          text: 'Number of Students'
+        },
+        beginAtZero: true,
+        suggestedMax: Math.max(...trends.present.concat(trends.absent)) + 5 || 10
+      },
+      'y-rate': {
+        type: 'linear',
+        position: 'right',
         min: 0,
         max: 100,
         title: {
@@ -148,6 +182,9 @@ const Analytics = () => {
         },
         ticks: {
           callback: value => `${value}%`
+        },
+        grid: {
+          drawOnChartArea: false // Avoid overlapping grid lines
         }
       },
       x: {
@@ -214,7 +251,7 @@ const Analytics = () => {
               No attendance data available for this unit
             </Text>
           ) : (
-            <Line data={chartData} options={options} />
+            <Chart type="bar" data={chartData} options={options} />
           )}
         </div>
       </Spin>
