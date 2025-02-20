@@ -140,14 +140,18 @@ const ManageStudents = () => {
         const response = await getStudents();
         const data = Array.isArray(response) ? response : [];
         if (isMounted) {
-          const formattedStudents = data.map((student) => ({
-            ...student,
-            regNo: student.regNo || "N/A",
-            year: student.year || "N/A",
-            semester: student.semester?.toString() || "N/A",
-            course: student.course?.name || "N/A",
-            department: student.department?.name || "N/A",
-          }));
+      const formattedStudents = data.map((student) => {
+        const courseName = student.course?.name || student.course || "N/A";
+        return {
+          ...student,
+          regNo: student.regNo || "N/A",
+          year: student.year || "N/A",
+          semester: student.semester?.toString() || "N/A",
+          course: courseName,
+          department: student.department?.name || "N/A",
+        };
+      });
+
           setStudents(formattedStudents);
           setGlobalError("");
         }
@@ -171,10 +175,11 @@ const ManageStudents = () => {
   // Courses dropdown derived from students
   const availableCourses = useMemo(() => {
     return courses.map((course) => ({
-      id: course._id,
-      name: course.name,
+      id: course._id || course.id,
+      name: course.name || course,
     }));
   }, [courses]);
+
 
   // Validate new student form
   const validateForm = () => {
@@ -400,7 +405,7 @@ const ManageStudents = () => {
       setFile(null);
 
       if (response.data.errorCount > 0) {
-        const errorMessages = response.data.errors.map((err, index) => 
+        const errorMessages = response.data.errors.map((err, index) =>
           `Row ${index + 1}: ${err.error}`
         ).join("\n");
         setGlobalError(`Some records failed to import:\n${errorMessages}`);

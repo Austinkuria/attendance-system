@@ -55,10 +55,11 @@ const StudentDashboard = () => {
   const [attendanceData, setAttendanceData] = useState([]);
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
+  const [studentId, setStudentId] = useState(null); // Added to store student ID
   const [isLoading, setIsLoading] = useState(true);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // New state for modals
+  // State for modals
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [quizModalVisible, setQuizModalVisible] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -76,13 +77,14 @@ const StudentDashboard = () => {
     }
   }, [navigate]);
 
-  // Fetch student profile
+  // Fetch student profile and get student ID
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
     getUserProfile(token)
       .then((response) => {
         console.log('Profile Data:', response);
+        setStudentId(response._id); // Assuming response contains the student's _id
         setIsLoading(false);
       })
       .catch((error) => {
@@ -103,31 +105,25 @@ const StudentDashboard = () => {
       .catch((error) => console.error('Error fetching units:', error));
   }, []);
 
-  // Fetch attendance data for each unit
+  // Fetch all attendance data for the student and filter by unit
   useEffect(() => {
-    if (units.length > 0) {
-      units.forEach((unit) => {
-        getStudentAttendance(unit._id)
-          .then((response) => {
-            console.log('Attendance Data for Unit:', unit._id, response.data);
-            // Ensure response.data exists and is an array
-            const attendance = response.data ? response.data : [];
-            setAttendanceData((prevData) => [
-              ...prevData,
-              { unitId: unit._id, data: Array.isArray(attendance) ? attendance : [] },
-            ]);
-          })
-          .catch((error) => {
-            console.error('Error fetching attendance data for unit', unit._id, error);
-            // Add empty data for this unit to prevent inconsistencies
-            setAttendanceData((prevData) => [
-              ...prevData,
-              { unitId: unit._id, data: [] },
-            ]);
-          });
-      });
+    if (studentId && units.length > 0) {
+      getStudentAttendance(studentId)
+        .then((response) => {
+          const attendanceRecords = response.attendanceRecords || [];
+          console.log('All Attendance Records:', attendanceRecords);
+          const unitAttendance = units.map((unit) => ({
+            unitId: unit._id,
+            data: attendanceRecords.filter((record) => record.session.unit === unit._id),
+          }));
+          setAttendanceData(unitAttendance);
+        })
+        .catch((error) => {
+          console.error('Error fetching attendance data:', error);
+          setAttendanceData(units.map((unit) => ({ unitId: unit._id, data: [] })));
+        });
     }
-  }, [units]);
+  }, [studentId, units]);
 
   // Calculate attendance rate for a given unit
   const calculateAttendanceRate = useCallback(
@@ -208,16 +204,16 @@ const StudentDashboard = () => {
   };
 
   // Determine which units have low attendance (<50%)
-  const lowAttendanceUnits = attendanceRates.filter(
-    (rate) => rate.value < 50
-  );
+  const lowAttendanceUnits = attendanceRates.filter((rate) => rate.value < 50);
 
   // Render a compact events list using Ant Design's List
   const renderCompactCalendar = () => {
     const events = attendanceData.flatMap((unitData) =>
       unitData.data.map((attendance) => ({
         title: `${unitData.unitId} - ${attendance.status || 'Unknown'}`,
-        date: attendance.date ? new Date(attendance.date).toLocaleDateString() : 'No Date',
+        date: attendance.timestamp
+          ? new Date(attendance.timestamp).toLocaleDateString()
+          : 'No Date',
         status: attendance.status || 'Unknown',
       }))
     );
@@ -292,14 +288,19 @@ const StudentDashboard = () => {
   // Functions to handle feedback and quiz modals
   const openFeedbackModal = (unitId) => {
     console.log('Opening feedback modal for unit:', unitId);
-    setActiveSessionId(unitId); // Use unitId or fetch latest session ID
+    const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
+    if (unitAttendance && unitAttendance.data.length > 0) {
+      setActiveSessionId(unitAttendance.data[0]._id); // Use latest session ID
+    } else {
+      setActiveSessionId(null); // No session available
+    }
     setFeedbackModalVisible(true);
   };
 
   const openQuizModal = async (unitId) => {
     const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
     if (unitAttendance && unitAttendance.data.length > 0) {
-      const latestSession = unitAttendance.data[unitAttendance.data.length - 1];
+      const latestSession = unitAttendance.data[0]; // Latest session
       setActiveSessionId(latestSession._id);
       try {
         const quizData = await getSessionQuiz(latestSession._id);
@@ -319,6 +320,10 @@ const StudentDashboard = () => {
   };
 
   const handleFeedbackSubmit = async () => {
+    if (!activeSessionId) {
+      message.error('No session selected for feedback.');
+      return;
+    }
     try {
       await submitFeedback({
         sessionId: activeSessionId,
@@ -481,13 +486,13 @@ const StudentDashboard = () => {
           {selectedUnit && (
             <div>
               <p>
-                <strong>Code:</strong> {selectedUnit.code}
+                <strong>Code:</strong> {selectedUnit.code || 'N/A'}
               </p>
               <p>
-                <strong>Lecturer:</strong> {selectedUnit.lecturer}
+                <strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}
               </p>
               <p>
-                <strong>Description:</strong> {selectedUnit.description}
+                <strong>Description:</strong> {selectedUnit.description || 'N/A'}
               </p>
             </div>
           )}
@@ -508,7 +513,7 @@ const StudentDashboard = () => {
         onOk={handleFeedbackSubmit}
         title="Session Feedback"
       >
-        <p>How was today&apos;s class?</p>
+        <p>How was today's class?</p>
         <Rate
           allowHalf
           value={feedbackData.rating}
