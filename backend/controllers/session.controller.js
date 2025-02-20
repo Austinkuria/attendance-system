@@ -58,18 +58,32 @@ exports.createSession = async (req, res) => {
   }
 };
 
-// Schedule absentee marking after session ends
 exports.endSession = async (req, res) => {
   try {
-    const { sessionId, endTime } = req.body;
+    const { sessionId } = req.body;
 
-    // Set a job to mark absentees when session ends
-    schedule.scheduleJob(new Date(endTime), async () => {
-      await markAbsentees(sessionId);
-    });
+    if (!mongoose.isValidObjectId(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID format" });
+    }
 
-    res.status(200).json({ message: "Session ended. Absentees will be marked automatically." });
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+
+    if (session.ended) {
+      return res.status(400).json({ message: "Session already ended" });
+    }
+
+    session.ended = true;
+    await session.save();
+
+    // Optionally mark absentees immediately instead of scheduling
+    await markAbsentees(sessionId);
+
+    res.status(200).json({ message: "Session ended successfully", session });
   } catch (error) {
+    console.error("Error ending session:", error);
     res.status(500).json({ message: "Error ending session", error: error.message });
   }
 };
