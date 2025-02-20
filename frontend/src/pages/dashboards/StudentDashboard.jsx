@@ -76,7 +76,7 @@ const StudentDashboard = () => {
     }
   }, [navigate]);
 
-  // Fetch student profile (profile data is not rendered here)
+  // Fetch student profile
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -97,9 +97,7 @@ const StudentDashboard = () => {
     if (!token) return;
     getStudentUnits(token)
       .then((response) => {
-        // If response contains the full user object, extract enrolledUnits.
-        // Otherwise, assume response is an array of units.
-        const unitsData = response.enrolledUnits || response;
+        const unitsData = Array.isArray(response) ? response : response.enrolledUnits || [];
         setUnits(unitsData);
       })
       .catch((error) => console.error('Error fetching units:', error));
@@ -112,14 +110,21 @@ const StudentDashboard = () => {
         getStudentAttendance(unit._id)
           .then((response) => {
             console.log('Attendance Data for Unit:', unit._id, response.data);
+            // Ensure response.data exists and is an array
+            const attendance = response.data ? response.data : [];
             setAttendanceData((prevData) => [
               ...prevData,
-              { unitId: unit._id, data: response.data },
+              { unitId: unit._id, data: Array.isArray(attendance) ? attendance : [] },
             ]);
           })
-          .catch((error) =>
-            console.error('Error fetching attendance data:', error)
-          );
+          .catch((error) => {
+            console.error('Error fetching attendance data for unit', unit._id, error);
+            // Add empty data for this unit to prevent inconsistencies
+            setAttendanceData((prevData) => [
+              ...prevData,
+              { unitId: unit._id, data: [] },
+            ]);
+          });
       });
     }
   }, [units]);
@@ -128,12 +133,12 @@ const StudentDashboard = () => {
   const calculateAttendanceRate = useCallback(
     (unitId) => {
       const unitData = attendanceData.find((data) => data.unitId === unitId);
-      if (!unitData || unitData.data.length === 0) return 0;
+      if (!unitData || !unitData.data || unitData.data.length === 0) return 0;
       const attendedSessions = unitData.data.filter(
         (att) => att.status === 'Present'
       ).length;
       const totalSessions = unitData.data.length;
-      return ((attendedSessions / totalSessions) * 100).toFixed(2);
+      return totalSessions === 0 ? 0 : ((attendedSessions / totalSessions) * 100).toFixed(2);
     },
     [attendanceData]
   );
@@ -141,7 +146,7 @@ const StudentDashboard = () => {
   // Update attendance rates when data changes
   useEffect(() => {
     const rates = units.map((unit) => ({
-      label: unit.name,
+      label: unit.name || 'Unnamed Unit',
       value: calculateAttendanceRate(unit._id),
     }));
     setAttendanceRates(rates);
@@ -186,15 +191,15 @@ const StudentDashboard = () => {
           rate.value >= 75
             ? 'rgba(0, 255, 0, 0.5)'
             : rate.value >= 50
-              ? 'rgba(255, 255, 0, 0.5)'
-              : 'rgba(255, 0, 0, 0.5)'
+            ? 'rgba(255, 255, 0, 0.5)'
+            : 'rgba(255, 0, 0, 0.5)'
         ),
         borderColor: attendanceRates.map((rate) =>
           rate.value >= 75
             ? 'rgba(0, 255, 0, 1)'
             : rate.value >= 50
-              ? 'rgba(255, 255, 0, 1)'
-              : 'rgba(255, 0, 0, 1)'
+            ? 'rgba(255, 255, 0, 1)'
+            : 'rgba(255, 0, 0, 1)'
         ),
         borderWidth: 1,
         hoverBackgroundColor: 'rgba(75, 192, 192, 0.7)',
@@ -211,9 +216,9 @@ const StudentDashboard = () => {
   const renderCompactCalendar = () => {
     const events = attendanceData.flatMap((unitData) =>
       unitData.data.map((attendance) => ({
-        title: `${unitData.unitId} - ${attendance.status}`,
-        date: new Date(attendance.date).toLocaleDateString(),
-        status: attendance.status,
+        title: `${unitData.unitId} - ${attendance.status || 'Unknown'}`,
+        date: attendance.date ? new Date(attendance.date).toLocaleDateString() : 'No Date',
+        status: attendance.status || 'Unknown',
       }))
     );
     return (
@@ -225,8 +230,8 @@ const StudentDashboard = () => {
           <List
             itemLayout="horizontal"
             dataSource={events}
-            renderItem={(item, index) => (
-              <List.Item key={index}>
+            renderItem={(item) => (
+              <List.Item key={item.title + item.date}>
                 <List.Item.Meta
                   title={item.title}
                   description={`${item.date} (${item.status})`}
@@ -284,18 +289,13 @@ const StudentDashboard = () => {
     </Menu>
   );
 
-  // --- Functions to handle feedback and quiz modals ---
-
-  // For testing, open the feedback modal regardless of attendance data.
-  // The parameter "unitId" is now logged to ensure it is used.
+  // Functions to handle feedback and quiz modals
   const openFeedbackModal = (unitId) => {
     console.log('Opening feedback modal for unit:', unitId);
-    // For testing purposes, set a dummy session id.
-    setActiveSessionId('test-session-id');
+    setActiveSessionId(unitId); // Use unitId or fetch latest session ID
     setFeedbackModalVisible(true);
   };
 
-  // Opens the Quiz Modal for a given unit.
   const openQuizModal = async (unitId) => {
     const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
     if (unitAttendance && unitAttendance.data.length > 0) {
@@ -303,13 +303,14 @@ const StudentDashboard = () => {
       setActiveSessionId(latestSession._id);
       try {
         const quizData = await getSessionQuiz(latestSession._id);
-        if (quizData) {
+        if (quizData && quizData.questions) {
           setQuiz(quizData);
           setQuizModalVisible(true);
         } else {
           message.info('No quiz available for this session.');
         }
-      } catch {
+      } catch (error) {
+        console.error('Error fetching quiz:', error);
         message.error('Error fetching quiz.');
       }
     } else {
@@ -317,7 +318,6 @@ const StudentDashboard = () => {
     }
   };
 
-  // Submit feedback using the activeSessionId
   const handleFeedbackSubmit = async () => {
     try {
       await submitFeedback({
@@ -327,20 +327,22 @@ const StudentDashboard = () => {
       });
       message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
-      // Reset feedback form if desired
       setFeedbackData({ rating: 3, text: '' });
-    } catch {
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
       message.error('Error submitting feedback.');
     }
   };
 
-  // Handle quiz answer change for a question
   const handleQuizAnswerChange = (questionIndex, value) => {
     setQuizAnswers((prev) => ({ ...prev, [questionIndex]: value }));
   };
 
-  // Submit quiz answers
   const handleQuizSubmit = async () => {
+    if (!quiz || !quiz._id) {
+      message.error('No quiz data available.');
+      return;
+    }
     try {
       await submitQuizAnswers({
         quizId: quiz._id,
@@ -350,7 +352,8 @@ const StudentDashboard = () => {
       setQuizModalVisible(false);
       setQuizAnswers({});
       setQuiz(null);
-    } catch {
+    } catch (error) {
+      console.error('Error submitting quiz:', error);
       message.error('Error submitting quiz.');
     }
   };
@@ -358,7 +361,6 @@ const StudentDashboard = () => {
   return (
     <Layout style={{ padding: '24px' }}>
       <Content>
-        {/* Header Section */}
         <Row
           justify="center"
           align="middle"
@@ -371,7 +373,6 @@ const StudentDashboard = () => {
             </Dropdown>
           </div>
         </Row>
-        {/* Low Attendance Warning */}
         {lowAttendanceUnits.length > 0 && (
           <Alert
             message={
@@ -390,98 +391,69 @@ const StudentDashboard = () => {
             style={{ marginBottom: 24 }}
           />
         )}
-        {/* Units Section */}
         <Row gutter={[16, 16]}>
-          {units.length > 0 ? (
-            units.map((unit) => (
-              <Col xs={24} sm={12} md={8} key={unit?._id || Math.random()}>
-                <Card
-                  title={unit?.name || 'Untitled Unit'}
-                  extra={<span>{unit?.code || 'N/A'}</span>}
-                  hoverable
-                  onClick={() => setSelectedUnit(unit)}
-                >
-                  <div style={{ marginBottom: 16 }}>
+          {units.map((unit) => (
+            <Col xs={24} sm={12} md={8} key={unit._id}>
+              <Card
+                title={unit.name || 'Untitled Unit'}
+                extra={<span>{unit.code || 'N/A'}</span>}
+                hoverable
+                onClick={() => setSelectedUnit(unit)}
+              >
+                <div style={{ marginBottom: 16 }}>
+                  <div
+                    style={{
+                      background: '#f0f0f0',
+                      borderRadius: 4,
+                      overflow: 'hidden',
+                    }}
+                  >
                     <div
                       style={{
-                        background: '#f0f0f0',
-                        borderRadius: 4,
-                        overflow: 'hidden',
+                        width: `${calculateAttendanceRate(unit._id)}%`,
+                        background: '#1890ff',
+                        padding: '4px 0',
+                        color: '#fff',
+                        textAlign: 'center',
                       }}
                     >
-                      {unit?._id ? (
-                        <div
-                          style={{
-                            width: `${calculateAttendanceRate(unit._id)}%`,
-                            background: '#1890ff',
-                            padding: '4px 0',
-                            color: '#18ff',
-                            textAlign: 'center',
-                          }}
-                        >
-                          {calculateAttendanceRate(unit._id)}%
-                        </div>
-                      ) : (
-                        <div style={{ textAlign: 'center', padding: '4px 0' }}>
-                          No attendance data
-                        </div>
-                      )}
+                      {calculateAttendanceRate(unit._id)}%
                     </div>
                   </div>
-                  <Row justify="space-between">
-                    <Button
-                      type="default"
-                      icon={<EyeOutlined />}
-                      onClick={() =>
-                        message.info(
-                          `Attendance Rate: ${calculateAttendanceRate(unit._id)}%`
-                        )
-                      }
-                    >
-                      View Rate
-                    </Button>
-                    <Button
-                      type="primary"
-                      icon={<QrcodeOutlined />}
-                      onClick={() => navigate(`/qr-scanner/${unit._id}`)}
-                    >
-                      Mark Attendance
-                    </Button>
-                  </Row>
-                  {/*
-                    For now, the conditional rendering based on attendance data is commented out.
-                    Uncomment the block below to conditionally render these buttons only when attendance data exists.
-                    
-                    {attendanceData.find((d) => d.unitId === unit._id)?.data.length > 0 && (
-                      <Row justify="space-around" style={{ marginTop: 16 }}>
-                        <Button onClick={() => openFeedbackModal(unit._id)}>
-                          Submit Feedback
-                        </Button>
-                        <Button onClick={() => openQuizModal(unit._id)}>
-                          Take Quiz
-                        </Button>
-                      </Row>
-                    )}
-                  */}
-                  {/* For now, always show the buttons */}
-                  <Row justify="space-around" style={{ marginTop: 16 }}>
-                    <Button onClick={() => openFeedbackModal(unit._id)}>
-                      Submit Feedback
-                    </Button>
-                    <Button onClick={() => openQuizModal(unit._id)}>
-                      Take Quiz
-                    </Button>
-                  </Row>
-                </Card>
-              </Col>
-            ))
-          ) : (
-            <p>No units found for your course, year, and semester.</p>
-          )}
+                </div>
+                <Row justify="space-between">
+                  <Button
+                    type="default"
+                    icon={<EyeOutlined />}
+                    onClick={() =>
+                      message.info(
+                        `Attendance Rate: ${calculateAttendanceRate(unit._id)}%`
+                      )
+                    }
+                  >
+                    View Rate
+                  </Button>
+                  <Button
+                    type="primary"
+                    icon={<QrcodeOutlined />}
+                    onClick={() => navigate(`/qr-scanner/${unit._id}`)}
+                  >
+                    Mark Attendance
+                  </Button>
+                </Row>
+                <Row justify="space-around" style={{ marginTop: 16 }}>
+                  <Button onClick={() => openFeedbackModal(unit._id)}>
+                    Submit Feedback
+                  </Button>
+                  <Button onClick={() => openQuizModal(unit._id)}>
+                    Take Quiz
+                  </Button>
+                </Row>
+              </Card>
+            </Col>
+          ))}
         </Row>
-        {/* Compact Calendar / Events List */}
         {renderCompactCalendar()}
-        {/* Overall Attendance Rates Chart */}
         <div style={{ marginTop: 48 }}>
           <h3 style={{ textAlign: 'center' }}>Overall Attendance Rates</h3>
           <div style={{ height: 400 }}>
@@ -491,13 +463,11 @@ const StudentDashboard = () => {
             />
           </div>
         </div>
-        {/* Export Attendance Data */}
         <div style={{ marginTop: 24, textAlign: 'center' }}>
           <Button type="default" onClick={exportAttendanceData}>
             Export Attendance Data
           </Button>
         </div>
-        {/* Unit Details Modal */}
         <Modal
           open={!!selectedUnit}
           title={selectedUnit?.name}
@@ -523,7 +493,6 @@ const StudentDashboard = () => {
           )}
         </Modal>
       </Content>
-      {/* Back to Top Button */}
       {showBackToTop && (
         <Button
           type="primary"
@@ -533,7 +502,6 @@ const StudentDashboard = () => {
           onClick={() => window.scrollTo(0, 0)}
         />
       )}
-      {/* Feedback Modal */}
       <Modal
         open={feedbackModalVisible}
         onCancel={() => setFeedbackModalVisible(false)}
@@ -558,7 +526,6 @@ const StudentDashboard = () => {
           style={{ marginTop: 16 }}
         />
       </Modal>
-      {/* Quiz Modal */}
       <Modal
         open={quizModalVisible}
         onCancel={() => setQuizModalVisible(false)}
