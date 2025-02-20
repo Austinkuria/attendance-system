@@ -1,11 +1,10 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
-import { Chart } from "react-chartjs-2"; // Use Chart instead of Line for mixed charts
+import { Chart } from "react-chartjs-2"; // Use Chart for mixed chart types
 import { Select, Card, Spin, Typography, Grid, Button } from "antd";
 import { getAttendanceTrends, getLecturerUnits } from "../services/api";
 
-// Register ChartJS components, including BarElement for bar charts
+// Register ChartJS components
 ChartJS.register(
   CategoryScale,
   LinearScale,
@@ -75,7 +74,9 @@ const Analytics = () => {
     try {
       setLoading(prev => ({ ...prev, trends: true }));
       setError(null);
+      console.log('Fetching trends for unit:', selectedUnit); // Debug log
       const trendsRes = await getAttendanceTrends(selectedUnit);
+      console.log('Trends received:', trendsRes); // Debug log
       if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.present) || 
           !Array.isArray(trendsRes.absent) || !Array.isArray(trendsRes.rates)) {
         throw new Error("Invalid trends data format received from server");
@@ -100,6 +101,7 @@ const Analytics = () => {
     fetchTrends();
   }, [fetchTrends]);
 
+  // Chart configuration
   const chartData = {
     labels: trends.labels.length ? trends.labels : ['No Data'],
     datasets: [
@@ -107,7 +109,7 @@ const Analytics = () => {
         type: 'bar',
         label: 'Present Students',
         data: trends.present.length ? trends.present : [0],
-        backgroundColor: 'rgba(75, 192, 192, 0.6)',
+        backgroundColor: 'rgba(75, 192, 192, 0.6)', // Teal
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
         yAxisID: 'y-count'
@@ -116,7 +118,7 @@ const Analytics = () => {
         type: 'bar',
         label: 'Absent Students',
         data: trends.absent.length ? trends.absent : [0],
-        backgroundColor: 'rgba(255, 99, 132, 0.6)',
+        backgroundColor: 'rgba(255, 99, 132, 0.6)', // Red
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
         yAxisID: 'y-count'
@@ -125,7 +127,7 @@ const Analytics = () => {
         type: 'line',
         label: 'Attendance Rate (%)',
         data: trends.rates.length ? trends.rates : [0],
-        borderColor: '#1890ff',
+        borderColor: '#1890ff', // Blue
         backgroundColor: 'rgba(24, 144, 255, 0.2)',
         fill: false,
         tension: 0.4,
@@ -144,7 +146,7 @@ const Analytics = () => {
       },
       title: {
         display: true,
-        text: 'Attendance Analytics (Count and Rate)',
+        text: 'Attendance Analytics: Counts and Rate',
       },
       tooltip: {
         mode: 'index',
@@ -169,7 +171,10 @@ const Analytics = () => {
           text: 'Number of Students'
         },
         beginAtZero: true,
-        suggestedMax: Math.max(...trends.present.concat(trends.absent)) + 5 || 10
+        suggestedMax: Math.max(...trends.present.concat(trends.absent)) + 5 || 10,
+        grid: {
+          drawOnChartArea: false // Avoid clutter
+        }
       },
       'y-rate': {
         type: 'linear',
@@ -182,9 +187,6 @@ const Analytics = () => {
         },
         ticks: {
           callback: value => `${value}%`
-        },
-        grid: {
-          drawOnChartArea: false // Avoid overlapping grid lines
         }
       },
       x: {
