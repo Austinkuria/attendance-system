@@ -20,7 +20,6 @@ import Sidebar from "../../components/Sidebar";
 import AttendanceManagement from "../../components/AttendanceManagement";
 import Analytics from "../Analytics";
 import BackToTop from "../../components/BackToTop";
-import ErrorBoundary from "../../components/ErrorBoundary";
 // import QRCodeGenerator from "../components/QRCodeGenerator";  // Ensure correct filename
 
 const { Header, Content } = Layout;
@@ -133,9 +132,7 @@ const LecturerDashboard = () => {
 
             {/* Attendance Management Section */}
             <section style={{ marginBottom: 48 }}>
-            <ErrorBoundary>
-        <AttendanceManagement />
-      </ErrorBoundary>
+              <AttendanceManagement />
             </section>
 
             {/* Analytics Section */}
