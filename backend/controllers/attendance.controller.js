@@ -241,12 +241,3 @@ exports.getAttendanceTrends = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
   }
 };
-
-module.exports = {
-  markAbsentees,
-  getStudentAttendance,
-  getSessionAttendance,
-  updateAttendanceStatus,
-  getAttendanceTrends,
-  handleSessionEnd
-};
