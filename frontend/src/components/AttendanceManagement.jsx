@@ -8,7 +8,7 @@ import {
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import {
-  getSessionAttendance,downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession
+  getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession
 } from '../services/api';
 
 const { Option } = Select;
@@ -23,7 +23,6 @@ const AttendanceManagement = () => {
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [qrData, setQrData] = useState('');
   const [currentSession, setCurrentSession] = useState(null);
-  const [anomalies] = useState([]);
   const [departments, setDepartments] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
@@ -77,7 +76,7 @@ const AttendanceManagement = () => {
           startSession: validStartTime,
           endSession: validEndTime
         });
-        setQrData(data.qrToken);
+        setQrData(data.qrCode);
       }
     } catch (error) {
       console.error("Error checking current session:", error);
@@ -173,6 +172,7 @@ const AttendanceManagement = () => {
             startSession: validStartTime,
             endSession: validEndTime
           });
+          setQrData(response.data.qrCode);
         } else {
           message.warning("No active session found.");
           setCurrentSession(null);
@@ -189,7 +189,7 @@ const AttendanceManagement = () => {
   }, [selectedUnit, units]);
 
   // Fetch attendance data for the selected unit and session
-  const handleViewAttendance = async () => {
+  const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession) return;
     try {
       setLoading(prevState => ({ ...prevState, attendance: true, stats: true }));
@@ -202,14 +202,14 @@ const AttendanceManagement = () => {
     } finally {
       setLoading(prevState => ({ ...prevState, attendance: false, stats: false }));
     }
-  };
+  }, [selectedUnit, currentSession]);
 
   // Trigger attendance fetch when session changes
   useEffect(() => {
     if (currentSession && selectedUnit) {
       handleViewAttendance();
     }
-  }, [currentSession, selectedUnit]);
+  }, [currentSession, selectedUnit, handleViewAttendance]);
 
   // Unit filter options
   const filterOptions = useMemo(() => {
@@ -285,7 +285,7 @@ const AttendanceManagement = () => {
         startSession: validStartTime, 
         endSession: validEndTime 
       });
-      setQrData(data.qrToken);
+      setQrData(data.qrCode);
     } catch (error) {
       console.error("Error creating session:", error);
       message.error(error.message || 'Failed to create session');
@@ -297,21 +297,22 @@ const AttendanceManagement = () => {
 
   // Generate QR code
   const handleGenerateQR = async () => {
-    if (!selectedUnit || !currentSession) {
-      message.error('Please select a unit and ensure a session is active');
+    if (!selectedUnit || !currentSession || currentSession.ended) {
+      message.error('Please select a unit and ensure an active session exists');
       return;
     }
     try {
       setLoading(prevState => ({ ...prevState, qr: true }));
       const token = localStorage.getItem('token');
       const { data } = await axios.get(
-        "https://attendance-system-w70n.onrender.com/api/sessions/current",
+        `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!data || !data.qrToken) {
-        throw new Error("QR token is missing or invalid!");
+      console.log("QR Code API response:", data);
+      if (!data || !data.qrCode) {
+        throw new Error("QR code is missing or invalid!");
       }
-      setQrData(data.qrToken);
+      setQrData(data.qrCode);
       setIsQRModalOpen(true);
     } catch (error) {
       console.error("Error generating QR code:", error);
@@ -587,7 +588,7 @@ const AttendanceManagement = () => {
               type="primary"
               icon={<QrcodeOutlined />}
               onClick={handleGenerateQR}
-              disabled={!selectedUnit || !currentSession}
+              disabled={!selectedUnit || !currentSession || currentSession.ended}
               loading={loading.qr}
             >
               {screens.md ? 'Generate QR Code' : 'QR Code'}
@@ -779,24 +780,17 @@ const AttendanceManagement = () => {
         }}
         footer={[
           <Button
-            key="copy"
-            type="primary"
+            key="close"
             onClick={() => {
-              navigator.clipboard.writeText(qrData);
-              message.success('QR data copied to clipboard!');
+              Modal.confirm({
+                title: 'Are you sure you want to close?',
+                content: 'The QR code will no longer be accessible.',
+                okText: 'Yes',
+                cancelText: 'No',
+                onOk() { setIsQRModalOpen(false); }
+              });
             }}
           >
-            Copy QR Data
-          </Button>,
-          <Button key="close" onClick={() => {
-            Modal.confirm({
-              title: 'Are you sure you want to close?',
-              content: 'The QR code will no longer be accessible.',
-              okText: 'Yes',
-              cancelText: 'No',
-              onOk() { setIsQRModalOpen(false); }
-            });
-          }}>
             Close
           </Button>
         ]}
