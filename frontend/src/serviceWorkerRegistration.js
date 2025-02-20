@@ -8,7 +8,7 @@ export function register(config) {
 
 
     window.addEventListener('load', () => {
-      const swUrl = `${import.meta.env.BASE_URL}/service-worker.js`;
+      const swUrl = `${import.meta.env.BASE_URL}/sw.js`;
 
 
       if (isLocalhost) {
