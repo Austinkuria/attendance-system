@@ -73,3 +73,26 @@ exports.endSession = async (req, res) => {
     res.status(500).json({ message: "Error ending session", error: error.message });
   }
 };
+
+exports.getLastSession = async (req, res) => {
+  try {
+    const { unitId } = req.params;
+    if (!unitId) {
+      return res.status(400).json({ message: 'Unit ID is required' });
+    }
+
+    const lastSession = await Session.findOne({
+      unit: unitId,
+      ended: true
+    }).sort({ endTime: -1 }).populate('unit lecturer'); // Most recent ended session
+
+    if (!lastSession) {
+      return res.status(404).json({ message: 'No ended sessions found for this unit' });
+    }
+
+    res.json(lastSession);
+  } catch (error) {
+    console.error("Error fetching last session:", error);
+    res.status(500).json({ message: 'Error fetching last session', error: error.message });
+  }
+};
