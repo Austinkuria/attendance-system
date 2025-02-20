@@ -153,9 +153,10 @@ const registerUser = async (req, res) => {
       }
 
       const course = await Course.findById(courseId);
-      if (!course || course.department.toString() !== departmentId) {
-        return res.status(400).json({ message: "Course not found in the specified department" });
+      if (!course) {
+        return res.status(400).json({ message: "Course not found" });
       }
+
     }
 
     // Hash password
@@ -254,11 +255,13 @@ const updateStudent = async (req, res) => {
       return res.status(400).json({ message: 'Invalid department or course ID format' });
     }
 
-    // Verify course belongs to department
+    // Verify course exists
     const courseDoc = await Course.findById(course);
-    if (!courseDoc || courseDoc.department.toString() !== department.toString()) {
-      return res.status(400).json({ message: 'Course not found in the specified department' });
+    if (!courseDoc) {
+      return res.status(400).json({ message: 'Course not found' });
     }
+
+
 
 
     student.firstName = firstName;
