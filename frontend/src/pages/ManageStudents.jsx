@@ -132,8 +132,10 @@ const ManageStudents = () => {
             regNo: student.regNo || "N/A",
             year: student.year || "N/A",
             semester: student.semester?.toString() || "N/A",
-            course: student.course?.name || student.course || "N/A",
-            department: student.department?.name || student.department || "N/A",
+            courseId: student.course?._id || student.course || "N/A", // Store course ID
+            courseName: student.course?.name || student.course || "N/A", // Store course name for display
+            departmentId: student.department?._id || student.department || "N/A", // Store department ID
+            departmentName: student.department?.name || student.department || "N/A", // Store department name for display
           }));
           setStudents(formattedStudents);
           setGlobalError("");
@@ -225,12 +227,17 @@ const ManageStudents = () => {
       if (!token) return navigate("/auth/login");
 
       const formattedStudent = {
-        ...selectedStudent,
-        course: selectedStudent.course,
-        department: selectedStudent.department,
+        firstName: selectedStudent.firstName,
+        lastName: selectedStudent.lastName,
+        email: selectedStudent.email,
+        regNo: selectedStudent.regNo,
+        course: selectedStudent.courseId, // Use course ID
+        department: selectedStudent.departmentId, // Use department ID
         year: Number(selectedStudent.year) || selectedStudent.year,
         semester: Number(selectedStudent.semester) || selectedStudent.semester,
       };
+
+      console.log("Payload sent to API:", formattedStudent); // Debugging
 
       const response = await api.put(
         `/students/${selectedStudent._id}`,
@@ -259,8 +266,10 @@ const ManageStudents = () => {
       regNo: s.regNo || "N/A",
       year: s.year || "N/A",
       semester: s.semester?.toString() || "N/A",
-      course: s.course?.name || s.course || "N/A",
-      department: s.department?.name || s.department || "N/A",
+      courseId: s.course?._id || s.course || "N/A", // Store course ID
+      courseName: s.course?.name || s.course || "N/A", // Store name for display
+      departmentId: s.department?._id || s.department || "N/A", // Store department ID
+      departmentName: s.department?.name || s.department || "N/A", // Store name for display
     }));
   };
 
@@ -351,7 +360,7 @@ const ManageStudents = () => {
         fullName.includes(searchLower) &&
         student.regNo.toLowerCase().includes(filter.regNo.toLowerCase()) &&
         (filter.year === "" || studentYear === filter.year) &&
-        (filter.course === "" || student.course === filter.course) &&
+        (filter.course === "" || student.courseName === filter.course) &&
         (filter.semester === "" || studentSemester === filter.semester)
       );
     });
@@ -361,19 +370,23 @@ const ManageStudents = () => {
     { title: (<><IdcardOutlined style={{ marginRight: 4 }} />Reg No</>), dataIndex: "regNo", key: "regNo", render: (text) => <span style={{ color: "#1890ff", fontWeight: 500 }}>{text}</span> },
     { title: "Student Name", key: "name", render: (_, record) => `${record.firstName} ${record.lastName}` },
     { title: (<><CalendarOutlined style={{ marginRight: 4 }} />Year</>), dataIndex: "year", key: "year", render: (year) => <span className="ant-tag ant-tag-blue">{year}</span> },
-    { title: (<><BookOutlined style={{ marginRight: 4 }} />Course</>), dataIndex: "course", key: "course", render: (course) => (<div style={{ display: "flex", alignItems: "center" }}><BookOutlined style={{ color: "#999", marginRight: 4 }} />{course}</div>) },
+    { title: (<><BookOutlined style={{ marginRight: 4 }} />Course</>), dataIndex: "courseName", key: "course", render: (course) => (<div style={{ display: "flex", alignItems: "center" }}><BookOutlined style={{ color: "#999", marginRight: 4 }} />{course}</div>) },
     { title: (<><FilterOutlined style={{ marginRight: 4 }} />Semester</>), dataIndex: "semester", key: "semester", render: (semester) => <span className="ant-tag">{semester}</span> },
     { title: "Actions", key: "actions", render: (_, record) => (
       <div style={{ display: "flex", gap: 8 }}>
         <Button type="primary" icon={<EditOutlined />} size="small" onClick={() => {
-          setSelectedStudent(record);
+          setSelectedStudent({
+            ...record,
+            courseId: record.courseId, // Ensure courseId is preserved
+            departmentId: record.departmentId, // Ensure departmentId is preserved
+          });
           editForm.setFieldsValue({
             firstName: record.firstName,
             lastName: record.lastName,
             email: record.email,
             regNo: record.regNo,
-            course: record.course,
-            department: record.department, // Pre-fill department
+            course: record.courseId, // Pre-fill with ID
+            department: record.departmentId, // Pre-fill with ID
             year: record.year,
             semester: record.semester
           });
@@ -575,14 +588,14 @@ const ManageStudents = () => {
             <Input onChange={(e) => setSelectedStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
           </Form.Item>
           <Form.Item name="course" label="Course">
-            <Select placeholder="Select Course" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, course: value }))}>
+            <Select placeholder="Select Course" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, courseId: value }))}>
               {availableCourses.map((course) => (
                 <Option key={course.id} value={course.id}>{course.name}</Option>
               ))}
             </Select>
           </Form.Item>
           <Form.Item name="department" label="Department">
-            <Select placeholder="Select Department" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, department: value }))}>
+            <Select placeholder="Select Department" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, departmentId: value }))}>
               {departments.map((dept) => (
                 <Option key={dept._id} value={dept._id}>{dept.name}</Option>
               ))}
