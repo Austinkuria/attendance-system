@@ -22,7 +22,11 @@ const AttendanceManagement = () => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
   const [qrData, setQrData] = useState('');
-  const [currentSession, setCurrentSession] = useState(null);
+  const [currentSession, setCurrentSession] = useState(() => {
+    // Initialize from localStorage to persist across refreshes
+    const savedSession = localStorage.getItem('currentSession');
+    return savedSession ? JSON.parse(savedSession) : null;
+  });
   const [departments, setDepartments] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
@@ -46,6 +50,15 @@ const AttendanceManagement = () => {
     semester: null
   });
 
+  // Persist currentSession to localStorage whenever it changes
+  useEffect(() => {
+    if (currentSession) {
+      localStorage.setItem('currentSession', JSON.stringify(currentSession));
+    } else {
+      localStorage.removeItem('currentSession');
+    }
+  }, [currentSession]);
+
   // Fetch departments
   useEffect(() => {
     const fetchDepartments = async () => {
@@ -65,7 +78,7 @@ const AttendanceManagement = () => {
       setLoading(prevState => ({ ...prevState, session: true }));
       setLoadingSessionData(true);
       const { data } = await detectCurrentSession(lecturerId);
-      if (data) {
+      if (data && !data.ended) {
         const validStartTime = data.startTime ? new Date(data.startTime) : null;
         const validEndTime = data.endTime ? new Date(data.endTime) : null;
         if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
@@ -77,10 +90,13 @@ const AttendanceManagement = () => {
           endSession: validEndTime
         });
         setQrData(data.qrCode);
+      } else {
+        setCurrentSession(null);
       }
     } catch (error) {
       console.error("Error checking current session:", error);
       message.error(error.message || 'Failed to detect current session');
+      setCurrentSession(null);
     } finally {
       setLoading(prevState => ({ ...prevState, session: false }));
       setLoadingSessionData(false);
@@ -90,18 +106,18 @@ const AttendanceManagement = () => {
   // Check session on component mount
   useEffect(() => {
     checkCurrentSession();
-  }, [lecturerId, checkCurrentSession]);
+  }, [checkCurrentSession]);
 
-  // Continuously update session time
+  // Continuously update session time only if not ended
   useEffect(() => {
     let intervalId;
-    if (currentSession && currentSession.startSession && currentSession.endSession) {
+    if (currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended) {
       intervalId = setInterval(() => {
-        setCurrentSession(prevState => ({
-          ...prevState,
-          startSession: new Date(prevState.startSession),
-          endSession: new Date(prevState.endSession)
-        }));
+        const now = new Date();
+        if (now > new Date(currentSession.endSession)) {
+          setCurrentSession(prev => ({ ...prev, ended: true }));
+          clearInterval(intervalId);
+        }
       }, 60000); // Check every minute
       return () => clearInterval(intervalId);
     }
@@ -115,7 +131,7 @@ const AttendanceManagement = () => {
           message.error("User session expired");
           return;
         }
-        setLoading(prevState => ({ ...prevState, units: true }));
+        setLoading(prev => ({ ...prev, units: true }));
         const unitsData = await getLecturerUnits(lecturerId);
         if (unitsData?.length > 0) {
           setUnits(unitsData);
@@ -126,7 +142,7 @@ const AttendanceManagement = () => {
       } catch {
         message.error("Failed to load unit data");
       } finally {
-        setLoading(prevState => ({ ...prevState, units: false }));
+        setLoading(prev => ({ ...prev, units: false }));
       }
     };
     if (lecturerId) fetchData();
@@ -134,14 +150,15 @@ const AttendanceManagement = () => {
 
   // Fetch current session
   useEffect(() => {
+    if (!selectedUnit) {
+      console.log("Invalid or no selected unit:", selectedUnit);
+      setLoadingSessionData(false);
+      setCurrentSession(null);
+      return;
+    }
+
     setLoadingSessionData(true);
     const fetchCurrentSession = async () => {
-      if (!selectedUnit || typeof selectedUnit !== 'string') {
-        console.log("Invalid or no selected unit:", selectedUnit);
-        setLoadingSessionData(false);
-        setCurrentSession(null);
-        return;
-      }
       const token = localStorage.getItem('token');
       if (!token) {
         console.error("No authentication token found");
@@ -156,23 +173,23 @@ const AttendanceManagement = () => {
           validateStatus: status => status >= 200 && status < 300
         });
         console.log("Full API response for current session:", response.data);
-        if (response.data && response.data._id) {
+        if (response.data && response.data._id && !response.data.ended) {
           const validStartTime = response.data.startTime ? new Date(response.data.startTime) : null;
           const validEndTime = response.data.endTime ? new Date(response.data.endTime) : null;
           if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
             message.warning("Invalid session times received.");
             setCurrentSession(null);
-            return;
+          } else {
+            const unitFromResponse = response.data.unit || {};
+            const unitName = unitFromResponse.name || (units.find(u => u._id === response.data.unit)?.name) || "Unknown Unit";
+            setCurrentSession({
+              ...response.data,
+              unit: { name: unitName },
+              startSession: validStartTime,
+              endSession: validEndTime
+            });
+            setQrData(response.data.qrCode);
           }
-          const unitFromResponse = response.data.unit || {};
-          const unitName = unitFromResponse.name || (units.find(u => u._id === response.data.unit)?.name) || "Unknown Unit";
-          setCurrentSession({
-            ...response.data,
-            unit: { name: unitName },
-            startSession: validStartTime,
-            endSession: validEndTime
-          });
-          setQrData(response.data.qrCode);
         } else {
           message.warning("No active session found.");
           setCurrentSession(null);
@@ -190,9 +207,9 @@ const AttendanceManagement = () => {
 
   // Fetch attendance data for the selected unit and session
   const handleViewAttendance = useCallback(async () => {
-    if (!selectedUnit || !currentSession) return;
+    if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
-      setLoading(prevState => ({ ...prevState, attendance: true, stats: true }));
+      setLoading(prev => ({ ...prev, attendance: true, stats: true }));
       const data = await getSessionAttendance(currentSession._id);
       setAttendance(data);
     } catch (error) {
@@ -200,13 +217,13 @@ const AttendanceManagement = () => {
       message.error(error.message || 'Failed to fetch attendance data');
       setAttendance([]);
     } finally {
-      setLoading(prevState => ({ ...prevState, attendance: false, stats: false }));
+      setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
   }, [selectedUnit, currentSession]);
 
   // Trigger attendance fetch when session changes
   useEffect(() => {
-    if (currentSession && selectedUnit) {
+    if (currentSession && selectedUnit && !currentSession.ended) {
       handleViewAttendance();
     }
   }, [currentSession, selectedUnit, handleViewAttendance]);
@@ -241,7 +258,6 @@ const AttendanceManagement = () => {
     });
   }, [units, unitFilters]);
 
-  // Processed and filtered attendance
   const processedAttendance = useMemo(() => {
     if (!selectedUnit || !Array.isArray(attendance)) return [];
     return attendance.filter(a => a.unit === selectedUnit);
@@ -257,12 +273,10 @@ const AttendanceManagement = () => {
     });
   }, [processedAttendance, filters]);
 
-  // Handle department filter change
   const handleDepartmentChange = (value) => {
     setUnitFilters(prevState => ({ ...prevState, department: value }));
   };
 
-  // Create session
   const handleCreateSession = async () => {
     if (!selectedUnit) {
       message.error('Please select a unit first');
@@ -283,7 +297,8 @@ const AttendanceManagement = () => {
       setCurrentSession({ 
         ...data, 
         startSession: validStartTime, 
-        endSession: validEndTime 
+        endSession: validEndTime,
+        ended: false // Explicitly set ended to false for new session
       });
       setQrData(data.qrCode);
     } catch (error) {
@@ -295,7 +310,6 @@ const AttendanceManagement = () => {
     }
   };
 
-  // Generate QR code
   const handleGenerateQR = async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) {
       message.error('Please select a unit and ensure an active session exists');
@@ -309,8 +323,8 @@ const AttendanceManagement = () => {
         { headers: { Authorization: `Bearer ${token}` } }
       );
       console.log("QR Code API response:", data);
-      if (!data || !data.qrCode) {
-        throw new Error("QR code is missing or invalid!");
+      if (!data || !data.qrCode || data.ended) {
+        throw new Error("QR code is missing, invalid, or session has ended!");
       }
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
@@ -322,7 +336,6 @@ const AttendanceManagement = () => {
     }
   };
 
-  // End session
   const handleEndSession = async () => {
     if (!currentSession) return;
     try {
@@ -344,9 +357,10 @@ const AttendanceManagement = () => {
               }
             );
             message.success('Session ended successfully');
-            setCurrentSession(null);
+            setCurrentSession(prev => ({ ...prev, ended: true }));
             setQrData('');
             setAttendance([]);
+            localStorage.removeItem('currentSession'); // Clear persisted session
           } catch (error) {
             message.error(error.response?.data?.message || 'Failed to end session');
           } finally {
@@ -360,7 +374,6 @@ const AttendanceManagement = () => {
     }
   };
 
-  // Toggle status
   const handleToggleStatus = async (recordId) => {
     const record = processedAttendance.find(r => r._id === recordId);
     if (!record) return;
@@ -384,7 +397,6 @@ const AttendanceManagement = () => {
     }
   };
 
-  // Table columns
   const columns = [
     {
       title: 'Reg Number',
@@ -435,6 +447,7 @@ const AttendanceManagement = () => {
           type="link"
           onClick={() => handleToggleStatus(record._id)}
           icon={<SyncOutlined />}
+          disabled={currentSession?.ended} // Disable if session is ended
         >
           Toggle Status
         </Button>
@@ -442,7 +455,6 @@ const AttendanceManagement = () => {
     }
   ];
 
-  // Summary cards
   const totalAssignedUnits = useMemo(() => units.length, [units]);
   const { attendanceRate, totalEnrolledStudents } = useMemo(() => {
     const presentCount = attendance.filter(a => a.status === 'present').length;
@@ -588,7 +600,7 @@ const AttendanceManagement = () => {
               type="primary"
               icon={<QrcodeOutlined />}
               onClick={handleGenerateQR}
-              disabled={!selectedUnit || !currentSession || currentSession.ended}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended}
               loading={loading.qr}
             >
               {screens.md ? 'Generate QR Code' : 'QR Code'}
@@ -597,7 +609,7 @@ const AttendanceManagement = () => {
               type="primary"
               icon={<CalendarOutlined />}
               onClick={handleCreateSession}
-              disabled={loading.session || currentSession}
+              disabled={loading.session || (currentSession && !currentSession.ended)}
             >
               {loading.session ? 'Creating...' : 'Create Attendance Session'}
             </Button>
@@ -675,21 +687,21 @@ const AttendanceManagement = () => {
               value={selectedUnit}
               loading={loading.units}
               optionLabelProp="label"
-              options={filteredUnits.map(unit => ({
-                label: (
+            >
+              {filteredUnits.map(unit => (
+                <Option key={unit._id} value={unit._id} label={unit.name}>
                   <Space>
                     <BookOutlined />
                     {unit.name}
                     <Tag color="blue">{unit.code}</Tag>
                   </Space>
-                ),
-                value: unit._id
-              }))}
-            />
+                </Option>
+              ))}
+            </Select>
             <Button
               onClick={handleViewAttendance}
               loading={loading.attendance}
-              disabled={!selectedUnit || !currentSession}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended}
               type="primary"
             >
               Refresh Attendance Data
@@ -698,7 +710,17 @@ const AttendanceManagement = () => {
 
           {summaryCards}
 
-          <Card title="Attendance Records Filter" size="small">
+          <Card 
+            title={
+              <Space>
+                Attendance Records Filter
+                {currentSession && !currentSession.ended && (
+                  <Tag color="green">Active Session</Tag>
+                )}
+              </Space>
+            }
+            size="small"
+          >
             <Space wrap style={{ width: '100%' }}>
               <Input
                 placeholder="Search by Reg Number"
@@ -812,7 +834,7 @@ const AttendanceManagement = () => {
                   boxShadow: "0 4px 12px rgba(0,0,0,0.1)"
                 }}
               />
-              {currentSession && (
+              {currentSession && !currentSession.ended && (
                 <SessionTimer end={currentSession.endSession} />
               )}
               <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>
