@@ -1,4 +1,3 @@
-// src/components/AttendanceChart.jsx
 import PropTypes from 'prop-types';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
@@ -9,15 +8,15 @@ const AttendanceChart = ({ data }) => {
   const totalPresent = data?.totalPresent || 0;
   const totalPossible = data?.totalPossible || 0;
   const overallRate = totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
-  const trends = data?.trends || [];
+  const weeklyTrends = data?.weeklyTrends || [];
 
   const chartData = {
-    labels: trends.length ? trends.map(t => t.date) : ['No Data'],
+    labels: weeklyTrends.length ? weeklyTrends.map(t => t.week) : ['No Data'],
     datasets: [
       {
         type: 'bar',
         label: 'Present',
-        data: trends.length ? trends.map(t => t.present) : [0],
+        data: weeklyTrends.length ? weeklyTrends.map(t => t.present) : [0],
         backgroundColor: 'rgba(75, 192, 192, 0.8)',
         borderColor: 'rgba(75, 192, 192, 1)',
         borderWidth: 1,
@@ -26,7 +25,7 @@ const AttendanceChart = ({ data }) => {
       {
         type: 'bar',
         label: 'Absent',
-        data: trends.length ? trends.map(t => t.absent) : [0],
+        data: weeklyTrends.length ? weeklyTrends.map(t => t.absent) : [0],
         backgroundColor: 'rgba(255, 99, 132, 0.8)',
         borderColor: 'rgba(255, 99, 132, 1)',
         borderWidth: 1,
@@ -35,7 +34,7 @@ const AttendanceChart = ({ data }) => {
       {
         type: 'line',
         label: 'Attendance Rate (%)',
-        data: trends.length ? trends.map(t => t.rate) : [0],
+        data: weeklyTrends.length ? weeklyTrends.map(t => t.rate) : [0],
         borderColor: '#1890ff',
         backgroundColor: 'rgba(24, 144, 255, 0.2)',
         fill: false,
@@ -74,8 +73,8 @@ const AttendanceChart = ({ data }) => {
           },
           footer: (tooltipItems) => {
             const index = tooltipItems[0].dataIndex;
-            const total = trends[index]?.present + trends[index]?.absent || 0;
-            return `Total Possible: ${total}`;
+            const week = weeklyTrends[index];
+            return `Sessions: ${week?.sessionCount || 0}, Total Possible: ${week?.present + week?.absent || 0}`;
           },
         },
       },
@@ -83,7 +82,7 @@ const AttendanceChart = ({ data }) => {
     scales: {
       x: {
         stacked: true,
-        title: { display: true, text: 'Session Date' },
+        title: { display: true, text: 'Week' },
         grid: { display: false },
       },
       'y-count': {
@@ -120,17 +119,18 @@ AttendanceChart.propTypes = {
   data: PropTypes.shape({
     totalPresent: PropTypes.number,
     totalPossible: PropTypes.number,
-    trends: PropTypes.arrayOf(PropTypes.shape({
-      date: PropTypes.string,
+    weeklyTrends: PropTypes.arrayOf(PropTypes.shape({
+      week: PropTypes.string,
       present: PropTypes.number,
       absent: PropTypes.number,
       rate: PropTypes.number,
+      sessionCount: PropTypes.number,
     })),
   }),
 };
 
 AttendanceChart.defaultProps = {
-  data: { totalPresent: 0, totalPossible: 0, trends: [] },
+  data: { totalPresent: 0, totalPossible: 0, weeklyTrends: [] },
 };
 
 export default AttendanceChart;

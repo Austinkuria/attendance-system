@@ -223,6 +223,64 @@ exports.getAttendanceTrends = async (req, res) => {
 //   }
 // };
 
+// exports.getCourseAttendanceRate = async (req, res) => {
+//   try {
+//     const { courseId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
+//       return res.status(400).json({ message: "Invalid course ID format" });
+//     }
+
+//     // Find units for the course
+//     const units = await Unit.find({ course: courseId }).populate('studentsEnrolled');
+//     if (!units.length) {
+//       return res.status(200).json({ totalPresent: 0, totalPossible: 0, trends: [] });
+//     }
+
+//     const unitIds = units.map(unit => unit._id);
+//     const totalEnrolled = units.reduce((sum, unit) => sum + (unit.studentsEnrolled?.length || 0), 0);
+
+//     // Find sessions for these units
+//     const sessions = await Session.find({ unit: { $in: unitIds } }).sort({ startTime: 1 });
+//     const sessionCount = sessions.length;
+//     if (!sessionCount) {
+//       return res.status(200).json({ totalPresent: 0, totalPossible: 0, trends: [] });
+//     }
+
+//     const totalPossible = totalEnrolled * sessionCount;
+//     const sessionIds = sessions.map(session => session._id);
+
+//     // Aggregate total attendance
+//     const totalStats = await Attendance.aggregate([
+//       { $match: { session: { $in: sessionIds } } },
+//       { $group: { _id: "$status", count: { $sum: 1 } } }
+//     ]);
+//     const totalPresent = totalStats.find(s => s._id === "Present")?.count || 0;
+
+//     // Aggregate per-session trends
+//     const trends = await Promise.all(sessions.map(async (session) => {
+//       const stats = await Attendance.aggregate([
+//         { $match: { session: session._id, status: "Present" } },
+//         { $group: { _id: null, count: { $sum: 1 } } }
+//       ]);
+//       const present = stats[0]?.count || 0;
+//       const possible = totalEnrolled; // Per session
+//       const rate = possible > 0 ? Math.round((present / possible) * 100) : 0;
+//       return {
+//         date: session.startTime.toISOString().split('T')[0],
+//         present,
+//         absent: possible - present,
+//         rate
+//       };
+//     }));
+
+//     res.status(200).json({ totalPresent, totalPossible, trends });
+//   } catch (error) {
+//     console.error("Error fetching course attendance rate:", error);
+//     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
+//   }
+// };
+
+
 exports.getCourseAttendanceRate = async (req, res) => {
   try {
     const { courseId } = req.params;
@@ -233,7 +291,7 @@ exports.getCourseAttendanceRate = async (req, res) => {
     // Find units for the course
     const units = await Unit.find({ course: courseId }).populate('studentsEnrolled');
     if (!units.length) {
-      return res.status(200).json({ totalPresent: 0, totalPossible: 0, trends: [] });
+      return res.status(200).json({ totalPresent: 0, totalPossible: 0, weeklyTrends: [] });
     }
 
     const unitIds = units.map(unit => unit._id);
@@ -243,7 +301,7 @@ exports.getCourseAttendanceRate = async (req, res) => {
     const sessions = await Session.find({ unit: { $in: unitIds } }).sort({ startTime: 1 });
     const sessionCount = sessions.length;
     if (!sessionCount) {
-      return res.status(200).json({ totalPresent: 0, totalPossible: 0, trends: [] });
+      return res.status(200).json({ totalPresent: 0, totalPossible: 0, weeklyTrends: [] });
     }
 
     const totalPossible = totalEnrolled * sessionCount;
@@ -256,30 +314,51 @@ exports.getCourseAttendanceRate = async (req, res) => {
     ]);
     const totalPresent = totalStats.find(s => s._id === "Present")?.count || 0;
 
-    // Aggregate per-session trends
-    const trends = await Promise.all(sessions.map(async (session) => {
+    // Aggregate weekly trends
+    const sessionAttendance = await Promise.all(sessions.map(async (session) => {
       const stats = await Attendance.aggregate([
         { $match: { session: session._id, status: "Present" } },
         { $group: { _id: null, count: { $sum: 1 } } }
       ]);
       const present = stats[0]?.count || 0;
-      const possible = totalEnrolled; // Per session
-      const rate = possible > 0 ? Math.round((present / possible) * 100) : 0;
+      const possible = totalEnrolled;
       return {
-        date: session.startTime.toISOString().split('T')[0],
+        sessionId: session._id,
+        startTime: session.startTime,
         present,
         absent: possible - present,
-        rate
+        rate: possible > 0 ? Math.round((present / possible) * 100) : 0
       };
     }));
 
-    res.status(200).json({ totalPresent, totalPossible, trends });
+    // Group by week (assuming 14 weeks in a semester)
+    const weeklyTrends = {};
+    sessionAttendance.forEach(session => {
+      const date = new Date(session.startTime);
+      const weekNumber = Math.floor((date - new Date(date.getFullYear(), 0, 1)) / (7 * 24 * 60 * 60 * 1000)) + 1;
+      if (!weeklyTrends[weekNumber]) {
+        weeklyTrends[weekNumber] = { present: 0, absent: 0, possible: 0, sessions: 0 };
+      }
+      weeklyTrends[weekNumber].present += session.present;
+      weeklyTrends[weekNumber].absent += session.absent;
+      weeklyTrends[weekNumber].possible += totalEnrolled;
+      weeklyTrends[weekNumber].sessions += 1;
+    });
+
+    const weeklyData = Object.entries(weeklyTrends).map(([week, stats]) => ({
+      week: `Week ${week}`,
+      present: stats.present,
+      absent: stats.absent,
+      rate: stats.possible > 0 ? Math.round((stats.present / stats.possible) * 100) : 0,
+      sessionCount: stats.sessions
+    }));
+
+    res.status(200).json({ totalPresent, totalPossible, weeklyTrends: weeklyData });
   } catch (error) {
     console.error("Error fetching course attendance rate:", error);
     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
   }
 };
-
 // exports.getCourseAttendanceRate = async (req, res) => {
 //   try {
 //     const { courseId } = req.params;

@@ -125,7 +125,6 @@ const AdminPanel = () => {
         getCourses(),
       ]);
 
-      // Enrich courses with unit data via API (assuming getCourses doesn't include this)
       const enrichedCourses = await Promise.all(coursesRes.map(async (course) => {
         const units = await getUnitsByCourse(course._id);
         const firstUnit = units[0] || {};
@@ -369,7 +368,7 @@ const AdminPanel = () => {
                   >
                     <div style={{ height: 300 }}>
                       {!loading && (
-                        <AttendanceChart data={attendanceRates[course._id] || { totalPresent: 0, totalPossible: 0, trends: [] }} />
+                        <AttendanceChart data={attendanceRates[course._id] || { totalPresent: 0, totalPossible: 0, weeklyTrends: [] }} />
                       )}
                     </div>
                   </Card>
