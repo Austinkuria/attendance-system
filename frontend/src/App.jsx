@@ -30,6 +30,7 @@ import AdminProfile from "./pages/profiles/AdminProfile";
 import LecturerProfile from "./pages/profiles/LecturerProfile";
 import LecturerSettings from "./pages/settings/LecturerSettings";
 import AdminSettings from "./pages/settings/AdminSettings";
+import AdminAnalytics from "./pages/dashboards/AdminAnalytics";
 import StudentSettings from "./pages/settings/StudentSettings";
 import ResetPasswordRequest from "./pages/ResetPasswordRequest";
 import ResetPassword from "./pages/ResetPassword";
@@ -147,6 +148,7 @@ function App() {
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
+          <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />

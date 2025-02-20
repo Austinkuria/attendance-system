@@ -1,3 +1,4 @@
+// src/pages/dashboards/AdminPanel.jsx
 import { useState, useEffect, useCallback } from 'react';
 import {
   UserOutlined,
@@ -8,7 +9,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   TeamOutlined,
-  FilterOutlined
+  LineChartOutlined
 } from '@ant-design/icons';
 import {
   Layout,
@@ -22,76 +23,26 @@ import {
   Space,
   theme,
   message,
-  Select,
-  Empty,
-  Skeleton,
-  Divider
+  Typography
 } from 'antd';
+import { Line } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend } from 'chart.js';
+import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
 import '../../styles.css';
-import {
-  getStudents,
-  getLecturers,
-  getCourses,
-  getCourseAttendanceRate,
-  getUnitsByCourse
-} from '../../services/api';
-import AttendanceChart from '../../components/AttendanceChart';
 
-const { Option } = Select;
+ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend);
+
 const { Header, Sider, Content } = Layout;
+const { Title: AntTitle } = Typography;
 
 const AdminPanel = () => {
-  const { token: { colorBgContainer }, theme: currentTheme } = theme.useToken();
+  const { token: { colorBgContainer } } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
   const [students, setStudents] = useState([]);
   const [lecturers, setLecturers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [attendanceRates, setAttendanceRates] = useState({});
   const [loading, setLoading] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
-
-  const [selectedCourse, setSelectedCourse] = useState(null);
-  const [selectedYear, setSelectedYear] = useState(null);
-  const [selectedUnit, setSelectedUnit] = useState(null);
-  const [selectedSemester, setSelectedSemester] = useState(null);
-
-  const hardCodedYears = [1, 2, 3, 4];
-  const hardCodedSemesters = [1, 2, 3];
-
-  const uniqueUnits = [...new Set(
-    courses.map(c => c.unit).filter(unit => unit != null)
-  )].sort();
-
-  const [courseUnits, setCourseUnits] = useState([]);
-
-  useEffect(() => {
-    if (selectedCourse) {
-      getUnitsByCourse(selectedCourse)
-        .then(units => setCourseUnits(units.filter(u => u && u._id && u.name)))
-        .catch(() => message.error('Failed to fetch course units'));
-    } else {
-      setCourseUnits([]);
-    }
-  }, [selectedCourse]);
-
-  const filteredCourses = courses.filter(course => {
-    return (
-      (!selectedCourse || course._id === selectedCourse) &&
-      (!selectedYear || course.year === selectedYear) &&
-      (!selectedUnit || course.unit === (selectedCourse ? selectedUnit : selectedUnit)) &&
-      (!selectedSemester || course.semester === selectedSemester)
-    );
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsMobile(window.innerWidth < 768);
-      if (window.innerWidth < 768) setCollapsed(true);
-    };
-    handleResize();
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -124,20 +75,9 @@ const AdminPanel = () => {
         getLecturers(),
         getCourses(),
       ]);
-
-      const enrichedCourses = await Promise.all(coursesRes.map(async (course) => {
-        const units = await getUnitsByCourse(course._id);
-        const firstUnit = units[0] || {};
-        return {
-          ...course,
-          year: firstUnit.year || 'N/A',
-          semester: firstUnit.semester || 'N/A'
-        };
-      }));
-
       setStudents(studentsRes);
       setLecturers(lecturersRes);
-      setCourses(enrichedCourses);
+      setCourses(coursesRes);
       setLoading(false);
     } catch {
       message.error('Error loading data');
@@ -157,7 +97,6 @@ const AdminPanel = () => {
         ...acc,
         [cur.courseId]: cur.data
       }), {});
-      console.log('Attendance Rates:', rates);
       setAttendanceRates(rates);
     } catch {
       message.error('Error loading attendance data');
@@ -178,6 +117,34 @@ const AdminPanel = () => {
     return totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
   };
 
+  const overviewChartData = {
+    labels: Object.values(attendanceRates).length ? Object.values(attendanceRates).map((_, i) => `Course ${i + 1}`) : ['No Data'],
+    datasets: [
+      {
+        label: 'Attendance Rate (%)',
+        data: Object.values(attendanceRates).length
+          ? Object.values(attendanceRates).map(rate => rate.totalPossible > 0 ? Math.round((rate.totalPresent / rate.totalPossible) * 100) : 0)
+          : [0],
+        borderColor: '#1890ff',
+        backgroundColor: 'rgba(24, 144, 255, 0.2)',
+        fill: false,
+        tension: 0.3,
+      },
+    ],
+  };
+
+  const overviewChartOptions = {
+    responsive: true,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: 'Course Attendance Overview' },
+    },
+    scales: {
+      y: { min: 0, max: 100, title: { display: true, text: 'Rate (%)' } },
+      x: { title: { display: true, text: 'Courses' } },
+    },
+  };
+
   const profileItems = [
     { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => window.location.href = '/admin/profile' },
     { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => window.location.href = '/admin/settings' },
@@ -191,195 +158,127 @@ const AdminPanel = () => {
   ];
 
   return (
-    <Layout hasSider style={{ minHeight: '100vh' }}>
-      <Sider
-        collapsible
-        collapsed={collapsed}
-        onCollapse={setCollapsed}
-        breakpoint="md"
-        width={250}
-        theme={currentTheme === 'dark' ? 'dark' : 'light'}
-        trigger={null}
-        collapsedWidth={isMobile ? 0 : 80}
-      >
-        <div className="demo-logo-vertical" />
-        <Menu
-          theme={currentTheme === 'dark' ? 'dark' : 'light'}
-          mode="inline"
-          defaultSelectedKeys={['1']}
-          items={[
-            { key: '1', icon: <TeamOutlined />, label: 'Students', onClick: () => window.location.href = '/admin/manage-students' },
-            { key: '2', icon: <BookOutlined />, label: 'Courses', onClick: () => window.location.href = '/admin/manage-courses' },
-            { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => window.location.href = '/admin/attendance-reports' },
-            { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' }
-          ]}
-        />
-      </Sider>
+    <Layout style={{ minHeight: '100vh' }}>
+      <Header style={{ padding: '0 16px', background: colorBgContainer, position: 'fixed', width: '100%', zIndex: 10 }}>
+        <Row align="middle">
+          <Col flex="auto">
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ fontSize: '16px', width: 64, height: 64 }}
+            />
+            <AntTitle level={3} style={{ display: 'inline', margin: 0 }}>Admin Dashboard</AntTitle>
+          </Col>
+          <Col>
+            <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+              <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
+            </Dropdown>
+          </Col>
+        </Row>
+      </Header>
 
       <Layout>
-        <Header style={{ padding: 0, background: colorBgContainer, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-          <Button
-            type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-            onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: '16px', width: 64, height: 64 }}
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={250}
+          style={{ background: colorBgContainer, marginTop: 64, position: 'fixed', height: 'calc(100vh - 64px)' }}
+        >
+          <div className="demo-logo-vertical" />
+          <Menu
+            mode="inline"
+            defaultSelectedKeys={['1']}
+            items={[
+              { key: '1', icon: <TeamOutlined />, label: 'Students', onClick: () => window.location.href = '/admin/manage-students' },
+              { key: '2', icon: <BookOutlined />, label: 'Courses', onClick: () => window.location.href = '/admin/manage-courses' },
+              { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => window.location.href = '/admin/attendance-reports' },
+              { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
+              { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' }
+            ]}
           />
-          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
-          </Dropdown>
-        </Header>
+        </Sider>
 
-        <Content style={{ margin: '24px 16px', overflow: 'initial' }}>
-          <Row gutter={[24, 24]}>
-            <Col xs={24} sm={12} md={6}>
-              <Card loading={loading}>
+        <Content style={{ margin: '64px 16px 16px 266px', padding: 24, background: '#f0f2f5' }}>
+          <Row gutter={[16, 16]}>
+            <Col span={6}>
+              <Card
+                loading={loading}
+                style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                onClick={() => window.location.href = '/admin/manage-students'}
+              >
                 <Space direction="vertical">
                   <TeamOutlined style={{ fontSize: 24 }} />
                   <h3>Total Students</h3>
-                  <h1>{loading ? <Skeleton.Input active /> : students.length}</h1>
-                  <Button type="primary" block onClick={() => window.location.href = '/admin/manage-students'}>
-                    Manage
-                  </Button>
+                  <h1>{students.length}</h1>
                 </Space>
               </Card>
             </Col>
-
-            <Col xs={24} sm={12} md={6}>
-              <Card loading={loading}>
+            <Col span={6}>
+              <Card
+                loading={loading}
+                style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                onClick={() => window.location.href = '/admin/manage-courses'}
+              >
                 <Space direction="vertical">
                   <BookOutlined style={{ fontSize: 24 }} />
                   <h3>Total Courses</h3>
-                  <h1>{loading ? <Skeleton.Input active /> : courses.length}</h1>
-                  <Button type="primary" block onClick={() => window.location.href = '/admin/manage-courses'}>
-                    Manage
-                  </Button>
+                  <h1>{courses.length}</h1>
                 </Space>
               </Card>
             </Col>
-
-            <Col xs={24} sm={12} md={6}>
-              <Card loading={loading}>
+            <Col span={6}>
+              <Card
+                loading={loading}
+                style={{ background: 'linear-gradient(135deg, #fa8c16, #d46b08)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                onClick={() => window.location.href = '/admin/manage-lecturers'}
+              >
                 <Space direction="vertical">
                   <UserOutlined style={{ fontSize: 24 }} />
                   <h3>Total Lecturers</h3>
-                  <h1>{loading ? <Skeleton.Input active /> : lecturers.length}</h1>
-                  <Button type="primary" block onClick={() => window.location.href = '/admin/manage-lecturers'}>
-                    Manage
-                  </Button>
+                  <h1>{lecturers.length}</h1>
                 </Space>
               </Card>
             </Col>
-
-            <Col xs={24} sm={12} md={6}>
-              <Card loading={loading || Object.keys(attendanceRates).length === 0}>
+            <Col span={6}>
+              <Card
+                loading={loading || Object.keys(attendanceRates).length === 0}
+                style={{ background: 'linear-gradient(135deg, #f5222d, #cf1322)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                onClick={() => window.location.href = '/admin/analytics'}
+              >
                 <Space direction="vertical">
                   <CheckCircleOutlined style={{ fontSize: 24 }} />
                   <h3>Attendance Rate</h3>
-                  <h1>{loading || Object.keys(attendanceRates).length === 0 ? <Skeleton.Input active /> : `${calculateOverallRate()}%`}</h1>
-                  <Button type="primary" block onClick={() => window.location.href = '/admin/attendance-reports'}>
-                    View Reports
-                  </Button>
+                  <h1>{calculateOverallRate()}%</h1>
                 </Space>
               </Card>
             </Col>
           </Row>
 
-          <Row gutter={[24, 24]} style={{ marginTop: 24 }}>
-            <Col xs={24} md={12}>
-              <Card
-                title={<Space><FilterOutlined /><span>Filter Attendance Data</span></Space>}
-                style={{ marginBottom: 24 }}
-              >
-                <Row gutter={[16, 16]}>
-                  <Col xs={24} sm={12} md={6}>
-                    <Select
-                      placeholder="Select Course"
-                      allowClear
-                      onChange={value => { setSelectedCourse(value); setSelectedUnit(null); }}
-                      style={{ width: '100%' }}
-                    >
-                      {courses.map(course => (
-                        <Option key={course._id} value={course._id}>{course.name}</Option>
-                      ))}
-                    </Select>
-                  </Col>
+          <AntTitle level={2} style={{ marginTop: 24 }}>Attendance Overview</AntTitle>
+          <Card style={{ marginTop: 16 }}>
+            <Line data={overviewChartData} options={overviewChartOptions} height={100} />
+            <Button type="primary" style={{ marginTop: 16 }} onClick={() => window.location.href = '/admin/analytics'}>View Detailed Analytics</Button>
+          </Card>
 
-                  <Col xs={24} sm={12} md={6}>
-                    <Select
-                      placeholder="Select Academic Year"
-                      allowClear
-                      onChange={setSelectedYear}
-                      style={{ width: '100%' }}
-                    >
-                      {hardCodedYears.map(year => (
-                        <Option key={year} value={year}>Year {year}</Option>
-                      ))}
-                    </Select>
-                  </Col>
-
-                  <Col xs={24} sm={12} md={6}>
-                    <Select
-                      placeholder="Select Unit"
-                      allowClear
-                      onChange={setSelectedUnit}
-                      style={{ width: '100%' }}
-                      value={selectedUnit}
-                    >
-                      {(selectedCourse ? courseUnits : uniqueUnits).map(unit => (
-                        typeof unit === 'object' && unit !== null ? (
-                          <Option key={unit._id} value={unit._id}>{unit.name}</Option>
-                        ) : (
-                          <Option key={unit} value={unit}>{`Unit ${unit}`}</Option>
-                        )
-                      ))}
-                    </Select>
-                  </Col>
-
-                  <Col xs={24} sm={12} md={6}>
-                    <Select
-                      placeholder="Select Semester"
-                      allowClear
-                      onChange={setSelectedSemester}
-                      style={{ width: '100%' }}
-                    >
-                      {hardCodedSemesters.map(semester => (
-                        <Option key={semester} value={semester}>Semester {semester}</Option>
-                      ))}
-                    </Select>
-                  </Col>
-                </Row>
-              </Card>
-            </Col>
-          </Row>
-
-          <Divider orientation="left" style={{ fontSize: 18 }}>Attendance Charts</Divider>
-
-          {filteredCourses.length === 0 ? (
-            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No courses found matching the filters" />
-          ) : (
-            <Row gutter={[24, 24]}>
-              {filteredCourses.map(course => (
-                <Col key={course._id} xs={24} md={12} xl={8} xxl={6}>
-                  <Card
-                    title={`${course.name} (Year ${course.year}, Sem ${course.semester})`}
-                    loading={loading}
-                    hoverable
-                    style={{ height: '100%' }}
-                  >
-                    <div style={{ height: 300 }}>
-                      {!loading && (
-                        <AttendanceChart data={attendanceRates[course._id] || { totalPresent: 0, totalPossible: 0, weeklyTrends: [] }} />
-                      )}
-                    </div>
-                  </Card>
-                </Col>
-              ))}
+          {/* Creative Addition: Quick Stats or Timeline */}
+          <Card style={{ marginTop: 16, background: '#fafafa', borderRadius: 10 }}>
+            <AntTitle level={4}>Quick Stats</AntTitle>
+            <Row gutter={[16, 16]}>
+              <Col span={12}><p>Total Sessions: {Object.values(attendanceRates).reduce((sum, rate) => sum + rate.weeklyTrends.reduce((acc, t) => acc + t.sessionCount, 0), 0)}</p></Col>
+              <Col span={12}><p>Average Weekly Rate: {Object.values(attendanceRates).length ? Math.round(weeklyTrendsAvg()) : 0}%</p></Col>
             </Row>
-          )}
+          </Card>
         </Content>
       </Layout>
     </Layout>
   );
+
+  function weeklyTrendsAvg() {
+    const allRates = Object.values(attendanceRates).flatMap(rate => rate.weeklyTrends.map(t => t.rate));
+    return allRates.length ? allRates.reduce((sum, rate) => sum + rate, 0) / allRates.length : 0;
+  }
 };
 
 export default AdminPanel;
