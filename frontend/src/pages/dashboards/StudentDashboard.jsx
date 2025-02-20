@@ -513,7 +513,7 @@ const StudentDashboard = () => {
         onOk={handleFeedbackSubmit}
         title="Session Feedback"
       >
-        <p>How was today's class?</p>
+        <p>How was today&apos;s class?</p>
         <Rate
           allowHalf
           value={feedbackData.rating}

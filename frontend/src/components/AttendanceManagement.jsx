@@ -8,8 +8,7 @@ import {
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import {
-  getSessionAttendance, // New import
-  getAttendanceData, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession
+  getSessionAttendance,downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession
 } from '../services/api';
 
 const { Option } = Select;

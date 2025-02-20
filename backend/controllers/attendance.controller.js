@@ -102,6 +102,21 @@ exports.getStudentAttendance = async (req, res) => {
   }
 };
 
+// exports.getSessionAttendance = async (req, res) => {
+//   try {
+//     const { sessionId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+//       return res.status(400).json({ message: "Invalid session ID format" });
+//     }
+//     const attendanceRecords = await Attendance.find({ session: sessionId })
+//       .populate('student', 'regNo firstName lastName course year semester')
+//       .populate('session', 'unit');
+//     res.status(200).json(attendanceRecords);
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching session attendance", error: error.message });
+//   }
+// };
+
 exports.getSessionAttendance = async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -109,7 +124,11 @@ exports.getSessionAttendance = async (req, res) => {
       return res.status(400).json({ message: "Invalid session ID format" });
     }
     const attendanceRecords = await Attendance.find({ session: sessionId })
-      .populate('student', 'regNo firstName lastName course year semester')
+      .populate({
+        path: 'student',
+        select: 'regNo firstName lastName course year semester',
+        populate: { path: 'course', select: 'name' } // Nested population for course
+      })
       .populate('session', 'unit');
     res.status(200).json(attendanceRecords);
   } catch (error) {
