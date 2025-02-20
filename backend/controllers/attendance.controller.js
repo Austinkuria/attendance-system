@@ -2,6 +2,7 @@ const Session = require('../models/Session');
 const Attendance = require('../models/Attendance');
 const User = require("../models/User");
 const mongoose = require('mongoose');
+const Unit = require('../models/Unit');
 
 exports.markAttendance = async (req, res) => {
   try {
@@ -250,13 +251,25 @@ exports.getCourseAttendanceRate = async (req, res) => {
       return res.status(400).json({ message: "Invalid course ID format" });
     }
 
-    const sessions = await Session.find({ course: courseId }); // Assuming course field exists
+    // Step 1: Find all units for the course
+    const units = await Unit.find({ course: courseId });
+    if (!units.length) {
+      return res.status(200).json({ present: 0, absent: 0 });
+    }
+
+    const unitIds = units.map(unit => unit._id);
+
+    // Step 2: Find all sessions for these units
+    const sessions = await Session.find({ unit: { $in: unitIds } });
     if (!sessions.length) {
       return res.status(200).json({ present: 0, absent: 0 });
     }
 
+    const sessionIds = sessions.map(session => session._id);
+
+    // Step 3: Aggregate attendance for these sessions
     const stats = await Attendance.aggregate([
-      { $match: { session: { $in: sessions.map(s => s._id) } } },
+      { $match: { session: { $in: sessionIds } } },
       { $group: { _id: "$status", count: { $sum: 1 } } }
     ]);
 
@@ -269,6 +282,33 @@ exports.getCourseAttendanceRate = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
   }
 };
+
+// exports.getCourseAttendanceRate = async (req, res) => {
+//   try {
+//     const { courseId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
+//       return res.status(400).json({ message: "Invalid course ID format" });
+//     }
+
+//     const sessions = await Session.find({ course: courseId }); // Assuming course field exists
+//     if (!sessions.length) {
+//       return res.status(200).json({ present: 0, absent: 0 });
+//     }
+
+//     const stats = await Attendance.aggregate([
+//       { $match: { session: { $in: sessions.map(s => s._id) } } },
+//       { $group: { _id: "$status", count: { $sum: 1 } } }
+//     ]);
+
+//     const present = stats.find(s => s._id === "Present")?.count || 0;
+//     const absent = stats.find(s => s._id === "Absent")?.count || 0;
+
+//     res.status(200).json({ present, absent });
+//   } catch (error) {
+//     console.error("Error fetching course attendance rate:", error);
+//     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
+//   }
+// };
 // exports.getAttendanceTrends = async (req, res) => {
 //   try {
 //     const { unitId } = req.params;

@@ -1,68 +1,38 @@
-// src/components/AttendanceChart.jsx
 import PropTypes from 'prop-types';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 
-// Register necessary components for Bar chart
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-  Legend
-);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
 const AttendanceChart = ({ data }) => {
-  // Chart data configuration
   const chartData = {
     labels: ['Present', 'Absent'],
     datasets: [
       {
         label: 'Sessions',
         data: [data?.present || 0, data?.absent || 0],
-        backgroundColor: [
-          'rgba(75, 192, 192, 0.6)',
-          'rgba(255, 99, 132, 0.6)'
-        ],
-        borderColor: [
-          'rgba(75, 192, 192, 1)',
-          'rgba(255, 99, 132, 1)'
-        ],
+        backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)'],
+        borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)'],
         borderWidth: 1,
       },
     ],
   };
 
-  // Chart options configuration
   const options = {
     responsive: true,
     plugins: {
-      legend: {
-        position: 'top',
-      },
+      legend: { position: 'top' },
       tooltip: {
-        callbacks: {
-          label: (context) => `${context.dataset.label}: ${context.raw} sessions`
-        }
+        callbacks: { label: (context) => `${context.dataset.label}: ${context.raw} sessions` }
       }
     },
     scales: {
       y: {
         beginAtZero: true,
-        title: {
-          display: true,
-          text: 'Number of Sessions'
-        },
-        ticks: {
-          stepSize: 1
-        }
+        title: { display: true, text: 'Number of Sessions' },
+        ticks: { stepSize: 1 }
       },
-      x: {
-        title: {
-          display: true,
-          text: 'Attendance Status'
-        }
-      }
+      x: { title: { display: true, text: 'Attendance Status' } }
     }
   };
 
