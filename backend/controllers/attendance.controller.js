@@ -164,11 +164,11 @@ exports.getAttendanceTrends = async (req, res) => {
     const trends = await Promise.all(dailyStats.map(async (day) => {
       const stats = await Attendance.aggregate([
         { $match: { session: { $in: day.sessions } } },
-        { $group: { _id: "$status", count: { $sum: 1 } } }
+        { $group: { _id: { $toLower: "$status" }, count: { $sum: 1 } } } // Case-insensitive
       ]);
 
-      const presentCount = stats.find(stat => stat._id === "Present")?.count || 0;
-      const absentCount = stats.find(stat => stat._id === "Absent")?.count || 0;
+      const presentCount = stats.find(stat => stat._id === "present")?.count || 0;
+      const absentCount = stats.find(stat => stat._id === "absent")?.count || 0;
       const total = presentCount + absentCount;
       const rate = total > 0 ? (presentCount / total) * 100 : 0;
 
@@ -192,7 +192,8 @@ exports.getAttendanceTrends = async (req, res) => {
     console.error("Error fetching attendance trends:", error);
     res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
   }
-}; 
+};
+
 
 // exports.getAttendanceTrends = async (req, res) => {
 //   try {
