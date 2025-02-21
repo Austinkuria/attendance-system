@@ -71,7 +71,7 @@ const AdminPanel = () => {
     window.location.reload(true);
   };
 
-  
+
   const fetchAllData = useCallback(async () => {
     if (loading) return; // Prevent concurrent fetches
     try {
@@ -131,9 +131,9 @@ const AdminPanel = () => {
         label: 'Attendance Rate (%)',
         data: courses.length
           ? courses.map(course => {
-              const rate = attendanceRates[course._id];
-              return rate && rate.totalPossible > 0 ? Math.round((rate.totalPresent / rate.totalPossible) * 100) : 0;
-            })
+            const rate = attendanceRates[course._id];
+            return rate && rate.totalPossible > 0 ? Math.round((rate.totalPresent / rate.totalPossible) * 100) : 0;
+          })
           : [0],
         borderColor: '#1890ff',
         backgroundColor: 'rgba(24, 144, 255, 0.2)',
@@ -162,13 +162,13 @@ const AdminPanel = () => {
       },
     },
     scales: {
-      y: { 
-        min: 0, 
-        max: 100, 
+      y: {
+        min: 0,
+        max: 100,
         title: { display: true, text: 'Rate (%)' },
         grid: { display: true },
       },
-      x: { 
+      x: {
         title: { display: true, text: 'Courses' },
         ticks: { maxRotation: 45, minRotation: 45 },
         grid: { display: false },
@@ -192,9 +192,9 @@ const AdminPanel = () => {
         label: 'Total Sessions',
         data: courses.length
           ? courses.map(course => {
-              const rate = attendanceRates[course._id];
-              return rate ? rate.weeklyTrends.reduce((acc, t) => acc + t.sessionCount, 0) : 0;
-            })
+            const rate = attendanceRates[course._id];
+            return rate ? rate.weeklyTrends.reduce((acc, t) => acc + t.sessionCount, 0) : 0;
+          })
           : [0],
         backgroundColor: [
           'rgba(255, 99, 132, 0.8)',
@@ -240,12 +240,14 @@ const AdminPanel = () => {
     { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => window.location.href = '/admin/profile' },
     { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => window.location.href = '/admin/settings' },
     { type: 'divider' },
-    { key: '3', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: () => Modal.confirm({
-      title: 'Confirm Logout',
-      content: 'Are you sure you want to logout?',
-      onOk: logout,
-      centered: true,
-    }) }
+    {
+      key: '3', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: () => Modal.confirm({
+        title: 'Confirm Logout',
+        content: 'Are you sure you want to logout?',
+        onOk: logout,
+        centered: true,
+      })
+    }
   ];
 
   return (
@@ -293,10 +295,10 @@ const AdminPanel = () => {
           />
         </Sider>
 
-        <Content style={{ 
+        <Content style={{
           margin: collapsed ? '64px 16px 16px 96px' : '64px 16px 16px 266px',
-          padding: 24, 
-          background: '#f0f2f5', 
+          padding: 24,
+          background: '#f0f2f5',
           minHeight: 'calc(100vh - 64px)',
           overflow: 'auto'
         }}>

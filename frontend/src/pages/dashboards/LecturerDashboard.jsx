@@ -1,4 +1,4 @@
-
+// src/pages/LecturerDashboard.jsx
 import { useState, useEffect } from 'react';
 import {
   Layout,
@@ -20,7 +20,6 @@ import Sidebar from "../../components/Sidebar";
 import AttendanceManagement from "../../components/AttendanceManagement";
 import Analytics from "../Analytics";
 import BackToTop from "../../components/BackToTop";
-// import QRCodeGenerator from "../components/QRCodeGenerator";  // Ensure correct filename
 
 const { Header, Content } = Layout;
 
@@ -28,26 +27,22 @@ const LecturerDashboard = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
-
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
 
-  // Authentication check: redirect to /auth/login if no token is found
+  // Authentication check
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      window.location.href = '/auth/login';
-    }
+    if (!token) window.location.href = '/auth/login';
   }, []);
 
-  // Responsive layout: collapse sidebar on mobile screens
+  // Responsive layout
   useEffect(() => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      setCollapsed(mobile); // Collapse sidebar on mobile
+      setCollapsed(mobile);
     };
-
     handleResize();
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
@@ -58,18 +53,14 @@ const LecturerDashboard = () => {
     ['token', 'userData'].forEach(item => localStorage.removeItem(item));
     sessionStorage.clear();
     message.success('Logged out successfully!');
-    setTimeout(() => window.location.href = '/auth/login', 500); // Smooth transition
+    setTimeout(() => window.location.href = '/auth/login', 500);
   };
 
   // Profile dropdown items
   const profileItems = (
     <Menu>
-      <Menu.Item key="1" icon={<UserOutlined />} onClick={() => window.location.href = '/lecturer/profile'}>
-        View Profile
-      </Menu.Item>
-      <Menu.Item key="2" icon={<SettingOutlined />} onClick={() => window.location.href = '/lecturer/settings'}>
-        Settings
-      </Menu.Item>
+      <Menu.Item key="1" icon={<UserOutlined />} onClick={() => window.location.href = '/lecturer/profile'}>View Profile</Menu.Item>
+      <Menu.Item key="2" icon={<SettingOutlined />} onClick={() => window.location.href = '/lecturer/settings'}>Settings</Menu.Item>
       <Menu.Divider />
       <Menu.Item
         key="3"
@@ -88,17 +79,19 @@ const LecturerDashboard = () => {
   );
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      {/* Sidebar Component */}
+    <Layout style={{ minHeight: "100vh", background: '#f0f2f5' }}>
       <Sidebar collapsed={collapsed} isMobile={isMobile} />
-
       <Layout>
         <Header style={{
-          padding: 0,
+          padding: '0 16px',
           background: colorBgContainer,
           display: 'flex',
           justifyContent: 'space-between',
-          alignItems: 'center'
+          alignItems: 'center',
+          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
+          position: 'fixed',
+          width: '100%',
+          zIndex: 10,
         }}>
           <Button
             type="text"
@@ -109,38 +102,29 @@ const LecturerDashboard = () => {
           <Dropdown overlay={profileItems} trigger={['click']}>
             <Button
               type="text"
-              icon={<UserOutlined style={{ fontSize: 24 }} />}
+              icon={<UserOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
               style={{ marginRight: 24 }}
             />
           </Dropdown>
         </Header>
-
         <Content
           style={{
-            margin: '24px 16px',
-            padding: 24,
+            margin: '80px 16px 24px',
+            padding: isMobile ? 16 : 24,
             minHeight: 280,
             background: colorBgContainer,
             borderRadius: borderRadiusLG,
+            maxWidth: 1200,
+            marginLeft: 'auto',
+            marginRight: 'auto',
           }}
         >
-          <div style={{ maxWidth: 1200, margin: '0 auto' }}>
-            {/* QR Code Generator Section */}
-            {/* <section style={{ marginBottom: 48 }}>
-              <QRCodeGenerator />
-            </section> */}
-
-            {/* Attendance Management Section */}
-            <section style={{ marginBottom: 48 }}>
-              <AttendanceManagement />
-            </section>
-
-            {/* Analytics Section */}
-            <section>
-              <Analytics />
-            </section>
-          </div>
-
+          <section style={{ marginBottom: 48 }}>
+            <AttendanceManagement />
+          </section>
+          <section>
+            <Analytics />
+          </section>
           <BackToTop />
         </Content>
       </Layout>
