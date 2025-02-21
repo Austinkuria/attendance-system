@@ -15,17 +15,7 @@ const { login, signup, getStudents, getLecturers, downloadStudents, deleteStuden
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
-const rateLimit = require('express-rate-limit');
-
-const authRateLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-});
-
-const resetPasswordLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 5, // limit each IP to 5 requests per windowMs
-});
+const { apiLimiter, sensitiveLimiter, authLimiter } = require('../middleware/rateLimiter');
 
 console.log('Loading main routes...');
 console.log('Attendance Routes:', attendanceRoutes);
@@ -46,10 +36,10 @@ router.use("/course", courseRoutes);
 router.use("/unit", unitRoutes);
 
 // Attendance routes
-router.use("/attendance/", authRateLimiter, authenticate, attendanceRoutes);
+router.use("/attendance/", authLimiter, authenticate, attendanceRoutes);
 
 // Session routes
-router.use("/sessions", authRateLimiter, authenticate, sessionRoutes);
+router.use("/sessions", sensitiveLimiter, authenticate, sessionRoutes);
 
 router.use('/', userRoutes);
 
@@ -73,7 +63,7 @@ router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), delet
 router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
-router.post("/auth/reset-password", resetPasswordLimiter, sendResetLink);
+router.post("/auth/reset-password", sensitiveLimiter, sendResetLink);
 router.put("/auth/reset-password/:token", resetPassword); // Note: You have this line twice; remove one
 
 module.exports = router;

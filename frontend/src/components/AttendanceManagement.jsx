@@ -1,15 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
-import {
-  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col
-} from 'antd';
-import {
-  QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined
-} from '@ant-design/icons';
+import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col } from 'antd';
+import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import {
-  getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession
-} from '../services/api';
+import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -24,7 +18,9 @@ const AttendanceManagement = () => {
   const [qrData, setQrData] = useState('');
   const [currentSession, setCurrentSession] = useState(() => {
     const savedSession = localStorage.getItem('currentSession');
-    return savedSession ? JSON.parse(savedSession) : null;
+    const session = savedSession ? JSON.parse(savedSession) : null;
+    console.log('Initial currentSession from localStorage:', session);
+    return session;
   });
   const [departments, setDepartments] = useState([]);
   const lecturerId = localStorage.getItem("userId");
@@ -52,8 +48,10 @@ const AttendanceManagement = () => {
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem('currentSession', JSON.stringify(currentSession));
+      console.log('Updated localStorage with currentSession:', currentSession);
     } else {
       localStorage.removeItem('currentSession');
+      console.log('Cleared localStorage currentSession');
     }
   }, [currentSession]);
 
@@ -62,37 +60,66 @@ const AttendanceManagement = () => {
       try {
         const data = await getDepartments();
         setDepartments(data);
-      } catch {
-        message.error('Failed to fetch departments');
+      } catch (error) {
+        if (error.response?.status === 429) {
+          message.warning('Too many requests to fetch departments. Please try again later.');
+        } else {
+          message.error('Failed to fetch departments');
+        }
       }
     };
-    fetchDepartments();
-  }, []);
+    if (departments.length === 0) fetchDepartments();
+  }, [departments]);
 
   const checkCurrentSession = useCallback(async () => {
+    const savedSession = localStorage.getItem('currentSession');
+    const parsedSession = savedSession ? JSON.parse(savedSession) : null;
+
+    if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
+      setCurrentSession(parsedSession);
+      setQrData(parsedSession.qrCode || '');
+      setSelectedUnit(parsedSession.unit._id || parsedSession.unit);
+      setLoading(prevState => ({ ...prevState, session: false }));
+      setLoadingSessionData(false);
+      return;
+    }
+
     try {
       setLoading(prevState => ({ ...prevState, session: true }));
       setLoadingSessionData(true);
       const { data } = await detectCurrentSession(lecturerId);
+      console.log('Detected session from backend:', data);
+
       if (data && !data.ended) {
         const validStartTime = data.startTime ? new Date(data.startTime) : null;
         const validEndTime = data.endTime ? new Date(data.endTime) : null;
         if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
           throw new Error('Invalid session times detected');
         }
-        setCurrentSession({
-          ...data,
-          startSession: validStartTime,
-          endSession: validEndTime
-        });
+        setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime });
         setQrData(data.qrCode);
+        setSelectedUnit(data.unit._id || data.unit);
       } else {
         setCurrentSession(null);
+        setQrData('');
       }
     } catch (error) {
       console.error("Error checking current session:", error);
-      message.error(error.message || 'Failed to detect current session');
-      setCurrentSession(null);
+      if (error.response?.status === 429) {
+        message.warning('Too many requests to check session. Using local session data.');
+        if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
+          setCurrentSession(parsedSession);
+          setQrData(parsedSession.qrCode || '');
+          setSelectedUnit(parsedSession.unit._id || parsedSession.unit);
+        } else {
+          setCurrentSession(null);
+          setQrData('');
+        }
+      } else {
+        message.error(error.message || 'Failed to detect current session');
+        setCurrentSession(null);
+        setQrData('');
+      }
     } finally {
       setLoading(prevState => ({ ...prevState, session: false }));
       setLoadingSessionData(false);
@@ -110,6 +137,7 @@ const AttendanceManagement = () => {
         const now = new Date();
         if (now > new Date(currentSession.endSession)) {
           setCurrentSession(prev => ({ ...prev, ended: true }));
+          setQrData('');
           localStorage.removeItem('currentSession');
           clearInterval(intervalId);
         }
@@ -129,28 +157,44 @@ const AttendanceManagement = () => {
         const unitsData = await getLecturerUnits(lecturerId);
         if (unitsData?.length > 0) {
           setUnits(unitsData);
-          setSelectedUnit(unitsData[0]._id);
+          if (!selectedUnit && !currentSession) setSelectedUnit(unitsData[0]._id);
         } else {
           message.info("No units assigned to your account");
         }
-      } catch {
-        message.error("Failed to load unit data");
+      } catch (error) {
+        if (error.response?.status === 429) {
+          message.warning('Too many requests to fetch units. Please try again later.');
+        } else {
+          message.error("Failed to load unit data");
+        }
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
       }
     };
-    if (lecturerId) fetchData();
-  }, [lecturerId]);
+    if (lecturerId && units.length === 0) fetchData();
+  }, [lecturerId, selectedUnit, currentSession, units]);
 
   useEffect(() => {
     if (!selectedUnit) {
       setLoadingSessionData(false);
-      setCurrentSession(null);
+      if (!currentSession) {
+        setCurrentSession(null);
+        setQrData('');
+      }
       return;
     }
 
-    setLoadingSessionData(true);
     const fetchCurrentSession = async () => {
+      const savedSession = localStorage.getItem('currentSession');
+      const parsedSession = savedSession ? JSON.parse(savedSession) : null;
+
+      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit._id === selectedUnit) {
+        setCurrentSession(parsedSession);
+        setQrData(parsedSession.qrCode || '');
+        setLoadingSessionData(false);
+        return;
+      }
+
       const token = localStorage.getItem('token');
       if (!token) {
         console.error("No authentication token found");
@@ -159,6 +203,7 @@ const AttendanceManagement = () => {
         return;
       }
       try {
+        setLoadingSessionData(true);
         console.log("Fetching session for unit:", selectedUnit);
         const response = await axios.get(`https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`, {
           headers: { 'Authorization': `Bearer ${token}` },
@@ -170,25 +215,39 @@ const AttendanceManagement = () => {
           const validEndTime = response.data.endTime ? new Date(response.data.endTime) : null;
           if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
             message.warning("Invalid session times received.");
+            if (currentSession && !currentSession.ended && new Date(currentSession.endSession) > new Date()) return;
             setCurrentSession(null);
+            setQrData('');
           } else {
             const unitFromResponse = response.data.unit || {};
             const unitName = unitFromResponse.name || (units.find(u => u._id === response.data.unit)?.name) || "Unknown Unit";
-            setCurrentSession({
-              ...response.data,
-              unit: { name: unitName },
-              startSession: validStartTime,
-              endSession: validEndTime
-            });
+            setCurrentSession({ ...response.data, unit: { name: unitName }, startSession: validStartTime, endSession: validEndTime });
             setQrData(response.data.qrCode);
           }
         } else {
           setCurrentSession(null);
+          setQrData('');
         }
       } catch (error) {
         console.error("Error fetching session:", error);
-        message.error(error.response?.data?.message || "Failed to fetch session.");
-        setCurrentSession(null);
+        if (error.response?.status === 429) {
+          message.warning('Too many requests to fetch session. Using local session data.');
+          if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit._id === selectedUnit) {
+            setCurrentSession(parsedSession);
+            setQrData(parsedSession.qrCode || '');
+          } else {
+            setCurrentSession(null);
+            setQrData('');
+          }
+        } else {
+          message.error(error.response?.data?.message || "Failed to fetch session.");
+          if (currentSession && !currentSession.ended && new Date(currentSession.endSession) > new Date()) {
+            return;
+          } else {
+            setCurrentSession(null);
+            setQrData('');
+          }
+        }
       } finally {
         setLoadingSessionData(false);
       }
@@ -204,13 +263,18 @@ const AttendanceManagement = () => {
       setAttendance(data);
     } catch (error) {
       console.error("Error fetching attendance:", error);
-      message.error(error.message || 'Failed to fetch attendance data');
+      if (error.response?.status === 429) {
+        message.warning('Too many requests to fetch attendance data. Please try again later.');
+      } else {
+        message.error(error.message || 'Failed to fetch attendance data');
+      }
       setAttendance([]);
     } finally {
       setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
   }, [selectedUnit, currentSession]);
 
+  // Fixed useEffect with missing 'currentSession' dependency
   useEffect(() => {
     if (currentSession && selectedUnit && !currentSession.ended) {
       handleViewAttendance();
@@ -282,16 +346,15 @@ const AttendanceManagement = () => {
         throw new Error('Invalid session times received from API');
       }
       message.success('Session created successfully');
-      setCurrentSession({ 
-        ...data, 
-        startSession: validStartTime, 
-        endSession: validEndTime,
-        ended: false
-      });
+      setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime, ended: false });
       setQrData(data.qrCode);
     } catch (error) {
       console.error("Error creating session:", error);
-      message.error(error.message || 'Failed to create session');
+      if (error.response?.status === 429) {
+        message.warning('Too many requests. Please try creating the session again later.');
+      } else {
+        message.error(error.message || 'Failed to create session');
+      }
     } finally {
       setLoading(prevState => ({ ...prevState, session: false }));
       setLoadingSessionData(false);
@@ -318,7 +381,11 @@ const AttendanceManagement = () => {
       setIsQRModalOpen(true);
     } catch (error) {
       console.error("Error generating QR code:", error);
-      message.error(error.message || "Failed to generate QR code");
+      if (error.response?.status === 429) {
+        message.warning('Too many requests. Please try generating the QR code again later.');
+      } else {
+        message.error(error.message || "Failed to generate QR code");
+      }
     } finally {
       setLoading(prevState => ({ ...prevState, qr: false }));
     }
@@ -337,16 +404,11 @@ const AttendanceManagement = () => {
         cancelText: 'Cancel',
         onOk: async () => {
           try {
-            if (!currentSession?._id) {
-              throw new Error('Invalid session ID');
-            }
+            if (!currentSession?._id) throw new Error('Invalid session ID');
             console.log('Ending session with ID:', currentSession._id);
             const response = await axios.delete(
               'https://attendance-system-w70n.onrender.com/api/sessions/end',
-              {
-                data: { sessionId: currentSession._id },
-                headers: { 'Authorization': `Bearer ${token}` }
-              }
+              { data: { sessionId: currentSession._id }, headers: { 'Authorization': `Bearer ${token}` } }
             );
             console.log('Session end response:', response.data);
             message.success('Session ended successfully');
@@ -355,13 +417,12 @@ const AttendanceManagement = () => {
             setAttendance([]);
             localStorage.removeItem('currentSession');
           } catch (error) {
-            console.error('Error ending session:', {
-              message: error.message,
-              response: error.response?.data,
-              sessionId: currentSession?._id
-            });
-            message.error(error.response?.data?.message || 'Failed to end session. Please check console for details.');
-
+            console.error('Error ending session:', { message: error.message, response: error.response?.data, sessionId: currentSession?._id });
+            if (error.response?.status === 429) {
+              message.warning('Too many requests. Please try ending the session again later.');
+            } else {
+              message.error(error.response?.data?.message || 'Failed to end session. Please check console for details.');
+            }
           } finally {
             setLoading(prevState => ({ ...prevState, session: false }));
           }
@@ -384,15 +445,15 @@ const AttendanceManagement = () => {
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setAttendance(prevState =>
-        prevState.map(a =>
-          a._id === recordId && a.unit === selectedUnit ? { ...a, status: newStatus } : a
-        )
-      );
+      setAttendance(prevState => prevState.map(a => a._id === recordId && a.unit === selectedUnit ? { ...a, status: newStatus } : a));
       message.success(`Marked student as ${newStatus}`);
     } catch (error) {
       console.error("Error updating status:", error);
-      message.error('Failed to update attendance status');
+      if (error.response?.status === 429) {
+        message.warning('Too many requests. Please try updating status again later.');
+      } else {
+        message.error('Failed to update attendance status');
+      }
     }
   };
 
@@ -458,9 +519,7 @@ const AttendanceManagement = () => {
       }
       const timer = setInterval(() => {
         const endTime = new Date(end).getTime();
-        if (!isNaN(endTime)) {
-          setTimeLeft(Math.max(0, endTime - Date.now()));
-        }
+        if (!isNaN(endTime)) setTimeLeft(Math.max(0, endTime - Date.now()));
       }, 1000);
       return () => clearInterval(timer);
     }, [end]);
@@ -686,48 +745,17 @@ const AttendanceManagement = () => {
         title="Class QR Code"
         open={isQRModalOpen}
         centered
-        onCancel={() => {
-          Modal.confirm({
-            title: 'Are you sure you want to close?',
-            content: 'The QR code will no longer be accessible.',
-            okText: 'Yes',
-            cancelText: 'No',
-            onOk() { setIsQRModalOpen(false); }
-          });
-        }}
-        footer={[
-          <Button
-            key="close"
-            onClick={() => {
-              Modal.confirm({
-                title: 'Are you sure you want to close?',
-                content: 'The QR code will no longer be accessible.',
-                okText: 'Yes',
-                cancelText: 'No',
-                onOk() { setIsQRModalOpen(false); }
-              });
-            }}
-          >
-            Close
-          </Button>
-        ]}
+        onCancel={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}
+        footer={[<Button key="close" onClick={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}>Close</Button>]}
         destroyOnClose
         maskClosable={false}
       >
         <div style={{ textAlign: 'center', padding: 24 }}>
           {qrData ? (
             <>
-              <img
-                src={qrData}
-                alt="Attendance QR Code"
-                style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
-              />
-              {currentSession && !currentSession.ended && (
-                <SessionTimer end={currentSession.endSession} />
-              )}
-              <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>
-                Scan this QR code to mark attendance.
-              </Typography.Text>
+              <img src={qrData} alt="Attendance QR Code" style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+              {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
+              <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>Scan this QR code to mark attendance.</Typography.Text>
             </>
           ) : (
             <div style={{ textAlign: "center", padding: 24 }}>

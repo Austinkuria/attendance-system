@@ -1,5 +1,4 @@
 import axios from "axios";
-import axiosRetry from "axios-retry";
 
 // Use environment variable for base URL, with fallback
 const API_URL = import.meta.env.VITE_API_URL || "https://attendance-system-w70n.onrender.com/api";
@@ -1012,43 +1011,16 @@ export const submitQuizAnswers = async (quizSubmissionData) => {
 };
 
 // Session related endpoints
-// export const createSession = async ({ unitId, lecturerId, startTime, endTime }) => {
-//   try {
-//     const token = localStorage.getItem('token');
-
-//     // Log the request payload before making the API call
-//     console.log("API Call - Creating session with:", { unitId, lecturerId, startTime, endTime });
-
-//     const response = await axios.post(
-//       `${API_URL}/sessions/create`,
-//       { unitId, lecturerId, startTime, endTime },  // Ensure correct payload
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-
-//     console.log("API Response:", response.data);
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error in API Call - createSession:", error.response ? error.response.data : error.message);
-    
-//     // Re-throw the error so it can be caught in the frontend
-//     throw error;
-//   }
-// };
-
-// Apply retry logic to axios
-axiosRetry(axios, { retries: 3, retryCondition: (error) => error.response.status === 429, retryDelay: (retryCount, error) => {
-  const retryAfter = error.response.headers['retry-after'];
-  return retryAfter ? retryAfter * 1000 : axiosRetry.exponentialDelay(retryCount);
-}});
-
 export const createSession = async ({ unitId, lecturerId, startTime, endTime }) => {
   try {
     const token = localStorage.getItem('token');
+
+    // Log the request payload before making the API call
     console.log("API Call - Creating session with:", { unitId, lecturerId, startTime, endTime });
 
     const response = await axios.post(
       `${API_URL}/sessions/create`,
-      { unitId, lecturerId, startTime, endTime },
+      { unitId, lecturerId, startTime, endTime },  // Ensure correct payload
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
@@ -1056,24 +1028,27 @@ export const createSession = async ({ unitId, lecturerId, startTime, endTime }) 
     return response.data;
   } catch (error) {
     console.error("Error in API Call - createSession:", error.response ? error.response.data : error.message);
+    
+    // Re-throw the error so it can be caught in the frontend
     throw error;
   }
 };
 
 
-// export const getSession = async (sessionId) => {
-//   try {
-//     const token = localStorage.getItem('token');
-//     const response = await axios.get(
-//       `${API_URL}/sessions/${sessionId}`,
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error fetching session:', error);
-//     throw error;
-//   }
-// };
+
+export const getSession = async (sessionId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(
+      `${API_URL}/sessions/${sessionId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching session:', error);
+    throw error;
+  }
+};
 
 // ✅ Mark Attendance (Student Scans QR Code)
 export const markAttendance = async (sessionId, studentId, token) => {
