@@ -3,7 +3,8 @@ const {
   detectCurrentSession, 
   createSession, 
   endSession, 
-  getLastSession 
+  getLastSession,
+  regenerateQR
 } = require('../controllers/session.controller');
 const authenticate = require('../middleware/authMiddleware');
 
