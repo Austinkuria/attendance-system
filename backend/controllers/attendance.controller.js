@@ -137,14 +137,69 @@ exports.updateAttendanceStatus = async (req, res) => {
 };
 
 
+// exports.getAttendanceTrends = async (req, res) => {
+//   try {
+//     const { unitId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(unitId)) {
+//       return res.status(400).json({ message: "Invalid unit ID format" });
+//     }
+
+//     const sessions = await Session.find({ unit: unitId }) // Keep ended: false for active sessions
+//       .sort({ startTime: 1 })
+//       .select('startTime _id');
+
+//     if (!sessions.length) {
+//       return res.status(200).json({ labels: [], present: [], absent: [], rates: [] });
+//     }
+
+//     const trends = await Promise.all(sessions.map(async (session) => {
+//       const stats = await Attendance.aggregate([
+//         { $match: { session: session._id } },
+//         { $group: { _id: "$status", count: { $sum: 1 } } }
+//       ]);
+
+//       const presentCount = stats.find(stat => stat._id === "Present")?.count || 0;
+//       const absentCount = stats.find(stat => stat._id === "Absent")?.count || 0;
+//       const total = presentCount + absentCount;
+//       const rate = total > 0 ? (presentCount / total) * 100 : 0;
+
+//       return {
+//         date: session.startTime.toISOString().split('T')[0],
+//         present: presentCount,
+//         absent: absentCount,
+//         rate: Number(rate.toFixed(1))
+//       };
+//     }));
+
+//     const response = {
+//       labels: trends.map(t => t.date),
+//       present: trends.map(t => t.present),
+//       absent: trends.map(t => t.absent),
+//       rates: trends.map(t => t.rate)
+//     };
+
+//     res.status(200).json(response);
+//   } catch (error) {
+//     console.error("Error fetching attendance trends:", error);
+//     res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
+//   }
+// };
+
 exports.getAttendanceTrends = async (req, res) => {
   try {
     const { unitId } = req.params;
+    const { startDate, endDate } = req.query;
+
     if (!mongoose.Types.ObjectId.isValid(unitId)) {
       return res.status(400).json({ message: "Invalid unit ID format" });
     }
 
-    const sessions = await Session.find({ unit: unitId }) // Keep ended: false for active sessions
+    let query = { unit: unitId };
+    if (startDate && endDate) {
+      query.startTime = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+
+    const sessions = await Session.find(query)
       .sort({ startTime: 1 })
       .select('startTime _id');
 
@@ -184,102 +239,6 @@ exports.getAttendanceTrends = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
   }
 };
-
-// exports.getCourseAttendanceRate = async (req, res) => {
-//   try {
-//     const { courseId } = req.params;
-//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
-//       return res.status(400).json({ message: "Invalid course ID format" });
-//     }
-
-//     // Step 1: Find all units for the course
-//     const units = await Unit.find({ course: courseId });
-//     if (!units.length) {
-//       return res.status(200).json({ present: 0, absent: 0 });
-//     }
-
-//     const unitIds = units.map(unit => unit._id);
-
-//     // Step 2: Find all sessions for these units
-//     const sessions = await Session.find({ unit: { $in: unitIds } });
-//     if (!sessions.length) {
-//       return res.status(200).json({ present: 0, absent: 0 });
-//     }
-
-//     const sessionIds = sessions.map(session => session._id);
-
-//     // Step 3: Aggregate attendance for these sessions
-//     const stats = await Attendance.aggregate([
-//       { $match: { session: { $in: sessionIds } } },
-//       { $group: { _id: "$status", count: { $sum: 1 } } }
-//     ]);
-
-//     const present = stats.find(s => s._id === "Present")?.count || 0;
-//     const absent = stats.find(s => s._id === "Absent")?.count || 0;
-
-//     res.status(200).json({ present, absent });
-//   } catch (error) {
-//     console.error("Error fetching course attendance rate:", error);
-//     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
-//   }
-// };
-
-// exports.getCourseAttendanceRate = async (req, res) => {
-//   try {
-//     const { courseId } = req.params;
-//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
-//       return res.status(400).json({ message: "Invalid course ID format" });
-//     }
-
-//     // Find units for the course
-//     const units = await Unit.find({ course: courseId }).populate('studentsEnrolled');
-//     if (!units.length) {
-//       return res.status(200).json({ totalPresent: 0, totalPossible: 0, trends: [] });
-//     }
-
-//     const unitIds = units.map(unit => unit._id);
-//     const totalEnrolled = units.reduce((sum, unit) => sum + (unit.studentsEnrolled?.length || 0), 0);
-
-//     // Find sessions for these units
-//     const sessions = await Session.find({ unit: { $in: unitIds } }).sort({ startTime: 1 });
-//     const sessionCount = sessions.length;
-//     if (!sessionCount) {
-//       return res.status(200).json({ totalPresent: 0, totalPossible: 0, trends: [] });
-//     }
-
-//     const totalPossible = totalEnrolled * sessionCount;
-//     const sessionIds = sessions.map(session => session._id);
-
-//     // Aggregate total attendance
-//     const totalStats = await Attendance.aggregate([
-//       { $match: { session: { $in: sessionIds } } },
-//       { $group: { _id: "$status", count: { $sum: 1 } } }
-//     ]);
-//     const totalPresent = totalStats.find(s => s._id === "Present")?.count || 0;
-
-//     // Aggregate per-session trends
-//     const trends = await Promise.all(sessions.map(async (session) => {
-//       const stats = await Attendance.aggregate([
-//         { $match: { session: session._id, status: "Present" } },
-//         { $group: { _id: null, count: { $sum: 1 } } }
-//       ]);
-//       const present = stats[0]?.count || 0;
-//       const possible = totalEnrolled; // Per session
-//       const rate = possible > 0 ? Math.round((present / possible) * 100) : 0;
-//       return {
-//         date: session.startTime.toISOString().split('T')[0],
-//         present,
-//         absent: possible - present,
-//         rate
-//       };
-//     }));
-
-//     res.status(200).json({ totalPresent, totalPossible, trends });
-//   } catch (error) {
-//     console.error("Error fetching course attendance rate:", error);
-//     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
-//   }
-// };
 
 exports.getCourseAttendanceRate = async (req, res) => {
   try {
@@ -405,7 +364,6 @@ exports.getCourseAttendanceRate = async (req, res) => {
   }
 };
 
-// exports.getCourseAttendanceRate = async (req, res) => {
 //   try {
 //     const { courseId } = req.params;
 //     if (!mongoose.Types.ObjectId.isValid(courseId)) {

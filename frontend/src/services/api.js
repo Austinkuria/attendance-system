@@ -1203,6 +1203,24 @@ export const getLastSession = async (unitId) => {
   }
 };
 
+// export const getAttendanceTrends = async (unitId) => {
+//   try {
+//     const token = localStorage.getItem('token');
+//     if (!token) throw new Error("Authentication token missing");
+    
+//     const response = await axios.get(`${API_URL}/attendance/trends/${unitId}`, {
+//       headers: {
+//         "Authorization": `Bearer ${token}`,
+//         "Content-Type": "application/json"
+//       }
+//     });
+    
+//     return response.data;
+//   } catch (error) {
+//     console.error("Error fetching attendance trends:", error);
+//     throw error.response?.data || new Error("Failed to fetch attendance trends");
+//   }
+// };
 export const getAttendanceTrends = async (unitId, startDate, endDate) => {
   try {
     const token = localStorage.getItem('token');
@@ -1213,8 +1231,11 @@ export const getAttendanceTrends = async (unitId, startDate, endDate) => {
     if (endDate) params.endDate = endDate;
 
     const response = await axios.get(`${API_URL}/attendance/trends/${unitId}`, {
-      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
-      params
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      },
+      params // Pass query parameters
     });
 
     return response.data;
