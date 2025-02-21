@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, Form
+  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col
 } from 'antd';
 import {
   QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined
@@ -282,7 +282,12 @@ const AttendanceManagement = () => {
         throw new Error('Invalid session times received from API');
       }
       message.success('Session created successfully');
-      setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime, ended: false });
+      setCurrentSession({ 
+        ...data, 
+        startSession: validStartTime, 
+        endSession: validEndTime,
+        ended: false
+      });
       setQrData(data.qrCode);
     } catch (error) {
       console.error("Error creating session:", error);
@@ -356,6 +361,7 @@ const AttendanceManagement = () => {
               sessionId: currentSession?._id
             });
             message.error(error.response?.data?.message || 'Failed to end session. Please check console for details.');
+
           } finally {
             setLoading(prevState => ({ ...prevState, session: false }));
           }
@@ -558,60 +564,72 @@ const AttendanceManagement = () => {
             size="small"
             extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
           >
-            <Form layout={screens.md ? 'inline' : 'vertical'}>
-              <Form.Item label="Department">
-                <Select
-                  placeholder="Select Department"
-                  style={{ width: 160 }}
-                  onChange={handleDepartmentChange}
-                  allowClear
-                  value={unitFilters.department}
-                >
-                  {departments.map(department => (
-                    <Option key={department._id} value={department.name}>{department.name}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item label="Course">
-                <Select
-                  placeholder="Course"
-                  style={{ width: 180 }}
-                  onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
-                  allowClear
-                  value={unitFilters.course}
-                >
-                  {filterOptions.courses.map(course => (
-                    <Option key={course} value={course}>{course}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item label="Year">
-                <Select
-                  placeholder="Year"
-                  style={{ width: 120 }}
-                  onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
-                  allowClear
-                  value={unitFilters.year}
-                >
-                  {filterOptions.years.map(year => (
-                    <Option key={year} value={year}>Year {year}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item label="Semester">
-                <Select
-                  placeholder="Semester"
-                  style={{ width: 140 }}
-                  onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
-                  allowClear
-                  value={unitFilters.semester}
-                >
-                  {filterOptions.semesters.map(sem => (
-                    <Option key={sem} value={sem}>Sem {sem}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-            </Form>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Department</Text>
+                  <Select
+                    placeholder="Select Department"
+                    style={{ width: '100%', maxWidth: 160 }}
+                    onChange={handleDepartmentChange}
+                    allowClear
+                    value={unitFilters.department}
+                  >
+                    {departments.map(department => (
+                      <Option key={department._id} value={department.name}>{department.name}</Option>
+                    ))}
+                  </Select>
+                </Space>
+              </Col>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Course</Text>
+                  <Select
+                    placeholder="Course"
+                    style={{ width: '100%', maxWidth: 180 }}
+                    onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
+                    allowClear
+                    value={unitFilters.course}
+                  >
+                    {filterOptions.courses.map(course => (
+                      <Option key={course} value={course}>{course}</Option>
+                    ))}
+                  </Select>
+                </Space>
+              </Col>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Year</Text>
+                  <Select
+                    placeholder="Year"
+                    style={{ width: '100%', maxWidth: 120 }}
+                    onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
+                    allowClear
+                    value={unitFilters.year}
+                  >
+                    {filterOptions.years.map(year => (
+                      <Option key={year} value={year}>Year {year}</Option>
+                    ))}
+                  </Select>
+                </Space>
+              </Col>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Semester</Text>
+                  <Select
+                    placeholder="Semester"
+                    style={{ width: '100%', maxWidth: 140 }}
+                    onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
+                    allowClear
+                    value={unitFilters.semester}
+                  >
+                    {filterOptions.semesters.map(sem => (
+                      <Option key={sem} value={sem}>Sem {sem}</Option>
+                    ))}
+                  </Select>
+                </Space>
+              </Col>
+            </Row>
           </Card>
 
           <Space wrap>
@@ -653,58 +671,70 @@ const AttendanceManagement = () => {
             }
             size="small"
           >
-            <Form layout={screens.md ? 'inline' : 'vertical'}>
-              <Form.Item label="Search Reg Number">
-                <Input
-                  placeholder="Search by Reg Number"
-                  prefix={<SearchOutlined />}
-                  style={{ width: 240 }}
-                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  allowClear
-                />
-              </Form.Item>
-              <Form.Item label="Year">
-                <Select
-                  placeholder="Filter by Year"
-                  allowClear
-                  suffixIcon={<CalendarOutlined />}
-                  style={{ width: 150 }}
-                  onChange={year => setFilters(prev => ({ ...prev, year }))}
-                  value={filters.year}
-                >
-                  {[1, 2, 3, 4].map(year => (
-                    <Option key={year} value={year}>Year {year}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item label="Semester">
-                <Select
-                  placeholder="Filter by Semester"
-                  allowClear
-                  suffixIcon={<BookOutlined />}
-                  style={{ width: 170 }}
-                  onChange={semester => setFilters(prev => ({ ...prev, semester }))}
-                  value={filters.semester}
-                >
-                  {[1, 2, 3].map(sem => (
-                    <Option key={sem} value={sem}>Semester {sem}</Option>
-                  ))}
-                </Select>
-              </Form.Item>
-              <Form.Item label="Status">
-                <Select
-                  placeholder="Filter by Status"
-                  allowClear
-                  suffixIcon={<FilterOutlined />}
-                  style={{ width: 150 }}
-                  onChange={status => setFilters(prev => ({ ...prev, status }))}
-                  value={filters.status}
-                >
-                  <Option value="present">Present</Option>
-                  <Option value="absent">Absent</Option>
-                </Select>
-              </Form.Item>
-            </Form>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Search Reg Number</Text>
+                  <Input
+                    placeholder="Search by Reg Number"
+                    prefix={<SearchOutlined />}
+                    style={{ width: '100%', maxWidth: 240 }}
+                    onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                    allowClear
+                  />
+                </Space>
+              </Col>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Year</Text>
+                  <Select
+                    placeholder="Filter by Year"
+                    allowClear
+                    suffixIcon={<CalendarOutlined />}
+                    style={{ width: '100%', maxWidth: 150 }}
+                    onChange={year => setFilters(prev => ({ ...prev, year }))}
+                    value={filters.year}
+                  >
+                    {[1, 2, 3, 4].map(year => (
+                      <Option key={year} value={year}>Year {year}</Option>
+                    ))}
+                  </Select>
+                </Space>
+              </Col>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Semester</Text>
+                  <Select
+                    placeholder="Filter by Semester"
+                    allowClear
+                    suffixIcon={<BookOutlined />}
+                    style={{ width: '100%', maxWidth: 170 }}
+                    onChange={semester => setFilters(prev => ({ ...prev, semester }))}
+                    value={filters.semester}
+                  >
+                    {[1, 2, 3].map(sem => (
+                      <Option key={sem} value={sem}>Semester {sem}</Option>
+                    ))}
+                  </Select>
+                </Space>
+              </Col>
+              <Col xs={24} md={6}>
+                <Space direction="vertical" style={{ width: '100%' }}>
+                  <Text>Status</Text>
+                  <Select
+                    placeholder="Filter by Status"
+                    allowClear
+                    suffixIcon={<FilterOutlined />}
+                    style={{ width: '100%', maxWidth: 150 }}
+                    onChange={status => setFilters(prev => ({ ...prev, status }))}
+                    value={filters.status}
+                  >
+                    <Option value="present">Present</Option>
+                    <Option value="absent">Absent</Option>
+                  </Select>
+                </Space>
+              </Col>
+            </Row>
           </Card>
 
           <Skeleton active loading={loading.attendance}>
@@ -763,7 +793,9 @@ const AttendanceManagement = () => {
                 alt="Attendance QR Code"
                 style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
               />
-              {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
+              {currentSession && !currentSession.ended && (
+                <SessionTimer end={currentSession.endSession} />
+              )}
               <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>
                 Scan this QR code to mark attendance.
               </Typography.Text>
