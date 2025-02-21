@@ -110,3 +110,28 @@ exports.getLastSession = async (req, res) => {
     res.status(500).json({ message: 'Error fetching last session', error: error.message });
   }
 };
+
+exports.regenerateQR = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!mongoose.isValidObjectId(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID format" });
+    }
+
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+    if (session.ended) {
+      return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
+    }
+
+    session.qrCode = await generateQRToken(session);
+    await session.save();
+
+    res.status(200).json({ message: "QR code regenerated successfully", qrCode: session.qrCode });
+  } catch (error) {
+    console.error("Error regenerating QR code:", error);
+    res.status(500).json({ message: "Error regenerating QR code", error: error.message });
+  }
+};

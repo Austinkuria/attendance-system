@@ -6,7 +6,8 @@ const generateQRToken = async (session) => {
     const qrData = {
       s: session._id.toString(), // session ID
       u: session.unit.toString(), // unit ID
-      t: Math.floor(Date.now() / 1000) // timestamp
+      t: Math.floor(Date.now() / 1000),// timestamp
+      r: crypto.randomBytes(8).toString("hex"),// random string
     };
     
     // Convert to JSON and encode as base64

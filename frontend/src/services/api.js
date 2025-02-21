@@ -1050,17 +1050,37 @@ export const getSession = async (sessionId) => {
   }
 };
 
-// ✅ Mark Attendance (Student Scans QR Code)
-export const markAttendance = async (sessionId, studentId, token) => {
+// // ✅ Mark Attendance (Student Scans QR Code)
+// export const markAttendance = async (sessionId, studentId, token) => {
+//   try {
+//     // Validate studentId is a valid ObjectId format
+//     if (!/^[0-9a-fA-F]{24}$/.test(studentId)) {
+//       throw new Error("Invalid student ID format");
+//     }
+
+//     const response = await axios.post(
+//       `${API_URL}/attendance/mark`,
+//       { sessionId, studentId },
+//       {
+//         headers: {
+//           Authorization: `Bearer ${token}`,
+//         },
+//       }
+//     );
+//     return response.data;
+//   } catch (error) {
+//     throw error.response ? error.response.data : new Error(error.message || "Network error");
+//   }
+// };
+export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken) => {
   try {
-    // Validate studentId is a valid ObjectId format
     if (!/^[0-9a-fA-F]{24}$/.test(studentId)) {
       throw new Error("Invalid student ID format");
     }
 
     const response = await axios.post(
       `${API_URL}/attendance/mark`,
-      { sessionId, studentId },
+      { sessionId, studentId, deviceId, qrToken },
       {
         headers: {
           Authorization: `Bearer ${token}`,
@@ -1073,6 +1093,18 @@ export const markAttendance = async (sessionId, studentId, token) => {
   }
 };
 
+export const regenerateQR = async (sessionId, token) => {
+  try {
+    const response = await axios.post(
+      `${API_URL}/sessions/regenerate-qr`,
+      { sessionId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    throw error.response ? error.response.data : new Error(error.message || "Network error");
+  }
+};
 
 // ✅ End Session (Lecturer Ends the Attendance Session)
 export const endSession = async (sessionId) => {
@@ -1110,12 +1142,17 @@ export const getStudentAttendance = async (studentId) => {
       { headers: { Authorization: `Bearer ${token}` } }
     );
 
-    if (!response.data || !response.data.attendanceRecords) {
+    if (!response.data) {
       console.warn('Unexpected response format:', response.data);
-      return { attendanceRecords: [] }; // Return empty array if no data
+      return { attendanceRecords: [], weeklyEvents: [], dailyEvents: [] }; // Default structure
     }
 
-    return response.data;
+    // Ensure all expected fields are present, even if empty
+    return {
+      attendanceRecords: response.data.attendanceRecords || [],
+      weeklyEvents: response.data.weeklyEvents || [],
+      dailyEvents: response.data.dailyEvents || []
+    };
   } catch (error) {
     console.error('Error fetching student attendance:', error);
     if (error.response) {
@@ -1125,6 +1162,34 @@ export const getStudentAttendance = async (studentId) => {
     }
   }
 };
+
+// export const getStudentAttendance = async (studentId) => {
+//   try {
+//     const token = localStorage.getItem('token');
+//     if (!token) {
+//       throw new Error('No authentication token found');
+//     }
+
+//     const response = await axios.get(
+//       `${API_URL}/attendance/student/${studentId}`,
+//       { headers: { Authorization: `Bearer ${token}` } }
+//     );
+
+//     if (!response.data || !response.data.attendanceRecords) {
+//       console.warn('Unexpected response format:', response.data);
+//       return { attendanceRecords: [] }; // Return empty array if no data
+//     }
+
+//     return response.data;
+//   } catch (error) {
+//     console.error('Error fetching student attendance:', error);
+//     if (error.response) {
+//       throw new Error(`Failed to fetch attendance: ${error.response.status} - ${error.response.data.message || error.message}`);
+//     } else {
+//       throw new Error(`Network error: ${error.message}`);
+//     }
+//   }
+// };
 
 export const getSessionAttendance = async (sessionId) => {
   try {

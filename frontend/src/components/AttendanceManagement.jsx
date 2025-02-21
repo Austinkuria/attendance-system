@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col } from 'antd';
-import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, SyncOutlined, ClockCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
@@ -287,7 +287,11 @@ const AttendanceManagement = () => {
     try {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
       const data = await getSessionAttendance(currentSession._id);
-      setAttendance(data);
+      // Ensure data includes deviceId and qrToken from backend
+      setAttendance(data.map(record => ({
+        ...record,
+        deviceVerified: record.deviceId ? true : false // Add verification flag
+      })));
     } catch (error) {
       console.error("Error fetching attendance:", error);
       if (error.response?.status === 429) {
@@ -417,6 +421,30 @@ const AttendanceManagement = () => {
     }
   };
 
+  const handleRegenerateQR = async () => {
+    if (!selectedUnit || !currentSession || currentSession.ended) {
+      message.error('Please select a unit and ensure an active session exists');
+      return;
+    }
+    try {
+      setLoading(prevState => ({ ...prevState, qr: true }));
+      const token = localStorage.getItem('token');
+      const { data } = await axios.post(
+        `https://attendance-system-w70n.onrender.com/api/sessions/regenerate-qr`,
+        { sessionId: currentSession._id },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setQrData(data.qrCode);
+      setCurrentSession(prev => ({ ...prev, qrCode: data.qrCode }));
+      message.success("QR code regenerated successfully");
+    } catch (error) {
+      console.error("Error regenerating QR code:", error);
+      message.error(error.response?.data?.message || "Failed to regenerate QR code");
+    } finally {
+      setLoading(prevState => ({ ...prevState, qr: false }));
+    }
+  };
+
   const handleEndSession = async () => {
     if (!currentSession) return;
     try {
@@ -424,7 +452,7 @@ const AttendanceManagement = () => {
       const token = localStorage.getItem('token');
       Modal.confirm({
         title: 'Are you sure you want to end this session?',
-        content: 'This action cannot be undone.',
+        content: 'This action cannot be undone and will invalidate the current QR code.',
         okText: 'End Session',
         okType: 'danger',
         cancelText: 'Cancel',
@@ -489,20 +517,39 @@ const AttendanceManagement = () => {
     { title: 'Year', dataIndex: 'year', key: 'year', render: year => <Tag color="blue">Year {year}</Tag>, sorter: (a, b) => a.year - b.year },
     { title: 'Semester', dataIndex: 'semester', key: 'semester', render: semester => <Tag color="geekblue">Semester {semester}</Tag>, sorter: (a, b) => a.semester - b.semester },
     { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, filters: [{ text: 'Present', value: 'present' }, { text: 'Absent', value: 'absent' }], onFilter: (value, record) => record.status === value },
-    { title: 'Action', key: 'action', render: (_, record) => (
-      <Button type="link" onClick={() => handleToggleStatus(record._id)} icon={<SyncOutlined />} disabled={currentSession?.ended}>
-        Toggle Status
-      </Button>
-    )}
+    { 
+      title: 'Device Verified', 
+      dataIndex: 'deviceVerified', 
+      key: 'deviceVerified', 
+      render: verified => <Tag color={verified ? 'cyan' : 'red'}>{verified ? 'Yes' : 'No'}</Tag>,
+      filters: [{ text: 'Verified', value: true }, { text: 'Not Verified', value: false }],
+      onFilter: (value, record) => record.deviceVerified === value
+    },
+    { 
+      title: 'Action', 
+      key: 'action', 
+      render: (_, record) => (
+        <Button 
+          type="link" 
+          onClick={() => handleToggleStatus(record._id)} 
+          icon={<SyncOutlined />} 
+          disabled={currentSession?.ended || record.deviceVerified} // Disable if session ended or device verified
+        >
+          Toggle Status
+        </Button>
+      )
+    }
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
-  const { attendanceRate, totalEnrolledStudents } = useMemo(() => {
+  const { attendanceRate, totalEnrolledStudents, verifiedScans } = useMemo(() => {  //eslint-disable-line 
     const presentCount = attendance.filter(a => a.status === 'present').length;
     const totalStudents = attendance.length || 1;
+    const verifiedCount = attendance.filter(a => a.deviceVerified).length;
     return {
       attendanceRate: totalStudents > 0 ? Number(((presentCount / totalStudents) * 100).toFixed(1)) : 0,
-      totalEnrolledStudents: attendance.length
+      totalEnrolledStudents: attendance.length,
+      verifiedScans: verifiedCount
     };
   }, [attendance]);
 
@@ -510,7 +557,7 @@ const AttendanceManagement = () => {
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
       <Col xs={24} sm={12} md={8}><Card><Statistic title="Assigned Units" value={totalAssignedUnits} prefix={<TeamOutlined />} loading={loading.stats} /></Card></Col>
       <Col xs={24} sm={12} md={8}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.stats} /></Card></Col>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Total no of scans" value={totalEnrolledStudents} prefix={<ScheduleOutlined />} loading={loading.stats} /></Card></Col>
+      <Col xs={24} sm={12} md={8}><Card><Statistic title="Verified Scans" value={verifiedScans} prefix={<SafetyOutlined />} loading={loading.stats} /></Card></Col>
     </Row>
   );
 
@@ -580,7 +627,12 @@ const AttendanceManagement = () => {
           <Row gutter={[16, 16]}>
             <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
             <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
-            <Col span={24}><Button danger onClick={handleEndSession} loading={loading.session}>End Session Early</Button></Col>
+            <Col span={24}>
+              <Space>
+                <Button danger onClick={handleEndSession} loading={loading.session}>End Session Early</Button>
+                <Button onClick={handleRegenerateQR} loading={loading.qr}>Regenerate QR</Button>
+              </Space>
+            </Col>
           </Row>
         </Card>
       ) : null}
@@ -599,7 +651,7 @@ const AttendanceManagement = () => {
               disabled={!selectedUnit || !currentSession || currentSession?.ended}
               loading={loading.qr}
             >
-              {screens.md ? 'Generate QR Code' : 'QR Code'}
+              {screens.md ? 'Show QR Code' : 'QR Code'}
             </Button>
             <Button
               type="primary"
@@ -772,7 +824,10 @@ const AttendanceManagement = () => {
         open={isQRModalOpen}
         centered
         onCancel={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}
-        footer={[<Button key="close" onClick={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}>Close</Button>]}
+        footer={[
+          <Button key="regenerate" type="primary" onClick={handleRegenerateQR} loading={loading.qr}>Regenerate QR</Button>,
+          <Button key="close" onClick={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}>Close</Button>
+        ]}
         destroyOnClose
         maskClosable={false}
       >
@@ -781,7 +836,9 @@ const AttendanceManagement = () => {
             <>
               <img src={qrData} alt="Attendance QR Code" style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
               {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
-              <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>Scan this QR code to mark attendance.</Typography.Text>
+              <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>
+                Scan this QR code to mark attendance. Regenerate if needed.
+              </Typography.Text>
             </>
           ) : (
             <div style={{ textAlign: "center", padding: 24 }}>

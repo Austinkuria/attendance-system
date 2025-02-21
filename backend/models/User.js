@@ -32,6 +32,7 @@ const userSchema = new mongoose.Schema(
     assignedUnits: [{ type: mongoose.Schema.Types.ObjectId, ref: "Unit" }], // Lecturers
     resetPasswordToken: String,
     resetPasswordExpires: Date,
+    deviceId: { type: String }
   },
   { timestamps: true }
 );

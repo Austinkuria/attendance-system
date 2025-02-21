@@ -11,7 +11,7 @@ body {
   .ant-card-head {
     background: #fafafa;
     border-bottom: none;
-    padding: 8px 16px !important; /* Consistent header padding */
+    padding: 8px 16px !important;
   }
   
   .ant-card-head-title {
@@ -30,7 +30,6 @@ body {
     font-size: clamp(24px, 6vw, 32px);
   }
   
-  /* Responsive adjustments */
   @media (max-width: 576px) {
     .ant-layout-content {
       padding: 16px !important;

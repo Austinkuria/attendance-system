@@ -7,6 +7,7 @@ const sessionSchema = new mongoose.Schema({
   endTime: { type: Date, required: true },
   qrCode: { type: String }, // Changed from required: true
   ended: { type: Boolean, default: false }
+  
 }, { timestamps: true });
 
 module.exports = mongoose.model("Session", sessionSchema);

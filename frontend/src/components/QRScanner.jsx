@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Spin, message } from "antd";
+import { Button, Spin, Alert, Typography, Card, message } from "antd";
 import QrScanner from "qr-scanner";
-import { markAttendance, getCurrentSession } from "../services/api"; // Updated API imports
+import { markAttendance, getCurrentSession } from "../services/api";
+import FingerprintJS from "@fingerprintjs/fingerprintjs";
+import "./QrStyles.css";
 
-import "./QrStyles.css"; // Custom styles for the QR scanner
+const { Title, Text } = Typography;
 
 const QRScanner = () => {
   const scanner = useRef(null);
@@ -15,10 +17,21 @@ const QRScanner = () => {
   const [scannedResult, setScannedResult] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [sessionEnded, setSessionEnded] = useState(false);
+  const [deviceId, setDeviceId] = useState(null);
 
   const { selectedUnit } = useParams();
   const navigate = useNavigate();
   const scanTimeoutRef = useRef(null);
+
+  // Generate device fingerprint
+  useEffect(() => {
+    const generateDeviceFingerprint = async () => {
+      const fp = await FingerprintJS.load();
+      const result = await fp.get();
+      setDeviceId(result.visitorId);
+    };
+    generateDeviceFingerprint();
+  }, []);
 
   // Fetch the current session
   useEffect(() => {
@@ -27,13 +40,12 @@ const QRScanner = () => {
         const session = await getCurrentSession(selectedUnit);
         if (session && session._id) {
           setSessionId(session._id);
-          // Check if the session is already ended
           const now = new Date();
           if (new Date(session.endTime) <= now) {
             setSessionEnded(true);
           }
         } else {
-          setSessionEnded(true); // No session found, prevent scanning
+          setSessionEnded(true);
         }
       } catch {
         message.error("Error fetching session details.");
@@ -44,37 +56,49 @@ const QRScanner = () => {
   }, [selectedUnit]);
 
   // Success handler
-  const onScanSuccess = useCallback(async (result) => {
-    if (!sessionId || sessionEnded) {
-      message.error("Session has ended. Attendance cannot be marked.");
-      return;
-    }
-  
-    stopScanner();
-    setScannedResult(result?.data);
-    setLoading(true);
-    clearTimeout(scanTimeoutRef.current);
-  
-    try {
-      const token = localStorage.getItem("token");
-      const studentId = localStorage.getItem("userId"); // Get actual student ID from localStorage
-      
-      if (!studentId) {
-        throw new Error("Student ID not found. Please log in again.");
+  const onScanSuccess = useCallback(
+    async (result) => {
+      if (!sessionId || sessionEnded) {
+        message.error("Session has ended. Attendance cannot be marked.");
+        return;
       }
 
-      await markAttendance(sessionId, studentId, token);
-      message.success("Attendance marked successfully!");
-      navigate("/student-dashboard");
-    } catch (err) {
-      message.error(err.response?.data?.message || "Error marking attendance");
-      scanner.current?.start(); // Re-enable scanner if error occurs
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId, sessionEnded, navigate]);
+      stopScanner();
+      setScannedResult(result?.data);
+      setLoading(true);
+      clearTimeout(scanTimeoutRef.current);
 
-  
+      try {
+        const token = localStorage.getItem("token");
+        const studentId = localStorage.getItem("userId");
+
+        if (!studentId || !token) {
+          throw new Error("Authentication failed. Please log in again.");
+        }
+        if (!deviceId) {
+          throw new Error("Device identification failed.");
+        }
+
+        // Parse QR code data (base64 encoded)
+        const base64Data = result.data;
+        const decodedData = JSON.parse(atob(base64Data));
+        if (decodedData.s !== sessionId) {
+          throw new Error("Invalid QR code for this session.");
+        }
+
+        await markAttendance(sessionId, studentId, token, deviceId, base64Data);
+        message.success("Attendance marked successfully!");
+        navigate("/student-dashboard");
+      } catch (err) {
+        message.error(err.response?.data?.message || "Error marking attendance");
+        scanner.current?.start();
+      } finally {
+        setLoading(false);
+      }
+    },
+    [sessionId, sessionEnded, navigate, deviceId]
+  );
+
   // Start scanner
   useEffect(() => {
     if (!videoEl.current || sessionEnded) return;
@@ -86,7 +110,7 @@ const QRScanner = () => {
       highlightCodeOutline: true,
       overlay: qrBoxEl.current || undefined,
       maxScansPerSecond: 1,
-      returnDetailedScanResult: true
+      returnDetailedScanResult: true,
     });
 
     scanner.current
@@ -126,28 +150,36 @@ const QRScanner = () => {
     }
   }, [qrOn]);
 
+  const handleCancel = () => {
+    stopScanner();
+    navigate("/student-dashboard");
+  };
+
   return (
     <div className="qr-scanner-container">
-      <div className="qr-scanner-header">
-        <h2>{sessionEnded ? "Session Ended" : "Scan QR Code to Mark Attendance"}</h2>
-        <Button
-          type="primary"
-          danger
-          onClick={() => {
-            stopScanner();
-            navigate("/student-dashboard");
-          }}
-        >
-          Cancel
-        </Button>
-      </div>
-
-      <div className="qr-video-container">
-        {loading && <div className="scanning-indicator">Scanning...</div>}
+      <Card
+        className="qr-scanner-card"
+        title={
+          <Title level={4} style={{ color: "#fff", margin: 0 }}>
+            {sessionEnded ? "Session Ended" : "Scan QR Code"}
+          </Title>
+        }
+        extra={
+          <Button type="primary" danger onClick={handleCancel} size="middle">
+            Cancel
+          </Button>
+        }
+      >
         {sessionEnded ? (
-          <p className="session-ended-text">Attendance is closed. The session has ended.</p>
+          <Alert
+            message="Session Ended"
+            description="The session has ended, and attendance marking is no longer available."
+            type="error"
+            showIcon
+            style={{ marginBottom: 16 }}
+          />
         ) : (
-          <>
+          <div className="qr-video-container">
             <video ref={videoEl} className="qr-video" />
             <div ref={qrBoxEl} className="qr-box">
               <img
@@ -156,20 +188,20 @@ const QRScanner = () => {
                 className="qr-frame"
               />
             </div>
-          </>
-        )}
-        {loading && (
-          <div className="qr-loading-overlay">
-            <Spin size="large" tip="Marking Attendance..." />
+            {loading && (
+              <div className="qr-loading-overlay">
+                <Spin size="large" tip="Marking Attendance..." />
+              </div>
+            )}
           </div>
         )}
-      </div>
 
-      {scannedResult && (
-        <div className="qr-result">
-          <p>Scanned Result: {scannedResult}</p>
-        </div>
-      )}
+        {scannedResult && !sessionEnded && (
+          <Text className="qr-result" strong>
+            Scanned Result: {scannedResult}
+          </Text>
+        )}
+      </Card>
     </div>
   );
 };

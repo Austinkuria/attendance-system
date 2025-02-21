@@ -37,6 +37,7 @@ import {
   Typography,
   Spin,
   Select,
+  List,
 } from 'antd';
 import {
   UserOutlined,
@@ -65,7 +66,7 @@ const StudentDashboard = () => {
   const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [studentId, setStudentId] = useState(null);
+  const [studentId, setStudentId] = useState(null); // eslint-disable-line no-unused-vars
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('weekly');
   const [selectedDate, setSelectedDate] = useState(null);
@@ -94,17 +95,13 @@ const StudentDashboard = () => {
         getStudentUnits(token),
       ]);
 
-      setStudentId(profileRes._id);
+      setStudentId(profileRes._id); // Assigned but not used directly; kept for consistency
       const unitsData = Array.isArray(unitsRes) ? unitsRes : unitsRes.enrolledUnits || [];
       setUnits(unitsData);
 
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
-        setAttendanceData({
-          attendanceRecords: attendanceRes.attendanceRecords || [],
-          weeklyEvents: attendanceRes.weeklyEvents || [],
-          dailyEvents: attendanceRes.dailyEvents || []
-        });
+        setAttendanceData(attendanceRes);
       }
     } catch (error) {
       message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
@@ -119,7 +116,9 @@ const StudentDashboard = () => {
 
   const calculateAttendanceRate = useCallback(
     (unitId) => {
-      const unitData = attendanceData.attendanceRecords.filter((record) => record.session.unit === unitId);
+      const unitData = attendanceData.attendanceRecords.filter(
+        (record) => record.session.unit._id.toString() === unitId.toString()
+      );
       if (!unitData || unitData.length === 0) return 0;
       const attendedSessions = unitData.filter((att) => att.status === 'Present').length;
       const totalSessions = unitData.length;
@@ -162,10 +161,10 @@ const StudentDashboard = () => {
         label: 'Attendance Rate (%)',
         data: attendanceRates.map((rate) => rate.value),
         backgroundColor: attendanceRates.map((rate) =>
-          rate.value >= 75 ? '#52c41a' : rate.value >= 50 ? '#faad14' : '#ff4d4f'
+          rate.value >= 75 ? '#52c41a' : rate.value >= 50 ? '#faad14' : 'rgba(255, 99, 132, 0.8)'
         ),
         borderColor: attendanceRates.map((rate) =>
-          rate.value >= 75 ? '#389e0d' : rate.value >= 50 ? '#d48806' : '#cf1322'
+          rate.value >= 75 ? '#389e0d' : rate.value >= 50 ? '#d48806' : 'rgba(255, 99, 132, 1)'
         ),
         borderWidth: 1,
         borderRadius: 4,
@@ -218,7 +217,7 @@ const StudentDashboard = () => {
   };
 
   const renderCalendarEvents = () => (
-    <Card style={{ marginTop: 16 }}>
+    <Card style={{ marginTop: '24px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <AntTitle level={3} style={{ textAlign: 'center' }}>
           <CalendarOutlined /> Attendance Events
@@ -245,16 +244,19 @@ const StudentDashboard = () => {
           />
         </Space>
         {filteredEvents().length > 0 ? (
-          <ul>
-            {filteredEvents().map((item, index) => (
-              <li key={index}>
-                {item.title} -{' '}
-                {item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}
-              </li>
-            ))}
-          </ul>
+          <List
+            dataSource={filteredEvents()}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  title={item.title}
+                  description={item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}
+                />
+              </List.Item>
+            )}
+          />
         ) : (
-          <p style={{ textAlign: 'center' }}>No events found for the selected period.</p>
+          <p style={{ textAlign: 'center', color: '#888' }}>No events found for the selected period.</p>
         )}
       </Space>
     </Card>
@@ -280,25 +282,29 @@ const StudentDashboard = () => {
   ];
 
   const openFeedbackModal = (unitId) => {
-    const unitAttendance = attendanceData.attendanceRecords.filter((data) => data.session.unit === unitId);
+    const unitAttendance = attendanceData.attendanceRecords.filter(
+      (data) => data.session.unit._id.toString() === unitId.toString()
+    );
     setActiveSessionId(unitAttendance?.[0]?._id || null);
     setFeedbackModalVisible(true);
   };
 
   const openQuizModal = async (unitId) => {
-    const unitAttendance = attendanceData.attendanceRecords.filter((data) => data.session.unit === unitId);
+    const unitAttendance = attendanceData.attendanceRecords.filter(
+      (data) => data.session.unit._id.toString() === unitId.toString()
+    );
     if (unitAttendance?.length > 0) {
       const latestSession = unitAttendance[0];
       setActiveSessionId(latestSession._id);
       try {
-        const quizData = await getSessionQuiz(latestSession._id);
+        const quizData = await getSessionQuiz(latestSession.session._id);
         if (quizData?.questions) {
           setQuiz(quizData);
           setQuizModalVisible(true);
         } else {
           message.info('No quiz available.');
         }
-      } catch (error) {
+      } catch { 
         message.error('Error fetching quiz.');
       }
     } else {
@@ -317,7 +323,7 @@ const StudentDashboard = () => {
       message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
       setFeedbackData({ rating: 3, text: '' });
-    } catch (error) {
+    } catch { 
       message.error('Error submitting feedback.');
     }
   };
@@ -334,13 +340,13 @@ const StudentDashboard = () => {
       setQuizModalVisible(false);
       setQuizAnswers({});
       setQuiz(null);
-    } catch (error) {
+    } catch { 
       message.error('Error submitting quiz.');
     }
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
       <Header
         style={{
           padding: '0 16px',
@@ -403,12 +409,16 @@ const StudentDashboard = () => {
 
         <Content
           style={{
-            margin: collapsed ? '64px 16px 16px 96px' : '64px 16px 16px 266px',
+            marginTop: 64,
+            marginBottom: 16,
+            marginLeft: collapsed ? 96 : 266,
+            marginRight: 16,
             padding: 24,
-            background: '#f0f2f5',
             minHeight: 'calc(100vh - 64px)',
             overflow: 'auto',
+            maxWidth: 1200,
           }}
+          className="ant-layout-content"
         >
           <Spin spinning={loading} tip="Loading data...">
             <Row gutter={[16, 16]} justify="center">
@@ -472,8 +482,10 @@ const StudentDashboard = () => {
                     title={unit.name || 'Untitled Unit'}
                     extra={<span>{unit.code || 'N/A'}</span>}
                     style={{ borderRadius: 10, width: '100%' }}
-                    styles={{ body: { padding: '16px' }, header: { padding: '8px 16px' } }}
-                    headStyle={{ whiteSpace: 'normal', wordBreak: 'break-word' }}
+                    styles={{ 
+                      body: { padding: '16px' }, 
+                      header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' }
+                    }}
                     onClick={() => setSelectedUnit(unit)}
                   >
                     <Space direction="vertical" style={{ width: '100%' }} size={16}>
@@ -492,6 +504,7 @@ const StudentDashboard = () => {
                             color: '#fff',
                             textAlign: 'center',
                             padding: '2px 0',
+                            transition: 'width 0.5s ease',
                           }}
                         >
                           {calculateAttendanceRate(unit._id)}%
@@ -543,8 +556,8 @@ const StudentDashboard = () => {
             <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>
               Attendance Overview
             </AntTitle>
-            <Card style={{ marginTop: 16 }}>
-              <div style={{ height: '600px' }}>
+            <Card style={{ marginTop: 16, borderRadius: 10 }}>
+              <div style={{ height: '400px' }}>
                 <Bar data={chartData} options={chartOptions} />
               </div>
               <Button
@@ -575,14 +588,14 @@ const StudentDashboard = () => {
 
             <Modal
               open={feedbackModalVisible}
-              title="Session Feedback"
+              title="Session Feedback" // No unescaped entities here; adjust if needed
               onCancel={() => setFeedbackModalVisible(false)}
               onOk={handleFeedbackSubmit}
               centered
               width={Math.min(window.innerWidth * 0.9, 400)}
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <p>How was today's class?</p>
+                <p>How was today&apos;s class?</p> {/* Escaped single quote */}
                 <Rate
                   allowHalf
                   value={feedbackData.rating}
@@ -614,7 +627,7 @@ const StudentDashboard = () => {
                       value={quizAnswers[index]}
                     >
                       <Space direction="vertical">
-                        {q.options.map((opt, idx) => (
+                        {q.options?.map((opt, idx) => (
                           <Radio key={idx} value={opt.optionText}>
                             {opt.optionText}
                           </Radio>

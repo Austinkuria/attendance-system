@@ -32,7 +32,11 @@ const AttendanceSchema = new mongoose.Schema({
   updatedAt: { 
     type: Date, 
     default: null
-  }
+  },
+  deviceId: { 
+    type: String, 
+    required: true 
+  },
 }, { timestamps: true });
 
 AttendanceSchema.index({ session: 1, status: 1 });

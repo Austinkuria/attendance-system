@@ -3,15 +3,28 @@ const Attendance = require('../models/Attendance');
 const User = require("../models/User");
 const mongoose = require('mongoose');
 const Unit = require('../models/Unit');
+const jwt = require("jsonwebtoken"); // For token verification
 
 exports.markAttendance = async (req, res) => {
   try {
-    const { sessionId, studentId } = req.body;
+    const { sessionId, studentId, deviceId, qrToken } = req.body;
 
+    // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
+    // Verify token matches studentId
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) {
+      return res.status(401).json({ message: "No token provided" });
+    }
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    if (decoded.userId !== studentId) {
+      return res.status(403).json({ message: "Unauthorized: Token does not match student ID" });
+    }
+
+    // Verify session
     const session = await Session.findById(sessionId);
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
@@ -22,16 +35,44 @@ exports.markAttendance = async (req, res) => {
       return res.status(400).json({ message: "Session is not active" });
     }
 
+    // Verify QR token
+    const decodedQr = JSON.parse(Buffer.from(qrToken, "base64").toString());
+    if (decodedQr.s !== sessionId || !session.qrCode || session.qrCode !== qrToken) {
+      return res.status(400).json({ message: "Invalid QR code" });
+    }
+
+    // Check if QR code has been used
+    const existingAttendanceForQr = await Attendance.findOne({ session: sessionId, qrToken });
+    if (existingAttendanceForQr) {
+      return res.status(400).json({ message: "QR code already used" });
+    }
+
+    // Check existing attendance for student
     const existingRecord = await Attendance.findOne({ session: sessionId, student: studentId });
     if (existingRecord) {
       return res.status(400).json({ message: "Attendance already marked" });
     }
 
+    // Check device consistency
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+    if (!student.deviceId) {
+      student.deviceId = deviceId; // Register device if first time
+      await student.save();
+    } else if (student.deviceId !== deviceId) {
+      return res.status(403).json({ message: "Unauthorized device detected" });
+    }
+
+    // Mark attendance
     const attendance = new Attendance({
       session: sessionId,
       student: studentId,
       status: "Present",
-      markedBy: req.user?._id // Add lecturer ID if available from auth middleware
+      deviceId,
+      qrToken, // Store QR token to track usage
+      markedBy: req.user?._id,
     });
 
     await attendance.save();
@@ -41,6 +82,44 @@ exports.markAttendance = async (req, res) => {
     res.status(500).json({ message: "Error marking attendance", error: error.message });
   }
 };
+
+// exports.markAttendance = async (req, res) => {
+//   try {
+//     const { sessionId, studentId } = req.body;
+
+//     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
+//       return res.status(400).json({ message: "Invalid ID format" });
+//     }
+
+//     const session = await Session.findById(sessionId);
+//     if (!session) {
+//       return res.status(404).json({ message: "Session not found" });
+//     }
+
+//     const now = new Date();
+//     if (now < session.startTime || now > session.endTime) {
+//       return res.status(400).json({ message: "Session is not active" });
+//     }
+
+//     const existingRecord = await Attendance.findOne({ session: sessionId, student: studentId });
+//     if (existingRecord) {
+//       return res.status(400).json({ message: "Attendance already marked" });
+//     }
+
+//     const attendance = new Attendance({
+//       session: sessionId,
+//       student: studentId,
+//       status: "Present",
+//       markedBy: req.user?._id // Add lecturer ID if available from auth middleware
+//     });
+
+//     await attendance.save();
+
+//     res.status(201).json({ message: "Attendance marked as Present" });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error marking attendance", error: error.message });
+//   }
+// };
 
 const markAbsentees = async (sessionId) => {
   try {
@@ -162,24 +241,24 @@ exports.getStudentAttendance = async (req, res) => {
   }
 };
 
-// exports.getStudentAttendance = async (req, res) => {
+// exports.getSessionAttendance = async (req, res) => {
 //   try {
-//     const { studentId } = req.params;
-
-//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
-//       return res.status(400).json({ message: "Invalid student ID format" });
+//     const { sessionId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+//       return res.status(400).json({ message: "Invalid session ID format" });
 //     }
-
-//     const attendanceRecords = await Attendance.find({ student: studentId })
-//       .populate('session', 'unit startTime endTime')
-//       .sort({ 'session.startTime': -1 });
-
-//     res.status(200).json({ attendanceRecords });
+//     const attendanceRecords = await Attendance.find({ session: sessionId })
+//       .populate({
+//         path: 'student',
+//         select: 'regNo firstName lastName course year semester',
+//         populate: { path: 'course', select: 'name' }
+//       })
+//       .populate('session', 'unit');
+//     res.status(200).json(attendanceRecords);
 //   } catch (error) {
-//     res.status(500).json({ message: "Error fetching attendance records", error: error.message });
+//     res.status(500).json({ message: "Error fetching session attendance", error: error.message });
 //   }
 // };
-
 exports.getSessionAttendance = async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -192,7 +271,8 @@ exports.getSessionAttendance = async (req, res) => {
         select: 'regNo firstName lastName course year semester',
         populate: { path: 'course', select: 'name' }
       })
-      .populate('session', 'unit');
+      .populate('session', 'unit')
+      .select('regNo course year semester status deviceId qrToken'); // Include deviceId and qrToken
     res.status(200).json(attendanceRecords);
   } catch (error) {
     res.status(500).json({ message: "Error fetching session attendance", error: error.message });
