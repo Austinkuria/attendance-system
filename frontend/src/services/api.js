@@ -1203,18 +1203,20 @@ export const getLastSession = async (unitId) => {
   }
 };
 
-export const getAttendanceTrends = async (unitId) => {
+export const getAttendanceTrends = async (unitId, startDate, endDate) => {
   try {
     const token = localStorage.getItem('token');
     if (!token) throw new Error("Authentication token missing");
-    
+
+    const params = {};
+    if (startDate) params.startDate = startDate;
+    if (endDate) params.endDate = endDate;
+
     const response = await axios.get(`${API_URL}/attendance/trends/${unitId}`, {
-      headers: {
-        "Authorization": `Bearer ${token}`,
-        "Content-Type": "application/json"
-      }
+      headers: { "Authorization": `Bearer ${token}`, "Content-Type": "application/json" },
+      params
     });
-    
+
     return response.data;
   } catch (error) {
     console.error("Error fetching attendance trends:", error);

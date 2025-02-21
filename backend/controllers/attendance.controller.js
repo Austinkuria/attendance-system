@@ -192,7 +192,7 @@ exports.getAttendanceTrends = async (req, res) => {
     console.error("Error fetching attendance trends:", error);
     res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
   }
-};
+}; 
 
 // exports.getAttendanceTrends = async (req, res) => {
 //   try {
