@@ -542,7 +542,7 @@ const AttendanceManagement = () => {
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
-  const { attendanceRate, totalEnrolledStudents, verifiedScans } = useMemo(() => {  //eslint-disable-line 
+  const { attendanceRate, totalEnrolledStudents, verifiedScans } = useMemo(() => {  //eslint-disable-line
     const presentCount = attendance.filter(a => a.status === 'present').length;
     const totalStudents = attendance.length || 1;
     const verifiedCount = attendance.filter(a => a.deviceVerified).length;
