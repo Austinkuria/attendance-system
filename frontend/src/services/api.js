@@ -1222,11 +1222,34 @@ export const getAttendanceTrends = async (unitId) => {
   }
 };
 
-export const getCourseAttendanceRate = async (courseId) => {
+export const getCourseAttendanceRate = async (courseId, retries = 3, delayMs = 1000) => {
   const token = localStorage.getItem('token');
   if (!token) throw new Error("Authentication token missing");
-  const response = await axios.get(`${API_URL}/attendance/course-rate/${courseId}`, {
-    headers: { "Authorization": `Bearer ${token}` }
+
+  for (let attempt = 1; attempt <= retries; attempt++) {
+    try {
+      const response = await axios.get(`${API_URL}/attendance/course-rate/${courseId}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      return response.data;
+    } catch (error) {
+      if (error.response?.status === 429 && attempt < retries) {
+        const waitTime = delayMs * Math.pow(2, attempt - 1); // Exponential backoff
+        await new Promise(resolve => setTimeout(resolve, waitTime));
+        continue;
+      }
+      throw error;
+    }
+  }
+};
+
+
+export const getAllCourseAttendanceRates = async (courseIds) => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error("Authentication token missing");
+  const response = await axios.get(`${API_URL}/attendance/course-rates`, {
+    headers: { "Authorization": `Bearer ${token}` },
+    params: { courseIds: courseIds.join(',') }
   });
   return response.data;
 };
