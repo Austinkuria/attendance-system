@@ -1,4 +1,3 @@
-// src/pages/LecturerDashboard.jsx
 import { useState, useEffect } from 'react';
 import {
   Layout,
@@ -41,7 +40,7 @@ const LecturerDashboard = () => {
     const handleResize = () => {
       const mobile = window.innerWidth < 768;
       setIsMobile(mobile);
-      setCollapsed(mobile);
+      setCollapsed(mobile); // Collapse sidebar by default on mobile
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -90,14 +89,16 @@ const LecturerDashboard = () => {
           alignItems: 'center',
           boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           position: 'fixed',
-          width: '100%',
+          width: isMobile ? '100%' : `calc(100% - ${collapsed ? 80 : 200}px)`,
+          left: collapsed ? 80 : 200,
           zIndex: 10,
+          transition: 'all 0.2s',
         }}>
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: '16px', width: 64, height: 64 }}
+            style={{ fontSize: '16px', width: 64, height: 64, color: '#1890ff' }}
           />
           <Dropdown overlay={profileItems} trigger={['click']}>
             <Button

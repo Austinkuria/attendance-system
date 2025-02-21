@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import {
-  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col
+  Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, Form
 } from 'antd';
 import {
   QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined
@@ -282,12 +282,7 @@ const AttendanceManagement = () => {
         throw new Error('Invalid session times received from API');
       }
       message.success('Session created successfully');
-      setCurrentSession({ 
-        ...data, 
-        startSession: validStartTime, 
-        endSession: validEndTime,
-        ended: false
-      });
+      setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime, ended: false });
       setQrData(data.qrCode);
     } catch (error) {
       console.error("Error creating session:", error);
@@ -361,7 +356,6 @@ const AttendanceManagement = () => {
               sessionId: currentSession?._id
             });
             message.error(error.response?.data?.message || 'Failed to end session. Please check console for details.');
-
           } finally {
             setLoading(prevState => ({ ...prevState, session: false }));
           }
@@ -421,9 +415,40 @@ const AttendanceManagement = () => {
 
   const summaryCards = (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Assigned Units" value={totalAssignedUnits} prefix={<TeamOutlined />} loading={loading.stats} /></Card></Col>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.stats} /></Card></Col>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Total no of scans" value={totalEnrolledStudents} prefix={<ScheduleOutlined />} loading={loading.stats} /></Card></Col>
+      <Col xs={24} sm={12} md={8}>
+        <Card hoverable>
+          <Statistic
+            title="Assigned Units"
+            value={totalAssignedUnits}
+            prefix={<TeamOutlined />}
+            loading={loading.stats}
+            valueStyle={{ color: '#3f8600', fontSize: '24px' }}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={12} md={8}>
+        <Card hoverable>
+          <Statistic
+            title="Attendance Rate"
+            value={attendanceRate}
+            suffix="%"
+            prefix={<PercentageOutlined />}
+            loading={loading.stats}
+            valueStyle={{ color: '#cf1322', fontSize: '24px' }}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={12} md={8}>
+        <Card hoverable>
+          <Statistic
+            title="Total no of scans"
+            value={totalEnrolledStudents}
+            prefix={<ScheduleOutlined />}
+            loading={loading.stats}
+            valueStyle={{ color: '#1890ff', fontSize: '24px' }}
+          />
+        </Card>
+      </Col>
     </Row>
   );
 
@@ -490,7 +515,7 @@ const AttendanceManagement = () => {
       ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
         <Card
           title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown Unit'}</Space>}
-          style={{ marginBottom: 24 }}
+          style={{ marginBottom: 24, backgroundColor: '#e6f7ff', border: '1px solid #91d5ff' }}
         >
           <Row gutter={[16, 16]}>
             <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
@@ -533,53 +558,62 @@ const AttendanceManagement = () => {
             size="small"
             extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
           >
-            <Space wrap style={{ width: '100%' }}>
-              <Select
-                placeholder="Select Department"
-                style={{ width: 160 }}
-                onChange={handleDepartmentChange}
-                allowClear
-                value={unitFilters.department}
-              >
-                {departments.map(department => (
-                  <Option key={department._id} value={department.name}>{department.name}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Course"
-                style={{ width: 180 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
-                allowClear
-                value={unitFilters.course}
-              >
-                {filterOptions.courses.map(course => (
-                  <Option key={course} value={course}>{course}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Year"
-                style={{ width: 120 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
-                allowClear
-                value={unitFilters.year}
-              >
-                {filterOptions.years.map(year => (
-                  <Option key={year} value={year}>Year {year}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Semester"
-                style={{ width: 140 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
-                allowClear
-                value={unitFilters.semester}
-              >
-                {filterOptions.semesters.map(sem => (
-                  <Option key={sem} value={sem}>Sem {sem}</Option>
-                ))}
-              </Select>
-            </Space>
+            <Form layout={screens.md ? 'inline' : 'vertical'}>
+              <Form.Item label="Department">
+                <Select
+                  placeholder="Select Department"
+                  style={{ width: 160 }}
+                  onChange={handleDepartmentChange}
+                  allowClear
+                  value={unitFilters.department}
+                >
+                  {departments.map(department => (
+                    <Option key={department._id} value={department.name}>{department.name}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item label="Course">
+                <Select
+                  placeholder="Course"
+                  style={{ width: 180 }}
+                  onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
+                  allowClear
+                  value={unitFilters.course}
+                >
+                  {filterOptions.courses.map(course => (
+                    <Option key={course} value={course}>{course}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item label="Year">
+                <Select
+                  placeholder="Year"
+                  style={{ width: 120 }}
+                  onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
+                  allowClear
+                  value={unitFilters.year}
+                >
+                  {filterOptions.years.map(year => (
+                    <Option key={year} value={year}>Year {year}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item label="Semester">
+                <Select
+                  placeholder="Semester"
+                  style={{ width: 140 }}
+                  onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
+                  allowClear
+                  value={unitFilters.semester}
+                >
+                  {filterOptions.semesters.map(sem => (
+                    <Option key={sem} value={sem}>Sem {sem}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+            </Form>
           </Card>
+
           <Space wrap>
             <Select
               placeholder="Select Unit"
@@ -610,61 +644,67 @@ const AttendanceManagement = () => {
 
           {summaryCards}
 
-          <Card 
+          <Card
             title={
               <Space>
                 Attendance Records Filter
-                {currentSession && !currentSession.ended && (
-                  <Tag color="green">Active Session</Tag>
-                )}
+                {currentSession && !currentSession.ended && <Tag color="green">Active Session</Tag>}
               </Space>
             }
             size="small"
           >
-            <Space wrap style={{ width: '100%' }}>
-              <Input
-                placeholder="Search by Reg Number"
-                prefix={<SearchOutlined />}
-                style={{ width: 240 }}
-                onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                allowClear
-              />
-              <Select
-                placeholder="Filter by Year"
-                allowClear
-                suffixIcon={<CalendarOutlined />}
-                style={{ width: 150 }}
-                onChange={year => setFilters(prev => ({ ...prev, year }))}
-                value={filters.year}
-              >
-                {[1, 2, 3, 4].map(year => (
-                  <Option key={year} value={year}>Year {year}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Filter by Semester"
-                allowClear
-                suffixIcon={<BookOutlined />}
-                style={{ width: 170 }}
-                onChange={semester => setFilters(prev => ({ ...prev, semester }))}
-                value={filters.semester}
-              >
-                {[1, 2, 3].map(sem => (
-                  <Option key={sem} value={sem}>Semester {sem}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Filter by Status"
-                allowClear
-                suffixIcon={<FilterOutlined />}
-                style={{ width: 150 }}
-                onChange={status => setFilters(prev => ({ ...prev, status }))}
-                value={filters.status}
-              >
-                <Option value="present">Present</Option>
-                <Option value="absent">Absent</Option>
-              </Select>
-            </Space>
+            <Form layout={screens.md ? 'inline' : 'vertical'}>
+              <Form.Item label="Search Reg Number">
+                <Input
+                  placeholder="Search by Reg Number"
+                  prefix={<SearchOutlined />}
+                  style={{ width: 240 }}
+                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  allowClear
+                />
+              </Form.Item>
+              <Form.Item label="Year">
+                <Select
+                  placeholder="Filter by Year"
+                  allowClear
+                  suffixIcon={<CalendarOutlined />}
+                  style={{ width: 150 }}
+                  onChange={year => setFilters(prev => ({ ...prev, year }))}
+                  value={filters.year}
+                >
+                  {[1, 2, 3, 4].map(year => (
+                    <Option key={year} value={year}>Year {year}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item label="Semester">
+                <Select
+                  placeholder="Filter by Semester"
+                  allowClear
+                  suffixIcon={<BookOutlined />}
+                  style={{ width: 170 }}
+                  onChange={semester => setFilters(prev => ({ ...prev, semester }))}
+                  value={filters.semester}
+                >
+                  {[1, 2, 3].map(sem => (
+                    <Option key={sem} value={sem}>Semester {sem}</Option>
+                  ))}
+                </Select>
+              </Form.Item>
+              <Form.Item label="Status">
+                <Select
+                  placeholder="Filter by Status"
+                  allowClear
+                  suffixIcon={<FilterOutlined />}
+                  style={{ width: 150 }}
+                  onChange={status => setFilters(prev => ({ ...prev, status }))}
+                  value={filters.status}
+                >
+                  <Option value="present">Present</Option>
+                  <Option value="absent">Absent</Option>
+                </Select>
+              </Form.Item>
+            </Form>
           </Card>
 
           <Skeleton active loading={loading.attendance}>
@@ -677,6 +717,7 @@ const AttendanceManagement = () => {
               locale={{ emptyText: 'No attendance records found' }}
               bordered
               size="middle"
+              rowClassName={(record, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
             />
           </Skeleton>
         </Space>
@@ -722,9 +763,7 @@ const AttendanceManagement = () => {
                 alt="Attendance QR Code"
                 style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }}
               />
-              {currentSession && !currentSession.ended && (
-                <SessionTimer end={currentSession.endSession} />
-              )}
+              {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
               <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>
                 Scan this QR code to mark attendance.
               </Typography.Text>
