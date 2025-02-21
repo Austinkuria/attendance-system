@@ -186,7 +186,7 @@ const AdminPanel = () => {
 
   // Pie Chart Data (Quick Stats - Sessions per Course)
   const quickStatsChartData = {
-    labels: courses.length ? courses.map(course => course.name) : ['No Data'],
+    labels: courses.length ? courses.map(course => course.code) : ['No Data'],
     datasets: [
       {
         label: 'Total Sessions',
@@ -344,7 +344,7 @@ const AdminPanel = () => {
               <Card
                 loading={loading}
                 style={{ background: 'linear-gradient(135deg, #f5222d, #cf1322)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
-                onClick={() => window.location.href = '/admin/attendance-reports'}
+                onClick={() => window.location.href = '/admin/analytics'}
               >
                 <Space direction="vertical">
                   <CheckCircleOutlined style={{ fontSize: 24 }} />
@@ -357,7 +357,7 @@ const AdminPanel = () => {
 
           <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Attendance Overview</AntTitle>
           <Card style={{ marginTop: 16 }}>
-            <div style={{ height: '200px' }}>
+            <div style={{ height: '600px' }}>
               <Line data={overviewChartData} options={overviewChartOptions} />
             </div>
             <Button type="primary" style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }} onClick={() => window.location.href = '/admin/analytics'}>View Detailed Analytics</Button>
@@ -365,7 +365,7 @@ const AdminPanel = () => {
 
           <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Quick Stats</AntTitle>
           <Card style={{ marginTop: 16, background: '#fafafa', borderRadius: 10 }}>
-            <div style={{ height: '200px' }}>
+            <div style={{ height: '400px' }}>
               <Pie data={quickStatsChartData} options={quickStatsChartOptions} />
             </div>
           </Card>
