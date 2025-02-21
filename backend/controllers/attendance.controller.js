@@ -88,13 +88,97 @@ exports.getStudentAttendance = async (req, res) => {
 
     const attendanceRecords = await Attendance.find({ student: studentId })
       .populate('session', 'unit startTime endTime')
+      .populate({
+        path: 'session',
+        populate: { path: 'unit', select: 'name' }
+      })
       .sort({ 'session.startTime': -1 });
 
-    res.status(200).json({ attendanceRecords });
+    if (!attendanceRecords.length) {
+      return res.status(200).json({
+        attendanceRecords: [],
+        weeklyEvents: [],
+        dailyEvents: []
+      });
+    }
+
+    // Define reference start date (e.g., semester start)
+    const semesterStartDate = new Date('2025-01-01'); // Adjust as needed
+    const oneDay = 24 * 60 * 60 * 1000;
+    const oneWeek = 7 * oneDay;
+
+    // Daily Events
+    const dailyEvents = {};
+    attendanceRecords.forEach(record => {
+      const sessionDate = new Date(record.session.startTime);
+      const dateStr = sessionDate.toISOString().split('T')[0];
+      if (!dailyEvents[dateStr]) {
+        dailyEvents[dateStr] = [];
+      }
+      dailyEvents[dateStr].push({
+        unitName: record.session.unit?.name || 'Unknown',
+        status: record.status,
+        startTime: record.session.startTime,
+      });
+    });
+
+    const dailyData = Object.entries(dailyEvents).map(([date, events]) => ({
+      date,
+      events
+    }));
+
+    // Weekly Events
+    const weeklyEvents = {};
+    attendanceRecords.forEach(record => {
+      const sessionDate = new Date(record.session.startTime);
+      const daysSinceStart = Math.floor((sessionDate - semesterStartDate) / oneDay);
+      const weekNumber = Math.floor(daysSinceStart / 7) + 1;
+      const weekStart = new Date(semesterStartDate.getTime() + (weekNumber - 1) * oneWeek);
+      const weekEnd = new Date(weekStart.getTime() + 6 * oneDay);
+      const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+      if (!weeklyEvents[weekLabel]) {
+        weeklyEvents[weekLabel] = [];
+      }
+      weeklyEvents[weekLabel].push({
+        unitName: record.session.unit?.name || 'Unknown',
+        status: record.status,
+        startTime: record.session.startTime,
+      });
+    });
+
+    const weeklyData = Object.entries(weeklyEvents).map(([week, events]) => ({
+      week,
+      events
+    }));
+
+    res.status(200).json({
+      attendanceRecords,
+      weeklyEvents: weeklyData,
+      dailyEvents: dailyData
+    });
   } catch (error) {
     res.status(500).json({ message: "Error fetching attendance records", error: error.message });
   }
 };
+
+// exports.getStudentAttendance = async (req, res) => {
+//   try {
+//     const { studentId } = req.params;
+
+//     if (!mongoose.Types.ObjectId.isValid(studentId)) {
+//       return res.status(400).json({ message: "Invalid student ID format" });
+//     }
+
+//     const attendanceRecords = await Attendance.find({ student: studentId })
+//       .populate('session', 'unit startTime endTime')
+//       .sort({ 'session.startTime': -1 });
+
+//     res.status(200).json({ attendanceRecords });
+//   } catch (error) {
+//     res.status(500).json({ message: "Error fetching attendance records", error: error.message });
+//   }
+// };
 
 exports.getSessionAttendance = async (req, res) => {
   try {

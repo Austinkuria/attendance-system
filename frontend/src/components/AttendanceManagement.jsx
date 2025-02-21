@@ -78,7 +78,12 @@ const AttendanceManagement = () => {
     if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
       setCurrentSession(parsedSession);
       setQrData(parsedSession.qrCode || '');
-      setSelectedUnit(parsedSession.unit._id || parsedSession.unit);
+      const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
+        ? parsedSession.unit._id
+        : typeof parsedSession.unit === 'string'
+          ? parsedSession.unit
+          : null;
+      setSelectedUnit(unitId);
       setLoading(prevState => ({ ...prevState, session: false }));
       setLoadingSessionData(false);
       return;
@@ -98,7 +103,7 @@ const AttendanceManagement = () => {
         }
         setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime });
         setQrData(data.qrCode);
-        setSelectedUnit(data.unit._id || data.unit);
+        setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
       } else {
         setCurrentSession(null);
         setQrData('');
@@ -110,7 +115,12 @@ const AttendanceManagement = () => {
         if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
           setCurrentSession(parsedSession);
           setQrData(parsedSession.qrCode || '');
-          setSelectedUnit(parsedSession.unit._id || parsedSession.unit);
+          const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
+            ? parsedSession.unit._id
+            : typeof parsedSession.unit === 'string'
+              ? parsedSession.unit
+              : null;
+          setSelectedUnit(unitId);
         } else {
           setCurrentSession(null);
           setQrData('');
@@ -188,11 +198,18 @@ const AttendanceManagement = () => {
       const savedSession = localStorage.getItem('currentSession');
       const parsedSession = savedSession ? JSON.parse(savedSession) : null;
 
-      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit._id === selectedUnit) {
-        setCurrentSession(parsedSession);
-        setQrData(parsedSession.qrCode || '');
-        setLoadingSessionData(false);
-        return;
+      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit) {
+        const unitId = typeof parsedSession.unit === 'object' && parsedSession.unit._id
+          ? parsedSession.unit._id
+          : typeof parsedSession.unit === 'string'
+            ? parsedSession.unit
+            : null;
+        if (unitId === selectedUnit) {
+          setCurrentSession(parsedSession);
+          setQrData(parsedSession.qrCode || '');
+          setLoadingSessionData(false);
+          return;
+        }
       }
 
       const token = localStorage.getItem('token');
@@ -232,9 +249,19 @@ const AttendanceManagement = () => {
         console.error("Error fetching session:", error);
         if (error.response?.status === 429) {
           message.warning('Too many requests to fetch session. Using local session data.');
-          if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit._id === selectedUnit) {
-            setCurrentSession(parsedSession);
-            setQrData(parsedSession.qrCode || '');
+          if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit) {
+            const unitId = typeof parsedSession.unit === 'object' && parsedSession.unit._id
+              ? parsedSession.unit._id
+              : typeof parsedSession.unit === 'string'
+                ? parsedSession.unit
+                : null;
+            if (unitId === selectedUnit) {
+              setCurrentSession(parsedSession);
+              setQrData(parsedSession.qrCode || '');
+            } else {
+              setCurrentSession(null);
+              setQrData('');
+            }
           } else {
             setCurrentSession(null);
             setQrData('');
@@ -253,7 +280,7 @@ const AttendanceManagement = () => {
       }
     };
     fetchCurrentSession();
-  }, [selectedUnit, units]);
+  }, [selectedUnit, units, currentSession]);
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -274,7 +301,6 @@ const AttendanceManagement = () => {
     }
   }, [selectedUnit, currentSession]);
 
-  // Fixed useEffect with missing 'currentSession' dependency
   useEffect(() => {
     if (currentSession && selectedUnit && !currentSession.ended) {
       handleViewAttendance();

@@ -111,7 +111,7 @@ const AdminPanel = () => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [loading]);
 
   useEffect(() => {
     fetchAllData(); // Trigger fetch only on component mount
