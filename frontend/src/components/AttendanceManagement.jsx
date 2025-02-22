@@ -1,8 +1,9 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col } from 'antd';
-import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, SyncOutlined, ClockCircleOutlined, SafetyOutlined } from '@ant-design/icons';
+import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
+import debounce from 'lodash/debounce'; // Import lodash debounce
 import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
 
 const { Option } = Select;
@@ -45,6 +46,26 @@ const AttendanceManagement = () => {
     semester: null
   });
 
+  // Exponential backoff helper
+  const backoffRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
+    let retries = 0;
+    while (retries < maxRetries) {
+      try {
+        return await fn();
+      } catch (error) {
+        if (error.response?.status === 429) {
+          const delay = initialDelay * Math.pow(2, retries);
+          console.log(`Rate limited. Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+          retries++;
+        } else {
+          throw error;
+        }
+      }
+    }
+    throw new Error('Max retries exceeded due to rate limiting');
+  };
+
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem('currentSession', JSON.stringify(currentSession));
@@ -58,14 +79,10 @@ const AttendanceManagement = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const data = await getDepartments();
+        const data = await backoffRetry(() => getDepartments());
         setDepartments(data);
       } catch (error) {
-        if (error.response?.status === 429) {
-          message.warning('Too many requests to fetch departments. Please try again later.');
-        } else {
-          message.error('Failed to fetch departments');
-        }
+        message.error('Failed to fetch departments after retries');
       }
     };
     if (departments.length === 0) fetchDepartments();
@@ -92,7 +109,7 @@ const AttendanceManagement = () => {
     try {
       setLoading(prevState => ({ ...prevState, session: true }));
       setLoadingSessionData(true);
-      const { data } = await detectCurrentSession(lecturerId);
+      const { data } = await backoffRetry(() => detectCurrentSession(lecturerId));
       console.log('Detected session from backend:', data);
 
       if (data && !data.ended) {
@@ -110,26 +127,9 @@ const AttendanceManagement = () => {
       }
     } catch (error) {
       console.error("Error checking current session:", error);
-      if (error.response?.status === 429) {
-        message.warning('Too many requests to check session. Using local session data.');
-        if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
-          setCurrentSession(parsedSession);
-          setQrData(parsedSession.qrCode || '');
-          const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
-            ? parsedSession.unit._id
-            : typeof parsedSession.unit === 'string'
-              ? parsedSession.unit
-              : null;
-          setSelectedUnit(unitId);
-        } else {
-          setCurrentSession(null);
-          setQrData('');
-        }
-      } else {
-        message.error(error.message || 'Failed to detect current session');
-        setCurrentSession(null);
-        setQrData('');
-      }
+      message.error(error.message || 'Failed to detect current session after retries');
+      setCurrentSession(null);
+      setQrData('');
     } finally {
       setLoading(prevState => ({ ...prevState, session: false }));
       setLoadingSessionData(false);
@@ -164,7 +164,7 @@ const AttendanceManagement = () => {
           return;
         }
         setLoading(prev => ({ ...prev, units: true }));
-        const unitsData = await getLecturerUnits(lecturerId);
+        const unitsData = await backoffRetry(() => getLecturerUnits(lecturerId));
         if (unitsData?.length > 0) {
           setUnits(unitsData);
           if (!selectedUnit && !currentSession) setSelectedUnit(unitsData[0]._id);
@@ -172,11 +172,7 @@ const AttendanceManagement = () => {
           message.info("No units assigned to your account");
         }
       } catch (error) {
-        if (error.response?.status === 429) {
-          message.warning('Too many requests to fetch units. Please try again later.');
-        } else {
-          message.error("Failed to load unit data");
-        }
+        message.error("Failed to load unit data after retries");
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
       }
@@ -222,10 +218,12 @@ const AttendanceManagement = () => {
       try {
         setLoadingSessionData(true);
         console.log("Fetching session for unit:", selectedUnit);
-        const response = await axios.get(`https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-          validateStatus: status => status >= 200 && status < 300
-        });
+        const response = await backoffRetry(() =>
+          axios.get(`https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`, {
+            headers: { 'Authorization': `Bearer ${token}` },
+            validateStatus: status => status >= 200 && status < 300
+          })
+        );
         console.log("Full API response for current session:", response.data);
         if (response.data && response.data._id && !response.data.ended) {
           const validStartTime = response.data.startTime ? new Date(response.data.startTime) : null;
@@ -247,34 +245,9 @@ const AttendanceManagement = () => {
         }
       } catch (error) {
         console.error("Error fetching session:", error);
-        if (error.response?.status === 429) {
-          message.warning('Too many requests to fetch session. Using local session data.');
-          if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit) {
-            const unitId = typeof parsedSession.unit === 'object' && parsedSession.unit._id
-              ? parsedSession.unit._id
-              : typeof parsedSession.unit === 'string'
-                ? parsedSession.unit
-                : null;
-            if (unitId === selectedUnit) {
-              setCurrentSession(parsedSession);
-              setQrData(parsedSession.qrCode || '');
-            } else {
-              setCurrentSession(null);
-              setQrData('');
-            }
-          } else {
-            setCurrentSession(null);
-            setQrData('');
-          }
-        } else {
-          message.error(error.response?.data?.message || "Failed to fetch session.");
-          if (currentSession && !currentSession.ended && new Date(currentSession.endSession) > new Date()) {
-            return;
-          } else {
-            setCurrentSession(null);
-            setQrData('');
-          }
-        }
+        message.error(error.message || "Failed to fetch session after retries");
+        setCurrentSession(null);
+        setQrData('');
       } finally {
         setLoadingSessionData(false);
       }
@@ -286,19 +259,14 @@ const AttendanceManagement = () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
-      const data = await getSessionAttendance(currentSession._id);
-      // Ensure data includes deviceId and qrToken from backend
+      const data = await backoffRetry(() => getSessionAttendance(currentSession._id));
       setAttendance(data.map(record => ({
         ...record,
-        deviceVerified: record.deviceId ? true : false // Add verification flag
+        deviceVerified: record.deviceId ? true : false
       })));
     } catch (error) {
       console.error("Error fetching attendance:", error);
-      if (error.response?.status === 429) {
-        message.warning('Too many requests to fetch attendance data. Please try again later.');
-      } else {
-        message.error(error.message || 'Failed to fetch attendance data');
-      }
+      message.error('Failed to fetch attendance data after retries');
       setAttendance([]);
     } finally {
       setLoading(prev => ({ ...prev, attendance: false, stats: false }));
@@ -359,37 +327,36 @@ const AttendanceManagement = () => {
     setUnitFilters(prevState => ({ ...prevState, department: value }));
   };
 
-  const handleCreateSession = async () => {
-    if (!selectedUnit) {
-      message.error('Please select a unit first');
-      return;
-    }
-    try {
-      setLoading(prevState => ({ ...prevState, session: true }));
-      setLoadingSessionData(true);
-      const startTime = new Date().toISOString();
-      const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      const data = await createSession({ unitId: selectedUnit, lecturerId, startTime, endTime });
-      const validStartTime = data.startTime ? new Date(data.startTime) : new Date();
-      const validEndTime = data.endTime ? new Date(data.endTime) : new Date(Date.now() + 60 * 60 * 1000);
-      if (isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
-        throw new Error('Invalid session times received from API');
+  const debouncedHandleCreateSession = useCallback(
+    debounce(async () => {
+      if (!selectedUnit) {
+        message.error('Please select a unit first');
+        return;
       }
-      message.success('Session created successfully');
-      setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime, ended: false });
-      setQrData(data.qrCode);
-    } catch (error) {
-      console.error("Error creating session:", error);
-      if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try creating the session again later.');
-      } else {
-        message.error(error.message || 'Failed to create session');
+      try {
+        setLoading(prevState => ({ ...prevState, session: true }));
+        setLoadingSessionData(true);
+        const startTime = new Date().toISOString();
+        const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
+        const data = await backoffRetry(() => createSession({ unitId: selectedUnit, lecturerId, startTime, endTime }));
+        const validStartTime = data.startTime ? new Date(data.startTime) : new Date();
+        const validEndTime = data.endTime ? new Date(data.endTime) : new Date(Date.now() + 60 * 60 * 1000);
+        if (isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
+          throw new Error('Invalid session times received from API');
+        }
+        message.success('Session created successfully');
+        setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime, ended: false });
+        setQrData(data.qrCode);
+      } catch (error) {
+        console.error("Error creating session:", error);
+        message.error(error.message || 'Failed to create session after retries');
+      } finally {
+        setLoading(prevState => ({ ...prevState, session: false }));
+        setLoadingSessionData(false);
       }
-    } finally {
-      setLoading(prevState => ({ ...prevState, session: false }));
-      setLoadingSessionData(false);
-    }
-  };
+    }, 1000), // Debounce for 1 second
+    [selectedUnit, lecturerId]
+  );
 
   const handleGenerateQR = async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) {
@@ -399,9 +366,10 @@ const AttendanceManagement = () => {
     try {
       setLoading(prevState => ({ ...prevState, qr: true }));
       const token = localStorage.getItem('token');
-      const { data } = await axios.get(
-        `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
-        { headers: { Authorization: `Bearer ${token}` } }
+      const { data } = await backoffRetry(() =>
+        axios.get(`https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`, {
+          headers: { Authorization: `Bearer ${token}` }
+        })
       );
       console.log("QR Code API response:", data);
       if (!data || !data.qrCode || data.ended) {
@@ -411,11 +379,7 @@ const AttendanceManagement = () => {
       setIsQRModalOpen(true);
     } catch (error) {
       console.error("Error generating QR code:", error);
-      if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try generating the QR code again later.');
-      } else {
-        message.error(error.message || "Failed to generate QR code");
-      }
+      message.error(error.message || "Failed to generate QR code after retries");
     } finally {
       setLoading(prevState => ({ ...prevState, qr: false }));
     }
@@ -429,17 +393,19 @@ const AttendanceManagement = () => {
     try {
       setLoading(prevState => ({ ...prevState, qr: true }));
       const token = localStorage.getItem('token');
-      const { data } = await axios.post(
-        `https://attendance-system-w70n.onrender.com/api/sessions/regenerate-qr`,
-        { sessionId: currentSession._id },
-        { headers: { Authorization: `Bearer ${token}` } }
+      const { data } = await backoffRetry(() =>
+        axios.post(
+          `https://attendance-system-w70n.onrender.com/api/sessions/regenerate-qr`,
+          { sessionId: currentSession._id },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
       );
       setQrData(data.qrCode);
       setCurrentSession(prev => ({ ...prev, qrCode: data.qrCode }));
       message.success("QR code regenerated successfully");
     } catch (error) {
       console.error("Error regenerating QR code:", error);
-      message.error(error.response?.data?.message || "Failed to regenerate QR code");
+      message.error(error.message || "Failed to regenerate QR code after retries");
     } finally {
       setLoading(prevState => ({ ...prevState, qr: false }));
     }
@@ -460,9 +426,11 @@ const AttendanceManagement = () => {
           try {
             if (!currentSession?._id) throw new Error('Invalid session ID');
             console.log('Ending session with ID:', currentSession._id);
-            const response = await axios.delete(
-              'https://attendance-system-w70n.onrender.com/api/sessions/end',
-              { data: { sessionId: currentSession._id }, headers: { 'Authorization': `Bearer ${token}` } }
+            const response = await backoffRetry(() =>
+              axios.delete(
+                'https://attendance-system-w70n.onrender.com/api/sessions/end',
+                { data: { sessionId: currentSession._id }, headers: { 'Authorization': `Bearer ${token}` } }
+              )
             );
             console.log('Session end response:', response.data);
             message.success('Session ended successfully');
@@ -472,11 +440,7 @@ const AttendanceManagement = () => {
             localStorage.removeItem('currentSession');
           } catch (error) {
             console.error('Error ending session:', { message: error.message, response: error.response?.data, sessionId: currentSession?._id });
-            if (error.response?.status === 429) {
-              message.warning('Too many requests. Please try ending the session again later.');
-            } else {
-              message.error(error.response?.data?.message || 'Failed to end session. Please check console for details.');
-            }
+            message.error(error.message || 'Failed to end session after retries');
           } finally {
             setLoading(prevState => ({ ...prevState, session: false }));
           }
@@ -494,20 +458,18 @@ const AttendanceManagement = () => {
     const newStatus = record.status === 'present' ? 'absent' : 'present';
     try {
       const token = localStorage.getItem('token');
-      await axios.put(
-        `https://attendance-system-w70n.onrender.com/api/attendance/${recordId}`,
-        { status: newStatus },
-        { headers: { Authorization: `Bearer ${token}` } }
+      await backoffRetry(() =>
+        axios.put(
+          `https://attendance-system-w70n.onrender.com/api/attendance/${recordId}`,
+          { status: newStatus },
+          { headers: { Authorization: `Bearer ${token}` } }
+        )
       );
       setAttendance(prevState => prevState.map(a => a._id === recordId && a.unit === selectedUnit ? { ...a, status: newStatus } : a));
       message.success(`Marked student as ${newStatus}`);
     } catch (error) {
       console.error("Error updating status:", error);
-      if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try updating status again later.');
-      } else {
-        message.error('Failed to update attendance status');
-      }
+      message.error('Failed to update attendance status after retries');
     }
   };
 
@@ -533,7 +495,7 @@ const AttendanceManagement = () => {
           type="link" 
           onClick={() => handleToggleStatus(record._id)} 
           icon={<SyncOutlined />} 
-          disabled={currentSession?.ended || record.deviceVerified} // Disable if session ended or device verified
+          disabled={currentSession?.ended || record.deviceVerified}
         >
           Toggle Status
         </Button>
@@ -542,7 +504,7 @@ const AttendanceManagement = () => {
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
-  const { attendanceRate, totalEnrolledStudents, verifiedScans } = useMemo(() => {  //eslint-disable-line
+  const { attendanceRate, totalEnrolledStudents, verifiedScans } = useMemo(() => { //es l
     const presentCount = attendance.filter(a => a.status === 'present').length;
     const totalStudents = attendance.length || 1;
     const verifiedCount = attendance.filter(a => a.deviceVerified).length;
@@ -656,7 +618,7 @@ const AttendanceManagement = () => {
             <Button
               type="primary"
               icon={<CalendarOutlined />}
-              onClick={handleCreateSession}
+              onClick={debouncedHandleCreateSession}
               disabled={loading.session || (currentSession && !currentSession.ended)}
             >
               {loading.session ? 'Creating...' : 'Create Attendance Session'}

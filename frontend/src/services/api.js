@@ -1012,27 +1012,37 @@ export const submitQuizAnswers = async (quizSubmissionData) => {
 
 // Session related endpoints
 export const createSession = async ({ unitId, lecturerId, startTime, endTime }) => {
-  try {
-    const token = localStorage.getItem('token');
+  const maxRetries = 3; // Maximum number of retries
+  const delay = (retryCount) => Math.pow(2, retryCount) * 1000; // Exponential backoff delay
 
-    // Log the request payload before making the API call
-    console.log("API Call - Creating session with:", { unitId, lecturerId, startTime, endTime });
+  for (let attempt = 0; attempt < maxRetries; attempt++) {
+    try {
+      const token = localStorage.getItem('token');
 
-    const response = await axios.post(
-      `${API_URL}/sessions/create`,
-      { unitId, lecturerId, startTime, endTime },  // Ensure correct payload
-      { headers: { Authorization: `Bearer ${token}` } }
-    );
+      // Log the request payload before making the API call
+      console.log("API Call - Creating session with:", { unitId, lecturerId, startTime, endTime });
 
-    console.log("API Response:", response.data);
-    return response.data;
-  } catch (error) {
-    console.error("Error in API Call - createSession:", error.response ? error.response.data : error.message);
-    
-    // Re-throw the error so it can be caught in the frontend
-    throw error;
+      const response = await axios.post(
+        `${API_URL}/sessions/create`,
+        { unitId, lecturerId, startTime, endTime },  // Ensure correct payload
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      console.log("API Response:", response.data);
+      return response.data;
+    } catch (error) {
+      if (error.response && error.response.status === 429) {
+        console.warn(`Attempt ${attempt + 1} failed: Too many requests. Retrying in ${delay(attempt) / 1000} seconds...`);
+        await new Promise(resolve => setTimeout(resolve, delay(attempt))); // Wait before retrying
+      } else {
+        console.error("Error in API Call - createSession:", error.response ? error.response.data : error.message);
+        throw error; // Re-throw the error if it's not a 429
+      }
+    }
   }
+  throw new Error("Max retries reached. Unable to create session.");
 };
+
 
 
 
