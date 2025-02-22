@@ -46,9 +46,8 @@ const AttendanceManagement = () => {
     year: null,
     semester: null
   });
-  const [rateLimited, setRateLimited] = useState(false); // Track persistent rate limit state
+  const [rateLimited, setRateLimited] = useState(false);
 
-  // Exponential backoff with more retries
   const backoffRetry = async (fn, maxRetries = 5, initialDelay = 1000) => {
     let retries = 0;
     while (retries < maxRetries) {
@@ -91,14 +90,13 @@ const AttendanceManagement = () => {
     if (departments.length === 0) fetchDepartments();
   }, [departments]);
 
-  // Throttled and cached checkCurrentSession
   const checkCurrentSession = useCallback(
     throttle(async () => {
-      if (rateLimited) return; // Skip if rate limited
+      if (rateLimited || !lecturerId) return;
       const savedSession = localStorage.getItem('currentSession');
       const parsedSession = savedSession ? JSON.parse(savedSession) : null;
 
-      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
+      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endTime) > new Date()) {
         setCurrentSession(parsedSession);
         setQrData(parsedSession.qrCode || '');
         const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
@@ -142,7 +140,7 @@ const AttendanceManagement = () => {
         setLoading(prevState => ({ ...prevState, session: false }));
         setLoadingSessionData(false);
       }
-    }, 30000), // Throttle to once every 30 seconds
+    }, 30000),
     [lecturerId]
   );
 
@@ -177,7 +175,9 @@ const AttendanceManagement = () => {
         const unitsData = await backoffRetry(() => getLecturerUnits(lecturerId));
         if (unitsData?.length > 0) {
           setUnits(unitsData);
-          if (!selectedUnit && !currentSession) setSelectedUnit(unitsData[0]._id);
+          if (!selectedUnit && !currentSession) {
+            setSelectedUnit(unitsData[0]._id);
+          }
         } else {
           message.info("No units assigned to your account");
         }
@@ -192,7 +192,10 @@ const AttendanceManagement = () => {
 
   const fetchCurrentSession = useCallback(
     throttle(async () => {
-      if (rateLimited || !selectedUnit) return;
+      if (rateLimited || !selectedUnit) {
+        if (!selectedUnit) message.error("Please select a unit.");
+        return;
+      }
       const savedSession = localStorage.getItem('currentSession');
       const parsedSession = savedSession ? JSON.parse(savedSession) : null;
 
@@ -390,6 +393,8 @@ const AttendanceManagement = () => {
     } catch (error) {
       console.error("Error generating QR code:", error);
       message.error(error.message || "Failed to generate QR code after retries");
+      setQrData('');
+      setIsQRModalOpen(false);
     } finally {
       setLoading(prevState => ({ ...prevState, qr: false }));
     }
@@ -642,7 +647,7 @@ const AttendanceManagement = () => {
               type="primary"
               icon={<CalendarOutlined />}
               onClick={debouncedHandleCreateSession}
-              disabled={loading.session || (currentSession && !currentSession.ended) || rateLimited}
+              disabled={loading.session || (currentSession && !currentSession.ended) || rateLimited || !selectedUnit}
             >
               {loading.session ? 'Creating...' : 'Create Attendance Session'}
             </Button>

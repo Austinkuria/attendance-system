@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useCallback } from "react";
+import { Buffer } from "buffer";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message } from "antd";
 import QrScanner from "qr-scanner";
