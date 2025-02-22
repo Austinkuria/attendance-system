@@ -9,21 +9,20 @@ exports.detectCurrentSession = async (req, res) => {
     const currentTime = new Date();
     const currentSession = await Session.findOne({
       startTime: { $lte: currentTime },
-      endTime: { $gte: currentTime }
+      endTime: { $gte: currentTime },
+      ended: false
     });
 
     if (!currentSession) {
       return res.status(404).json({ message: 'No current session found' });
     }
 
-    // Generate QR code for the current session
-    const qrCode = await generateQRToken(currentSession);
-    res.json({ ...currentSession.toObject(), qrCode });
-
+    res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
   } catch (error) {
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
 };
+
 exports.createSession = async (req, res) => {
   try {
     const { unitId, lecturerId, startTime, endTime } = req.body;
@@ -44,7 +43,9 @@ exports.createSession = async (req, res) => {
     }
 
     const session = new Session({ unit: unitId, lecturer: lecturerId, startTime: start, endTime: end });
-    session.qrCode = await generateQRToken(session); // Generate QR code
+    const { qrToken, qrCode } = await generateQRToken(session);
+    session.qrToken = qrToken;
+    session.qrCode = qrCode;
     await session.save();
 
     res.status(201).json({ message: "Session created successfully", session, qrCode: session.qrCode });
@@ -53,6 +54,7 @@ exports.createSession = async (req, res) => {
     res.status(500).json({ message: "Error creating session", error: error.message });
   }
 };
+
 // exports.createSession = async (req, res) => {
 //   try {
 //     console.log("Received raw body:", req.body);

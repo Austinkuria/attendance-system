@@ -36,19 +36,24 @@ const QRScanner = () => {
   // Fetch the current session
   useEffect(() => {
     const fetchSession = async () => {
+      if (!selectedUnit) {
+        message.error("No unit selected. Please select a unit.");
+        setSessionEnded(true);
+        return;
+      }
       try {
         const session = await getCurrentSession(selectedUnit);
         if (session && session._id) {
           setSessionId(session._id);
           const now = new Date();
-          if (new Date(session.endTime) <= now) {
+          if (new Date(session.endTime) <= now || session.ended) {
             setSessionEnded(true);
           }
         } else {
           setSessionEnded(true);
         }
-      } catch {
-        message.error("Error fetching session details.");
+      } catch (error) {
+        message.error("Error fetching session details: " + (error.message || "Unknown error"));
         setSessionEnded(true);
       }
     };
@@ -59,7 +64,7 @@ const QRScanner = () => {
   const onScanSuccess = useCallback(
     async (result) => {
       if (!sessionId || sessionEnded) {
-        message.error("Session has ended. Attendance cannot be marked.");
+        message.error("Session has ended or is invalid. Attendance cannot be marked.");
         return;
       }
 
@@ -79,18 +84,17 @@ const QRScanner = () => {
           throw new Error("Device identification failed.");
         }
 
-        // Parse QR code data (base64 encoded)
-        const base64Data = result.data;
-        const decodedData = JSON.parse(atob(base64Data));
+        const qrToken = result.data; // Raw base64 JSON token from QR code
+        const decodedData = JSON.parse(Buffer.from(qrToken, "base64").toString());
         if (decodedData.s !== sessionId) {
           throw new Error("Invalid QR code for this session.");
         }
 
-        await markAttendance(sessionId, studentId, token, deviceId, base64Data);
+        await markAttendance(sessionId, studentId, token, deviceId, qrToken);
         message.success("Attendance marked successfully!");
         navigate("/student-dashboard");
       } catch (err) {
-        message.error(err.response?.data?.message || "Error marking attendance");
+        message.error(err.response?.data?.message || err.message || "Error marking attendance");
         scanner.current?.start();
       } finally {
         setLoading(false);
@@ -132,7 +136,6 @@ const QRScanner = () => {
     };
   }, [onScanSuccess, sessionEnded]);
 
-  // Stop scanner
   const stopScanner = () => {
     if (scanner.current) {
       scanner.current.stop();
@@ -143,7 +146,6 @@ const QRScanner = () => {
     }
   };
 
-  // Handle camera permissions
   useEffect(() => {
     if (!qrOn) {
       message.error("Camera access denied. Please allow permissions.");

@@ -2,8 +2,7 @@ const Session = require('../models/Session');
 const Attendance = require('../models/Attendance');
 const User = require("../models/User");
 const mongoose = require('mongoose');
-const Unit = require('../models/Unit');
-const jwt = require("jsonwebtoken"); // For token verification
+const jwt = require("jsonwebtoken");
 
 exports.markAttendance = async (req, res) => {
   try {
@@ -31,13 +30,12 @@ exports.markAttendance = async (req, res) => {
     }
 
     const now = new Date();
-    if (now < session.startTime || now > session.endTime) {
+    if (now < session.startTime || now > session.endTime || session.ended) {
       return res.status(400).json({ message: "Session is not active" });
     }
 
     // Verify QR token
-    const decodedQr = JSON.parse(Buffer.from(qrToken, "base64").toString());
-    if (decodedQr.s !== sessionId || !session.qrCode || session.qrCode !== qrToken) {
+    if (!session.qrToken || session.qrToken !== qrToken) {
       return res.status(400).json({ message: "Invalid QR code" });
     }
 
@@ -71,7 +69,7 @@ exports.markAttendance = async (req, res) => {
       student: studentId,
       status: "Present",
       deviceId,
-      qrToken, // Store QR token to track usage
+      qrToken,
       markedBy: req.user?._id,
     });
 
