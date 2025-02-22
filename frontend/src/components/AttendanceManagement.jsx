@@ -3,7 +3,8 @@ import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, messag
 import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined, SafetyOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import debounce from 'lodash/debounce'; // Import lodash debounce
+import debounce from 'lodash/debounce';
+import throttle from 'lodash/throttle'; // Add lodash throttle
 import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
 
 const { Option } = Select;
@@ -46,8 +47,8 @@ const AttendanceManagement = () => {
     semester: null
   });
 
-  // Exponential backoff helper
-  const backoffRetry = async (fn, maxRetries = 3, initialDelay = 1000) => {
+  // Exponential backoff with more retries
+  const backoffRetry = async (fn, maxRetries = 5, initialDelay = 1000) => {
     let retries = 0;
     while (retries < maxRetries) {
       try {
@@ -88,53 +89,57 @@ const AttendanceManagement = () => {
     if (departments.length === 0) fetchDepartments();
   }, [departments]);
 
-  const checkCurrentSession = useCallback(async () => {
-    const savedSession = localStorage.getItem('currentSession');
-    const parsedSession = savedSession ? JSON.parse(savedSession) : null;
+  // Throttled checkCurrentSession
+  const checkCurrentSession = useCallback(
+    throttle(async () => {
+      const savedSession = localStorage.getItem('currentSession');
+      const parsedSession = savedSession ? JSON.parse(savedSession) : null;
 
-    if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
-      setCurrentSession(parsedSession);
-      setQrData(parsedSession.qrCode || '');
-      const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
-        ? parsedSession.unit._id
-        : typeof parsedSession.unit === 'string'
-          ? parsedSession.unit
-          : null;
-      setSelectedUnit(unitId);
-      setLoading(prevState => ({ ...prevState, session: false }));
-      setLoadingSessionData(false);
-      return;
-    }
+      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
+        setCurrentSession(parsedSession);
+        setQrData(parsedSession.qrCode || '');
+        const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
+          ? parsedSession.unit._id
+          : typeof parsedSession.unit === 'string'
+            ? parsedSession.unit
+            : null;
+        setSelectedUnit(unitId);
+        setLoading(prevState => ({ ...prevState, session: false }));
+        setLoadingSessionData(false);
+        return;
+      }
 
-    try {
-      setLoading(prevState => ({ ...prevState, session: true }));
-      setLoadingSessionData(true);
-      const { data } = await backoffRetry(() => detectCurrentSession(lecturerId));
-      console.log('Detected session from backend:', data);
+      try {
+        setLoading(prevState => ({ ...prevState, session: true }));
+        setLoadingSessionData(true);
+        const { data } = await backoffRetry(() => detectCurrentSession(lecturerId));
+        console.log('Detected session from backend:', data);
 
-      if (data && !data.ended) {
-        const validStartTime = data.startTime ? new Date(data.startTime) : null;
-        const validEndTime = data.endTime ? new Date(data.endTime) : null;
-        if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
-          throw new Error('Invalid session times detected');
+        if (data && !data.ended) {
+          const validStartTime = data.startTime ? new Date(data.startTime) : null;
+          const validEndTime = data.endTime ? new Date(data.endTime) : null;
+          if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
+            throw new Error('Invalid session times detected');
+          }
+          setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime });
+          setQrData(data.qrCode);
+          setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
+        } else {
+          setCurrentSession(null);
+          setQrData('');
         }
-        setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime });
-        setQrData(data.qrCode);
-        setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
-      } else {
+      } catch (error) {
+        console.error("Error checking current session:", error);
+        message.error(error.message || 'Failed to detect current session after retries');
         setCurrentSession(null);
         setQrData('');
+      } finally {
+        setLoading(prevState => ({ ...prevState, session: false }));
+        setLoadingSessionData(false);
       }
-    } catch (error) {
-      console.error("Error checking current session:", error);
-      message.error(error.message || 'Failed to detect current session after retries');
-      setCurrentSession(null);
-      setQrData('');
-    } finally {
-      setLoading(prevState => ({ ...prevState, session: false }));
-      setLoadingSessionData(false);
-    }
-  }, [lecturerId]);
+    }, 10000), // Throttle to once every 10 seconds
+    [lecturerId]
+  );
 
   useEffect(() => {
     checkCurrentSession();
@@ -178,19 +183,11 @@ const AttendanceManagement = () => {
       }
     };
     if (lecturerId && units.length === 0) fetchData();
-  }, [lecturerId, selectedUnit, currentSession, units]);
+  }, [lecturerId, units]); // Removed selectedUnit, currentSession to reduce triggers
 
-  useEffect(() => {
-    if (!selectedUnit) {
-      setLoadingSessionData(false);
-      if (!currentSession) {
-        setCurrentSession(null);
-        setQrData('');
-      }
-      return;
-    }
-
-    const fetchCurrentSession = async () => {
+  // Throttled fetchCurrentSession
+  const fetchCurrentSession = useCallback(
+    throttle(async () => {
       const savedSession = localStorage.getItem('currentSession');
       const parsedSession = savedSession ? JSON.parse(savedSession) : null;
 
@@ -251,9 +248,13 @@ const AttendanceManagement = () => {
       } finally {
         setLoadingSessionData(false);
       }
-    };
-    fetchCurrentSession();
-  }, [selectedUnit, units, currentSession]);
+    }, 10000), // Throttle to once every 10 seconds
+    [selectedUnit, units]
+  );
+
+  useEffect(() => {
+    if (selectedUnit) fetchCurrentSession();
+  }, [selectedUnit, fetchCurrentSession]); // Only trigger on selectedUnit change
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -354,7 +355,7 @@ const AttendanceManagement = () => {
         setLoading(prevState => ({ ...prevState, session: false }));
         setLoadingSessionData(false);
       }
-    }, 1000), // Debounce for 1 second
+    }, 1000),
     [selectedUnit, lecturerId]
   );
 
@@ -504,7 +505,7 @@ const AttendanceManagement = () => {
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
-  const { attendanceRate, totalEnrolledStudents, verifiedScans } = useMemo(() => { //es l
+  const { attendanceRate, totalEnrolledStudents, verifiedScans } = useMemo(() => {
     const presentCount = attendance.filter(a => a.status === 'present').length;
     const totalStudents = attendance.length || 1;
     const verifiedCount = attendance.filter(a => a.deviceVerified).length;
