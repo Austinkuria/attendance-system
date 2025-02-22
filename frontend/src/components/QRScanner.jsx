@@ -1,5 +1,4 @@
 import { useEffect, useRef, useState, useCallback } from "react";
-import { Buffer } from "buffer";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message } from "antd";
 import QrScanner from "qr-scanner";
@@ -44,18 +43,28 @@ const QRScanner = () => {
       }
       try {
         const session = await getCurrentSession(selectedUnit);
+        console.log("Fetched session:", session); // Debugging output
         if (session && session._id) {
           setSessionId(session._id);
           const now = new Date();
-          if (new Date(session.endTime) <= now || session.ended) {
+          console.log("Current time:", now.toISOString());
+          console.log("Session endTime:", session.endTime);
+
+          // Rely on server 'ended' flag primarily, with time as a fallback
+          if (session.ended || (new Date(session.endTime) <= now && !session.ended)) {
             setSessionEnded(true);
+            console.log("Session marked as ended:", { endedFlag: session.ended, timeCheck: new Date(session.endTime) <= now });
+          } else {
+            setSessionEnded(false);
           }
         } else {
           setSessionEnded(true);
+          console.log("No valid session returned");
         }
       } catch (error) {
         message.error("Error fetching session details: " + (error.message || "Unknown error"));
         setSessionEnded(true);
+        console.error("Fetch session error:", error);
       }
     };
     fetchSession();

@@ -17,11 +17,37 @@ exports.detectCurrentSession = async (req, res) => {
       return res.status(404).json({ message: 'No current session found' });
     }
 
+    // Check if session should be ended based on time
+    if (currentTime > new Date(currentSession.endTime)) {
+      currentSession.ended = true;
+      await currentSession.save();
+      return res.status(404).json({ message: 'Session has ended' });
+    }
+
     res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
   } catch (error) {
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
 };
+
+// exports.detectCurrentSession = async (req, res) => {
+//   try {
+//     const currentTime = new Date();
+//     const currentSession = await Session.findOne({
+//       startTime: { $lte: currentTime },
+//       endTime: { $gte: currentTime },
+//       ended: false
+//     });
+
+//     if (!currentSession) {
+//       return res.status(404).json({ message: 'No current session found' });
+//     }
+
+//     res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
+//   } catch (error) {
+//     res.status(500).json({ message: 'Error detecting current session', error: error.message });
+//   }
+// };
 
 exports.createSession = async (req, res) => {
   try {
