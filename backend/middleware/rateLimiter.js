@@ -11,7 +11,7 @@ const apiLimiter = rateLimit({
 // Strict rate limiter for sensitive endpoints
 const sensitiveLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 20, // Limit each IP to 20 requests per windowMs
+  max: 100, // Allow 100 requests per 15 minutes
   message: 'Too many requests to this endpoint, please try again later',
   headers: true
 });

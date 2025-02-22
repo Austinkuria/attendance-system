@@ -39,7 +39,7 @@ router.use("/unit", unitRoutes);
 router.use("/attendance/", authLimiter, authenticate, attendanceRoutes);
 
 // Session routes
-router.use("/sessions", sensitiveLimiter, authenticate, sessionRoutes);
+router.use("/sessions", authLimiter, authenticate, sessionRoutes);
 
 router.use('/', userRoutes);
 

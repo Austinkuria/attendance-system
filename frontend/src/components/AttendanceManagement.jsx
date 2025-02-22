@@ -4,7 +4,7 @@ import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, Calen
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import debounce from 'lodash/debounce';
-import throttle from 'lodash/throttle'; // Add lodash throttle
+import throttle from 'lodash/throttle';
 import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
 
 const { Option } = Select;
@@ -46,6 +46,7 @@ const AttendanceManagement = () => {
     year: null,
     semester: null
   });
+  const [rateLimited, setRateLimited] = useState(false); // Track persistent rate limit state
 
   // Exponential backoff with more retries
   const backoffRetry = async (fn, maxRetries = 5, initialDelay = 1000) => {
@@ -59,6 +60,7 @@ const AttendanceManagement = () => {
           console.log(`Rate limited. Retrying in ${delay}ms...`);
           await new Promise(resolve => setTimeout(resolve, delay));
           retries++;
+          if (retries === maxRetries) setRateLimited(true);
         } else {
           throw error;
         }
@@ -89,9 +91,10 @@ const AttendanceManagement = () => {
     if (departments.length === 0) fetchDepartments();
   }, [departments]);
 
-  // Throttled checkCurrentSession
+  // Throttled and cached checkCurrentSession
   const checkCurrentSession = useCallback(
     throttle(async () => {
+      if (rateLimited) return; // Skip if rate limited
       const savedSession = localStorage.getItem('currentSession');
       const parsedSession = savedSession ? JSON.parse(savedSession) : null;
 
@@ -106,6 +109,7 @@ const AttendanceManagement = () => {
         setSelectedUnit(unitId);
         setLoading(prevState => ({ ...prevState, session: false }));
         setLoadingSessionData(false);
+        setRateLimited(false);
         return;
       }
 
@@ -124,6 +128,7 @@ const AttendanceManagement = () => {
           setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime });
           setQrData(data.qrCode);
           setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
+          setRateLimited(false);
         } else {
           setCurrentSession(null);
           setQrData('');
@@ -137,7 +142,7 @@ const AttendanceManagement = () => {
         setLoading(prevState => ({ ...prevState, session: false }));
         setLoadingSessionData(false);
       }
-    }, 10000), // Throttle to once every 10 seconds
+    }, 30000), // Throttle to once every 30 seconds
     [lecturerId]
   );
 
@@ -183,11 +188,11 @@ const AttendanceManagement = () => {
       }
     };
     if (lecturerId && units.length === 0) fetchData();
-  }, [lecturerId, units]); // Removed selectedUnit, currentSession to reduce triggers
+  }, [lecturerId, units]);
 
-  // Throttled fetchCurrentSession
   const fetchCurrentSession = useCallback(
     throttle(async () => {
+      if (rateLimited || !selectedUnit) return;
       const savedSession = localStorage.getItem('currentSession');
       const parsedSession = savedSession ? JSON.parse(savedSession) : null;
 
@@ -201,6 +206,7 @@ const AttendanceManagement = () => {
           setCurrentSession(parsedSession);
           setQrData(parsedSession.qrCode || '');
           setLoadingSessionData(false);
+          setRateLimited(false);
           return;
         }
       }
@@ -235,6 +241,7 @@ const AttendanceManagement = () => {
             const unitName = unitFromResponse.name || (units.find(u => u._id === response.data.unit)?.name) || "Unknown Unit";
             setCurrentSession({ ...response.data, unit: { name: unitName }, startSession: validStartTime, endSession: validEndTime });
             setQrData(response.data.qrCode);
+            setRateLimited(false);
           }
         } else {
           setCurrentSession(null);
@@ -248,13 +255,13 @@ const AttendanceManagement = () => {
       } finally {
         setLoadingSessionData(false);
       }
-    }, 10000), // Throttle to once every 10 seconds
+    }, 30000),
     [selectedUnit, units]
   );
 
   useEffect(() => {
     if (selectedUnit) fetchCurrentSession();
-  }, [selectedUnit, fetchCurrentSession]); // Only trigger on selectedUnit change
+  }, [selectedUnit, fetchCurrentSession]);
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -330,8 +337,8 @@ const AttendanceManagement = () => {
 
   const debouncedHandleCreateSession = useCallback(
     debounce(async () => {
-      if (!selectedUnit) {
-        message.error('Please select a unit first');
+      if (!selectedUnit || rateLimited) {
+        message.error(rateLimited ? 'Rate limit exceeded, please wait.' : 'Please select a unit first');
         return;
       }
       try {
@@ -348,6 +355,7 @@ const AttendanceManagement = () => {
         message.success('Session created successfully');
         setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime, ended: false });
         setQrData(data.qrCode);
+        setRateLimited(false);
       } catch (error) {
         console.error("Error creating session:", error);
         message.error(error.message || 'Failed to create session after retries');
@@ -360,8 +368,8 @@ const AttendanceManagement = () => {
   );
 
   const handleGenerateQR = async () => {
-    if (!selectedUnit || !currentSession || currentSession.ended) {
-      message.error('Please select a unit and ensure an active session exists');
+    if (!selectedUnit || !currentSession || currentSession.ended || rateLimited) {
+      message.error(rateLimited ? 'Rate limit exceeded, please wait.' : 'Please select a unit and ensure an active session exists');
       return;
     }
     try {
@@ -378,6 +386,7 @@ const AttendanceManagement = () => {
       }
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
+      setRateLimited(false);
     } catch (error) {
       console.error("Error generating QR code:", error);
       message.error(error.message || "Failed to generate QR code after retries");
@@ -387,8 +396,8 @@ const AttendanceManagement = () => {
   };
 
   const handleRegenerateQR = async () => {
-    if (!selectedUnit || !currentSession || currentSession.ended) {
-      message.error('Please select a unit and ensure an active session exists');
+    if (!selectedUnit || !currentSession || currentSession.ended || rateLimited) {
+      message.error(rateLimited ? 'Rate limit exceeded, please wait.' : 'Please select a unit and ensure an active session exists');
       return;
     }
     try {
@@ -404,6 +413,7 @@ const AttendanceManagement = () => {
       setQrData(data.qrCode);
       setCurrentSession(prev => ({ ...prev, qrCode: data.qrCode }));
       message.success("QR code regenerated successfully");
+      setRateLimited(false);
     } catch (error) {
       console.error("Error regenerating QR code:", error);
       message.error(error.message || "Failed to regenerate QR code after retries");
@@ -413,7 +423,7 @@ const AttendanceManagement = () => {
   };
 
   const handleEndSession = async () => {
-    if (!currentSession) return;
+    if (!currentSession || rateLimited) return;
     try {
       setLoading(prevState => ({ ...prevState, session: true }));
       const token = localStorage.getItem('token');
@@ -439,6 +449,7 @@ const AttendanceManagement = () => {
             setQrData('');
             setAttendance([]);
             localStorage.removeItem('currentSession');
+            setRateLimited(false);
           } catch (error) {
             console.error('Error ending session:', { message: error.message, response: error.response?.data, sessionId: currentSession?._id });
             message.error(error.message || 'Failed to end session after retries');
@@ -454,6 +465,10 @@ const AttendanceManagement = () => {
   };
 
   const handleToggleStatus = async (recordId) => {
+    if (rateLimited) {
+      message.error('Rate limit exceeded, please wait.');
+      return;
+    }
     const record = processedAttendance.find(r => r._id === recordId);
     if (!record) return;
     const newStatus = record.status === 'present' ? 'absent' : 'present';
@@ -468,6 +483,7 @@ const AttendanceManagement = () => {
       );
       setAttendance(prevState => prevState.map(a => a._id === recordId && a.unit === selectedUnit ? { ...a, status: newStatus } : a));
       message.success(`Marked student as ${newStatus}`);
+      setRateLimited(false);
     } catch (error) {
       console.error("Error updating status:", error);
       message.error('Failed to update attendance status after retries');
@@ -496,7 +512,7 @@ const AttendanceManagement = () => {
           type="link" 
           onClick={() => handleToggleStatus(record._id)} 
           icon={<SyncOutlined />} 
-          disabled={currentSession?.ended || record.deviceVerified}
+          disabled={currentSession?.ended || record.deviceVerified || rateLimited}
         >
           Toggle Status
         </Button>
@@ -592,13 +608,19 @@ const AttendanceManagement = () => {
             <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
             <Col span={24}>
               <Space>
-                <Button danger onClick={handleEndSession} loading={loading.session}>End Session Early</Button>
-                <Button onClick={handleRegenerateQR} loading={loading.qr}>Regenerate QR</Button>
+                <Button danger onClick={handleEndSession} loading={loading.session} disabled={rateLimited}>End Session Early</Button>
+                <Button onClick={handleRegenerateQR} loading={loading.qr} disabled={rateLimited}>Regenerate QR</Button>
               </Space>
             </Col>
           </Row>
         </Card>
       ) : null}
+
+      {rateLimited && (
+        <Card style={{ marginBottom: 24, background: '#fffbe6' }}>
+          <Text type="warning">Rate limit exceeded. Please wait a few minutes before trying again.</Text>
+        </Card>
+      )}
 
       <Card
         title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
@@ -611,7 +633,7 @@ const AttendanceManagement = () => {
               type="primary"
               icon={<QrcodeOutlined />}
               onClick={handleGenerateQR}
-              disabled={!selectedUnit || !currentSession || currentSession?.ended}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended || rateLimited}
               loading={loading.qr}
             >
               {screens.md ? 'Show QR Code' : 'QR Code'}
@@ -620,7 +642,7 @@ const AttendanceManagement = () => {
               type="primary"
               icon={<CalendarOutlined />}
               onClick={debouncedHandleCreateSession}
-              disabled={loading.session || (currentSession && !currentSession.ended)}
+              disabled={loading.session || (currentSession && !currentSession.ended) || rateLimited}
             >
               {loading.session ? 'Creating...' : 'Create Attendance Session'}
             </Button>
@@ -701,7 +723,7 @@ const AttendanceManagement = () => {
             <Button
               onClick={handleViewAttendance}
               loading={loading.attendance}
-              disabled={!selectedUnit || !currentSession || currentSession?.ended}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended || rateLimited}
               type="primary"
             >
               Refresh Attendance Data
@@ -788,7 +810,7 @@ const AttendanceManagement = () => {
         centered
         onCancel={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}
         footer={[
-          <Button key="regenerate" type="primary" onClick={handleRegenerateQR} loading={loading.qr}>Regenerate QR</Button>,
+          <Button key="regenerate" type="primary" onClick={handleRegenerateQR} loading={loading.qr} disabled={rateLimited}>Regenerate QR</Button>,
           <Button key="close" onClick={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}>Close</Button>
         ]}
         destroyOnClose
