@@ -40,24 +40,18 @@ function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showBanner, setShowBanner] = useState(false);
 
-  // Effect to auto-hide the banner on initial load if online.
   useEffect(() => {
     if (navigator.onLine) {
-      setTimeout(() => {
-        setShowBanner(false);
-      }, 1000);
+      setTimeout(() => setShowBanner(false), 1000);
     }
   }, []);
 
-  // Effect to handle online/offline status
   useEffect(() => {
     const handleOnline = () => {
       setIsOnline(true);
       toast.success("You're back online", { autoClose: 3000 });
       setShowBanner(true);
-      setTimeout(() => {
-        setShowBanner(false);
-      }, 3000);
+      setTimeout(() => setShowBanner(false), 3000);
     };
 
     const handleOffline = () => {
@@ -75,17 +69,14 @@ function App() {
     };
   }, []);
 
-  const handleCloseBanner = () => {
-    setShowBanner(false);
-  };
+  const handleCloseBanner = () => setShowBanner(false);
 
   return (
     <Router>
       <ToastContainer />
       <BackToTop />
-      <InstallButton /> {/* Add the InstallButton here */}
+      <InstallButton />
 
-      {/* Connectivity Banner */}
       {showBanner && (
         <div
           style={{
@@ -121,7 +112,6 @@ function App() {
         </div>
       )}
 
-      {/* Add padding to main content to avoid being hidden behind the banner */}
       <div style={{ paddingTop: showBanner ? "40px" : "0" }}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -130,13 +120,11 @@ function App() {
           <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
           <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          {/* Error routes */}
           <Route path="/401" element={<Unauthorized />} />
           <Route path="/403" element={<Forbidden />} />
           <Route path="/500" element={<ServerError />} />
           <Route path="/405" element={<MethodNotAllowed />} />
           <Route path="*" element={<NotFound />} />
-          {/* End of error routes */}
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
           <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
           <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />

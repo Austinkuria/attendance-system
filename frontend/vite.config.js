@@ -42,25 +42,49 @@ export default defineConfig({
         ],
       },
       workbox: {
-        clientsClaim: true, // Ensures the new service worker takes control immediately
-        skipWaiting: true, // Skips the waiting phase and activates the new service worker immediately
+        clientsClaim: true,
+        skipWaiting: true,
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'], // Cache all common assets
         runtimeCaching: [
           {
-            urlPattern: ({ request }) => request.destination === 'document',
-            handler: 'NetworkFirst', // Always try to fetch fresh content from the network
+            urlPattern: /\.(?:html|js|css)$/,
+            handler: 'StaleWhileRevalidate',
             options: {
-              cacheName: 'html-cache',
+              cacheName: 'app-cache',
               expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
               },
+            },
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 24 * 60 * 60, // 60 days
+              },
+            },
+          },
+          {
+            urlPattern: /^https?.*/, // For API calls or external resources
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 24 * 60 * 60, // 1 day
+              },
+              networkTimeoutSeconds: 10,
             },
           },
         ],
       },
-      registerType: 'autoUpdate', // Automatically updates the service worker
+      registerType: 'autoUpdate',
       devOptions: {
-        enabled: true, // Enable PWA in development mode
+        enabled: true,
       },
     }),
     envCompatible(),
