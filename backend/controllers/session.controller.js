@@ -6,18 +6,27 @@ const mongoose = require('mongoose');
 
 exports.detectCurrentSession = async (req, res) => {
   try {
+    const lecturerId = req.user._id; // Assuming auth middleware sets req.user
+    const unitId = req.params.selectedUnit; // From /current/:selectedUnit route
     const currentTime = new Date();
-    const currentSession = await Session.findOne({
+
+    const query = {
       startTime: { $lte: currentTime },
       endTime: { $gte: currentTime },
-      ended: false
-    });
+      ended: false,
+      lecturer: lecturerId, // Only sessions created by this lecturer
+    };
 
-    if (!currentSession) {
-      return res.status(404).json({ message: 'No current session found' });
+    if (unitId) {
+      query.unit = unitId; // Filter by unit if provided
     }
 
-    // Check if session should be ended based on time
+    const currentSession = await Session.findOne(query);
+
+    if (!currentSession) {
+      return res.status(404).json({ message: 'No current session found for this lecturer/unit' });
+    }
+
     if (currentTime > new Date(currentSession.endTime)) {
       currentSession.ended = true;
       await currentSession.save();
@@ -41,6 +50,13 @@ exports.detectCurrentSession = async (req, res) => {
 
 //     if (!currentSession) {
 //       return res.status(404).json({ message: 'No current session found' });
+//     }
+
+//     // Check if session should be ended based on time
+//     if (currentTime > new Date(currentSession.endTime)) {
+//       currentSession.ended = true;
+//       await currentSession.save();
+//       return res.status(404).json({ message: 'Session has ended' });
 //     }
 
 //     res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
@@ -80,40 +96,6 @@ exports.createSession = async (req, res) => {
     res.status(500).json({ message: "Error creating session", error: error.message });
   }
 };
-
-// exports.createSession = async (req, res) => {
-//   try {
-//     console.log("Received raw body:", req.body);
-
-//     const { unitId, lecturerId, startTime, endTime } = req.body;
-
-//     if (!unitId || !lecturerId || !startTime || !endTime) {
-//       return res.status(400).json({ message: 'Missing required fields' });
-//     }
-
-//     const start = new Date(startTime);
-//     const end = new Date(endTime);
-
-//     if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-//       return res.status(400).json({ message: 'Invalid startTime or endTime format' });
-//     }
-
-//     if (start >= end) {
-//       return res.status(400).json({ message: 'startTime must be before endTime' });
-//     }
-
-//     const session = new Session({ unit: unitId, lecturer: lecturerId, startTime: start, endTime: end });
-//     await session.save();
-
-//     session.qrCode = await generateQRToken(session);
-//     await session.save();
-
-//     res.status(201).json({ message: 'Session created successfully', session, qrCode: session.qrCode });
-
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error creating session', error: error.message });
-//   }
-// };
 
 exports.endSession = async (req, res) => {
   try {
