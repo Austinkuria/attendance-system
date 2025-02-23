@@ -36,35 +36,20 @@ const QRScanner = () => {
   // Fetch the current session
   useEffect(() => {
     const fetchSession = async () => {
-      if (!selectedUnit) {
-        message.error("No unit selected. Please select a unit.");
-        setSessionEnded(true);
-        return;
-      }
       try {
         const session = await getCurrentSession(selectedUnit);
-        console.log("Fetched session:", session); // Debugging output
         if (session && session._id) {
           setSessionId(session._id);
           const now = new Date();
-          console.log("Current time:", now.toISOString());
-          console.log("Session endTime:", session.endTime);
-
-          // Rely on server 'ended' flag primarily, with time as a fallback
-          if (session.ended || (new Date(session.endTime) <= now && !session.ended)) {
+          if (new Date(session.endTime) <= now) {
             setSessionEnded(true);
-            console.log("Session marked as ended:", { endedFlag: session.ended, timeCheck: new Date(session.endTime) <= now });
-          } else {
-            setSessionEnded(false);
           }
         } else {
           setSessionEnded(true);
-          console.log("No valid session returned");
         }
-      } catch (error) {
-        message.error("Error fetching session details: " + (error.message || "Unknown error"));
+      } catch {
+        message.error("Error fetching session details.");
         setSessionEnded(true);
-        console.error("Fetch session error:", error);
       }
     };
     fetchSession();
@@ -74,7 +59,7 @@ const QRScanner = () => {
   const onScanSuccess = useCallback(
     async (result) => {
       if (!sessionId || sessionEnded) {
-        message.error("Session has ended or is invalid. Attendance cannot be marked.");
+        message.error("Session has ended. Attendance cannot be marked.");
         return;
       }
 
@@ -94,17 +79,18 @@ const QRScanner = () => {
           throw new Error("Device identification failed.");
         }
 
-        const qrToken = result.data; // Raw base64 JSON token from QR code
-        const decodedData = JSON.parse(atob(qrToken));
+        // Parse QR code data (base64 encoded)
+        const base64Data = result.data;
+        const decodedData = JSON.parse(atob(base64Data));
         if (decodedData.s !== sessionId) {
           throw new Error("Invalid QR code for this session.");
         }
 
-        await markAttendance(sessionId, studentId, token, deviceId, qrToken);
+        await markAttendance(sessionId, studentId, token, deviceId, base64Data);
         message.success("Attendance marked successfully!");
         navigate("/student-dashboard");
       } catch (err) {
-        message.error(err.response?.data?.message || err.message || "Error marking attendance");
+        message.error(err.response?.data?.message || "Error marking attendance");
         scanner.current?.start();
       } finally {
         setLoading(false);
@@ -146,6 +132,7 @@ const QRScanner = () => {
     };
   }, [onScanSuccess, sessionEnded]);
 
+  // Stop scanner
   const stopScanner = () => {
     if (scanner.current) {
       scanner.current.stop();
@@ -156,6 +143,7 @@ const QRScanner = () => {
     }
   };
 
+  // Handle camera permissions
   useEffect(() => {
     if (!qrOn) {
       message.error("Camera access denied. Please allow permissions.");
