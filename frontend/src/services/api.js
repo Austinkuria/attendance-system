@@ -735,35 +735,16 @@ export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 
 
 
-export const detectCurrentSession = () => {
+// Detect the current active session for the authenticated lecturer
+export const detectCurrentSession = (lecturerId) => {
+  if (!lecturerId) {
+    return Promise.reject(new Error('Lecturer ID is required'));
+  }
   return axios.get(`${API_URL}/sessions/current`, {
-    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+    params: { lecturerId } // Pass lecturerId as a query parameter
   });
 };
-
-// export const endCurrentSession = () => {
-//   return axios.patch(`${API_URL}/sessions/current`, {
-//     action: 'end'
-//   }, {
-//     headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-//   });
-// };
-
-// // Function to mark student attendance
-// export const markStudentAttendance = async (sessionId, qrCode) => {
-//   try {
-//     const token = localStorage.getItem('token');
-//     const response = await axios.post(
-//       `${API_URL}/attendance/mark`,
-//       { sessionId, qrCode },
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error marking attendance:', error);
-//     throw error;
-//   }
-// };
 
 
 /**
@@ -1043,9 +1024,6 @@ export const createSession = async ({ unitId, lecturerId, startTime, endTime }) 
   throw new Error("Max retries reached. Unable to create session.");
 };
 
-
-
-
 export const getSession = async (sessionId) => {
   try {
     const token = localStorage.getItem('token');
@@ -1060,7 +1038,6 @@ export const getSession = async (sessionId) => {
   }
 };
 
-// // ✅ Mark Attendance (Student Scans QR Code)
 // export const markAttendance = async (sessionId, studentId, token) => {
 //   try {
 //     // Validate studentId is a valid ObjectId format
@@ -1173,34 +1150,6 @@ export const getStudentAttendance = async (studentId) => {
   }
 };
 
-// export const getStudentAttendance = async (studentId) => {
-//   try {
-//     const token = localStorage.getItem('token');
-//     if (!token) {
-//       throw new Error('No authentication token found');
-//     }
-
-//     const response = await axios.get(
-//       `${API_URL}/attendance/student/${studentId}`,
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-
-//     if (!response.data || !response.data.attendanceRecords) {
-//       console.warn('Unexpected response format:', response.data);
-//       return { attendanceRecords: [] }; // Return empty array if no data
-//     }
-
-//     return response.data;
-//   } catch (error) {
-//     console.error('Error fetching student attendance:', error);
-//     if (error.response) {
-//       throw new Error(`Failed to fetch attendance: ${error.response.status} - ${error.response.data.message || error.message}`);
-//     } else {
-//       throw new Error(`Network error: ${error.message}`);
-//     }
-//   }
-// };
-
 export const getSessionAttendance = async (sessionId) => {
   try {
     const token = getToken();
@@ -1278,7 +1227,6 @@ export const getLastSession = async (unitId) => {
   }
 };
 
-// export const getAttendanceTrends = async (unitId) => {
 //   try {
 //     const token = localStorage.getItem('token');
 //     if (!token) throw new Error("Authentication token missing");

@@ -6,19 +6,21 @@ const mongoose = require('mongoose');
 
 exports.detectCurrentSession = async (req, res) => {
   try {
-    const lecturerId = req.user._id; // Assuming auth middleware sets req.user
-    const unitId = req.params.selectedUnit; // From /current/:selectedUnit route
-    const currentTime = new Date();
+    const lecturerId = req.query.lecturerId || req.user._id;
+    const unitId = req.params.selectedUnit; // From route param
+    if (!lecturerId) {
+      return res.status(400).json({ message: 'Lecturer ID is required' });
+    }
 
+    const currentTime = new Date();
     const query = {
+      lecturer: lecturerId,
       startTime: { $lte: currentTime },
       endTime: { $gte: currentTime },
-      ended: false,
-      lecturer: lecturerId, // Only sessions created by this lecturer
+      ended: false
     };
-
     if (unitId) {
-      query.unit = unitId; // Filter by unit if provided
+      query.unit = unitId; // Add unit filter if provided
     }
 
     const currentSession = await Session.findOne(query);
