@@ -13,7 +13,7 @@ export function register(config) {
     }
 
     window.addEventListener('load', () => {
-      const swUrl = `${baseUrl}service-worker.js`; // VitePWA generates this
+      const swUrl = `${baseUrl}sw.js`; // Use sw.js instead of service-worker.js
       console.log('Attempting to register Service Worker at:', swUrl);
 
       registerValidSW(swUrl, config);
@@ -36,7 +36,7 @@ function registerValidSW(swUrl, config) {
             if (navigator.serviceWorker.controller) {
               console.log('New content is available!');
               if (config && config.onUpdate) {
-                config.onUpdate(registration); // Trigger update notification
+                config.onUpdate(registration);
               }
             } else {
               console.log('Content is cached for offline use.');
