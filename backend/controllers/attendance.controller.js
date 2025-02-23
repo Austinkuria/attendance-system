@@ -25,11 +25,10 @@ exports.markAttendance = async (req, res) => {
     }
 
     // Verify session
-    const session = await Session.findById(sessionId);
+    const session = await Session.findById(sessionId).populate('unit');
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
-
     const now = new Date();
     if (now < session.startTime || now > session.endTime || session.ended) {
       return res.status(400).json({ message: "Session is not active" });
@@ -46,22 +45,28 @@ exports.markAttendance = async (req, res) => {
       return res.status(400).json({ message: "QR code already used" });
     }
 
-    // Check existing attendance for student
-    const existingRecord = await Attendance.findOne({ session: sessionId, student: studentId });
-    if (existingRecord) {
-      return res.status(400).json({ message: "Attendance already marked" });
+    // Check if student has already marked attendance for this session
+    const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
+    if (existingStudentRecord) {
+      return res.status(400).json({ message: "Attendance already marked by this student" });
     }
 
-    // Check device consistency
+    // Check if this device has already marked attendance for this unit
+    const unitId = session.unit._id;
+    const existingDeviceRecord = await Attendance.findOne({
+      student: studentId,
+      "session.unit": unitId, // Match any session for this unit
+      deviceId: deviceId,
+      status: "Present" // Only count successful marks
+    });
+    if (existingDeviceRecord) {
+      return res.status(403).json({ message: "This device has already marked attendance for this unit" });
+    }
+
+    // Verify student exists
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
-    }
-    if (!student.deviceId) {
-      student.deviceId = deviceId; // Register device if first time
-      await student.save();
-    } else if (student.deviceId !== deviceId) {
-      return res.status(403).json({ message: "Unauthorized device detected" });
     }
 
     // Mark attendance
@@ -78,6 +83,7 @@ exports.markAttendance = async (req, res) => {
 
     res.status(201).json({ message: "Attendance marked as Present" });
   } catch (error) {
+    console.error("Error marking attendance:", error);
     res.status(500).json({ message: "Error marking attendance", error: error.message });
   }
 };

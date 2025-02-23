@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message } from "antd";
 import QrScanner from "qr-scanner";
 import { markAttendance, getCurrentSession } from "../services/api";
-import {jwtDecode} from "jwt-decode";
+import { jwtDecode } from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
 
@@ -72,14 +72,15 @@ const QRScanner = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Authentication failed. Please log in again.");
-        
+
         const decoded = jwtDecode(token); // Decode token to get userId
         const studentId = decoded.userId; // Use token's userId directly
+        const base64Data = result.data; // QR code data
+
         console.log("Marking attendance with:", { sessionId, studentId, qrToken: base64Data, deviceId });
         if (!deviceId) throw new Error("Device identification failed.");
 
         // Parse QR code data (base64 encoded)
-        const base64Data = result.data;
         const decodedData = JSON.parse(atob(base64Data));
         if (decodedData.s !== sessionId) {
           throw new Error("Invalid QR code for this session.");
@@ -89,8 +90,13 @@ const QRScanner = () => {
         message.success("Attendance marked successfully!");
         navigate("/student-dashboard");
       } catch (err) {
-        message.error(err.response?.data?.message || "Error marking attendance");
-        scanner.current?.start();
+        const errorMsg = err.response?.data?.message || "Error marking attendance";
+        if (errorMsg === "This device has already marked attendance for this unit") {
+          message.error("This device cannot mark attendance again for this unit.");
+        } else {
+          message.error(errorMsg);
+          scanner.current?.start(); // Restart scanner for other errors
+        }
       } finally {
         setLoading(false);
       }
