@@ -95,7 +95,7 @@ const QRScanner = () => {
         }
 
         const qrToken = result.data; // Raw base64 JSON token from QR code
-        const decodedData = JSON.parse(Buffer.from(qrToken, "base64").toString());
+        const decodedData = JSON.parse(atob(qrToken));
         if (decodedData.s !== sessionId) {
           throw new Error("Invalid QR code for this session.");
         }
