@@ -1333,14 +1333,16 @@ export const getCourseAttendanceRate = async (courseId, retries = 3, delayMs = 1
     } catch (error) {
       if (error.response?.status === 429 && attempt < retries) {
         const waitTime = delayMs * Math.pow(2, attempt - 1); // Exponential backoff
+        console.warn(`Rate limit hit for course ${courseId}, retrying in ${waitTime}ms...`);
         await new Promise(resolve => setTimeout(resolve, waitTime));
         continue;
       }
-      throw error;
+      console.error(`Failed to fetch attendance rate for course ${courseId}:`, error.response?.data || error.message);
+      throw error.response?.data || error; // Pass the error up to handle in AdminPanel
     }
   }
+  throw new Error(`Max retries reached for course ${courseId}`);
 };
-
 
 export const getAllCourseAttendanceRates = async (courseIds) => {
   const token = localStorage.getItem('token');

@@ -3,6 +3,7 @@ const Attendance = require('../models/Attendance');
 const User = require("../models/User");
 const mongoose = require('mongoose');
 const jwt = require("jsonwebtoken");
+const Unit = require("../models/Unit");
 
 exports.markAttendance = async (req, res) => {
   try {
@@ -525,6 +526,130 @@ exports.getCourseAttendanceRate = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
   }
 };
+
+// exports.getCourseAttendanceRate = async (req, res) => {
+//   try {
+//     const { courseId } = req.params;
+//     if (!mongoose.Types.ObjectId.isValid(courseId)) {
+//       return res.status(400).json({ message: "Invalid course ID format" });
+//     }
+
+//     const units = await Unit.find({ course: courseId }).populate('studentsEnrolled');
+//     if (!units.length) {
+//       return res.status(200).json({
+//         totalPresent: 0,
+//         totalPossible: 0,
+//         weeklyTrends: [],
+//         dailyTrends: []
+//       });
+//     }
+
+//     const unitIds = units.map(unit => unit._id);
+//     const totalEnrolled = units.reduce((sum, unit) => sum + (unit.studentsEnrolled?.length || 0), 0);
+
+//     const sessions = await Session.find({ unit: { $in: unitIds } }).sort({ startTime: 1 });
+//     const sessionCount = sessions.length;
+//     if (!sessionCount) {
+//       return res.status(200).json({
+//         totalPresent: 0,
+//         totalPossible: 0,
+//         weeklyTrends: [],
+//         dailyTrends: []
+//       });
+//     }
+
+//     const totalPossible = totalEnrolled * sessionCount;
+//     const sessionIds = sessions.map(session => session._id);
+
+//     const totalStats = await Attendance.aggregate([
+//       { $match: { session: { $in: sessionIds } } },
+//       { $group: { _id: "$status", count: { $sum: 1 } } }
+//     ]);
+//     const totalPresent = totalStats.find(s => s._id === "Present")?.count || 0;
+
+//     // Session-level attendance data
+//     const sessionAttendance = await Promise.all(sessions.map(async (session) => {
+//       const stats = await Attendance.aggregate([
+//         { $match: { session: session._id, status: "Present" } },
+//         { $group: { _id: null, count: { $sum: 1 } } }
+//       ]);
+//       const present = stats[0]?.count || 0;
+//       const possible = totalEnrolled;
+//       return {
+//         sessionId: session._id.toString(),
+//         startTime: session.startTime,
+//         present,
+//         absent: possible - present,
+//         rate: possible > 0 ? Math.round((present / possible) * 100) : 0
+//       };
+//     }));
+
+//     // Define semester start date (adjust as needed)
+//     const semesterStartDate = new Date('2025-01-01'); // Example; could be configurable
+//     const oneDay = 24 * 60 * 60 * 1000;
+//     const oneWeek = 7 * oneDay;
+
+//     // Weekly trends (calendar-based)
+//     const weeklyTrends = {};
+//     sessionAttendance.forEach(session => {
+//       const sessionDate = new Date(session.startTime);
+//       const daysSinceStart = Math.floor((sessionDate - semesterStartDate) / oneDay);
+//       const weekNumber = Math.floor(daysSinceStart / 7) + 1;
+//       const weekStart = new Date(semesterStartDate.getTime() + (weekNumber - 1) * oneWeek);
+//       const weekEnd = new Date(weekStart.getTime() + 6 * oneDay);
+//       const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+//       if (!weeklyTrends[weekLabel]) {
+//         weeklyTrends[weekLabel] = { present: 0, absent: 0, possible: 0, sessions: [] };
+//       }
+//       weeklyTrends[weekLabel].present += session.present;
+//       weeklyTrends[weekLabel].absent += session.absent;
+//       weeklyTrends[weekLabel].possible += totalEnrolled;
+//       weeklyTrends[weekLabel].sessions.push(session);
+//     });
+
+//     const weeklyData = Object.entries(weeklyTrends).map(([week, stats]) => ({
+//       week,
+//       present: stats.present,
+//       absent: stats.absent,
+//       rate: stats.possible > 0 ? Math.round((stats.present / stats.possible) * 100) : 0,
+//       sessionCount: stats.sessions.length,
+//       sessions: stats.sessions
+//     }));
+
+//     // Daily trends
+//     const dailyTrends = {};
+//     sessionAttendance.forEach(session => {
+//       const dateStr = session.startTime.toISOString().split('T')[0];
+//       if (!dailyTrends[dateStr]) {
+//         dailyTrends[dateStr] = { present: 0, absent: 0, possible: 0, sessions: [] };
+//       }
+//       dailyTrends[dateStr].present += session.present;
+//       dailyTrends[dateStr].absent += session.absent;
+//       dailyTrends[dateStr].possible += totalEnrolled;
+//       dailyTrends[dateStr].sessions.push(session);
+//     });
+
+//     const dailyData = Object.entries(dailyTrends).map(([date, stats]) => ({
+//       date,
+//       present: stats.present,
+//       absent: stats.absent,
+//       rate: stats.possible > 0 ? Math.round((stats.present / stats.possible) * 100) : 0,
+//       sessionCount: stats.sessions.length,
+//       sessions: stats.sessions
+//     }));
+
+//     res.status(200).json({
+//       totalPresent,
+//       totalPossible,
+//       weeklyTrends: weeklyData,
+//       dailyTrends: dailyData
+//     });
+//   } catch (error) {
+//     console.error("Error fetching course attendance rate:", error);
+//     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
+//   }
+// };
 
 //   try {
 //     const { courseId } = req.params;

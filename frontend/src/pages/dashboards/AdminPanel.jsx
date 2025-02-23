@@ -1,5 +1,4 @@
-// src/pages/dashboards/AdminPanel.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   UserOutlined,
   BookOutlined,
@@ -45,8 +44,12 @@ const AdminPanel = () => {
   const [lecturers, setLecturers] = useState([]);
   const [courses, setCourses] = useState([]);
   const [attendanceRates, setAttendanceRates] = useState({});
-  const [loading, setLoading] = useState(false);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [lecturersLoading, setLecturersLoading] = useState(false);
+  const [coursesLoading, setCoursesLoading] = useState(false);
+  const [attendanceLoading, setAttendanceLoading] = useState(false);
 
+  // Authentication check
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
@@ -71,51 +74,88 @@ const AdminPanel = () => {
     window.location.reload(true);
   };
 
+  // Fetch Students
+  useEffect(() => {
+    const fetchStudents = async () => {
+      setStudentsLoading(true);
+      try {
+        const studentsRes = await getStudents();
+        setStudents(studentsRes || []);
+        console.log('Students fetched:', studentsRes);
+      } catch (error) {
+        console.error('Failed to fetch students:', error.message || 'Unknown error');
+        message.error('Failed to load students');
+      } finally {
+        setStudentsLoading(false);
+      }
+    };
+    fetchStudents();
+  }, []);
 
-  const fetchAllData = useCallback(async () => {
-    if (loading) return; // Prevent concurrent fetches
-    try {
-      setLoading(true);
-      // Fetch initial data
-      const [studentsRes, lecturersRes, coursesRes] = await Promise.all([
-        getStudents(),
-        getLecturers(),
-        getCourses(),
-      ]);
-      setStudents(studentsRes);
-      setLecturers(lecturersRes);
-      setCourses(coursesRes);
+  // Fetch Lecturers
+  useEffect(() => {
+    const fetchLecturers = async () => {
+      setLecturersLoading(true);
+      try {
+        const lecturersRes = await getLecturers();
+        setLecturers(lecturersRes || []);
+        console.log('Lecturers fetched:', lecturersRes);
+      } catch (error) {
+        console.error('Failed to fetch lecturers:', error.message || 'Unknown error');
+        message.error('Failed to load lecturers');
+      } finally {
+        setLecturersLoading(false);
+      }
+    };
+    fetchLecturers();
+  }, []);
 
-      // Fetch attendance rates sequentially with delay
-      if (coursesRes.length > 0) {
+  // Fetch Courses
+  useEffect(() => {
+    const fetchCourses = async () => {
+      setCoursesLoading(true);
+      try {
+        const coursesRes = await getCourses();
+        setCourses(coursesRes || []);
+        console.log('Courses fetched:', coursesRes);
+      } catch (error) {
+        console.error('Failed to fetch courses:', error.message || 'Unknown error');
+        message.error('Failed to load courses');
+      } finally {
+        setCoursesLoading(false);
+      }
+    };
+    fetchCourses();
+  }, []);
+
+  // Fetch Attendance Rates (depends on courses)
+  useEffect(() => {
+    const fetchAttendanceRates = async () => {
+      if (!courses.length) return; // Wait for courses to load
+      setAttendanceLoading(true);
+      try {
         const rates = {};
-        for (const course of coursesRes) {
+        for (const course of courses) {
           try {
             const rateData = await getCourseAttendanceRate(course._id);
-            rates[course._id] = rateData;
-            await delay(2000); // Increased to 2000ms delay to better respect Render's rate limit
-
+            rates[course._id] = rateData || { totalPresent: 0, totalPossible: 0 };
+            console.log(`Attendance for ${course._id}:`, rateData);
+            await delay(5000); // Respect rate limits
           } catch (courseError) {
-            console.error(`Failed to fetch attendance for course ${course._id}:`, courseError.message || 'Unknown error');
+            console.error(`Failed to fetch attendance for ${course._id}:`, courseError.message || 'Unknown error');
+            rates[course._id] = { totalPresent: 0, totalPossible: 0 };
           }
         }
-        if (Object.keys(rates).length === 0) {
-          message.warning('No attendance data fetched for any course.');
-        }
         setAttendanceRates(rates);
-      } else {
-        message.info('No courses available to fetch attendance rates.');
+      } catch (error) {
+        console.error('Failed to fetch attendance rates:', error.message || 'Unknown error');
+        message.error('Failed to load attendance data');
+      } finally {
+        setAttendanceLoading(false);
       }
-    } catch (error) {
-      message.error(`Failed to load initial data: ${error.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  }, [loading]);
-
-  useEffect(() => {
-    fetchAllData(); // Trigger fetch only on component mount
-  }, [fetchAllData]);
+    };
+    fetchAttendanceRates();
+  }, [courses]); // Dependency on courses
 
   const calculateOverallRate = () => {
     const totalPresent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.totalPresent || 0), 0);
@@ -131,9 +171,9 @@ const AdminPanel = () => {
         label: 'Attendance Rate (%)',
         data: courses.length
           ? courses.map(course => {
-            const rate = attendanceRates[course._id];
-            return rate && rate.totalPossible > 0 ? Math.round((rate.totalPresent / rate.totalPossible) * 100) : 0;
-          })
+              const rate = attendanceRates[course._id];
+              return rate && rate.totalPossible > 0 ? Math.round((rate.totalPresent / rate.totalPossible) * 100) : 0;
+            })
           : [0],
         borderColor: '#1890ff',
         backgroundColor: 'rgba(24, 144, 255, 0.2)',
@@ -154,7 +194,7 @@ const AdminPanel = () => {
       tooltip: {
         callbacks: {
           label: (context) => {
-            const courseId = courses[context.dataIndex]._id;
+            const courseId = courses[context.dataIndex]?._id;
             const rate = attendanceRates[courseId];
             return rate ? `${context.dataset.label}: ${context.raw}% (Present: ${rate.totalPresent}/${rate.totalPossible})` : `${context.dataset.label}: ${context.raw}%`;
           },
@@ -162,26 +202,10 @@ const AdminPanel = () => {
       },
     },
     scales: {
-      y: {
-        min: 0,
-        max: 100,
-        title: { display: true, text: 'Rate (%)' },
-        grid: { display: true },
-      },
-      x: {
-        title: { display: true, text: 'Courses' },
-        ticks: { maxRotation: 45, minRotation: 45 },
-        grid: { display: false },
-      },
+      y: { min: 0, max: 100, title: { display: true, text: 'Rate (%)' }, grid: { display: true } },
+      x: { title: { display: true, text: 'Courses' }, ticks: { maxRotation: 45, minRotation: 45 }, grid: { display: false } },
     },
-    layout: {
-      padding: {
-        top: 20,
-        bottom: 20,
-        left: 20,
-        right: 20,
-      },
-    },
+    layout: { padding: { top: 20, bottom: 20, left: 20, right: 20 } },
   };
 
   // Pie Chart Data (Quick Stats - Sessions per Course)
@@ -192,9 +216,9 @@ const AdminPanel = () => {
         label: 'Total Sessions',
         data: courses.length
           ? courses.map(course => {
-            const rate = attendanceRates[course._id];
-            return rate ? rate.weeklyTrends.reduce((acc, t) => acc + t.sessionCount, 0) : 0;
-          })
+              const rate = attendanceRates[course._id];
+              return rate ? rate.weeklyTrends?.reduce((acc, t) => acc + (t.sessionCount || 0), 0) || 0 : 0;
+            })
           : [0],
         backgroundColor: [
           'rgba(255, 99, 132, 0.8)',
@@ -305,53 +329,53 @@ const AdminPanel = () => {
           <Row gutter={[16, 16]} justify="center">
             <Col xs={24} sm={12} md={8} lg={6}>
               <Card
-                loading={loading}
+                loading={studentsLoading}
                 style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
                 onClick={() => window.location.href = '/admin/manage-students'}
               >
                 <Space direction="vertical">
                   <TeamOutlined style={{ fontSize: 24 }} />
                   <h3>Total Students</h3>
-                  <h1>{students.length}</h1>
+                  <h1>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
                 </Space>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6}>
               <Card
-                loading={loading}
+                loading={coursesLoading}
                 style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
                 onClick={() => window.location.href = '/admin/manage-courses'}
               >
                 <Space direction="vertical">
                   <BookOutlined style={{ fontSize: 24 }} />
                   <h3>Total Courses</h3>
-                  <h1>{courses.length}</h1>
+                  <h1>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
                 </Space>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6}>
               <Card
-                loading={loading}
+                loading={lecturersLoading}
                 style={{ background: 'linear-gradient(135deg, #fa8c16, #d46b08)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
                 onClick={() => window.location.href = '/admin/manage-lecturers'}
               >
                 <Space direction="vertical">
                   <UserOutlined style={{ fontSize: 24 }} />
                   <h3>Total Lecturers</h3>
-                  <h1>{lecturers.length}</h1>
+                  <h1>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
                 </Space>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8} lg={6}>
               <Card
-                loading={loading}
+                loading={attendanceLoading}
                 style={{ background: 'linear-gradient(135deg, #f5222d, #cf1322)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
                 onClick={() => window.location.href = '/admin/analytics'}
               >
                 <Space direction="vertical">
                   <CheckCircleOutlined style={{ fontSize: 24 }} />
                   <h3>Attendance Rate</h3>
-                  <h1>{calculateOverallRate()}%</h1>
+                  <h1>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
                 </Space>
               </Card>
             </Col>
@@ -377,7 +401,7 @@ const AdminPanel = () => {
   );
 
   function weeklyTrendsAvg() {
-    const allRates = Object.values(attendanceRates).flatMap(rate => rate.weeklyTrends.map(t => t.rate));
+    const allRates = Object.values(attendanceRates).flatMap(rate => rate.weeklyTrends?.map(t => t.rate || 0) || []);
     return allRates.length ? allRates.reduce((sum, rate) => sum + rate, 0) / allRates.length : 0;
   }
 };
