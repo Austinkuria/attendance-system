@@ -606,6 +606,7 @@ const AttendanceManagement = () => {
       ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
         <Card
           title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown Unit'}</Space>}
+          styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
           style={{ marginBottom: 24 }}
         >
           <Row gutter={[16, 16]}>
@@ -622,7 +623,7 @@ const AttendanceManagement = () => {
       ) : null}
 
       {rateLimited && (
-        <Card style={{ marginBottom: 24, background: '#fffbe6' }}>
+        <Card styles={{ body: { padding: 16 } }} style={{ marginBottom: 24, background: '#fffbe6' }}>
           <Text type="warning">Rate limit exceeded. Please wait a few minutes before trying again.</Text>
         </Card>
       )}
@@ -653,12 +654,14 @@ const AttendanceManagement = () => {
             </Button>
           </Space>
         }
+        styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
       >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Card
             title="Real-time Unit Filters"
             size="small"
             extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
+            styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
           >
             <Space wrap style={{ width: '100%' }}>
               <Select
@@ -747,6 +750,7 @@ const AttendanceManagement = () => {
               </Space>
             }
             size="small"
+            styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
           >
             <Space wrap style={{ width: '100%' }}>
               <Input

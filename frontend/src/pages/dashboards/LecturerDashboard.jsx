@@ -3,7 +3,6 @@ import {
   Layout,
   theme,
   Dropdown,
-  Menu,
   Modal,
   message,
   Button
@@ -56,26 +55,23 @@ const LecturerDashboard = () => {
   };
 
   // Profile dropdown items
-  const profileItems = (
-    <Menu>
-      <Menu.Item key="1" icon={<UserOutlined />} onClick={() => window.location.href = '/lecturer/profile'}>View Profile</Menu.Item>
-      <Menu.Item key="2" icon={<SettingOutlined />} onClick={() => window.location.href = '/lecturer/settings'}>Settings</Menu.Item>
-      <Menu.Divider />
-      <Menu.Item
-        key="3"
-        icon={<LogoutOutlined />}
-        danger
-        onClick={() => Modal.confirm({
-          title: 'Confirm Logout',
-          content: 'Are you sure you want to logout?',
-          onOk: logout,
-          centered: true,
-        })}
-      >
-        Logout
-      </Menu.Item>
-    </Menu>
-  );
+  const profileItems = [
+    { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => window.location.href = '/lecturer/profile' },
+    { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => window.location.href = '/lecturer/settings' },
+    { type: 'divider' },
+    {
+      key: '3',
+      label: 'Logout',
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: () => Modal.confirm({
+        title: 'Confirm Logout',
+        content: 'Are you sure you want to logout?',
+        onOk: logout,
+        centered: true,
+      })
+    }
+  ];
 
   return (
     <Layout style={{ minHeight: "100vh", background: '#f0f2f5' }}>
@@ -100,7 +96,7 @@ const LecturerDashboard = () => {
             onClick={() => setCollapsed(!collapsed)}
             style={{ fontSize: '16px', width: 64, height: 64, color: '#1890ff' }}
           />
-          <Dropdown overlay={profileItems} trigger={['click']}>
+          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
             <Button
               type="text"
               icon={<UserOutlined style={{ fontSize: 24, color: '#1890ff' }} />}

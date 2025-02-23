@@ -165,7 +165,7 @@ const AdminPanel = () => {
 
   // Line Chart Data (Attendance Rates per Course)
   const overviewChartData = {
-    labels: courses.length ? courses.map(course => course.name) : ['No Data'],
+    labels: courses.length ? courses.map(course => course.code) : ['No Data'],
     datasets: [
       {
         label: 'Attendance Rate (%)',
@@ -210,7 +210,7 @@ const AdminPanel = () => {
 
   // Pie Chart Data (Quick Stats - Sessions per Course)
   const quickStatsChartData = {
-    labels: courses.length ? courses.map(course => course.code) : ['No Data'],
+    labels: courses.length ? courses.map(course => course.name) : ['No Data'],
     datasets: [
       {
         label: 'Total Sessions',
@@ -312,7 +312,7 @@ const AdminPanel = () => {
             items={[
               { key: '1', icon: <TeamOutlined />, label: 'Students', onClick: () => window.location.href = '/admin/manage-students' },
               { key: '2', icon: <BookOutlined />, label: 'Courses', onClick: () => window.location.href = '/admin/manage-courses' },
-              { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => window.location.href = '/admin/attendance-reports' },
+              { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => window.location.href = '/admin/analytics' },
               { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
               { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' }
             ]}

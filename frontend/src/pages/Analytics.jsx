@@ -232,7 +232,7 @@ const Analytics = () => {
         </Space>
       }
       style={{ marginTop: 24, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden' }}
-      bodyStyle={{ padding: screens.md ? 24 : 16 }}
+      styles={{ body: { padding: screens.md ? 24 : 16 } }} // Updated from bodyStyle to styles.body
     >
       <Spin spinning={loading.trends} tip="Loading trends...">
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
