@@ -8,7 +8,11 @@ const api = axios.create({
 });
 
 // Function to get token from local storage
-const getToken = () => localStorage.getItem("token");
+const getToken = () => {
+  const token = localStorage.getItem('token');
+  if (!token) throw new Error("Authentication token missing");
+  return token;
+};
 
 // Function to refresh token
 const refreshToken = async () => {
@@ -745,7 +749,11 @@ export const detectCurrentSession = (lecturerId) => {
     params: { lecturerId } // Pass lecturerId as a query parameter
   });
 };
-
+export const detectCurrentSessionForUnit = (unitId) => {
+  return axios.get(`${API_URL}/sessions/current/${unitId}`, {
+    headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+  });
+};
 
 /**
  * Create a new quiz
@@ -1038,6 +1046,23 @@ export const getSession = async (sessionId) => {
   }
 };
 
+export const getCurrentSession = async (selectedUnit) => {
+  try {
+    const token = getToken();
+    const response = await axios.get(`${API_URL}/sessions/current/${selectedUnit}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching current session:", error);
+    throw error;
+  }
+};
+
+
 // export const markAttendance = async (sessionId, studentId, token) => {
 //   try {
 //     // Validate studentId is a valid ObjectId format
@@ -1181,26 +1206,26 @@ export const getSessionAttendance = async (sessionId) => {
   }
 };
 
-// Get current session for a specific unit
-export const getCurrentSession = async (selectedUnit) => {
-  try {
-    const token = getToken();
-    if (!token) throw new Error("Authentication token missing");
-    const response = await axios.get(`${API_URL}/sessions/current/${selectedUnit}`, {
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
-      }
-    });
-    return response.data; // Return the session object
-  } catch (error) {
-    if (error.response?.status === 404) {
-      return null; // Return null if no current session exists
-    }
-    console.error("Error fetching current session:", error);
-    throw error;
-  }
-};
+// // Get current session for a specific unit
+// export const getCurrentSession = async (selectedUnit) => {
+//   try {
+//     const token = getToken();
+//     if (!token) throw new Error("Authentication token missing");
+//     const response = await axios.get(`${API_URL}/sessions/current/${selectedUnit}`, {
+//       headers: {
+//         "Content-Type": "application/json",
+//         "Authorization": `Bearer ${token}`
+//       }
+//     });
+//     return response.data; // Return the session object
+//   } catch (error) {
+//     if (error.response?.status === 404) {
+//       return null; // Return null if no current session exists
+//     }
+//     console.error("Error fetching current session:", error);
+//     throw error;
+//   }
+// };
 
 // Get last ended session for a specific unit
 export const getLastSession = async (unitId) => {

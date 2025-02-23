@@ -47,9 +47,11 @@ const QRScanner = () => {
           }
         } else {
           setSessionEnded(true);
+          message.error("No current session found for this unit");
         }
-      } catch {
-        message.error("Error fetching session details.");
+      } catch (err) {
+        const errorMsg = err.response?.data?.message || err.message || "Error fetching session details";
+        message.error(errorMsg);
         setSessionEnded(true);
       }
     };

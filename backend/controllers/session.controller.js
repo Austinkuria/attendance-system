@@ -6,8 +6,10 @@ const mongoose = require('mongoose');
 
 exports.detectCurrentSession = async (req, res) => {
   try {
-    const lecturerId = req.query.lecturerId || req.user._id;
+    const lecturerId = req.user?._id; // Use authenticated user's ID
     const unitId = req.params.selectedUnit; // From route param
+    console.log("Detecting session with:", { lecturerId, unitId }); // Debug log
+
     if (!lecturerId) {
       return res.status(400).json({ message: 'Lecturer ID is required' });
     }
@@ -37,35 +39,10 @@ exports.detectCurrentSession = async (req, res) => {
 
     res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
   } catch (error) {
+    console.error("Error detecting current session:", error);
     res.status(500).json({ message: 'Error detecting current session', error: error.message });
   }
 };
-
-// exports.detectCurrentSession = async (req, res) => {
-//   try {
-//     const currentTime = new Date();
-//     const currentSession = await Session.findOne({
-//       startTime: { $lte: currentTime },
-//       endTime: { $gte: currentTime },
-//       ended: false
-//     });
-
-//     if (!currentSession) {
-//       return res.status(404).json({ message: 'No current session found' });
-//     }
-
-//     // Check if session should be ended based on time
-//     if (currentTime > new Date(currentSession.endTime)) {
-//       currentSession.ended = true;
-//       await currentSession.save();
-//       return res.status(404).json({ message: 'Session has ended' });
-//     }
-
-//     res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error detecting current session', error: error.message });
-//   }
-// };
 
 exports.createSession = async (req, res) => {
   try {
@@ -96,6 +73,33 @@ exports.createSession = async (req, res) => {
   } catch (error) {
     console.error("Error in createSession:", error);
     res.status(500).json({ message: "Error creating session", error: error.message });
+  }
+};
+
+exports.regenerateQR = async (req, res) => {
+  try {
+    const { sessionId } = req.body;
+    if (!mongoose.isValidObjectId(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID format" });
+    }
+
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({ message: "Session not found" });
+    }
+    if (session.ended) {
+      return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
+    }
+
+    const { qrToken, qrCode } = await generateQRToken(session);
+    session.qrToken = qrToken;
+    session.qrCode = qrCode;
+    await session.save();
+
+    res.status(200).json({ message: "QR code regenerated successfully", qrCode: session.qrCode });
+  } catch (error) {
+    console.error("Error regenerating QR code:", error);
+    res.status(500).json({ message: "Error regenerating QR code", error: error.message });
   }
 };
 
@@ -152,29 +156,29 @@ exports.getLastSession = async (req, res) => {
 };
 
 
-exports.regenerateQR = async (req, res) => {
-  try {
-    const { sessionId } = req.body;
-    if (!mongoose.isValidObjectId(sessionId)) {
-      return res.status(400).json({ message: "Invalid session ID format" });
-    }
+// exports.regenerateQR = async (req, res) => {
+//   try {
+//     const { sessionId } = req.body;
+//     if (!mongoose.isValidObjectId(sessionId)) {
+//       return res.status(400).json({ message: "Invalid session ID format" });
+//     }
 
-    const session = await Session.findById(sessionId);
-    if (!session) {
-      return res.status(404).json({ message: "Session not found" });
-    }
-    if (session.ended) {
-      return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
-    }
+//     const session = await Session.findById(sessionId);
+//     if (!session) {
+//       return res.status(404).json({ message: "Session not found" });
+//     }
+//     if (session.ended) {
+//       return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
+//     }
 
-    const { qrToken, qrCode } = await generateQRToken(session); // Destructure the result
-    session.qrToken = qrToken; // Update qrToken
-    session.qrCode = qrCode;   // Update qrCode with the string value
-    await session.save();
+//     const { qrToken, qrCode } = await generateQRToken(session); // Destructure the result
+//     session.qrToken = qrToken; // Update qrToken
+//     session.qrCode = qrCode;   // Update qrCode with the string value
+//     await session.save();
 
-    res.status(200).json({ message: "QR code regenerated successfully", qrCode: session.qrCode });
-  } catch (error) {
-    console.error("Error regenerating QR code:", error);
-    res.status(500).json({ message: "Error regenerating QR code", error: error.message });
-  }
-};
+//     res.status(200).json({ message: "QR code regenerated successfully", qrCode: session.qrCode });
+//   } catch (error) {
+//     console.error("Error regenerating QR code:", error);
+//     res.status(500).json({ message: "Error regenerating QR code", error: error.message });
+//   }
+// };
