@@ -6,17 +6,13 @@ const mongoose = require('mongoose');
 
 exports.detectCurrentSession = async (req, res) => {
   try {
-    console.log("Request user:", req.user); // Debug log for user object
-    const lecturerId = req.user?._id; // Use authenticated user's ID
-    const unitId = req.params.selectedUnit; // From route param
-    console.log("Detecting session with:", { lecturerId, unitId, userRole: req.user?.role }); // Enhanced debug log
-
+    const lecturerId = req.user?.userId; // Changed from req.user._id
+    const unitId = req.params.selectedUnit;
+    console.log("Detecting session with:", { lecturerId, unitId });
 
     if (!lecturerId) {
-      console.error("Lecturer ID is missing from request user:", req.user);
       return res.status(400).json({ message: 'Lecturer ID is required' });
     }
-
 
     const currentTime = new Date();
     const query = {
@@ -26,11 +22,10 @@ exports.detectCurrentSession = async (req, res) => {
       ended: false
     };
     if (unitId) {
-      query.unit = unitId; // Add unit filter if provided
+      query.unit = unitId;
     }
 
     const currentSession = await Session.findOne(query);
-
     if (!currentSession) {
       return res.status(404).json({ message: 'No current session found for this lecturer/unit' });
     }
