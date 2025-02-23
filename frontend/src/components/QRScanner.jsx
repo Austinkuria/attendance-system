@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Spin, Alert, Typography, Card, message } from "antd";
+import { Button, Spin, Alert, Typography, Card, message, Space } from "antd";
 import QrScanner from "qr-scanner";
 import { markAttendance, getCurrentSession } from "../services/api";
 import { jwtDecode } from "jwt-decode";
@@ -56,7 +56,7 @@ const QRScanner = () => {
     fetchSession();
   }, [selectedUnit]);
 
-  // Success handler
+  // Success handler (defined before startScanner)
   const onScanSuccess = useCallback(
     async (result) => {
       if (!sessionId || sessionEnded) {
@@ -73,9 +73,9 @@ const QRScanner = () => {
         const token = localStorage.getItem("token");
         if (!token) throw new Error("Authentication failed. Please log in again.");
 
-        const decoded = jwtDecode(token); // Decode token to get userId
-        const studentId = decoded.userId; // Use token's userId directly
-        const base64Data = result.data; // QR code data
+        const decoded = jwtDecode(token);
+        const studentId = decoded.userId;
+        const base64Data = result.data;
 
         console.log("Marking attendance with:", { sessionId, studentId, qrToken: base64Data, deviceId });
         if (!deviceId) throw new Error("Device identification failed.");
@@ -90,13 +90,8 @@ const QRScanner = () => {
         message.success("Attendance marked successfully!");
         navigate("/student-dashboard");
       } catch (err) {
-        const errorMsg = err.response?.data?.message || "Error marking attendance";
-        if (errorMsg === "This device has already marked attendance for this unit") {
-          message.error("This device cannot mark attendance again for this unit.");
-        } else {
-          message.error(errorMsg);
-          scanner.current?.start(); // Restart scanner for other errors
-        }
+        const errorMsg = err.response?.data?.message || err.message || "Error marking attendance";
+        message.error(errorMsg);
       } finally {
         setLoading(false);
       }
@@ -104,9 +99,13 @@ const QRScanner = () => {
     [sessionId, sessionEnded, navigate, deviceId]
   );
 
-  // Start scanner
-  useEffect(() => {
+  // Start or restart the scanner
+  const startScanner = useCallback(() => {
     if (!videoEl.current || sessionEnded) return;
+
+    if (scanner.current) {
+      scanner.current.destroy(); // Clean up any existing scanner instance
+    }
 
     scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
       onDecodeError: (err) => console.error("QR Scan Error:", err),
@@ -123,11 +122,17 @@ const QRScanner = () => {
       .then(() => setQrOn(true))
       .catch(() => setQrOn(false));
 
+    // Reset timeout
+    clearTimeout(scanTimeoutRef.current);
     scanTimeoutRef.current = setTimeout(() => {
       stopScanner();
       message.error("Scanning timed out. Please try again.");
     }, 30000);
+  }, [onScanSuccess, sessionEnded]);
 
+  // Initial scanner setup
+  useEffect(() => {
+    startScanner();
     return () => {
       clearTimeout(scanTimeoutRef.current);
       if (scanner.current) {
@@ -135,17 +140,29 @@ const QRScanner = () => {
         scanner.current.destroy();
       }
     };
-  }, [onScanSuccess, sessionEnded]);
+  }, [startScanner]);
 
   // Stop scanner
   const stopScanner = () => {
     if (scanner.current) {
       scanner.current.stop();
       scanner.current.destroy();
+      scanner.current = null; // Ensure it's fully cleared
     }
     if (videoEl.current?.srcObject) {
       videoEl.current.srcObject.getTracks().forEach((track) => track.stop());
     }
+  };
+
+  // Handle rescan button click
+  const handleRescan = () => {
+    if (sessionEnded) {
+      message.error("Session has ended. Cannot rescan.");
+      return;
+    }
+    setScannedResult(""); // Clear previous result
+    setLoading(false); // Reset loading state
+    startScanner(); // Restart the scanner
   };
 
   // Handle camera permissions
@@ -170,9 +187,14 @@ const QRScanner = () => {
           </Title>
         }
         extra={
-          <Button type="primary" danger onClick={handleCancel} size="middle">
-            Cancel
-          </Button>
+          <Space>
+            <Button type="primary" onClick={handleRescan} disabled={loading || sessionEnded}>
+              Rescan
+            </Button>
+            <Button type="primary" danger onClick={handleCancel} size="middle">
+              Cancel
+            </Button>
+          </Space>
         }
       >
         {sessionEnded ? (

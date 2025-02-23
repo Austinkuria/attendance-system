@@ -416,6 +416,9 @@ const AttendanceManagement = () => {
         )
       );
       console.log("Regenerated QR response:", data);
+      if (!data.qrCode) {
+        throw new Error("Failed to regenerate QR code: No QR code returned");
+      }
       setQrData(data.qrCode);
       setCurrentSession(prev => ({ ...prev, qrCode: data.qrCode }));
       message.success("QR code regenerated successfully");
@@ -423,6 +426,7 @@ const AttendanceManagement = () => {
     } catch (error) {
       console.error("Error regenerating QR code:", error);
       message.error(error.message || "Failed to regenerate QR code after retries");
+      setQrData('');
     } finally {
       setLoading(prevState => ({ ...prevState, qr: false }));
     }
@@ -607,7 +611,7 @@ const AttendanceManagement = () => {
       ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
         <Card
           title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown Unit'}</Space>}
-          styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
+          styles={{ body: { padding: 16 } }}
           style={{ marginBottom: 24 }}
         >
           <Row gutter={[16, 16]}>
@@ -655,14 +659,14 @@ const AttendanceManagement = () => {
             </Button>
           </Space>
         }
-        styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
+        styles={{ body: { padding: 16 } }}
       >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Card
             title="Real-time Unit Filters"
             size="small"
             extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
-            styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
+            styles={{ body: { padding: 16 } }}
           >
             <Space wrap style={{ width: '100%' }}>
               <Select
@@ -751,7 +755,7 @@ const AttendanceManagement = () => {
               </Space>
             }
             size="small"
-            styles={{ body: { padding: 16 } }} // Replace bodyStyle with styles.body
+            styles={{ body: { padding: 16 } }}
           >
             <Space wrap style={{ width: '100%' }}>
               <Input
@@ -832,7 +836,7 @@ const AttendanceManagement = () => {
               <img src={qrData} alt="Attendance QR Code" style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
               {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
               <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>
-                Scan this QR code to mark attendance. Regenerate if needed.
+                Scan this QR code to mark attendance for {currentSession?.unit?.name || 'this unit'}. Regenerate if needed.
               </Typography.Text>
             </>
           ) : (
