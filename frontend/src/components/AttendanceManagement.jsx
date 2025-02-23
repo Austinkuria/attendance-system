@@ -219,6 +219,14 @@ const AttendanceManagement = () => {
         setLoadingSessionData(false);
         return;
       }
+
+      if (!selectedUnit || selectedUnit === 'undefined') {
+        console.error("No valid unit selected:", selectedUnit);
+        message.error("Please select a unit before fetching the session.");
+        setLoadingSessionData(false);
+        return;
+      }
+
       try {
         setLoadingSessionData(true);
         console.log("Fetching session for unit:", selectedUnit);
@@ -266,6 +274,8 @@ const AttendanceManagement = () => {
             setCurrentSession(null);
             setQrData('');
           }
+        } else if (error.response?.status === 400) {
+          message.error("Invalid unit ID provided.");
         } else {
           message.error(error.response?.data?.message || "Failed to fetch session.");
           if (currentSession && !currentSession.ended && new Date(currentSession.endSession) > new Date()) {
