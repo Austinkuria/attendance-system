@@ -3,7 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message } from "antd";
 import QrScanner from "qr-scanner";
 import { markAttendance, getCurrentSession } from "../services/api";
-import jwtDecode from "jwt-decode";
+import {jwtDecode} from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
 
