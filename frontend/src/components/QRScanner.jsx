@@ -3,6 +3,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message } from "antd";
 import QrScanner from "qr-scanner";
 import { markAttendance, getCurrentSession } from "../services/api";
+import jwtDecode from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
 
@@ -70,14 +71,12 @@ const QRScanner = () => {
 
       try {
         const token = localStorage.getItem("token");
-        const studentId = localStorage.getItem("userId");
-
-        if (!studentId || !token) {
-          throw new Error("Authentication failed. Please log in again.");
-        }
-        if (!deviceId) {
-          throw new Error("Device identification failed.");
-        }
+        if (!token) throw new Error("Authentication failed. Please log in again.");
+        
+        const decoded = jwtDecode(token); // Decode token to get userId
+        const studentId = decoded.userId; // Use token's userId directly
+        console.log("Marking attendance with:", { sessionId, studentId, qrToken: base64Data, deviceId });
+        if (!deviceId) throw new Error("Device identification failed.");
 
         // Parse QR code data (base64 encoded)
         const base64Data = result.data;

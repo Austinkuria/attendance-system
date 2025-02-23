@@ -167,6 +167,7 @@ exports.getLastSession = async (req, res) => {
   }
 };
 
+
 exports.regenerateQR = async (req, res) => {
   try {
     const { sessionId } = req.body;
@@ -182,7 +183,9 @@ exports.regenerateQR = async (req, res) => {
       return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
     }
 
-    session.qrCode = await generateQRToken(session);
+    const { qrToken, qrCode } = await generateQRToken(session); // Destructure the result
+    session.qrToken = qrToken; // Update qrToken
+    session.qrCode = qrCode;   // Update qrCode with the string value
     await session.save();
 
     res.status(200).json({ message: "QR code regenerated successfully", qrCode: session.qrCode });

@@ -415,6 +415,7 @@ const AttendanceManagement = () => {
           { headers: { Authorization: `Bearer ${token}` } }
         )
       );
+      console.log("Regenerated QR response:", data);
       setQrData(data.qrCode);
       setCurrentSession(prev => ({ ...prev, qrCode: data.qrCode }));
       message.success("QR code regenerated successfully");
