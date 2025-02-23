@@ -4,9 +4,10 @@ const schedule = require("node-schedule");
 const { markAbsentees } = require("../controllers/attendance.controller");
 const mongoose = require('mongoose');
 
+
 exports.detectCurrentSession = async (req, res) => {
   try {
-    const lecturerId = req.user?.userId; // Changed from req.user._id
+    const lecturerId = req.user?.userId; 
     const unitId = req.params.selectedUnit;
     console.log("Detecting session with:", { lecturerId, unitId });
 
@@ -21,8 +22,11 @@ exports.detectCurrentSession = async (req, res) => {
       endTime: { $gte: currentTime },
       ended: false
     };
-    if (unitId) {
+
+    if (unitId && mongoose.isValidObjectId(unitId)) { // Validate unitId
       query.unit = unitId;
+    } else if (unitId === 'undefined' || !unitId) {
+      return res.status(400).json({ message: 'Invalid or missing unit ID' });
     }
 
     const currentSession = await Session.findOne(query);
