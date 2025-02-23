@@ -7,7 +7,7 @@ import {
   submitFeedback,
   getSessionQuiz,
   submitQuizAnswers,
-  getActiveSessionForUnit, // New import for student-specific session check
+  getActiveSessionForUnit,
 } from '../../services/api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -96,9 +96,13 @@ const StudentDashboard = () => {
         getStudentUnits(token),
       ]);
 
-      setStudentId(profileRes._id); // Assigned but not used directly; kept for consistency
+      setStudentId(profileRes._id);
       const unitsData = Array.isArray(unitsRes) ? unitsRes : unitsRes.enrolledUnits || [];
-      setUnits(unitsData);
+      const sanitizedUnits = unitsData.filter(unit => unit && unit._id);
+      if (sanitizedUnits.length === 0) {
+        message.warning("No valid units assigned to your account.");
+      }
+      setUnits(sanitizedUnits);
 
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
@@ -347,6 +351,10 @@ const StudentDashboard = () => {
   };
 
   const handleAttendClick = async (unitId) => {
+    if (!unitId) {
+      message.error("Unit ID is missing. Please try again or contact support.");
+      return;
+    }
     try {
       const session = await getActiveSessionForUnit(unitId);
       if (session && session._id && !session.ended) {
@@ -354,7 +362,7 @@ const StudentDashboard = () => {
       } else {
         message.error("No active session available for this unit.");
       }
-    } catch{
+    } catch (err) {
       message.error("No active session available or error checking session.");
     }
   };
@@ -491,77 +499,79 @@ const StudentDashboard = () => {
             </AntTitle>
             <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
               {units.map((unit) => (
-                <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
-                  <Card
-                    title={unit.name || 'Untitled Unit'}
-                    extra={<span>{unit.code || 'N/A'}</span>}
-                    style={{ borderRadius: 10, width: '100%' }}
-                    styles={{ 
-                      body: { padding: '16px' }, 
-                      header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' }
-                    }}
-                    onClick={() => setSelectedUnit(unit)}
-                  >
-                    <Space direction="vertical" style={{ width: '100%' }} size={16}>
-                      <div
-                        style={{
-                          background: '#e8ecef',
-                          borderRadius: 6,
-                          overflow: 'hidden',
-                          height: 20,
-                        }}
-                      >
+                unit._id ? (
+                  <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
+                    <Card
+                      title={unit.name || 'Untitled Unit'}
+                      extra={<span>{unit.code || 'N/A'}</span>}
+                      style={{ borderRadius: 10, width: '100%' }}
+                      styles={{ 
+                        body: { padding: '16px' }, 
+                        header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' }
+                      }}
+                      onClick={() => setSelectedUnit(unit)}
+                    >
+                      <Space direction="vertical" style={{ width: '100%' }} size={16}>
                         <div
                           style={{
-                            width: `${calculateAttendanceRate(unit._id)}%`,
-                            background: 'linear-gradient(90deg, #1890ff, #40c4ff)',
-                            color: '#fff',
-                            textAlign: 'center',
-                            padding: '2px 0',
-                            transition: 'width 0.5s ease',
+                            background: '#e8ecef',
+                            borderRadius: 6,
+                            overflow: 'hidden',
+                            height: 20,
                           }}
                         >
-                          {calculateAttendanceRate(unit._id)}%
+                          <div
+                            style={{
+                              width: `${calculateAttendanceRate(unit._id)}%`,
+                              background: 'linear-gradient(90deg, #1890ff, #40c4ff)',
+                              color: '#fff',
+                              textAlign: 'center',
+                              padding: '2px 0',
+                              transition: 'width 0.5s ease',
+                            }}
+                          >
+                            {calculateAttendanceRate(unit._id)}%
+                          </div>
                         </div>
-                      </div>
-                      <Row gutter={[8, 8]} justify="space-between">
-                        <Col span={12}>
-                          <Button
-                            type="primary"
-                            icon={<QrcodeOutlined />}
-                            block
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleAttendClick(unit._id);
-                            }}
-                          >
-                            Attend
-                          </Button>
-                        </Col>
-                        <Col span={12}>
-                          <Button
-                            block
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openQuizModal(unit._id);
-                            }}
-                          >
-                            Quiz
-                          </Button>
-                        </Col>
-                      </Row>
-                      <Button
-                        block
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openFeedbackModal(unit._id);
-                        }}
-                      >
-                        Feedback
-                      </Button>
-                    </Space>
-                  </Card>
-                </Col>
+                        <Row gutter={[8, 8]} justify="space-between">
+                          <Col span={12}>
+                            <Button
+                              type="primary"
+                              icon={<QrcodeOutlined />}
+                              block
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAttendClick(unit._id);
+                              }}
+                            >
+                              Attend
+                            </Button>
+                          </Col>
+                          <Col span={12}>
+                            <Button
+                              block
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openQuizModal(unit._id);
+                              }}
+                            >
+                              Quiz
+                            </Button>
+                          </Col>
+                        </Row>
+                        <Button
+                          block
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openFeedbackModal(unit._id);
+                          }}
+                        >
+                          Feedback
+                        </Button>
+                      </Space>
+                    </Card>
+                  </Col>
+                ) : null
               ))}
             </Row>
 
@@ -609,7 +619,7 @@ const StudentDashboard = () => {
               width={Math.min(window.innerWidth * 0.9, 400)}
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <p>How was today&apos;s class?</p>
+                <p>How was today's class?</p>
                 <Rate
                   allowHalf
                   value={feedbackData.rating}
