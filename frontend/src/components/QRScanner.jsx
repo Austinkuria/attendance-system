@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message, Space } from "antd";
 import QrScanner from "qr-scanner";
-import { markAttendance, getCurrentSession } from "../services/api";
+import { markAttendance, getActiveSessionForUnit } from "../services/api"; // Updated import
 import { jwtDecode } from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
@@ -24,7 +24,6 @@ const QRScanner = () => {
   const navigate = useNavigate();
   const scanTimeoutRef = useRef(null);
 
-  // Generate device fingerprint
   useEffect(() => {
     const generateDeviceFingerprint = async () => {
       const fp = await FingerprintJS.load();
@@ -34,31 +33,35 @@ const QRScanner = () => {
     generateDeviceFingerprint();
   }, []);
 
-  // Fetch the current session
   useEffect(() => {
     const fetchSession = async () => {
+      setLoading(true);
       try {
-        const session = await getCurrentSession(selectedUnit);
-        if (session && session._id) {
+        const session = await getActiveSessionForUnit(selectedUnit); // Use new function
+        if (session && session._id && !session.ended) {
           setSessionId(session._id);
           const now = new Date();
           if (new Date(session.endTime) <= now) {
             setSessionEnded(true);
+            message.warning("The session has ended.");
+          } else {
+            setSessionEnded(false);
           }
         } else {
           setSessionEnded(true);
-          message.error("No current session found for this unit");
+          message.error("No active session found for this unit.");
         }
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || "Error fetching session details";
         message.error(errorMsg);
         setSessionEnded(true);
+      } finally {
+        setLoading(false);
       }
     };
     fetchSession();
   }, [selectedUnit]);
 
-  // Success handler (defined before startScanner)
   const onScanSuccess = useCallback(
     async (result) => {
       if (!sessionId || sessionEnded) {
@@ -82,7 +85,6 @@ const QRScanner = () => {
         console.log("Marking attendance with:", { sessionId, studentId, qrToken: base64Data, deviceId });
         if (!deviceId) throw new Error("Device identification failed.");
 
-        // Parse QR code data (base64 encoded)
         const decodedData = JSON.parse(atob(base64Data));
         if (decodedData.s !== sessionId) {
           throw new Error("Invalid QR code for this session.");
@@ -101,12 +103,11 @@ const QRScanner = () => {
     [sessionId, sessionEnded, navigate, deviceId]
   );
 
-  // Start or restart the scanner
   const startScanner = useCallback(() => {
     if (!videoEl.current || sessionEnded) return;
 
     if (scanner.current) {
-      scanner.current.destroy(); // Clean up any existing scanner instance
+      scanner.current.destroy();
     }
 
     scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
@@ -124,7 +125,6 @@ const QRScanner = () => {
       .then(() => setQrOn(true))
       .catch(() => setQrOn(false));
 
-    // Reset timeout
     clearTimeout(scanTimeoutRef.current);
     scanTimeoutRef.current = setTimeout(() => {
       stopScanner();
@@ -132,9 +132,10 @@ const QRScanner = () => {
     }, 30000);
   }, [onScanSuccess, sessionEnded]);
 
-  // Initial scanner setup
   useEffect(() => {
-    startScanner();
+    if (!sessionEnded) {
+      startScanner();
+    }
     return () => {
       clearTimeout(scanTimeoutRef.current);
       if (scanner.current) {
@@ -142,32 +143,29 @@ const QRScanner = () => {
         scanner.current.destroy();
       }
     };
-  }, [startScanner]);
+  }, [startScanner, sessionEnded]);
 
-  // Stop scanner
   const stopScanner = () => {
     if (scanner.current) {
       scanner.current.stop();
       scanner.current.destroy();
-      scanner.current = null; // Ensure it's fully cleared
+      scanner.current = null;
     }
     if (videoEl.current?.srcObject) {
       videoEl.current.srcObject.getTracks().forEach((track) => track.stop());
     }
   };
 
-  // Handle rescan button click
   const handleRescan = () => {
     if (sessionEnded) {
       message.error("Session has ended. Cannot rescan.");
       return;
     }
-    setScannedResult(""); // Clear previous result
-    setLoading(false); // Reset loading state
-    startScanner(); // Restart the scanner
+    setScannedResult("");
+    setLoading(false);
+    startScanner();
   };
 
-  // Handle camera permissions
   useEffect(() => {
     if (!qrOn) {
       message.error("Camera access denied. Please allow permissions.");
@@ -199,7 +197,9 @@ const QRScanner = () => {
           </Space>
         }
       >
-        {sessionEnded ? (
+        {loading ? (
+          <Spin size="large" tip="Loading session..." />
+        ) : sessionEnded ? (
           <Alert
             message="Session Ended"
             description="The session has ended, and attendance marking is no longer available."

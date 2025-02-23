@@ -1048,7 +1048,7 @@ export const getSession = async (sessionId) => {
 
 export const getCurrentSession = async (selectedUnit) => {
   try {
-    const token = getToken();
+    const token = localStorage.getItem('token');
     const response = await axios.get(`${API_URL}/sessions/current/${selectedUnit}`, {
       headers: {
         "Content-Type": "application/json",
@@ -1058,6 +1058,23 @@ export const getCurrentSession = async (selectedUnit) => {
     return response.data;
   } catch (error) {
     console.error("Error fetching current session:", error);
+    throw error;
+  }
+};
+
+// New function for students
+export const getActiveSessionForUnit = async (unitId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_URL}/sessions/active/${unitId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching active session for unit:", error);
     throw error;
   }
 };

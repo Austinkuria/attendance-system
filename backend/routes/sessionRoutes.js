@@ -4,6 +4,7 @@ const {
   createSession, 
   endSession, 
   getLastSession,
+  getActiveSessionForUnit,
   regenerateQR
 } = require('../controllers/session.controller');
 const authenticate = require('../middleware/authMiddleware');
@@ -16,4 +17,5 @@ router.post('/create', authenticate,sensitiveLimiter, createSession); // Create 
 router.delete('/end', authenticate, endSession); // End an existing session
 router.get('/last/:unitId', authenticate, getLastSession); // Get the most recent ended session for a unit
 router.post('/regenerate-qr', regenerateQR);
+router.get('/active/:unitId', authenticate, getActiveSessionForUnit);
 module.exports = router;

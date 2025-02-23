@@ -158,30 +158,37 @@ exports.getLastSession = async (req, res) => {
   }
 };
 
+exports.getActiveSessionForUnit = async (req, res) => {
+  try {
+    const unitId = req.params.unitId;
+    console.log("Fetching active session for unit:", unitId);
 
-// exports.regenerateQR = async (req, res) => {
-//   try {
-//     const { sessionId } = req.body;
-//     if (!mongoose.isValidObjectId(sessionId)) {
-//       return res.status(400).json({ message: "Invalid session ID format" });
-//     }
+    if (!unitId || !mongoose.isValidObjectId(unitId)) {
+      return res.status(400).json({ message: 'Invalid or missing unit ID' });
+    }
 
-//     const session = await Session.findById(sessionId);
-//     if (!session) {
-//       return res.status(404).json({ message: "Session not found" });
-//     }
-//     if (session.ended) {
-//       return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
-//     }
+    const currentTime = new Date();
+    const query = {
+      unit: unitId,
+      startTime: { $lte: currentTime },
+      endTime: { $gte: currentTime },
+      ended: false
+    };
 
-//     const { qrToken, qrCode } = await generateQRToken(session); // Destructure the result
-//     session.qrToken = qrToken; // Update qrToken
-//     session.qrCode = qrCode;   // Update qrCode with the string value
-//     await session.save();
+    const currentSession = await Session.findOne(query);
+    if (!currentSession) {
+      return res.status(404).json({ message: 'No active session found for this unit' });
+    }
 
-//     res.status(200).json({ message: "QR code regenerated successfully", qrCode: session.qrCode });
-//   } catch (error) {
-//     console.error("Error regenerating QR code:", error);
-//     res.status(500).json({ message: "Error regenerating QR code", error: error.message });
-//   }
-// };
+    if (currentTime > new Date(currentSession.endTime)) {
+      currentSession.ended = true;
+      await currentSession.save();
+      return res.status(404).json({ message: 'Session has ended' });
+    }
+
+    res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
+  } catch (error) {
+    console.error("Error fetching active session:", error);
+    res.status(500).json({ message: 'Error fetching active session', error: error.message });
+  }
+};

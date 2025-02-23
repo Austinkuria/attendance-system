@@ -7,6 +7,7 @@ import {
   submitFeedback,
   getSessionQuiz,
   submitQuizAnswers,
+  getActiveSessionForUnit, // New import for student-specific session check
 } from '../../services/api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -345,6 +346,19 @@ const StudentDashboard = () => {
     }
   };
 
+  const handleAttendClick = async (unitId) => {
+    try {
+      const session = await getActiveSessionForUnit(unitId);
+      if (session && session._id && !session.ended) {
+        navigate(`/qr-scanner/${unitId}`);
+      } else {
+        message.error("No active session available for this unit.");
+      }
+    } catch{
+      message.error("No active session available or error checking session.");
+    }
+  };
+
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
       <Header
@@ -518,7 +532,7 @@ const StudentDashboard = () => {
                             block
                             onClick={(e) => {
                               e.stopPropagation();
-                              navigate(`/qr-scanner/${unit._id}`);
+                              handleAttendClick(unit._id);
                             }}
                           >
                             Attend
@@ -588,14 +602,14 @@ const StudentDashboard = () => {
 
             <Modal
               open={feedbackModalVisible}
-              title="Session Feedback" // No unescaped entities here; adjust if needed
+              title="Session Feedback"
               onCancel={() => setFeedbackModalVisible(false)}
               onOk={handleFeedbackSubmit}
               centered
               width={Math.min(window.innerWidth * 0.9, 400)}
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <p>How was today&apos;s class?</p> {/* Escaped single quote */}
+                <p>How was today&apos;s class?</p>
                 <Rate
                   allowHalf
                   value={feedbackData.rating}
