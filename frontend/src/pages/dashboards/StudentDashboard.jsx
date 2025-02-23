@@ -96,9 +96,12 @@ const StudentDashboard = () => {
         getStudentUnits(token),
       ]);
 
+      console.log("Raw units response:", unitsRes);
       setStudentId(profileRes._id);
       const unitsData = Array.isArray(unitsRes) ? unitsRes : unitsRes.enrolledUnits || [];
-      const sanitizedUnits = unitsData.filter(unit => unit && unit._id);
+      console.log("Units data before sanitization:", unitsData);
+      const sanitizedUnits = unitsData.filter(unit => unit && unit._id && typeof unit._id === 'string');
+      console.log("Sanitized units:", sanitizedUnits);
       if (sanitizedUnits.length === 0) {
         message.warning("No valid units assigned to your account.");
       }
@@ -109,6 +112,7 @@ const StudentDashboard = () => {
         setAttendanceData(attendanceRes);
       }
     } catch (error) {
+      console.error("Error fetching data:", error);
       message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
     } finally {
       setLoading(false);
