@@ -7,6 +7,7 @@ import {
   submitFeedback,
   getSessionQuiz,
   submitQuizAnswers,
+  getActiveSessionForUnit,
 } from '../../services/api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -20,45 +21,56 @@ import {
 } from 'chart.js';
 import {
   Layout,
+  Menu,
   Button,
   Card,
   Row,
   Col,
   Dropdown,
-  Menu,
-  Alert,
-  List,
   Modal,
   message,
   Input,
   Rate,
   Radio,
+  DatePicker,
+  Space,
+  theme,
+  Typography,
+  Spin,
+  Select,
+  List,
 } from 'antd';
 import {
-  EyeOutlined,
-  QrcodeOutlined,
   UserOutlined,
-  CalendarOutlined,
+  BookOutlined,
+  CheckCircleOutlined,
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
   SettingOutlined,
   LogoutOutlined,
-  ArrowUpOutlined,
-  LoadingOutlined,
+  QrcodeOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
+import moment from 'moment';
+import './StudentDashboard.css';
 
-// Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const { Content } = Layout;
+const { Header, Sider, Content } = Layout;
+const { Title: AntTitle } = Typography;
+const { Option } = Select;
 
 const StudentDashboard = () => {
+  const { token: { colorBgContainer } } = theme.useToken();
+  const [collapsed, setCollapsed] = useState(false);
   const [units, setUnits] = useState([]);
-  const [attendanceData, setAttendanceData] = useState([]);
+  const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showBackToTop, setShowBackToTop] = useState(false);
-  
-  // New state for modals
+  const [studentId, setStudentId] = useState(null); // eslint-disable-line no-unused-vars
+  const [loading, setLoading] = useState(true);
+  const [viewMode, setViewMode] = useState('weekly');
+  const [selectedDate, setSelectedDate] = useState(null);
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [quizModalVisible, setQuizModalVisible] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
@@ -68,81 +80,74 @@ const StudentDashboard = () => {
 
   const navigate = useNavigate();
 
-  // Check if the user is logged in when the component loads
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) {
-      navigate('/auth/login');
-    }
+    if (!token) navigate('/auth/login');
   }, [navigate]);
 
-  // Fetch student profile
-  useEffect(() => {
+  const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    getUserProfile(token)
-      .then((response) => {
-        console.log('Profile Data:', response);
-        setIsLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching profile:', error);
-        setIsLoading(false);
-      });
-  }, []);
 
-  // Fetch student units
-  useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-    getStudentUnits(token)
-      .then((response) => setUnits(response))
-      .catch((error) => console.error('Error fetching units:', error));
-  }, []);
+    setLoading(true);
+    try {
+      const [profileRes, unitsRes] = await Promise.all([
+        getUserProfile(token),
+        getStudentUnits(token),
+      ]);
 
-  // Fetch attendance data for each unit
-  useEffect(() => {
-    if (units.length > 0) {
-      units.forEach((unit) => {
-        getStudentAttendance(unit._id)
-          .then((response) => {
-            console.log('Attendance Data for Unit:', unit._id, response.data);
-            setAttendanceData((prevData) => [
-              ...prevData,
-              { unitId: unit._id, data: response.data },
-            ]);
-          })
-          .catch((error) =>
-            console.error('Error fetching attendance data:', error)
-          );
+      console.log("Raw units response from getStudentUnits:", unitsRes);
+      setStudentId(profileRes._id);
+      const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
+      console.log("Units data before sanitization:", unitsData);
+      const sanitizedUnits = unitsData.filter(unit => {
+        const isValid = unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '';
+        if (!isValid) console.warn("Invalid unit detected:", unit);
+        return isValid;
       });
+      console.log("Sanitized units:", sanitizedUnits);
+      if (sanitizedUnits.length === 0) {
+        message.warning("No valid units assigned to your account.");
+      }
+      setUnits(sanitizedUnits);
+
+      if (profileRes._id) {
+        const attendanceRes = await getStudentAttendance(profileRes._id);
+        setAttendanceData(attendanceRes);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
     }
-  }, [units]);
+  }, []);
 
-  // Calculate attendance rate for a given unit
+  useEffect(() => {
+    fetchAllData();
+  }, [fetchAllData]);
+
   const calculateAttendanceRate = useCallback(
     (unitId) => {
-      const unitData = attendanceData.find((data) => data.unitId === unitId);
-      if (!unitData || unitData.data.length === 0) return 0;
-      const attendedSessions = unitData.data.filter(
-        (att) => att.status === 'Present'
-      ).length;
-      const totalSessions = unitData.data.length;
-      return ((attendedSessions / totalSessions) * 100).toFixed(2);
+      const unitData = attendanceData.attendanceRecords.filter(
+        (record) => record.session.unit._id.toString() === unitId.toString()
+      );
+      if (!unitData || unitData.length === 0) return 0;
+      const attendedSessions = unitData.filter((att) => att.status === 'Present').length;
+      const totalSessions = unitData.length;
+      return totalSessions === 0 ? 0 : ((attendedSessions / totalSessions) * 100).toFixed(2);
     },
     [attendanceData]
   );
 
-  // Update attendance rates when data changes
   useEffect(() => {
     const rates = units.map((unit) => ({
-      label: unit.name,
+      label: unit.name || 'Unnamed Unit',
       value: calculateAttendanceRate(unit._id),
     }));
     setAttendanceRates(rates);
-  }, [attendanceData, units, calculateAttendanceRate]);
+  }, [units, attendanceData, calculateAttendanceRate]);
 
-  // Export attendance data as CSV
   const exportAttendanceData = () => {
     const csvContent =
       'data:text/csv;charset=utf-8,' +
@@ -153,391 +158,531 @@ const StudentDashboard = () => {
     link.setAttribute('download', 'attendance_data.csv');
     document.body.appendChild(link);
     link.click();
+    document.body.removeChild(link);
   };
 
-  // Logout handler
-  const confirmLogout = () => {
-    localStorage.removeItem("token");
-    message.success("You have been logged out successfully.");
-    navigate("/auth/login");
+  const logout = () => {
+    localStorage.removeItem('token');
+    message.success('Logged out successfully.');
+    navigate('/auth/login');
   };
 
-  const handleViewProfile = () => {
-    navigate('/student/profile');
-  };
-
-  const handleSettings = () => {
-    navigate('/student/settings');
-  };
-
-  // Chart data configuration for overall attendance rates
   const chartData = {
     labels: attendanceRates.map((rate) => rate.label),
     datasets: [
       {
-        label: 'Attendance Rate',
+        label: 'Attendance Rate (%)',
         data: attendanceRates.map((rate) => rate.value),
         backgroundColor: attendanceRates.map((rate) =>
-          rate.value >= 75
-            ? 'rgba(0, 255, 0, 0.5)'
-            : rate.value >= 50
-              ? 'rgba(255, 255, 0, 0.5)'
-              : 'rgba(255, 0, 0, 0.5)'
+          rate.value >= 75 ? '#52c41a' : rate.value >= 50 ? '#faad14' : 'rgba(255, 99, 132, 0.8)'
         ),
         borderColor: attendanceRates.map((rate) =>
-          rate.value >= 75
-            ? 'rgba(0, 255, 0, 1)'
-            : rate.value >= 50
-              ? 'rgba(255, 255, 0, 1)'
-              : 'rgba(255, 0, 0, 1)'
+          rate.value >= 75 ? '#389e0d' : rate.value >= 50 ? '#d48806' : 'rgba(255, 99, 132, 1)'
         ),
         borderWidth: 1,
-        hoverBackgroundColor: 'rgba(75, 192, 192, 0.7)',
+        borderRadius: 4,
       },
     ],
   };
 
-  // Determine which units have low attendance (<50%)
-  const lowAttendanceUnits = attendanceRates.filter(
-    (rate) => rate.value < 50
-  );
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' },
+      title: { display: true, text: 'Attendance Overview' },
+      tooltip: { callbacks: { label: (context) => `${context.raw}%` } },
+    },
+    scales: {
+      y: { beginAtZero: true, max: 100, title: { display: true, text: 'Rate (%)' } },
+      x: { ticks: { maxRotation: 45, minRotation: 0 } },
+    },
+  };
 
-  // Render a compact events list using Ant Design's List
-  const renderCompactCalendar = () => {
-    const events = attendanceData.flatMap((unitData) =>
-      unitData.data.map((attendance) => ({
-        title: `${unitData.unitId} - ${attendance.status}`,
-        date: new Date(attendance.date).toLocaleDateString(),
-        status: attendance.status,
-      }))
-    );
-    return (
-      <div style={{ marginTop: 24 }}>
-        <h3 style={{ textAlign: 'center' }}>
+  const filteredEvents = () => {
+    if (!selectedDate) {
+      return attendanceData.attendanceRecords.map(record => ({
+        title: `${record.session.unit?.name || 'Unknown'} - ${record.status || 'Unknown'}`,
+        date: record.session.startTime ? moment(record.session.startTime) : null,
+        status: record.status || 'Unknown'
+      }));
+    }
+
+    if (viewMode === 'weekly') {
+      const selectedWeek = attendanceData.weeklyEvents.find(week => 
+        week.week === selectedDate.format('MMM D - MMM D, YYYY')
+      );
+      return selectedWeek ? selectedWeek.events.map(event => ({
+        title: `${event.unitName} - ${event.status}`,
+        date: moment(event.startTime),
+        status: event.status
+      })) : [];
+    } else {
+      const selectedDay = attendanceData.dailyEvents.find(day => 
+        day.date === selectedDate.format('YYYY-MM-DD')
+      );
+      return selectedDay ? selectedDay.events.map(event => ({
+        title: `${event.unitName} - ${event.status}`,
+        date: moment(event.startTime),
+        status: event.status
+      })) : [];
+    }
+  };
+
+  const renderCalendarEvents = () => (
+    <Card style={{ marginTop: '24px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}>
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <AntTitle level={3} style={{ textAlign: 'center' }}>
           <CalendarOutlined /> Attendance Events
-        </h3>
-        {events.length > 0 ? (
+        </AntTitle>
+        <Space>
+          <Select
+            value={viewMode}
+            onChange={(value) => {
+              setViewMode(value);
+              setSelectedDate(null);
+            }}
+            style={{ width: 120 }}
+          >
+            <Option value="weekly">Weekly</Option>
+            <Option value="daily">Daily</Option>
+          </Select>
+          <DatePicker
+            picker={viewMode === 'weekly' ? 'week' : 'date'}
+            onChange={(date) => setSelectedDate(date)}
+            value={selectedDate}
+            format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
+            placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
+            style={{ width: 200 }}
+          />
+        </Space>
+        {filteredEvents().length > 0 ? (
           <List
-            itemLayout="horizontal"
-            dataSource={events}
-            renderItem={(item, index) => (
-              <List.Item key={index}>
+            dataSource={filteredEvents()}
+            renderItem={(item) => (
+              <List.Item>
                 <List.Item.Meta
                   title={item.title}
-                  description={`${item.date} (${item.status})`}
+                  description={item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}
                 />
               </List.Item>
             )}
           />
         ) : (
-          <p style={{ textAlign: 'center' }}>No attendance events found.</p>
+          <p style={{ textAlign: 'center', color: '#888' }}>No events found for the selected period.</p>
         )}
-      </div>
-    );
-  };
-
-  // "Back to Top" button state management
-  useEffect(() => {
-    const onScroll = () => setShowBackToTop(window.scrollY > 200);
-    window.addEventListener('scroll', onScroll);
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
-
-  // If still loading, show a loading indicator
-  if (isLoading) {
-    return (
-      <div style={{ textAlign: 'center', marginTop: 50 }}>
-        <LoadingOutlined style={{ fontSize: 24 }} spin /> Loading...
-      </div>
-    );
-  }
-
-  // Dropdown menu for profile options
-  const profileMenu = (
-    <Menu>
-      <Menu.Item key="profile" icon={<UserOutlined />} onClick={handleViewProfile}>
-        View Profile
-      </Menu.Item>
-      <Menu.Item key="settings" icon={<SettingOutlined />} onClick={handleSettings}>
-        Settings
-      </Menu.Item>
-      <Menu.Item
-        key="3"
-        icon={<LogoutOutlined />}
-        danger
-        onClick={() =>
-          Modal.confirm({
-            title: 'Confirm Logout',
-            content: 'Are you sure you want to logout?',
-            onOk: confirmLogout,
-            centered: true,
-          })
-        }
-      >
-        Logout
-      </Menu.Item>
-    </Menu>
+      </Space>
+    </Card>
   );
 
-  // --- New: Functions to handle feedback and quiz modals ---
+  const profileItems = [
+    { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => navigate('/student/profile') },
+    { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => navigate('/student/settings') },
+    { type: 'divider' },
+    {
+      key: '3',
+      label: 'Logout',
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: () =>
+        Modal.confirm({
+          title: 'Confirm Logout',
+          content: 'Are you sure you want to logout?',
+          onOk: logout,
+          centered: true,
+        }),
+    },
+  ];
 
-  // Opens the Feedback Modal for a given unit.
-  // Here, we pick the latest attendance session for that unit.
   const openFeedbackModal = (unitId) => {
-    const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
-    if (unitAttendance && unitAttendance.data.length > 0) {
-      // Assume the latest session is the last element (adjust as needed)
-      const latestSession = unitAttendance.data[unitAttendance.data.length - 1];
-      setActiveSessionId(latestSession._id);
-      setFeedbackModalVisible(true);
-    } else {
-      message.warning("No attendance record found for this unit.");
-    }
+    const unitAttendance = attendanceData.attendanceRecords.filter(
+      (data) => data.session.unit._id.toString() === unitId.toString()
+    );
+    setActiveSessionId(unitAttendance?.[0]?._id || null);
+    setFeedbackModalVisible(true);
   };
 
-  // Opens the Quiz Modal for a given unit.
   const openQuizModal = async (unitId) => {
-    const unitAttendance = attendanceData.find((data) => data.unitId === unitId);
-    if (unitAttendance && unitAttendance.data.length > 0) {
-      const latestSession = unitAttendance.data[unitAttendance.data.length - 1];
+    const unitAttendance = attendanceData.attendanceRecords.filter(
+      (data) => data.session.unit._id.toString() === unitId.toString()
+    );
+    if (unitAttendance?.length > 0) {
+      const latestSession = unitAttendance[0];
       setActiveSessionId(latestSession._id);
       try {
-        const quizData = await getSessionQuiz(latestSession._id);
-        if (quizData) {
+        const quizData = await getSessionQuiz(latestSession.session._id);
+        if (quizData?.questions) {
           setQuiz(quizData);
           setQuizModalVisible(true);
         } else {
-          message.info("No quiz available for this session.");
+          message.info('No quiz available.');
         }
-      } catch {
-        message.error("Error fetching quiz.");
+      } catch { 
+        message.error('Error fetching quiz.');
       }
     } else {
-      message.warning("No attendance record found for this unit.");
+      message.warning('No attendance records found.');
     }
   };
 
-  // Submit feedback using the activeSessionId
   const handleFeedbackSubmit = async () => {
+    if (!activeSessionId) return message.error('No session selected.');
     try {
       await submitFeedback({
         sessionId: activeSessionId,
         rating: feedbackData.rating,
         feedbackText: feedbackData.text,
       });
-      message.success("Feedback submitted!");
+      message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
-      // Reset feedback form if desired
       setFeedbackData({ rating: 3, text: '' });
-    } catch {
-      message.error("Error submitting feedback.");
+    } catch { 
+      message.error('Error submitting feedback.');
     }
   };
 
-  // Handle quiz answer change for a question
   const handleQuizAnswerChange = (questionIndex, value) => {
     setQuizAnswers((prev) => ({ ...prev, [questionIndex]: value }));
   };
 
-  // Submit quiz answers
   const handleQuizSubmit = async () => {
+    if (!quiz?._id) return message.error('No quiz data.');
     try {
-      await submitQuizAnswers({
-        quizId: quiz._id,
-        answers: quizAnswers,
-      });
-      message.success("Quiz submitted!");
+      await submitQuizAnswers({ quizId: quiz._id, answers: quizAnswers });
+      message.success('Quiz submitted!');
       setQuizModalVisible(false);
       setQuizAnswers({});
       setQuiz(null);
+    } catch { 
+      message.error('Error submitting quiz.');
+    }
+  };
+
+  const handleAttendClick = async (unitId) => {
+    if (!unitId || typeof unitId !== 'string' || unitId.trim() === '' || unitId === 'undefined') {
+      console.error("Invalid unitId passed to handleAttendClick:", unitId);
+      message.error("Unit ID is missing or invalid. Please try again or contact support.");
+      return;
+    }
+    try {
+      console.log("Calling getActiveSessionForUnit with unitId:", unitId);
+      const session = await getActiveSessionForUnit(unitId);
+      if (session && session._id && !session.ended) {
+        const url = `/qr-scanner/${unitId}`;
+        console.log("Navigating to URL:", url);
+        navigate(url);
+      } else {
+        message.error("No active session available for this unit.");
+      }
     } catch {
-      message.error("Error submitting quiz.");
+      message.error("No active session available or error checking session.");
     }
   };
 
   return (
-    <Layout style={{ padding: '24px' }}>
-      <Content>
-        {/* Header Section */}
-        <Row justify="center" align="middle" style={{ position: 'relative', marginBottom: 24 }}>
-          <h1 style={{ textAlign: 'center' }}>Student Dashboard</h1>
-          <div style={{ position: 'absolute', right: 0 }}>
-            <Dropdown overlay={profileMenu} placement="bottomRight">
-              <Button type="primary" shape="circle" icon={<UserOutlined />} />
+    <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
+      <Header
+        style={{
+          padding: '0 16px',
+          background: colorBgContainer,
+          position: 'fixed',
+          width: '100%',
+          zIndex: 10,
+        }}
+      >
+        <Row align="middle">
+          <Col flex="auto">
+            <Button
+              type="text"
+              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+              onClick={() => setCollapsed(!collapsed)}
+              style={{ fontSize: '16px', width: 64, height: 64 }}
+            />
+            <AntTitle level={3} style={{ display: 'inline', margin: 0 }}>
+              Student Dashboard
+            </AntTitle>
+          </Col>
+          <Col>
+            <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+              <Button
+                type="text"
+                icon={<UserOutlined style={{ fontSize: 24 }} />}
+                style={{ marginRight: 24 }}
+              />
             </Dropdown>
-          </div>
+          </Col>
         </Row>
-        {/* Low Attendance Warning */}
-        {lowAttendanceUnits.length > 0 && (
-          <Alert
-            message={
-              <>
-                <strong>Warning:</strong> Your attendance is below 50% in the following units:
-                <ul>
-                  {lowAttendanceUnits.map((unit) => (
-                    <li key={unit.label}>{unit.label}</li>
-                  ))}
-                </ul>
-              </>
-            }
-            type="warning"
-            showIcon
-            style={{ marginBottom: 24 }}
+      </Header>
+
+      <Layout>
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={250}
+          breakpoint="lg"
+          collapsedWidth={80}
+          style={{
+            background: colorBgContainer,
+            marginTop: 64,
+            position: 'fixed',
+            height: 'calc(100vh - 64px)',
+            overflow: 'auto',
+          }}
+        >
+          <Menu
+            mode="inline"
+            defaultSelectedKeys={['1']}
+            items={[
+              { key: '1', icon: <BookOutlined />, label: 'Units', onClick: () => navigate('/student/dashboard') },
+              { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => navigate('/student/attendance') },
+              { key: '3', icon: <UserOutlined />, label: 'Profile', onClick: () => navigate('/student/profile') },
+            ]}
           />
-        )}
-        {/* Units Section */}
-        <Row gutter={[16, 16]}>
-          {units.length > 0 ? (
-            units.map((unit) => (
-              <Col xs={24} sm={12} md={8} key={unit._id}>
+        </Sider>
+
+        <Content
+          style={{
+            marginTop: 64,
+            marginBottom: 16,
+            marginLeft: collapsed ? 96 : 266,
+            marginRight: 16,
+            padding: 24,
+            minHeight: 'calc(100vh - 64px)',
+            overflow: 'auto',
+            maxWidth: 1200,
+          }}
+          className="ant-layout-content"
+        >
+          <Spin spinning={loading} tip="Loading data...">
+            <Row gutter={[16, 16]} justify="center">
+              <Col xs={24} sm={12} md={8} lg={6}>
                 <Card
-                  title={unit.name}
-                  extra={<span>{unit.code}</span>}
-                  hoverable
-                  onClick={() => setSelectedUnit(unit)}
+                  style={{
+                    background: 'linear-gradient(135deg, #1890ff, #096dd9)',
+                    color: 'white',
+                    borderRadius: 10,
+                    textAlign: 'center',
+                    width: '100%',
+                    minWidth: 200,
+                    height: 150,
+                  }}
+                  styles={{ body: { padding: '16px' } }}
                 >
-                  <div style={{ marginBottom: 16 }}>
-                    <div style={{ background: '#f0f0f0', borderRadius: 4, overflow: 'hidden' }}>
-                      <div
-                        style={{
-                          width: `${calculateAttendanceRate(unit._id)}%`,
-                          background: '#1890ff',
-                          padding: '4px 0',
-                          color: '#18ff',
-                          textAlign: 'center',
-                        }}
-                      >
-                        {calculateAttendanceRate(unit._id)}%
-                      </div>
-                    </div>
-                  </div>
-                  <Row justify="space-between">
-                    <Button
-                      type="default"
-                      icon={<EyeOutlined />}
-                      onClick={() =>
-                        message.info(`Attendance Rate: ${calculateAttendanceRate(unit._id)}%`)
-                      }
-                    >
-                      View Rate
-                    </Button>
-                    <Button
-                      type="primary"
-                      icon={<QrcodeOutlined />}
-                      onClick={() => navigate(`/qr-scanner/${unit._id}`)}
-                    >
-                      Mark Attendance
-                    </Button>
-                  </Row>
-                  {/* New buttons for Feedback and Quiz (only if attendance data exists) */}
-                  {attendanceData.find((d) => d.unitId === unit._id)?.data.length > 0 && (
-                    <Row justify="space-around" style={{ marginTop: 16 }}>
-                      <Button onClick={() => openFeedbackModal(unit._id)}>
-                        Submit Feedback
-                      </Button>
-                      <Button onClick={() => openQuizModal(unit._id)}>
-                        Take Quiz
-                      </Button>
-                    </Row>
-                  )}
+                  <Space direction="vertical">
+                    <BookOutlined style={{ fontSize: 24 }} />
+                    <h3>Total Units</h3>
+                    <h1>{units.length}</h1>
+                  </Space>
                 </Card>
               </Col>
-            ))
-          ) : (
-            <p>No units found for your course, year, and semester.</p>
-          )}
-        </Row>
-        {/* Compact Calendar / Events List */}
-        {renderCompactCalendar()}
-        {/* Overall Attendance Rates Chart */}
-        <div style={{ marginTop: 48 }}>
-          <h3 style={{ textAlign: 'center' }}>Overall Attendance Rates</h3>
-          <div style={{ height: 400 }}>
-            <Bar data={chartData} options={{ responsive: true, maintainAspectRatio: false }} />
-          </div>
-        </div>
-        {/* Export Attendance Data */}
-        <div style={{ marginTop: 24, textAlign: 'center' }}>
-          <Button type="default" onClick={exportAttendanceData}>
-            Export Attendance Data
-          </Button>
-        </div>
-        {/* Unit Details Modal */}
-        <Modal
-          visible={!!selectedUnit}
-          title={selectedUnit?.name}
-          onCancel={() => setSelectedUnit(null)}
-          footer={[<Button key="close" onClick={() => setSelectedUnit(null)}>Close</Button>]}
-        >
-          {selectedUnit && (
-            <div>
-              <p>
-                <strong>Code:</strong> {selectedUnit.code}
-              </p>
-              <p>
-                <strong>Lecturer:</strong> {selectedUnit.lecturer}
-              </p>
-              <p>
-                <strong>Description:</strong> {selectedUnit.description}
-              </p>
-            </div>
-          )}
-        </Modal>
-      </Content>
-      {/* Back to Top Button */}
-      {showBackToTop && (
-        <Button
-          type="primary"
-          shape="circle"
-          icon={<ArrowUpOutlined />}
-          style={{ position: 'fixed', bottom: 20, right: 20 }}
-          onClick={() => window.scrollTo(0, 0)}
-        />
-      )}
-      {/* Feedback Modal */}
-      <Modal
-        title="Session Feedback"
-        visible={feedbackModalVisible}
-        onCancel={() => setFeedbackModalVisible(false)}
-        onOk={handleFeedbackSubmit}
-      >
-        <p>How was today&apos;s class?</p>
-        <Rate
-          allowHalf
-          value={feedbackData.rating}
-          onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
-        />
-        <Input.TextArea
-          rows={4}
-          placeholder="Leave a comment (optional)"
-          value={feedbackData.text}
-          onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
-          style={{ marginTop: 16 }}
-        />
-      </Modal>
-      {/* Quiz Modal */}
-      <Modal
-        title={quiz?.title || "Quiz"}
-        visible={quizModalVisible}
-        onCancel={() => setQuizModalVisible(false)}
-        onOk={handleQuizSubmit}
-      >
-        {quiz?.questions?.map((q, index) => (
-          <div key={index} style={{ marginBottom: 16 }}>
-            <p>{q.question}</p>
-            <Radio.Group
-              onChange={(e) => handleQuizAnswerChange(index, e.target.value)}
-              value={quizAnswers[index]}
-            >
-              {q.options.map((opt, idx) => (
-                <Radio key={idx} value={opt.optionText}>
-                  {opt.optionText}
-                </Radio>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Card
+                  style={{
+                    background: 'linear-gradient(135deg, #52c41a, #389e0d)',
+                    color: 'white',
+                    borderRadius: 10,
+                    textAlign: 'center',
+                    width: '100%',
+                    minWidth: 200,
+                    height: 150,
+                  }}
+                  styles={{ body: { padding: '16px' } }}
+                >
+                  <Space direction="vertical">
+                    <CheckCircleOutlined style={{ fontSize: 24 }} />
+                    <h3>Attendance Rate</h3>
+                    <h1>
+                      {attendanceRates.length
+                        ? Math.round(
+                            attendanceRates.reduce((sum, rate) => sum + parseFloat(rate.value), 0) /
+                              attendanceRates.length
+                          )
+                        : 0}
+                      %
+                    </h1>
+                  </Space>
+                </Card>
+              </Col>
+            </Row>
+
+            <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>
+              My Units
+            </AntTitle>
+            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+              {units.map((unit) => (
+                unit._id ? (
+                  <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
+                    <Card
+                      title={unit.name || 'Untitled Unit'}
+                      extra={<span>{unit.code || 'N/A'}</span>}
+                      style={{ borderRadius: 10, width: '100%' }}
+                      styles={{ 
+                        body: { padding: '16px' }, 
+                        header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' }
+                      }}
+                      onClick={() => setSelectedUnit(unit)}
+                    >
+                      <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                        <div
+                          style={{
+                            background: '#e8ecef',
+                            borderRadius: 6,
+                            overflow: 'hidden',
+                            height: 20,
+                          }}
+                        >
+                          <div
+                            style={{
+                              width: `${calculateAttendanceRate(unit._id)}%`,
+                              background: 'linear-gradient(90deg, #1890ff, #40c4ff)',
+                              color: '#fff',
+                              textAlign: 'center',
+                              padding: '2px 0',
+                              transition: 'width 0.5s ease',
+                            }}
+                          >
+                            {calculateAttendanceRate(unit._id)}%
+                          </div>
+                        </div>
+                        <Row gutter={[8, 8]} justify="space-between">
+                          <Col span={12}>
+                            <Button
+                              type="primary"
+                              icon={<QrcodeOutlined />}
+                              block
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                console.log("Unit ID for Attend button:", unit._id);
+                                if (!unit || !unit._id) {
+                                  console.error("Unit or unit._id is undefined in button click:", unit);
+                                  message.error("Invalid unit data. Please refresh the page.");
+                                  return;
+                                }
+                                handleAttendClick(unit._id);
+                              }}
+                            >
+                              Attend
+                            </Button>
+                          </Col>
+                          <Col span={12}>
+                            <Button
+                              block
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openQuizModal(unit._id);
+                              }}
+                            >
+                              Quiz
+                            </Button>
+                          </Col>
+                        </Row>
+                        <Button
+                          block
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            openFeedbackModal(unit._id);
+                          }}
+                        >
+                          Feedback
+                        </Button>
+                      </Space>
+                    </Card>
+                  </Col>
+                ) : null
               ))}
-            </Radio.Group>
-          </div>
-        ))}
-      </Modal>
+            </Row>
+
+            {renderCalendarEvents()}
+
+            <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>
+              Attendance Overview
+            </AntTitle>
+            <Card style={{ marginTop: 16, borderRadius: 10 }}>
+              <div style={{ height: '400px' }}>
+                <Bar data={chartData} options={chartOptions} />
+              </div>
+              <Button
+                type="primary"
+                style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }}
+                onClick={exportAttendanceData}
+              >
+                Export Data
+              </Button>
+            </Card>
+
+            <Modal
+              open={!!selectedUnit}
+              title={selectedUnit?.name}
+              onCancel={() => setSelectedUnit(null)}
+              footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>}
+              centered
+              width={Math.min(window.innerWidth * 0.9, 500)}
+            >
+              {selectedUnit && (
+                <Space direction="vertical">
+                  <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
+                  <p><strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}</p>
+                  <p><strong>Description:</strong> {selectedUnit.description || 'N/A'}</p>
+                </Space>
+              )}
+            </Modal>
+
+            <Modal
+              open={feedbackModalVisible}
+              title="Session Feedback"
+              onCancel={() => setFeedbackModalVisible(false)}
+              onOk={handleFeedbackSubmit}
+              centered
+              width={Math.min(window.innerWidth * 0.9, 400)}
+            >
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <p>How was today&apos;s class?</p>
+                <Rate
+                  allowHalf
+                  value={feedbackData.rating}
+                  onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
+                />
+                <Input.TextArea
+                  rows={4}
+                  placeholder="Leave a comment (optional)"
+                  value={feedbackData.text}
+                  onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
+                />
+              </Space>
+            </Modal>
+
+            <Modal
+              open={quizModalVisible}
+              title={quiz?.title || 'Quiz'}
+              onCancel={() => setQuizModalVisible(false)}
+              onOk={handleQuizSubmit}
+              centered
+              width={Math.min(window.innerWidth * 0.9, 500)}
+            >
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                {quiz?.questions?.map((q, index) => (
+                  <div key={index}>
+                    <p>{q.question}</p>
+                    <Radio.Group
+                      onChange={(e) => handleQuizAnswerChange(index, e.target.value)}
+                      value={quizAnswers[index]}
+                    >
+                      <Space direction="vertical">
+                        {q.options?.map((opt, idx) => (
+                          <Radio key={idx} value={opt.optionText}>
+                            {opt.optionText}
+                          </Radio>
+                        ))}
+                      </Space>
+                    </Radio.Group>
+                  </div>
+                ))}
+              </Space>
+            </Modal>
+          </Spin>
+        </Content>
+      </Layout>
     </Layout>
   );
 };

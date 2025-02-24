@@ -5,7 +5,7 @@ const Department = require('../models/Department');
 const Course = require('../models/Course');
 const csv = require("fast-csv");
 const fs = require("fs");
-const { parse } = require('json2csv'); 
+const { parse } = require('json2csv');
 const validationResult = require('express-validator').validationResult;
 const mongoose = require('mongoose');
 const crypto = require('crypto');
@@ -34,7 +34,7 @@ const login = async (req, res) => {
 
     const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '4h' });
     res.json({
-      token, 
+      token,
       user: { id: user._id, role: user.role }
     });
   } catch (error) {
@@ -45,18 +45,40 @@ const login = async (req, res) => {
 
 // Signup API
 const signup = async (req, res) => {
-  const { firstName, lastName, email, password, role } = req.body;
-
-  // Check validation results
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
-  }
-
   try {
-    const existingUser = await User.findOne({ email });
+    const { firstName, lastName, email, password, role, year, semester, course } = req.body;
+
+    // Check if email already exists
+    const existingUser = await User.findOne({ email: { $eq: email } });
     if (existingUser) {
-      return res.status(400).json({ message: 'Email already in use' });
+      return res.status(400).json({ 
+        message: "Email already registered",
+        field: "email"
+      });
+    }
+
+    // Validate student-specific fields
+    if (role === "student") {
+      if (!year || !semester) {
+        return res.status(400).json({ 
+          message: "Year and semester are required for students",
+          fields: ["year", "semester"]
+        });
+      }
+      
+      if (year < 1 || year > 4) {
+        return res.status(400).json({
+          message: "Invalid academic year (must be between 1 and 4)",
+          field: "year"
+        });
+      }
+
+      if (semester < 1 || semester > 3) {
+        return res.status(400).json({
+          message: "Invalid semester (must be between 1 and 3)",
+          field: "semester"
+        });
+      }
     }
 
     const hashedPassword = await bcrypt.hash(password, 10);
@@ -67,16 +89,33 @@ const signup = async (req, res) => {
       email,
       password: hashedPassword,
       role,
+      ...(role === "student" && { year, semester, course }),
     });
 
     await newUser.save();
-
-    res.status(201).json({ message: 'User created successfully' });
+    res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    console.error("Signup Error:", error);
+    
+    // Handle specific error types
+    if (error.name === 'ValidationError') {
+      const errors = Object.values(error.errors).map(err => ({
+        message: err.message,
+        field: err.path
+      }));
+      return res.status(400).json({ 
+        message: "Validation failed",
+        errors 
+      });
+    }
+
+    res.status(500).json({ 
+      message: "Signup failed. Please try again later.",
+      error: error.message 
+    });
   }
 };
+
 
 // Register user
 const registerUser = async (req, res) => {
@@ -92,9 +131,9 @@ const registerUser = async (req, res) => {
     // Check if email or regNo already exists
     const existingUser = await User.findOne({ $or: [{ email }, { regNo }] });
     if (existingUser) {
-      return res.status(400).json({ 
-        message: existingUser.email === email 
-          ? "Email already in use" 
+      return res.status(400).json({
+        message: existingUser.email === email
+          ? "Email already in use"
           : "Registration number already exists"
       });
     }
@@ -114,9 +153,10 @@ const registerUser = async (req, res) => {
       }
 
       const course = await Course.findById(courseId);
-      if (!course || course.department.toString() !== departmentId) {
-        return res.status(400).json({ message: "Course not found in the specified department" });
+      if (!course) {
+        return res.status(400).json({ message: "Course not found" });
       }
+
     }
 
     // Hash password
@@ -129,11 +169,11 @@ const registerUser = async (req, res) => {
       email,
       password: hashedPassword,
       role,
-      ...(role === "student" && { 
-        regNo, 
-        course: courseId, 
-        department: departmentId, 
-        year: Number(year) || 1, 
+      ...(role === "student" && {
+        regNo,
+        course: courseId,
+        department: departmentId,
+        year: Number(year) || 1,
         semester: Number(semester) || 1
       }),
     });
@@ -178,9 +218,10 @@ const getLecturers = async (req, res) => {
   }
 };
 
+
 // Update student
 const updateStudent = async (req, res) => {
-  const { firstName, lastName, email, regNo, course: courseName, department: deptName, year, semester } = req.body;
+  const { firstName, lastName, email, regNo, course, department, year, semester } = req.body;
 
   // Check validation results
   const errors = validationResult(req);
@@ -203,34 +244,37 @@ const updateStudent = async (req, res) => {
     });
 
     if (existingUser) {
-      return res.status(400).json({ 
-        message: existingUser.email === email 
-          ? 'Email already in use' 
+      return res.status(400).json({
+        message: existingUser.email === email
+          ? 'Email already in use'
           : 'Registration number already exists'
       });
     }
 
-    // Find department by name
-    const department = await Department.findOne({ name: deptName });
-    if (!department) {
+    // Validate department and course IDs
+    if (!mongoose.isValidObjectId(department) || !mongoose.isValidObjectId(course)) {
+      return res.status(400).json({ message: 'Invalid department or course ID format' });
+    }
+
+    // Verify course exists
+    const courseDoc = await Course.findById(course);
+    if (!courseDoc) {
+      return res.status(400).json({ message: 'Course not found' });
+    }
+
+    // Verify department exists (assuming you have a Department model)
+    const deptDoc = await Department.findById(department);
+    if (!deptDoc) {
       return res.status(400).json({ message: 'Department not found' });
     }
 
-    // Find course by name and department
-    const course = await Course.findOne({ 
-      name: courseName,
-      department: department._id 
-    });
-    if (!course) {
-      return res.status(400).json({ message: 'Course not found in the specified department' });
-    }
-
+    // Update student fields
     student.firstName = firstName;
     student.lastName = lastName;
     student.email = email;
     student.regNo = regNo;
-    student.course = course._id;
-    student.department = department._id;
+    student.course = course; // Use the ID
+    student.department = department; // Use the ID
     student.year = year;
     student.semester = semester;
 
@@ -401,7 +445,7 @@ const downloadStudents = async (req, res) => {
     }));
 
     const csv = parse(csvData, { header: true });
-    
+
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=students.csv');
     res.status(200).send(csv);
@@ -647,7 +691,7 @@ const downloadLecturers = async (req, res) => {
     }));
 
     const csv = parse(csvData, { header: true });
-    
+
     res.setHeader('Content-Type', 'text/csv');
     res.setHeader('Content-Disposition', 'attachment; filename=lecturers.csv');
     res.status(200).send(csv);
@@ -667,6 +711,10 @@ const sendResetLink = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
     // Generate Reset Token and Hash It
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = await bcrypt.hash(resetToken, 10);
@@ -674,6 +722,10 @@ const sendResetLink = async (req, res) => {
     user.resetPasswordToken = hashedToken;
     user.resetPasswordExpires = Date.now() + 3600000; // Token valid for 1 hour
     await user.save();
+
+    console.log("Stored token:", user.resetPasswordToken);
+    console.log("Stored expiry:", new Date(user.resetPasswordExpires));
+    console.log("Current time:", new Date());
 
     const clientUrl =
       process.env.NODE_ENV === "production"
@@ -684,26 +736,87 @@ const sendResetLink = async (req, res) => {
 
     // Email Template
     const mailOptions = {
-      from: `"Smart QR Attendance System" <${process.env.SMTP_USER}>`,
+      from: `"Smart QR Code Attendance System" <${process.env.SMTP_USER}>`,
       to: user.email,
       subject: "Password Reset Request",
       html: `
-        <div style="font-family: Arial, sans-serif; padding: 20px;">
-          <h2>Password Reset Request</h2>
-          <p>Hi ${user.firstName} ${user.lastName},</p>
-          <p>You requested to reset your password. Click the button below to proceed:</p>
-          <a href="${resetLink}" 
-             style="background-color: #007bff; color: #ffffff; padding: 10px 15px; text-decoration: none; border-radius: 5px; display: inline-block;">
-            Reset Password
-          </a>
-          <p>This link will expire in 1 hour.</p>
-          <p>If you did not request this, ignore this email. Your password will remain unchanged.</p>
-          <p>Thank you,</p>
-          <p><strong>Smart QR Attendance System Team</strong></p>
+        <div style="max-width: 600px; margin: 0 auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333;">
+          <!-- Header Section -->
+          <div style="padding: 20px; background-color: #f8f9fa; border-bottom: 3px solid #007bff;">
+            <img src="https://www.freepik.com/icon/education_8212458" alt="Company Logo" style="max-height: 40px; display: block; margin: 0 auto;">
+          </div>
+    
+          <!-- Main Content -->
+          <div style="padding: 30px 20px; background-color: #ffffff;">
+            <h1 style="color: #2d3956; font-size: 24px; margin-bottom: 25px; text-align: center;">
+              Password Reset Request
+            </h1>
+    
+            <p style="margin-bottom: 15px; line-height: 1.6;">Hi ${user.firstName} ${user.lastName},</p>
+            <p style="margin-bottom: 20px; line-height: 1.6;">You requested to reset your password. Click the button below to set up a new password:</p>
+    
+            <!-- CTA Button -->
+            <div style="text-align: center; margin: 30px 0;">
+              <a href="${resetLink}" 
+                 style="background-color: #007bff; color: #ffffff; padding: 12px 30px; 
+                        text-decoration: none; border-radius: 25px; display: inline-block; 
+                        font-weight: 500; letter-spacing: 0.5px; transition: all 0.3s ease;
+                        box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                Reset Password
+              </a>
+            </div>
+    
+            <!-- Details Section -->
+            <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px;">
+              <p style="margin: 0; color: #64748b; font-size: 14px;">
+                ⏳ Link expires in: <strong>1 hour</strong><br>
+                🔒 Not your request? Ignore this email
+              </p>
+            </div>
+    
+            <!-- Fallback Text -->
+            <p style="color: #94a3b8; font-size: 13px; margin: 20px 0;">
+              If the button doesn't work, copy and paste this link in your browser:<br>
+              <span style="color: #007bff; word-break: break-all;">${resetLink}</span>
+            </p>
+    
+            <!-- Thank You & Auto-Reply Notice -->
+            <div style="margin-top: 30px;">
+              <p style="margin: 0 0 15px 0; color: #2d3956; line-height: 1.6;">
+                Thank you for choosing Smart QR Code Attendance System.<br>
+                <strong>Best regards,</strong><br>
+                <span style="color: #007bff;">Customer Support Team</span>
+              </p>
+              
+              <p style="margin: 0; color: #64748b; font-size: 12px; font-style: italic;">
+                ⚠️ Please note: This is an automated message. Do not reply to this email. 
+                For assistance, please contact us using the information in the footer below.
+              </p>
+            </div>
+          </div>
+    
+          <!-- Footer -->
+          <div style="padding: 25px 20px; background-color: #2d3956; color: #ffffff; text-align: center;">
+            <div style="margin-bottom: 15px;">
+              <a href="https://attendance-system123.vercel.app/" style="color: #ffffff; text-decoration: none; font-weight: 500;">
+                Smart QR Code Attendance System
+              </a>
+            </div>
+            
+            <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
+              <p style="margin: 5px 0;">12 Main Street, Kutus, Kenya</p>
+              <p style="margin: 5px 0;">
+                📧 <a href="mailto:kuriaaustin125@gmail.com" style="color: #cbd5e1; text-decoration: none;">Email Support</a> | 
+                📞 <a href="tel:+254797561978" style="color: #cbd5e1; text-decoration: none;">+254 797 561978</a>
+              </p>
+              <p style="margin: 15px 0 0; color: #94a3b8;">
+                © ${new Date().getFullYear()} Smart QR Code Attendance System. All rights reserved
+              </p>
+            </div>
+          </div>
         </div>
       `,
     };
-
     // Send Email
     await transporter.sendMail(mailOptions);
     res.json({ message: "Password reset link sent to your email." });
@@ -757,17 +870,17 @@ const resetPassword = async (req, res) => {
   }
 };
 
-module.exports = { 
-  login, 
-  signup, 
-  getStudents, 
-  getLecturers, 
+module.exports = {
+  login,
+  signup,
+  getStudents,
+  getLecturers,
   updateStudent,
-  deleteStudent, 
-  importStudents, 
-  downloadStudents, 
-  registerUser, 
-  getUserProfile, 
+  deleteStudent,
+  importStudents,
+  downloadStudents,
+  registerUser,
+  getUserProfile,
   updateUserProfile,
   importStudents,
   createLecturer,

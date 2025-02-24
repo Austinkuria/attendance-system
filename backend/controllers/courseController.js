@@ -232,19 +232,24 @@ const addUnitToCourse = async (req, res) => {
     const { name, code } = req.body;
 
     if (!name || !code) {
-      return res.status(400).json({ message: "Name and code are required" });
+      return res.status(400).json({ 
+        success: false,
+        message: "Name and code are required" 
+      });
     }
 
     const course = await Course.findById(req.params.courseId);
     if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
+      return res.status(404).json({ 
+        success: false,
+        message: 'Course not found' 
+      });
     }
 
     const unit = new Unit({
       name,
       code,
       course: course._id,
-      // Add default values or additional fields as needed
       year: req.body.year || 1,
       semester: req.body.semester || 1
     });
@@ -253,10 +258,18 @@ const addUnitToCourse = async (req, res) => {
     course.units.push(unit);
     await course.save();
 
-    res.status(201).json(unit);
+    res.status(201).json({ 
+      success: true,
+      message: "Unit added successfully",
+      data: unit 
+    });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    console.error("Error adding unit:", error);
+    res.status(500).json({ 
+      success: false,
+      message: 'Error adding unit',
+      error: error.message 
+    });
   }
 };
 

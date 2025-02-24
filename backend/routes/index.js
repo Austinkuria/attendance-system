@@ -7,20 +7,23 @@ const upload = require("../middleware/uploadMiddleware");
 const departmentRoutes = require("../routes/departmentRoutes");
 const courseRoutes = require("../routes/courseRoutes");
 const unitRoutes = require("../routes/unitRoutes");
-const attendanceRoutes = require("../routes/attendance.routes");
+const attendanceRoutes = require("./attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
-const router = express.Router();
 const quizRoutes = require('./quizRoutes');
-const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createAttendanceSession, createLecturer, updateLecturer,deleteLecturer,importLecturers,downloadLecturers,sendResetLink,resetPassword, registerUser } = require("../controllers/userController");
+const router = express.Router();
+const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createSession, createLecturer, updateLecturer, deleteLecturer, importLecturers, downloadLecturers, sendResetLink, resetPassword, registerUser } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
+const { apiLimiter, sensitiveLimiter, authLimiter } = require('../middleware/rateLimiter');
 
-router.use('/', userRoutes);
+console.log('Loading main routes...');
+console.log('Attendance Routes:', attendanceRoutes);
+
 router.use('/students', studentRoutes);
 
 // User routes
-router.post("/auth/signup", signup,);
+router.post("/auth/signup", signup); // Removed trailing comma
 router.post("/auth/login", login);
 
 // Department routes
@@ -33,10 +36,12 @@ router.use("/course", courseRoutes);
 router.use("/unit", unitRoutes);
 
 // Attendance routes
-router.use("/attendance/", authenticate, attendanceRoutes);
+router.use("/attendance/", authLimiter, authenticate, attendanceRoutes);
 
 // Session routes
-router.use("/sessions", authenticate, sessionRoutes);
+router.use("/sessions", authLimiter, authenticate, sessionRoutes);
+
+router.use('/', userRoutes);
 
 // Students
 router.get('/students', getStudents);
@@ -58,7 +63,7 @@ router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), delet
 router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
-router.post("/auth/reset-password",sendResetLink);
-router.put("/auth/reset-password/:token",resetPassword);
-  
+router.post("/auth/reset-password", sensitiveLimiter, sendResetLink);
+router.put("/auth/reset-password/:token", resetPassword); // Note: You have this line twice; remove one
+
 module.exports = router;

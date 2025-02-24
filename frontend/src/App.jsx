@@ -15,7 +15,6 @@ import ManageCourses from "./pages/ManageCourses";
 import ManageLecturers from "./pages/ManageLecturers";
 import StudentProfile from "./pages/profiles/StudentProfile";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import InstallButton from './components/InstallButton';
 import BackToTop from "./components/BackToTop";
 import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/Analytics";
@@ -31,21 +30,19 @@ import AdminProfile from "./pages/profiles/AdminProfile";
 import LecturerProfile from "./pages/profiles/LecturerProfile";
 import LecturerSettings from "./pages/settings/LecturerSettings";
 import AdminSettings from "./pages/settings/AdminSettings";
+import AdminAnalytics from "./pages/dashboards/AdminAnalytics";
 import StudentSettings from "./pages/settings/StudentSettings";
 import ResetPasswordRequest from "./pages/ResetPasswordRequest";
 import ResetPassword from "./pages/ResetPassword";
+import InstallButton from './components/InstallButton';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  // Initialize showBanner to true if online (to display banner on first load) or false otherwise.
   const [showBanner, setShowBanner] = useState(false);
 
-  // Effect to auto-hide the banner on initial load if online.
   useEffect(() => {
     if (navigator.onLine) {
-      setTimeout(() => {
-        setShowBanner(false);
-      }, 1000);
+      setTimeout(() => setShowBanner(false), 1000);
     }
   }, []);
 
@@ -54,9 +51,7 @@ function App() {
       setIsOnline(true);
       toast.success("You're back online", { autoClose: 3000 });
       setShowBanner(true);
-      setTimeout(() => {
-        setShowBanner(false);
-      }, 3000);
+      setTimeout(() => setShowBanner(false), 3000);
     };
 
     const handleOffline = () => {
@@ -74,17 +69,14 @@ function App() {
     };
   }, []);
 
-  const handleCloseBanner = () => {
-    setShowBanner(false);
-  };
+  const handleCloseBanner = () => setShowBanner(false);
 
   return (
     <Router>
       <ToastContainer />
-      <InstallButton />
       <BackToTop />
+      <InstallButton />
 
-      {/* Connectivity Banner */}
       {showBanner && (
         <div
           style={{
@@ -120,7 +112,6 @@ function App() {
         </div>
       )}
 
-      {/* Add padding to main content to avoid being hidden behind the banner */}
       <div style={{ paddingTop: showBanner ? "40px" : "0" }}>
         <Routes>
           <Route path="/" element={<Home />} />
@@ -129,29 +120,28 @@ function App() {
           <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
           <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          {/* error routes */}
-          <Route path="*" element={<NotFound />} />
           <Route path="/401" element={<Unauthorized />} />
           <Route path="/403" element={<Forbidden />} />
           <Route path="/500" element={<ServerError />} />
           <Route path="/405" element={<MethodNotAllowed />} />
-          {/* end */}
+          <Route path="*" element={<NotFound />} />
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
-          <Route path="/lecturer/profile" element={<ProtectedRoute>< LecturerProfile /></ProtectedRoute>} />
-          <Route path="/Lecturer/settings" element={<ProtectedRoute><LecturerSettings/></ProtectedRoute>} />
+          <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
+          <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
-          <Route path="/admin/settings" element ={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+          <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
+          <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
-          <Route path="/qr-scanner/:unitId" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
+          <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
+          <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>
       </div>
     </Router>

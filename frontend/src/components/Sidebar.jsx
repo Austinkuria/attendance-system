@@ -1,50 +1,64 @@
-import { useState } from "react";
-import { Link } from "react-router-dom";
-import { Layout, Menu, Button } from "antd";
+import { Layout, Menu } from "antd";
 import {
   DashboardOutlined,
   UserOutlined,
   LineChartOutlined,
   FormOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
 } from "@ant-design/icons";
+import { Link } from "react-router-dom";
+import PropTypes from 'prop-types';
 
 const { Sider } = Layout;
 
-const Sidebar = () => {
-  const [collapsed, setCollapsed] = useState(true);
-
+const Sidebar = ({ collapsed, isMobile }) => {
   return (
     <Sider
-      collapsible
       collapsed={collapsed}
-      onCollapse={(value) => setCollapsed(value)}
-      theme="light"
       width={200}
+      collapsedWidth={isMobile ? 0 : 80} // Fully collapse on mobile, partial on desktop
+      theme="light"
+      style={{
+        boxShadow: "2px 0 8px rgba(0,0,0,0.1)",
+        overflow: "auto",
+        height: "100vh",
+        position: "fixed",
+        left: 0,
+        zIndex: 100,
+      }}
     >
-      <Button
-        type="text"
-        icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-        onClick={() => setCollapsed(!collapsed)}
-        style={{ margin: "16px 0", width: "100%" }}
+      <Menu
+        mode="inline"
+        defaultSelectedKeys={["1"]}
+        style={{ height: "100%", borderRight: 0 }}
+        items={[
+          {
+            key: "1",
+            icon: <DashboardOutlined />,
+            label: <Link to="/lecturer-dashboard">Dashboard</Link>,
+          },
+          {
+            key: "2",
+            icon: <UserOutlined />,
+            label: <Link to="/attendance">Attendance</Link>,
+          },
+          {
+            key: "3",
+            icon: <LineChartOutlined />,
+            label: <Link to="/analytics">Analytics</Link>,
+          },
+          {
+            key: "4",
+            icon: <FormOutlined />,
+            label: <Link to="/lecturer/quizzes">Quizzes</Link>,
+          },
+        ]}
       />
-      <Menu mode="inline" defaultSelectedKeys={["1"]}>
-        <Menu.Item key="1" icon={<DashboardOutlined />}>
-          <Link to="/lecturer-dashboard">Dashboard</Link>
-        </Menu.Item>
-        <Menu.Item key="2" icon={<UserOutlined />}>
-          <Link to="/attendance">Attendance</Link>
-        </Menu.Item>
-        <Menu.Item key="3" icon={<LineChartOutlined />}>
-          <Link to="/analytics">Analytics</Link>
-        </Menu.Item>
-        <Menu.Item key="4" icon={<FormOutlined />}>
-          <Link to="/lecturer/quizzes">Quizzes</Link>
-        </Menu.Item>
-      </Menu>
     </Sider>
   );
+};
+Sidebar.propTypes = {
+  collapsed: PropTypes.bool.isRequired,
+  isMobile: PropTypes.bool.isRequired,
 };
 
 export default Sidebar;

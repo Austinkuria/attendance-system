@@ -3,7 +3,6 @@ import react from '@vitejs/plugin-react-swc';
 import { VitePWA } from 'vite-plugin-pwa';
 import envCompatible from 'vite-plugin-env-compatible';
 
-// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -42,7 +41,52 @@ export default defineConfig({
           },
         ],
       },
+      workbox: {
+        clientsClaim: true,
+        skipWaiting: true,
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'], // Cache all common assets
+        runtimeCaching: [
+          {
+            urlPattern: /\.(?:html|js|css)$/,
+            handler: 'StaleWhileRevalidate',
+            options: {
+              cacheName: 'app-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
+              },
+            },
+          },
+          {
+            urlPattern: /\.(?:png|jpg|jpeg|svg)$/,
+            handler: 'CacheFirst',
+            options: {
+              cacheName: 'image-cache',
+              expiration: {
+                maxEntries: 100,
+                maxAgeSeconds: 60 * 24 * 60 * 60, // 60 days
+              },
+            },
+          },
+          {
+            urlPattern: /^https?.*/, // For API calls or external resources
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'api-cache',
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 24 * 60 * 60, // 1 day
+              },
+              networkTimeoutSeconds: 10,
+            },
+          },
+        ],
+      },
+      registerType: 'autoUpdate',
+      devOptions: {
+        enabled: true,
+      },
     }),
-    envCompatible(), // Enable process.env compatible environment variables
+    envCompatible(),
   ],
 });

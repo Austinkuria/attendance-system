@@ -8,6 +8,9 @@ const routes = require("./routes/index");  // Import the combined routes
 dotenv.config();
 const app = express();
 
+// Configure Express to trust proxy headers
+app.set('trust proxy', true);
+
 const fs = require("fs");
 const path = require("path");
 
@@ -29,8 +32,50 @@ app.use(express.json({ limit: "10mb" }));
 //     origin: ["http://localhost:5173", "https://attendance-system-w70n.onrender.com", "https://qr-attendance-system2.vercel.app"],
 //     credentials: true
 // }));
-app.use(cors({ origin: "*", credentials: true }));
+// Add CORS logging and validation middleware
+app.use((req, res, next) => {
+  const origin = req.headers.origin;
+  console.log(`Incoming request from origin: ${origin || 'undefined'}`);
 
+  // Validate origin if present
+  if (origin && ![
+    "https://attendance-system123.vercel.app",
+    "http://localhost:5173",
+    "https://attendance-system-w70n.onrender.com"
+  ].includes(origin)) {
+    return res.status(403).json({
+      success: false,
+      message: "Origin not allowed"
+    });
+  }
+
+  next();
+});
+
+app.use(cors({
+  origin: [
+    "https://attendance-system123.vercel.app",
+    "http://localhost:5173",
+    "https://attendance-system-w70n.onrender.com"
+  ],
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+  credentials: true,
+  exposedHeaders: ["Content-Length", "Authorization"]
+}));
+
+// Handle preflight requests
+app.use((req, res, next) => {
+  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
+  res.header("Access-Control-Allow-Credentials", "true");
+
+  if (req.method === "OPTIONS") {
+    return res.sendStatus(204); // No Content for preflight
+  }
+  next();
+});
 
 app.use(morgan("dev"));
 app.use(helmet());
