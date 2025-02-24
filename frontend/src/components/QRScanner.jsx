@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message, Space } from "antd";
 import QrScanner from "qr-scanner";
-import { markAttendance, getActiveSessionForUnit } from "../services/api"; // Updated import
+import { markAttendance, getActiveSessionForUnit } from "../services/api";
 import { jwtDecode } from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
@@ -35,9 +35,18 @@ const QRScanner = () => {
 
   useEffect(() => {
     const fetchSession = async () => {
+      console.log("QRScanner: selectedUnit from useParams:", selectedUnit); // Debug log
+      if (!selectedUnit || selectedUnit === 'undefined') {
+        console.error("QRScanner: Invalid selectedUnit:", selectedUnit);
+        message.error("Invalid unit selected. Please try again from the dashboard.");
+        setSessionEnded(true);
+        setLoading(false);
+        return;
+      }
+
       setLoading(true);
       try {
-        const session = await getActiveSessionForUnit(selectedUnit); // Use new function
+        const session = await getActiveSessionForUnit(selectedUnit);
         if (session && session._id && !session.ended) {
           setSessionId(session._id);
           const now = new Date();
@@ -53,6 +62,7 @@ const QRScanner = () => {
         }
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || "Error fetching session details";
+        console.error("QRScanner: Error fetching session:", errorMsg);
         message.error(errorMsg);
         setSessionEnded(true);
       } finally {

@@ -96,11 +96,15 @@ const StudentDashboard = () => {
         getStudentUnits(token),
       ]);
 
-      console.log("Raw units response:", unitsRes);
+      console.log("Raw units response from getStudentUnits:", unitsRes);
       setStudentId(profileRes._id);
-      const unitsData = Array.isArray(unitsRes) ? unitsRes : unitsRes.enrolledUnits || [];
+      const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       console.log("Units data before sanitization:", unitsData);
-      const sanitizedUnits = unitsData.filter(unit => unit && unit._id && typeof unit._id === 'string');
+      const sanitizedUnits = unitsData.filter(unit => {
+        const isValid = unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '';
+        if (!isValid) console.warn("Invalid unit detected:", unit);
+        return isValid;
+      });
       console.log("Sanitized units:", sanitizedUnits);
       if (sanitizedUnits.length === 0) {
         message.warning("No valid units assigned to your account.");
@@ -355,14 +359,18 @@ const StudentDashboard = () => {
   };
 
   const handleAttendClick = async (unitId) => {
-    if (!unitId) {
-      message.error("Unit ID is missing. Please try again or contact support.");
+    if (!unitId || typeof unitId !== 'string' || unitId.trim() === '' || unitId === 'undefined') {
+      console.error("Invalid unitId passed to handleAttendClick:", unitId);
+      message.error("Unit ID is missing or invalid. Please try again or contact support.");
       return;
     }
     try {
+      console.log("Calling getActiveSessionForUnit with unitId:", unitId);
       const session = await getActiveSessionForUnit(unitId);
       if (session && session._id && !session.ended) {
-        navigate(`/qr-scanner/${unitId}`);
+        const url = `/qr-scanner/${unitId}`;
+        console.log("Navigating to URL:", url);
+        navigate(url);
       } else {
         message.error("No active session available for this unit.");
       }
@@ -545,6 +553,12 @@ const StudentDashboard = () => {
                               block
                               onClick={(e) => {
                                 e.stopPropagation();
+                                console.log("Unit ID for Attend button:", unit._id);
+                                if (!unit || !unit._id) {
+                                  console.error("Unit or unit._id is undefined in button click:", unit);
+                                  message.error("Invalid unit data. Please refresh the page.");
+                                  return;
+                                }
                                 handleAttendClick(unit._id);
                               }}
                             >
