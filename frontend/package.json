@@ -20,6 +20,7 @@
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.7",
     "chartjs-plugin-zoom": "^2.2.0",
+    "firebase": "^9.23.0",
     "jwt-decode": "^4.0.0",
     "moment": "^2.30.1",
     "prop-types": "^15.8.1",
