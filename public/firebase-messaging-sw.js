@@ -1,4 +1,3 @@
-// Import Firebase scripts properly for service workers
 import { initializeApp } from "firebase/app";
 import { getMessaging, onBackgroundMessage } from "firebase/messaging/sw";
 
@@ -13,35 +12,19 @@ const firebaseConfig = {
   measurementId: "G-XFH8TQ70W5"
 };
 
-// Initialize Firebase
+// Initialize Firebase App
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
 // Handle background messages
 onBackgroundMessage(messaging, (payload) => {
   console.log("[Firebase Messaging] Background message received", payload);
-  
-  const { title, body, icon } = payload.notification;
 
-  self.registration.showNotification(title, {
-    body: body,
-    icon: icon || "/firebase-logo.png",
-    actions: [
-      { action: "open_app", title: "Open App" }
-    ]
-  });
-});
+  const notificationTitle = payload?.notification?.title || "New Notification";
+  const notificationOptions = {
+    body: payload?.notification?.body || "You have a new message!",
+    icon: payload?.notification?.icon || "/firebase-logo.png",
+  };
 
-// Handle notification click event
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-  event.waitUntil(
-    clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-      if (clientList.length > 0) {
-        clientList[0].focus();
-      } else {
-        clients.openWindow("/");
-      }
-    })
-  );
+  self.registration.showNotification(notificationTitle, notificationOptions);
 });

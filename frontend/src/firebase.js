@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging/sw";
+import { getMessaging, getToken, onMessage } from "firebase/messaging";
 
-// Ensure all env variables match your .env file
+// Firebase configuration
 const firebaseConfig = {
   apiKey: import.meta.env.VITE_APP_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_APP_FIREBASE_AUTH_DOMAIN,
@@ -16,7 +16,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const messaging = getMessaging(app);
 
-// Function to register FCM Token
+// Function to request notification permission & get FCM token
 export const registerFcmToken = async () => {
   try {
     const permission = await Notification.requestPermission();
@@ -30,14 +30,14 @@ export const registerFcmToken = async () => {
       console.warn("Notification permission denied.");
     }
   } catch (error) {
-    console.error("Error registering FCM token:", error);
+    console.error("Error getting FCM token:", error);
     return null;
   }
 };
 
-// Handle incoming messages
+// Handle foreground messages
 onMessage(messaging, (payload) => {
-  console.log("Message received: ", payload);
+  console.log("Message received:", payload);
 });
 
 export { messaging, onMessage };
