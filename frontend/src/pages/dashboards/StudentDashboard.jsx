@@ -39,6 +39,7 @@ import {
   Spin,
   Select,
   List,
+  notification,
 } from 'antd';
 import {
   UserOutlined,
@@ -52,6 +53,8 @@ import {
   CalendarOutlined,
 } from '@ant-design/icons';
 import moment from 'moment';
+import axios from 'axios';
+import { messaging, onMessage, registerFcmToken } from '../../firebase.js';
 import './StudentDashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -67,7 +70,6 @@ const StudentDashboard = () => {
   const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [studentId, setStudentId] = useState(null); // eslint-disable-line no-unused-vars
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState('weekly');
   const [selectedDate, setSelectedDate] = useState(null);
@@ -82,7 +84,20 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (!token) navigate('/auth/login');
+    if (!token) {
+      navigate('/auth/login');
+    } else {
+      registerFcmToken().then((fcmToken) => {
+        if (fcmToken) {
+          axios.post(
+            'https://attendance-system-w70n.onrender.com/api/users/update-fcm-token',
+            { token: fcmToken },
+            { headers: { Authorization: `Bearer ${token}` } }
+          ).then(() => console.log('FCM Token registered:', fcmToken))
+           .catch(error => console.error('Error registering FCM token:', error));
+        }
+      });
+    }
   }, [navigate]);
 
   const fetchAllData = useCallback(async () => {
@@ -97,7 +112,6 @@ const StudentDashboard = () => {
       ]);
 
       console.log("Raw units response from getStudentUnits:", unitsRes);
-      setStudentId(profileRes._id);
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       console.log("Units data before sanitization:", unitsData);
       const sanitizedUnits = unitsData.filter(unit => {
@@ -126,6 +140,39 @@ const StudentDashboard = () => {
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData]);
+
+  // Firebase Notification Listener
+  useEffect(() => {
+    const handleNotification = (payload) => {
+      const { sessionId, action } = payload.data;
+      const sessionRecord = attendanceData.attendanceRecords.find(rec => rec.session._id === sessionId);
+      if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present") {
+        notification.open({
+          message: payload.notification.title,
+          description: payload.notification.body,
+          btn: (
+            <Button
+              type="primary"
+              size="small"
+              onClick={() => {
+                setActiveSessionId(sessionId);
+                setFeedbackModalVisible(true);
+              }}
+            >
+              Provide Feedback
+            </Button>
+          ),
+          duration: 0,
+          onClose: () => console.log("Notification closed"),
+        });
+      }
+    };
+
+    onMessage(messaging, (payload) => {
+      console.log('Foreground notification received:', payload);
+      handleNotification(payload);
+    });
+  }, [attendanceData]);
 
   const calculateAttendanceRate = useCallback(
     (unitId) => {
@@ -295,10 +342,28 @@ const StudentDashboard = () => {
   ];
 
   const openFeedbackModal = (unitId) => {
-    const unitAttendance = attendanceData.attendanceRecords.filter(
-      (data) => data.session.unit._id.toString() === unitId.toString()
-    );
-    setActiveSessionId(unitAttendance?.[0]?._id || null);
+    const unitAttendance = attendanceData.attendanceRecords
+      .filter((data) => data.session.unit._id.toString() === unitId.toString())
+      .sort((a, b) => new Date(b.attendedAt) - new Date(a.attendedAt)); // Sort by attendedAt descending
+    const latestSession = unitAttendance[0];
+    if (!latestSession) {
+      message.warning('No attendance records found for this unit.');
+      return;
+    }
+    const sessionEnded = new Date() > new Date(latestSession.session.endTime);
+    if (!sessionEnded) {
+      message.info('Feedback is only available after the latest session ends.');
+      return;
+    }
+    if (latestSession.status !== 'Present') {
+      message.info('You must mark attendance for the latest session to provide feedback.');
+      return;
+    }
+    if (latestSession.feedbackSubmitted) {
+      message.info('Feedback already submitted for the latest session.');
+      return;
+    }
+    setActiveSessionId(latestSession.session._id);
     setFeedbackModalVisible(true);
   };
 
@@ -317,7 +382,7 @@ const StudentDashboard = () => {
         } else {
           message.info('No quiz available.');
         }
-      } catch { 
+      } catch {
         message.error('Error fetching quiz.');
       }
     } else {
@@ -336,8 +401,15 @@ const StudentDashboard = () => {
       message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
       setFeedbackData({ rating: 3, text: '' });
-    } catch { 
-      message.error('Error submitting feedback.');
+      setAttendanceData(prev => ({
+        ...prev,
+        attendanceRecords: prev.attendanceRecords.map(rec =>
+          rec.session._id === activeSessionId ? { ...rec, feedbackSubmitted: true } : rec
+        )
+      }));
+    } catch (error) {
+      console.error('Feedback submission failed:', error);
+      message.error(`Error submitting feedback: ${error.message || 'Unknown error'}`);
     }
   };
 
@@ -353,7 +425,7 @@ const StudentDashboard = () => {
       setQuizModalVisible(false);
       setQuizAnswers({});
       setQuiz(null);
-    } catch { 
+    } catch {
       message.error('Error submitting quiz.');
     }
   };
@@ -374,8 +446,9 @@ const StudentDashboard = () => {
       } else {
         message.error("No active session available for this unit.");
       }
-    } catch {
-      message.error("No active session available or error checking session.");
+    } catch (err) {
+      console.error('Error checking active session:', err);
+      message.error(`No active session available or error checking session: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -637,7 +710,7 @@ const StudentDashboard = () => {
               width={Math.min(window.innerWidth * 0.9, 400)}
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <p>How was today&apos;s class?</p>
+                <p>How was today's class?</p>
                 <Rate
                   allowHalf
                   value={feedbackData.rating}

@@ -3,7 +3,7 @@ const generateQRToken = require('../utils/session.utils');
 const schedule = require("node-schedule");
 const { markAbsentees } = require("../controllers/attendance.controller");
 const mongoose = require('mongoose');
-
+const { sendNotification } = require('../services/firebaseService');
 
 exports.detectCurrentSession = async (req, res) => {
   try {
@@ -114,7 +114,7 @@ exports.endSession = async (req, res) => {
       return res.status(400).json({ message: "Invalid session ID format" });
     }
 
-    const session = await Session.findById(sessionId);
+    const session = await Session.findById(sessionId).populate('unit');
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
     }
@@ -124,9 +124,19 @@ exports.endSession = async (req, res) => {
     }
 
     session.ended = true;
+    session.feedbackEnabled = true;
     await session.save();
 
     await markAbsentees(sessionId);
+
+    const attendees = session.attendees.map(a => a.student.toString());
+    if (attendees.length > 0) {
+      await sendNotification(attendees, {
+        title: "Session Ended",
+        message: `The session for ${session.unit.name} has ended. Please provide your feedback.`,
+        data: { sessionId: session._id.toString(), action: "openFeedback" }
+      });
+    }
 
     res.status(200).json({ message: "Session ended successfully", session });
   } catch (error) {
@@ -134,6 +144,35 @@ exports.endSession = async (req, res) => {
     res.status(500).json({ message: "Error ending session", error: error.message });
   }
 };
+
+// exports.endSession = async (req, res) => {
+//   try {
+//     const { sessionId } = req.body;
+
+//     if (!mongoose.isValidObjectId(sessionId)) {
+//       return res.status(400).json({ message: "Invalid session ID format" });
+//     }
+
+//     const session = await Session.findById(sessionId);
+//     if (!session) {
+//       return res.status(404).json({ message: "Session not found" });
+//     }
+
+//     if (session.ended) {
+//       return res.status(400).json({ message: "Session already ended" });
+//     }
+
+//     session.ended = true;
+//     await session.save();
+
+//     await markAbsentees(sessionId);
+
+//     res.status(200).json({ message: "Session ended successfully", session });
+//   } catch (error) {
+//     console.error("Error ending session:", error);
+//     res.status(500).json({ message: "Error ending session", error: error.message });
+//   }
+// };
 
 exports.getLastSession = async (req, res) => {
   try {
