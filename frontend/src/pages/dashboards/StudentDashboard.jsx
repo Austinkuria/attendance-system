@@ -54,7 +54,7 @@ import {
 } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
-import { messaging, onMessage, registerFcmToken } from '../../firebase.js';
+import { messaging, onMessage, registerFcmToken } from '../../firebase';
 import './StudentDashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
