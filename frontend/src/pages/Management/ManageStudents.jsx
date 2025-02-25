@@ -225,27 +225,26 @@ const ManageStudents = () => {
       setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return navigate("/auth/login");
-
+  
       const formattedStudent = {
         firstName: selectedStudent.firstName,
         lastName: selectedStudent.lastName,
         email: selectedStudent.email,
         regNo: selectedStudent.regNo,
-        course: selectedStudent.courseId || selectedStudent.course, // Fallback to course if courseId not available
-        department: selectedStudent.departmentId || selectedStudent.department, // Fallback to department if departmentId not available
+        course: selectedStudent.courseId, // Use courseId, not courseName
+        department: selectedStudent.departmentId, // Use departmentId
         year: Number(selectedStudent.year) || selectedStudent.year,
         semester: Number(selectedStudent.semester) || selectedStudent.semester,
       };
-
-
-      console.log("Payload sent to API:", formattedStudent); // Debugging
-
+  
+      console.log("Payload being sent to API:", formattedStudent); // Debugging
+  
       const response = await api.put(
         `/students/${selectedStudent._id}`,
         formattedStudent,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-
+  
       if (response.status === 200) {
         const updated = await getStudents();
         setStudents(formatStudentData(updated));
@@ -260,6 +259,47 @@ const ManageStudents = () => {
       setLoading(false);
     }
   };
+
+  // const handleEditStudent = async () => {
+  //   try {
+  //     setLoading(true);
+  //     const token = localStorage.getItem("token");
+  //     if (!token) return navigate("/auth/login");
+
+  //     const formattedStudent = {
+  //       firstName: selectedStudent.firstName,
+  //       lastName: selectedStudent.lastName,
+  //       email: selectedStudent.email,
+  //       regNo: selectedStudent.regNo,
+  //       course: selectedStudent.courseId || selectedStudent.course, // Fallback to course if courseId not available
+  //       department: selectedStudent.departmentId || selectedStudent.department, // Fallback to department if departmentId not available
+  //       year: Number(selectedStudent.year) || selectedStudent.year,
+  //       semester: Number(selectedStudent.semester) || selectedStudent.semester,
+  //     };
+
+
+  //     console.log("Payload sent to API:", formattedStudent); // Debugging
+
+  //     const response = await api.put(
+  //       `/students/${selectedStudent._id}`,
+  //       formattedStudent,
+  //       { headers: { Authorization: `Bearer ${token}` } }
+  //     );
+
+  //     if (response.status === 200) {
+  //       const updated = await getStudents();
+  //       setStudents(formatStudentData(updated));
+  //       setIsEditModalVisible(false);
+  //       message.success("Student updated successfully");
+  //     }
+  //   } catch (err) {
+  //     console.error("Error updating student:", err);
+  //     setGlobalError(err.response?.data?.message || "Failed to update student");
+  //     message.error("Failed to update student");
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const formatStudentData = (students) => {
     return students.map((s) => ({
@@ -387,8 +427,8 @@ const ManageStudents = () => {
               lastName: record.lastName,
               email: record.email,
               regNo: record.regNo,
-              course: record.courseId || record.course, // Pre-fill with ID, fallback to course
-              department: record.departmentId || record.department, // Pre-fill with ID, fallback to department
+              course: record.courseId, // Pre-fill with ID, fallback to course
+              department: record.departmentId, // Pre-fill with ID, fallback to department
 
               year: record.year,
               semester: record.semester

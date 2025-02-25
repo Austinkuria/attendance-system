@@ -212,7 +212,7 @@ const StudentDashboard = () => {
 
     if (!hasShownLowAttendanceAlert && rates.some(rate => rate.value !== null && parseFloat(rate.value) < 75)) {
       message.warning({
-        content: 'Low attendance in some units may risk your semester grade!',
+        content: 'Low attendance in some units may risk not attaining the required average attendance rate for your semester!',
         duration: 5,
       });
       setHasShownLowAttendanceAlert(true);
@@ -278,12 +278,12 @@ const StudentDashboard = () => {
       tooltip: { callbacks: { label: (context) => `${context.raw === 0 && attendanceRates[context.dataIndex].value === null ? 'N/A' : context.raw}%` } },
     },
     scales: {
-      y: { beginAtZero: true, max: 100, title: { display: true, text: 'Rate (%)' } },
+      y: { beginAtZero: true, max: 100, title: { display: true, text: 'Attendance Rate (%)' } },
       x: { ticks: { maxRotation: 45, minRotation: 0 } },
     },
     onClick: (event, elements) => {
       if (elements.length > 0) {
-        navigate('/student/performance-trends');
+        navigate('/student/attendance-trends');
       }
     },
   };
@@ -303,10 +303,10 @@ const StudentDashboard = () => {
       );
       return selectedWeek
         ? selectedWeek.events.map((event) => ({
-            title: `${event.unitName} - ${event.status}`,
-            date: moment(event.startTime),
-            status: event.status,
-          }))
+          title: `${event.unitName} - ${event.status}`,
+          date: moment(event.startTime),
+          status: event.status,
+        }))
         : [];
     } else {
       const selectedDay = attendanceData.dailyEvents.find((day) =>
@@ -314,10 +314,10 @@ const StudentDashboard = () => {
       );
       return selectedDay
         ? selectedDay.events.map((event) => ({
-            title: `${event.unitName} - ${event.status}`,
-            date: moment(event.startTime),
-            status: event.status,
-          }))
+          title: `${event.unitName} - ${event.status}`,
+          date: moment(event.startTime),
+          status: event.status,
+        }))
         : [];
     }
   };
@@ -572,7 +572,7 @@ const StudentDashboard = () => {
         <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={{ background: colorBgContainer, marginTop: 64, position: 'fixed', height: 'calc(100vh - 64px)', overflow: 'auto' }}>
           <Menu mode="inline" defaultSelectedKeys={['1']} items={[
             { key: '1', icon: <BookOutlined />, label: 'Units', onClick: () => navigate('/student/dashboard') },
-            { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => navigate('/student/performance-trends') }, // Updated to navigate to new page
+            { key: '2', icon: <CheckCircleOutlined />, label: 'AttendanceTrends', onClick: () => navigate('/student/attendance-trends') },
             { key: '3', icon: <UserOutlined />, label: 'Profile', onClick: () => navigate('/student/profile') },
           ]} />
         </Sider>
@@ -581,7 +581,7 @@ const StudentDashboard = () => {
           <Spin spinning={loading} tip="Loading data...">
             <Row gutter={[16, 16]} justify="center">
               <Col xs={24} sm={12} md={8} lg={6}>
-                <Card style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', width: '100%', minWidth: 200, height: 150 }} styles={{ body: { padding: '16px' } }}>
+                <Card style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', width: '100%', minWidth: 200, height: 200 }} styles={{ body: { padding: '16px' } }}>
                   <Space direction="vertical">
                     <BookOutlined style={{ fontSize: 24 }} />
                     <h3>Total Units</h3>
@@ -590,7 +590,7 @@ const StudentDashboard = () => {
                 </Card>
               </Col>
               <Col xs={24} sm={12} md={8} lg={6}>
-                <Card style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', width: '100%', minWidth: 200, height: 150 }} styles={{ body: { padding: '16px' } }}>
+                <Card style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', width: '100%', minWidth: 200, height: 200 }} styles={{ body: { padding: '16px' } }}>
                   <Space direction="vertical">
                     <CheckCircleOutlined style={{ fontSize: 24 }} />
                     <h3>Attendance Rate</h3>
@@ -611,22 +611,22 @@ const StudentDashboard = () => {
                         return rate === null ? (
                           <div style={{ color: '#888' }}>No sessions</div>
                         ) : (
-                          <div 
-                            style={{ 
-                              background: '#e8ecef', 
-                              borderRadius: 6, 
-                              overflow: 'hidden', 
-                              height: 20, 
+                          <div
+                            style={{
+                              background: '#e8ecef',
+                              borderRadius: 6,
+                              overflow: 'hidden',
+                              height: 20,
                             }}
                           >
-                            <div style={{ 
+                            <div style={{
                               width: `${rate}%`,
                               minWidth: rate === '0.00' ? '20px' : '0',
-                              background: getAttendanceColor(rate), 
-                              color: '#fff', 
-                              textAlign: 'center', 
-                              padding: '2px 0', 
-                              transition: 'width 0.5s ease' 
+                              background: getAttendanceColor(rate),
+                              color: '#fff',
+                              textAlign: 'center',
+                              padding: '2px 0',
+                              transition: 'width 0.5s ease'
                             }}>
                               {rate}%
                             </div>
@@ -668,12 +668,12 @@ const StudentDashboard = () => {
               )}
             </Modal>
 
-            <Modal 
-              open={feedbackModalVisible} 
-              title="Session Feedback" 
-              onCancel={() => setFeedbackModalVisible(false)} 
-              onOk={handleFeedbackSubmit} 
-              centered 
+            <Modal
+              open={feedbackModalVisible}
+              title="Session Feedback"
+              onCancel={() => setFeedbackModalVisible(false)}
+              onOk={handleFeedbackSubmit}
+              centered
               width={Math.min(window.innerWidth * 0.9, 600)}
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -683,12 +683,12 @@ const StudentDashboard = () => {
                 </div>
                 <div>
                   <p>Pace of the Session (Slow to Fast)</p>
-                  <Slider 
-                    min={0} 
-                    max={100} 
-                    value={feedbackData.pace} 
-                    onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })} 
-                    marks={{ 0: 'Too Slow', 50: 'Just Right', 100: 'Too Fast' }} 
+                  <Slider
+                    min={0}
+                    max={100}
+                    value={feedbackData.pace}
+                    onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
+                    marks={{ 0: 'Too Slow', 50: 'Just Right', 100: 'Too Fast' }}
                   />
                 </div>
                 <div>
@@ -697,24 +697,24 @@ const StudentDashboard = () => {
                 </div>
                 <div>
                   <p>Was the content clear?</p>
-                  <Switch 
-                    checked={feedbackData.clarity} 
-                    onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })} 
-                    checkedChildren="Yes" 
-                    unCheckedChildren="No" 
+                  <Switch
+                    checked={feedbackData.clarity}
+                    onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
+                    checkedChildren="Yes"
+                    unCheckedChildren="No"
                   />
                 </div>
-                <Input.TextArea 
-                  rows={4} 
-                  placeholder="Share your thoughts (optional)" 
-                  value={feedbackData.text} 
-                  onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })} 
+                <Input.TextArea
+                  rows={4}
+                  placeholder="Share your thoughts (optional)"
+                  value={feedbackData.text}
+                  onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
                 />
-                <Input.TextArea 
-                  rows={3} 
-                  placeholder="Suggestions for resources or improvements" 
-                  value={feedbackData.resources} 
-                  onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })} 
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Suggestions for resources or improvements"
+                  value={feedbackData.resources}
+                  onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
                 />
               </Space>
             </Modal>

@@ -1,23 +1,24 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, getStudentAttendanceByFilter } from '../../services/api';
-import { Line } from 'react-chartjs-2';
+import { Line, Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   LineElement,
+  BarElement,
   PointElement,
   Title,
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Layout, Button, Card, Space, theme, Typography, Spin, Select, DatePicker, message } from 'antd';
+import { Layout, Button, Card, Space, theme, Typography, Spin, Select, DatePicker, Switch, message } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import moment from 'moment';
 import 'antd/dist/reset.css';
 
-ChartJS.register(CategoryScale, LinearScale, LineElement, PointElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, LineElement, BarElement, PointElement, Title, Tooltip, Legend);
 
 const { Header, Content } = Layout;
 const { Title: AntTitle } = Typography;
@@ -53,12 +54,13 @@ const styles = {
   `,
 };
 
-const PerformanceTrends = () => {
+const AttendanceTrends = () => {
   const { token: { colorBgContainer } } = theme.useToken();
-  const [attendanceData, setAttendanceData] = useState([]); // Flat array
+  const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('30days');
   const [dateRange, setDateRange] = useState(null);
+  const [chartType, setChartType] = useState('line'); // 'line' or 'bar'
   const navigate = useNavigate();
 
   const fetchAttendanceData = useCallback(async () => {
@@ -77,13 +79,12 @@ const PerformanceTrends = () => {
         const attendanceRes = await getStudentAttendanceByFilter(profileRes._id, filter, start, end);
         console.log('Raw API response:', attendanceRes);
 
-        // Fully flatten the nested events structure
         const normalizedEvents = attendanceRes.events.flatMap(item => {
           if (filter === 'weekly') {
             return item.events.map(event => ({
               ...event,
               week: item.week,
-              date: moment(event.startTime).format('YYYY-MM-DD'), // Add date for consistency
+              date: moment(event.startTime).format('YYYY-MM-DD'),
             }));
           } else {
             return item.events.map(event => ({
@@ -124,7 +125,7 @@ const PerformanceTrends = () => {
       }
       labels = days.map(date => moment(date).format('MMM D'));
       dataPoints = days.map(date => {
-        const dayRecords = attendanceData.filter(event => 
+        const dayRecords = attendanceData.filter(event =>
           moment(event.date).format('YYYY-MM-DD') === date
         );
         const total = dayRecords.length;
@@ -169,19 +170,22 @@ const PerformanceTrends = () => {
         label: `${filter === '30days' ? 'Daily (Last 30 Days)' : filter === 'daily' ? 'Daily' : 'Weekly'} Attendance (%)`,
         data: dataPoints,
         borderColor: '#1890ff',
-        backgroundColor: 'rgba(24, 144, 255, 0.2)',
-        fill: true,
+        backgroundColor: chartType === 'bar' ? 'rgba(24, 144, 255, 0.6)' : 'rgba(24, 144, 255, 0.2)',
+        borderWidth: chartType === 'line' ? 2 : 1,
+        fill: chartType === 'line',
+        tension: chartType === 'line' ? 0.3 : 0, // Smooth line
+        barThickness: chartType === 'bar' ? 20 : undefined, // Bar width
       }],
     };
-  }, [attendanceData, filter, dateRange]);
+  }, [attendanceData, filter, dateRange, chartType]);
 
   const trendOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { position: 'top' },
-      title: { 
-        display: true, 
+      title: {
+        display: true,
         text: `Attendance Trend (${filter === '30days' ? 'Last 30 Days' : filter === 'daily' ? 'Daily' : 'Weekly'}${dateRange ? ` from ${dateRange[0]?.format('MMM D, YYYY')} to ${dateRange[1]?.format('MMM D, YYYY')}` : ''})`
       },
       tooltip: { callbacks: { label: (context) => `${context.raw.toFixed(2)}%` } },
@@ -206,6 +210,10 @@ const PerformanceTrends = () => {
     }
   };
 
+  const handleChartTypeChange = (checked) => {
+    setChartType(checked ? 'bar' : 'line');
+  };
+
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
       <Header style={{ padding: '0 16px', background: colorBgContainer, position: 'fixed', width: '100%', zIndex: 10 }}>
@@ -213,10 +221,10 @@ const PerformanceTrends = () => {
           <Button
             type="text"
             icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/student/dashboard')}
+            onClick={() => navigate('/student-dashboard')}
             style={{ fontSize: '16px', width: 64, height: 64 }}
           />
-          <AntTitle level={3} style={{ display: 'inline', margin: 0 }}>Performance Trends</AntTitle>
+          <AntTitle level={3} style={{ display: 'inline', margin: 0 }}>Attendance Trends</AntTitle>
         </Space>
       </Header>
 
@@ -242,10 +250,20 @@ const PerformanceTrends = () => {
                 style={{ width: '300px' }}
                 disabled={filter === 'weekly'}
               />
+              <Switch
+                checked={chartType === 'bar'}
+                onChange={handleChartTypeChange}
+                checkedChildren="Bar"
+                unCheckedChildren="Line"
+              />
             </Space>
             <Card style={{ marginTop: 16, borderRadius: 10, width: '100%' }}>
               <div style={styles.chartContainer} className="chart-container">
-                <Line data={getTrendData()} options={trendOptions} />
+                {chartType === 'line' ? (
+                  <Line data={getTrendData()} options={trendOptions} />
+                ) : (
+                  <Bar data={getTrendData()} options={trendOptions} />
+                )}
               </div>
             </Card>
           </Space>
@@ -255,4 +273,4 @@ const PerformanceTrends = () => {
   );
 };
 
-export default PerformanceTrends;
+export default AttendanceTrends;
