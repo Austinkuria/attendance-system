@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'; // Removed useRef since we won't need it here
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getStudentAttendance,
@@ -9,7 +9,7 @@ import {
   submitQuizAnswers,
   getActiveSessionForUnit,
 } from '../../services/api';
-import { Bar } from 'react-chartjs-2'; // Removed Line import
+import { Bar } from 'react-chartjs-2';
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -18,7 +18,7 @@ import {
   Title,
   Tooltip,
   Legend,
-} from 'chart.js'; // Removed LineElement, PointElement
+} from 'chart.js';
 import {
   Layout,
   Menu,
