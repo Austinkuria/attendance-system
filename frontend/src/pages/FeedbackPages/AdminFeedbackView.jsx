@@ -2,12 +2,12 @@ import { useState, useEffect } from 'react';
 import { Card, Table, Typography } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
-import { getFeedbackSummary } from '../services.api';
+import { getFeedbackSummary } from '../../services/api';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 const { Title } = Typography;
 
-const AdminFeedback = () => {
+const AdminFeedbackView = () => {
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -62,4 +62,4 @@ const AdminFeedback = () => {
   );
 };
 
-export default AdminFeedback;
+export default AdminFeedbackView;

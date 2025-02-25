@@ -51,6 +51,11 @@ const Sidebar = ({ collapsed, isMobile }) => {
             icon: <FormOutlined />,
             label: <Link to="/lecturer/quizzes">Quizzes</Link>,
           },
+          {
+            key: "5",
+            icon: <FormOutlined />,
+            label: <Link to="/lecturer/feedback">Feedback</Link>,
+            },
         ]}
       />
     </Sider>

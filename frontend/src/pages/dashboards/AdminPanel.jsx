@@ -8,7 +8,8 @@ import {
   SettingOutlined,
   LogoutOutlined,
   TeamOutlined,
-  LineChartOutlined
+  LineChartOutlined,
+  FormOutlined
 } from '@ant-design/icons';
 import {
   Layout,
@@ -314,7 +315,8 @@ const AdminPanel = () => {
               { key: '2', icon: <BookOutlined />, label: 'Courses', onClick: () => window.location.href = '/admin/manage-courses' },
               { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => window.location.href = '/admin/analytics' },
               { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
-              { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' }
+              { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' },
+              { key: '6', icon: <FormOutlined />, label: 'Feedback', onClick: () => window.location.href = '/admin/feedback' }
             ]}
           />
         </Sider>

@@ -36,6 +36,8 @@ import ResetPasswordRequest from "./pages/AuthenticationPages/ResetPasswordReque
 import ResetPassword from "./pages/AuthenticationPages/ResetPassword";
 import InstallButton from './components/InstallButton';
 import AttendanceTrends from './pages/dashboards/AttendanceTrends';
+import AdminFeedbackView from "./pages/FeedbackPages/AdminFeedbackView";
+import LecturerFeedbackView from "./pages/FeedbackPages/LecturerFeedbackView";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -129,17 +131,18 @@ function App() {
           <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
           <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
           <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />
+          <Route path="/lecturer/feedback" element={<ProtectedRoute><LecturerFeedbackView /></ProtectedRoute>} />
           <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
           <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-          {/* /student/attendance-trends */}
           <Route path="/student/attendance-trends" element={<ProtectedRoute>< AttendanceTrends /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
           <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
           <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+          <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />

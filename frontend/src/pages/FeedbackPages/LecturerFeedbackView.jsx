@@ -1,10 +1,10 @@
 import  { useState, useEffect } from 'react';
 import { Card, List, Typography, Rate } from 'antd';
-import { getFeedbackForLecturer } from '../services/api';
+import { getFeedbackForLecturer } from '../../services/api';
 
 const { Title, Text } = Typography;
 
-const LecturerFeedback = () => {
+const LecturerFeedbackView = () => {
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -45,4 +45,4 @@ const LecturerFeedback = () => {
   );
 };
 
-export default LecturerFeedback;
+export default LecturerFeedbackView;
