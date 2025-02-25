@@ -44,8 +44,8 @@ import {
   FilterOutlined,
 } from '@ant-design/icons';
 import { getLecturerUnits, createQuiz, getPastQuizzes, deleteQuiz } from '../../services/api';
-import '../styles.css';
-import FeedbackView from '../../components/FeedbackView'; // Add this line to import FeedbackView component
+import '../../styles.css';
+import FeedbackView from '../../components/FeedbackView';
 
 const { Header, Sider, Content } = Layout;
 const { Option } = Select;
