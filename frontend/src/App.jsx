@@ -35,6 +35,7 @@ import StudentSettings from "./pages/settings/StudentSettings";
 import ResetPasswordRequest from "./pages/AuthenticationPages/ResetPasswordRequest";
 import ResetPassword from "./pages/AuthenticationPages/ResetPassword";
 import InstallButton from './components/InstallButton';
+import PerformanceTrends from './pages/dashboards/PerformanceTrends';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -132,6 +133,8 @@ function App() {
           <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
+          {/* /student/performance-trends */}
+          <Route path="/student/performance-trends" element={<ProtectedRoute>< PerformanceTrends /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />

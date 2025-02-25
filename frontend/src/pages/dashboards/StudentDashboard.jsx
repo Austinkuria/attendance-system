@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback } from 'react'; // Removed useRef since we won't need it here
 import { useNavigate } from 'react-router-dom';
 import {
   getStudentAttendance,
@@ -9,18 +9,16 @@ import {
   submitQuizAnswers,
   getActiveSessionForUnit,
 } from '../../services/api';
-import { Bar, Line } from 'react-chartjs-2';
+import { Bar } from 'react-chartjs-2'; // Removed Line import
 import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
   BarElement,
-  LineElement,
-  PointElement,
   Title,
   Tooltip,
   Legend,
-} from 'chart.js';
+} from 'chart.js'; // Removed LineElement, PointElement
 import {
   Layout,
   Menu,
@@ -62,7 +60,7 @@ import { messaging, onMessage, registerFcmToken } from '../../firebase';
 import 'antd/dist/reset.css';
 import './StudentDashboard.css';
 
-ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Title, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
@@ -91,9 +89,8 @@ const StudentDashboard = () => {
   const [quiz, setQuiz] = useState(null);
   const [quizAnswers, setQuizAnswers] = useState({});
   const [hasShownLowAttendanceAlert, setHasShownLowAttendanceAlert] = useState(false);
-  const [viewMode, setViewMode] = useState('weekly'); // Added for attendance events
-  const [selectedDate, setSelectedDate] = useState(null); // Added for attendance events
-  const attendanceOverviewRef = useRef(null);
+  const [viewMode, setViewMode] = useState('weekly');
+  const [selectedDate, setSelectedDate] = useState(null);
 
   const navigate = useNavigate();
 
@@ -284,46 +281,10 @@ const StudentDashboard = () => {
       y: { beginAtZero: true, max: 100, title: { display: true, text: 'Rate (%)' } },
       x: { ticks: { maxRotation: 45, minRotation: 0 } },
     },
-  };
-
-  const getTrendData = useCallback(() => {
-    const last30Days = [];
-    for (let i = 29; i >= 0; i--) {
-      last30Days.push(moment().subtract(i, 'days').format('YYYY-MM-DD'));
-    }
-
-    const trendData = last30Days.map(date => {
-      const dayRecords = attendanceData.attendanceRecords.filter(record =>
-        moment(record.session.startTime).format('YYYY-MM-DD') === date
-      );
-      const total = dayRecords.length;
-      const present = dayRecords.filter(r => r.status === 'Present').length;
-      return total ? (present / total) * 100 : 0;
-    });
-
-    return {
-      labels: last30Days.map(date => moment(date).format('MMM D')),
-      datasets: [{
-        label: 'Daily Attendance (%)',
-        data: trendData,
-        borderColor: '#1890ff',
-        backgroundColor: 'rgba(24, 144, 255, 0.2)',
-        fill: true,
-      }],
-    };
-  }, [attendanceData]);
-
-  const trendOptions = {
-    responsive: true,
-    maintainAspectRatio: false,
-    plugins: {
-      legend: { position: 'top' },
-      title: { display: true, text: 'Attendance Trend (Last 30 Days)' },
-      tooltip: { callbacks: { label: (context) => `${context.raw.toFixed(2)}%` } },
-    },
-    scales: {
-      y: { beginAtZero: true, max: 100, title: { display: true, text: 'Rate (%)' } },
-      x: { ticks: { maxRotation: 45, minRotation: 0 } },
+    onClick: (event, elements) => {
+      if (elements.length > 0) {
+        navigate('/student/performance-trends');
+      }
     },
   };
 
@@ -591,12 +552,6 @@ const StudentDashboard = () => {
     }
   };
 
-  const scrollToAttendanceOverview = () => {
-    if (attendanceOverviewRef.current) {
-      attendanceOverviewRef.current.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
       <Header style={{ padding: '0 16px', background: colorBgContainer, position: 'fixed', width: '100%', zIndex: 10 }}>
@@ -617,7 +572,7 @@ const StudentDashboard = () => {
         <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={{ background: colorBgContainer, marginTop: 64, position: 'fixed', height: 'calc(100vh - 64px)', overflow: 'auto' }}>
           <Menu mode="inline" defaultSelectedKeys={['1']} items={[
             { key: '1', icon: <BookOutlined />, label: 'Units', onClick: () => navigate('/student/dashboard') },
-            { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => navigate('/student/attendance') },
+            { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => navigate('/student/performance-trends') }, // Updated to navigate to new page
             { key: '3', icon: <UserOutlined />, label: 'Profile', onClick: () => navigate('/student/profile') },
           ]} />
         </Sider>
@@ -662,9 +617,7 @@ const StudentDashboard = () => {
                               borderRadius: 6, 
                               overflow: 'hidden', 
                               height: 20, 
-                              cursor: 'pointer' 
-                            }} 
-                            onClick={(e) => { e.stopPropagation(); scrollToAttendanceOverview(); }}
+                            }}
                           >
                             <div style={{ 
                               width: `${rate}%`,
@@ -695,24 +648,15 @@ const StudentDashboard = () => {
               ) : null)}
             </Row>
 
-            {renderCalendarEvents()} {/* Added attendance events section */}
+            {renderCalendarEvents()}
 
-            <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Performance Trends</AntTitle>
+            <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Attendance Overview</AntTitle>
             <Card style={{ marginTop: 16, borderRadius: 10 }}>
-              <div style={{ height: '300px' }}>
-                <Line data={getTrendData()} options={trendOptions} />
+              <div style={{ height: '400px' }}>
+                <Bar data={chartData} options={chartOptions} />
               </div>
+              <Button type="primary" style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }} onClick={exportAttendanceData}>Export Data</Button>
             </Card>
-
-            <div ref={attendanceOverviewRef}>
-              <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Attendance Overview</AntTitle>
-              <Card style={{ marginTop: 16, borderRadius: 10 }}>
-                <div style={{ height: '400px' }}>
-                  <Bar data={chartData} options={chartOptions} />
-                </div>
-                <Button type="primary" style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }} onClick={exportAttendanceData}>Export Data</Button>
-              </Card>
-            </div>
 
             <Modal open={!!selectedUnit} title={selectedUnit?.name} onCancel={() => setSelectedUnit(null)} footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>} centered width={Math.min(window.innerWidth * 0.9, 500)}>
               {selectedUnit && (

@@ -919,23 +919,6 @@ export const getSessionFeedback = async (sessionId) => {
   }
 };
 
-export const submitFeedback = async (feedbackData) => {
-  const token = localStorage.getItem("token");
-  try {
-    const response = await fetch(`${API_URL}/feedback`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-      },
-      body: JSON.stringify(feedbackData),
-    });
-    return response.json();
-  } catch (error) {
-    throw new Error(error.message || "Failed to submit feedback");
-  }
-};
-
 export const getSessionQuiz = async (sessionId) => {
   const token = localStorage.getItem("token");
   try {
@@ -1331,4 +1314,52 @@ export const getAllCourseAttendanceRates = async (courseIds) => {
   });
   return response.data;
 };
+
+export const getStudentAttendanceByFilter = async (studentId, filter, startDate, endDate) => {
+  const token = localStorage.getItem('token');
+  let url = `https://attendance-system-w70n.onrender.com/api/attendance/student/${studentId}/filter?filter=${filter}`;
+  if (startDate && endDate) {
+    url += `&startDate=${startDate}&endDate=${endDate}`;
+  }
+  const response = await axios.get(url, { headers: { Authorization: `Bearer ${token}` } });
+  return response.data;
+};
+
+export const submitFeedback = async (feedbackData) => {
+  const token = localStorage.getItem('token');
+  const response = await axios.post(
+    'https://attendance-system-w70n.onrender.com/api/feedback/submit',
+    feedbackData,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const getFeedbackForLecturer = async () => {
+  const token = localStorage.getItem('token');
+  const response = await axios.get(
+    'https://attendance-system-w70n.onrender.com/api/feedback/lecturer',
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const getAllFeedback = async () => {
+  const token = localStorage.getItem('token');
+  const response = await axios.get(
+    'https://attendance-system-w70n.onrender.com/api/feedback/all',
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const getFeedbackSummary = async () => {
+  const token = localStorage.getItem('token');
+  const response = await axios.get(
+    'https://attendance-system-w70n.onrender.com/api/feedback/summary',
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
 export default api;

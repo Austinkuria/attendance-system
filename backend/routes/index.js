@@ -10,6 +10,7 @@ const unitRoutes = require("../routes/unitRoutes");
 const attendanceRoutes = require("./attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const quizRoutes = require('./quizRoutes');
+const feedbackRoutes = require('./feedback.routes');
 const router = express.Router();
 const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createSession, createLecturer, updateLecturer, deleteLecturer, importLecturers, downloadLecturers, sendResetLink, resetPassword, registerUser } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
@@ -43,6 +44,7 @@ router.use("/sessions", authLimiter, authenticate, sessionRoutes);
 
 router.use('/', userRoutes);
 
+app.use('/feedback', feedbackRoutes);
 // Students
 router.get('/students', getStudents);
 
