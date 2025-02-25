@@ -20,16 +20,14 @@ register({
         toast.info('A new version is available! Click here to update.', {
           onClick: async () => {
             waitingWorker.postMessage({ action: 'skipWaiting' });
-
             // Small delay for a smoother update experience
             await new Promise((resolve) => setTimeout(resolve, 1000));
-
             window.location.reload();
           },
           autoClose: false,
           closeOnClick: false,
         });
-      }).catch(error => console.error("Failed to load react-toastify:", error));
+      }).catch((error) => console.error("Failed to load react-toastify:", error));
     }
   },
   onSuccess: () => {
@@ -42,7 +40,6 @@ async function loadAnalytics() {
   try {
     const { injectSpeedInsights } = await import('@vercel/speed-insights');
     const { inject } = await import('@vercel/analytics');
-
     injectSpeedInsights();
     inject();
   } catch (error) {

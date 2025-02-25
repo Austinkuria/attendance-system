@@ -44,7 +44,7 @@ export default defineConfig({
       workbox: {
         clientsClaim: true,
         skipWaiting: true,
-        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'], // Cache all common assets
+        globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'],
         runtimeCaching: [
           {
             urlPattern: /\.(?:html|js|css)$/i,
@@ -69,7 +69,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /^https?.*/, // For API calls or external resources
+            urlPattern: /^https?.*/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
@@ -90,11 +90,7 @@ export default defineConfig({
     envCompatible(),
   ],
   define: {
-    'process.env': {} // Ensures environment variables work correctly
+    'process.env': {},
   },
-  build: {
-    rollupOptions: {
-      external: ['firebase/app', 'firebase/messaging'] // Prevents Rollup errors
-    }
-  }
+  // Removed external: ['firebase/app', 'firebase/messaging'] to ensure bundling
 });

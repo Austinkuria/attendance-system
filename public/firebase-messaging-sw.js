@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getMessaging, onBackgroundMessage } from "firebase/messaging/sw";
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
+importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js');
 
 // Firebase configuration
 const firebaseConfig = {
@@ -12,12 +12,12 @@ const firebaseConfig = {
   measurementId: "G-XFH8TQ70W5"
 };
 
-// Initialize Firebase App
-const app = initializeApp(firebaseConfig);
-const messaging = getMessaging(app);
+// Initialize Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const messaging = firebase.messaging();
 
 // Handle background messages
-onBackgroundMessage(messaging, (payload) => {
+messaging.onBackgroundMessage((payload) => {
   console.log("[Firebase Messaging] Background message received", payload);
 
   const notificationTitle = payload?.notification?.title || "New Notification";

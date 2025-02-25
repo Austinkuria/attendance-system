@@ -55,6 +55,7 @@ import {
 import moment from 'moment';
 import axios from 'axios';
 import { messaging, onMessage, registerFcmToken } from '../../firebase';
+import 'antd/dist/reset.css';
 import './StudentDashboard.css';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -87,14 +88,27 @@ const StudentDashboard = () => {
     if (!token) {
       navigate('/auth/login');
     } else {
+      // Register service worker
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker
+          .register('/firebase-messaging-sw.js')
+          .then((registration) => {
+            console.log('Service Worker registered:', registration);
+          })
+          .catch((error) => {
+            console.error('Service Worker registration failed:', error);
+          });
+      }
+
       registerFcmToken().then((fcmToken) => {
         if (fcmToken) {
           axios.post(
             'https://attendance-system-w70n.onrender.com/api/users/update-fcm-token',
             { token: fcmToken },
             { headers: { Authorization: `Bearer ${token}` } }
-          ).then(() => console.log('FCM Token registered:', fcmToken))
-           .catch(error => console.error('Error registering FCM token:', error));
+          )
+            .then(() => console.log('FCM Token registered:', fcmToken))
+            .catch((error) => console.error('Error registering FCM token:', error));
         }
       });
     }
@@ -114,7 +128,7 @@ const StudentDashboard = () => {
       console.log("Raw units response from getStudentUnits:", unitsRes);
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       console.log("Units data before sanitization:", unitsData);
-      const sanitizedUnits = unitsData.filter(unit => {
+      const sanitizedUnits = unitsData.filter((unit) => {
         const isValid = unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '';
         if (!isValid) console.warn("Invalid unit detected:", unit);
         return isValid;
@@ -145,7 +159,7 @@ const StudentDashboard = () => {
   useEffect(() => {
     const handleNotification = (payload) => {
       const { sessionId, action } = payload.data;
-      const sessionRecord = attendanceData.attendanceRecords.find(rec => rec.session._id === sessionId);
+      const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
       if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present") {
         notification.open({
           message: payload.notification.title,
@@ -248,31 +262,35 @@ const StudentDashboard = () => {
 
   const filteredEvents = () => {
     if (!selectedDate) {
-      return attendanceData.attendanceRecords.map(record => ({
+      return attendanceData.attendanceRecords.map((record) => ({
         title: `${record.session.unit?.name || 'Unknown'} - ${record.status || 'Unknown'}`,
         date: record.session.startTime ? moment(record.session.startTime) : null,
-        status: record.status || 'Unknown'
+        status: record.status || 'Unknown',
       }));
     }
 
     if (viewMode === 'weekly') {
-      const selectedWeek = attendanceData.weeklyEvents.find(week => 
+      const selectedWeek = attendanceData.weeklyEvents.find((week) =>
         week.week === selectedDate.format('MMM D - MMM D, YYYY')
       );
-      return selectedWeek ? selectedWeek.events.map(event => ({
-        title: `${event.unitName} - ${event.status}`,
-        date: moment(event.startTime),
-        status: event.status
-      })) : [];
+      return selectedWeek
+        ? selectedWeek.events.map((event) => ({
+            title: `${event.unitName} - ${event.status}`,
+            date: moment(event.startTime),
+            status: event.status,
+          }))
+        : [];
     } else {
-      const selectedDay = attendanceData.dailyEvents.find(day => 
+      const selectedDay = attendanceData.dailyEvents.find((day) =>
         day.date === selectedDate.format('YYYY-MM-DD')
       );
-      return selectedDay ? selectedDay.events.map(event => ({
-        title: `${event.unitName} - ${event.status}`,
-        date: moment(event.startTime),
-        status: event.status
-      })) : [];
+      return selectedDay
+        ? selectedDay.events.map((event) => ({
+            title: `${event.unitName} - ${event.status}`,
+            date: moment(event.startTime),
+            status: event.status,
+          }))
+        : [];
     }
   };
 
@@ -344,7 +362,7 @@ const StudentDashboard = () => {
   const openFeedbackModal = (unitId) => {
     const unitAttendance = attendanceData.attendanceRecords
       .filter((data) => data.session.unit._id.toString() === unitId.toString())
-      .sort((a, b) => new Date(b.attendedAt) - new Date(a.attendedAt)); // Sort by attendedAt descending
+      .sort((a, b) => new Date(b.attendedAt) - new Date(a.attendedAt));
     const latestSession = unitAttendance[0];
     if (!latestSession) {
       message.warning('No attendance records found for this unit.');
@@ -401,11 +419,11 @@ const StudentDashboard = () => {
       message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
       setFeedbackData({ rating: 3, text: '' });
-      setAttendanceData(prev => ({
+      setAttendanceData((prev) => ({
         ...prev,
-        attendanceRecords: prev.attendanceRecords.map(rec =>
+        attendanceRecords: prev.attendanceRecords.map((rec) =>
           rec.session._id === activeSessionId ? { ...rec, feedbackSubmitted: true } : rec
-        )
+        ),
       }));
     } catch (error) {
       console.error('Feedback submission failed:', error);
@@ -583,16 +601,16 @@ const StudentDashboard = () => {
               My Units
             </AntTitle>
             <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-              {units.map((unit) => (
+              {units.map((unit) =>
                 unit._id ? (
                   <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
                     <Card
                       title={unit.name || 'Untitled Unit'}
                       extra={<span>{unit.code || 'N/A'}</span>}
                       style={{ borderRadius: 10, width: '100%' }}
-                      styles={{ 
-                        body: { padding: '16px' }, 
-                        header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' }
+                      styles={{
+                        body: { padding: '16px' },
+                        header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' },
                       }}
                       onClick={() => setSelectedUnit(unit)}
                     >
@@ -663,7 +681,7 @@ const StudentDashboard = () => {
                     </Card>
                   </Col>
                 ) : null
-              ))}
+              )}
             </Row>
 
             {renderCalendarEvents()}
@@ -694,9 +712,15 @@ const StudentDashboard = () => {
             >
               {selectedUnit && (
                 <Space direction="vertical">
-                  <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
-                  <p><strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}</p>
-                  <p><strong>Description:</strong> {selectedUnit.description || 'N/A'}</p>
+                  <p>
+                    <strong>Code:</strong> {selectedUnit.code || 'N/A'}
+                  </p>
+                  <p>
+                    <strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}
+                  </p>
+                  <p>
+                    <strong>Description:</strong> {selectedUnit.description || 'N/A'}
+                  </p>
                 </Space>
               )}
             </Modal>
@@ -710,7 +734,7 @@ const StudentDashboard = () => {
               width={Math.min(window.innerWidth * 0.9, 400)}
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <p>How was today&apos;s class?</p>
+                <p>How was today's class?</p>
                 <Rate
                   allowHalf
                   value={feedbackData.rating}

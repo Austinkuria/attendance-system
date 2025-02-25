@@ -1,5 +1,5 @@
-import { initializeApp } from "firebase/app";
-import { getMessaging, getToken, onMessage } from "firebase/messaging";
+import { initializeApp } from 'firebase/app';
+import { getMessaging, getToken, onMessage } from 'firebase/messaging';
 
 // Firebase configuration
 const firebaseConfig = {
@@ -28,6 +28,7 @@ export const registerFcmToken = async () => {
       return token;
     } else {
       console.warn("Notification permission denied.");
+      return null;
     }
   } catch (error) {
     console.error("Error getting FCM token:", error);
