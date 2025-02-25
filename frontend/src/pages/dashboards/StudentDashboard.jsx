@@ -41,6 +41,9 @@ import {
   notification,
   Slider,
   Switch,
+  DatePicker,
+  Select,
+  List,
 } from 'antd';
 import {
   UserOutlined,
@@ -51,6 +54,7 @@ import {
   SettingOutlined,
   LogoutOutlined,
   QrcodeOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
@@ -62,13 +66,14 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
+const { Option } = Select;
 const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
 const StudentDashboard = () => {
   const { token: { colorBgContainer } } = theme.useToken();
   const [collapsed, setCollapsed] = useState(false);
   const [units, setUnits] = useState([]);
-  const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [] });
+  const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -86,6 +91,8 @@ const StudentDashboard = () => {
   const [quiz, setQuiz] = useState(null);
   const [quizAnswers, setQuizAnswers] = useState({});
   const [hasShownLowAttendanceAlert, setHasShownLowAttendanceAlert] = useState(false);
+  const [viewMode, setViewMode] = useState('weekly'); // Added for attendance events
+  const [selectedDate, setSelectedDate] = useState(null); // Added for attendance events
   const attendanceOverviewRef = useRef(null);
 
   const navigate = useNavigate();
@@ -320,6 +327,86 @@ const StudentDashboard = () => {
     },
   };
 
+  const filteredEvents = () => {
+    if (!selectedDate) {
+      return attendanceData.attendanceRecords.map((record) => ({
+        title: `${record.session.unit?.name || 'Unknown'} - ${record.status || 'Unknown'}`,
+        date: record.session.startTime ? moment(record.session.startTime) : null,
+        status: record.status || 'Unknown',
+      }));
+    }
+
+    if (viewMode === 'weekly') {
+      const selectedWeek = attendanceData.weeklyEvents.find((week) =>
+        week.week === selectedDate.format('MMM D - MMM D, YYYY')
+      );
+      return selectedWeek
+        ? selectedWeek.events.map((event) => ({
+            title: `${event.unitName} - ${event.status}`,
+            date: moment(event.startTime),
+            status: event.status,
+          }))
+        : [];
+    } else {
+      const selectedDay = attendanceData.dailyEvents.find((day) =>
+        day.date === selectedDate.format('YYYY-MM-DD')
+      );
+      return selectedDay
+        ? selectedDay.events.map((event) => ({
+            title: `${event.unitName} - ${event.status}`,
+            date: moment(event.startTime),
+            status: event.status,
+          }))
+        : [];
+    }
+  };
+
+  const renderCalendarEvents = () => (
+    <Card style={{ marginTop: '24px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}>
+      <Space direction="vertical" size={12} style={{ width: '100%' }}>
+        <AntTitle level={3} style={{ textAlign: 'center' }}>
+          <CalendarOutlined /> Attendance Events
+        </AntTitle>
+        <Space>
+          <Select
+            value={viewMode}
+            onChange={(value) => {
+              setViewMode(value);
+              setSelectedDate(null);
+            }}
+            style={{ width: 120 }}
+          >
+            <Option value="weekly">Weekly</Option>
+            <Option value="daily">Daily</Option>
+          </Select>
+          <DatePicker
+            picker={viewMode === 'weekly' ? 'week' : 'date'}
+            onChange={(date) => setSelectedDate(date)}
+            value={selectedDate}
+            format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
+            placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
+            style={{ width: 200 }}
+          />
+        </Space>
+        {filteredEvents().length > 0 ? (
+          <List
+            dataSource={filteredEvents()}
+            renderItem={(item) => (
+              <List.Item>
+                <List.Item.Meta
+                  title={item.title}
+                  description={item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}
+                />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <p style={{ textAlign: 'center', color: '#888' }}>No events found for the selected period.</p>
+        )}
+      </Space>
+    </Card>
+  );
+
   const profileItems = [
     { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => navigate('/student/profile') },
     { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => navigate('/student/settings') },
@@ -390,7 +477,6 @@ const StudentDashboard = () => {
       setActiveSessionId(latestSession.session._id);
       setFeedbackModalVisible(true);
 
-      // Refresh attendance data to sync with backend
       await fetchAllData();
     } catch (error) {
       console.error('Error fetching session status:', error);
@@ -608,6 +694,8 @@ const StudentDashboard = () => {
                 </Col>
               ) : null)}
             </Row>
+
+            {renderCalendarEvents()} {/* Added attendance events section */}
 
             <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Performance Trends</AntTitle>
             <Card style={{ marginTop: 16, borderRadius: 10 }}>
