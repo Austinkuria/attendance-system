@@ -41,7 +41,7 @@ import {
   getDepartments,
   downloadLecturers,
 } from "../../services/api";
-import "../styles.css";
+import "../../styles.css";
 import api from "../../services/api";
 const { Header, Content } = Layout;
 const { Option } = Select;

@@ -32,7 +32,7 @@ import {
 } from "@ant-design/icons";
 import { getStudents, deleteStudent, downloadStudents } from "../../services/api";
 import api from "../../services/api";
-import "../styles.css";
+import "../../styles.css";
 
 const { Content } = Layout;
 const { Option } = Select;
