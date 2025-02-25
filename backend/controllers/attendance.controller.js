@@ -39,28 +39,20 @@ exports.markAttendance = async (req, res) => {
       return res.status(400).json({ message: "Invalid QR code" });
     }
 
-    // Check if QR code has been used
-    const existingAttendanceForQr = await Attendance.findOne({ session: sessionId, qrToken });
-    if (existingAttendanceForQr) {
-      return res.status(400).json({ message: "QR code already used" });
-    }
-
     // Check if student has already marked attendance for this session
     const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
     if (existingStudentRecord) {
       return res.status(400).json({ message: "Attendance already marked by this student" });
     }
 
-    // Check if this device has already marked attendance for this unit
-    const unitId = session.unit._id;
+    // Check if this device has already marked attendance for this session
     const existingDeviceRecord = await Attendance.findOne({
-      student: studentId,
-      "session.unit": unitId,
+      session: sessionId,
       deviceId: deviceId,
       status: "Present"
     });
     if (existingDeviceRecord) {
-      return res.status(403).json({ message: "This device has already marked attendance for this unit" });
+      return res.status(403).json({ message: "This device has already marked attendance for this session" });
     }
 
     // Verify student exists
@@ -256,55 +248,6 @@ exports.updateAttendanceStatus = async (req, res) => {
   }
 };
 
-
-// exports.getAttendanceTrends = async (req, res) => {
-//   try {
-//     const { unitId } = req.params;
-//     if (!mongoose.Types.ObjectId.isValid(unitId)) {
-//       return res.status(400).json({ message: "Invalid unit ID format" });
-//     }
-
-//     const sessions = await Session.find({ unit: unitId }) // Keep ended: false for active sessions
-//       .sort({ startTime: 1 })
-//       .select('startTime _id');
-
-//     if (!sessions.length) {
-//       return res.status(200).json({ labels: [], present: [], absent: [], rates: [] });
-//     }
-
-//     const trends = await Promise.all(sessions.map(async (session) => {
-//       const stats = await Attendance.aggregate([
-//         { $match: { session: session._id } },
-//         { $group: { _id: "$status", count: { $sum: 1 } } }
-//       ]);
-
-//       const presentCount = stats.find(stat => stat._id === "Present")?.count || 0;
-//       const absentCount = stats.find(stat => stat._id === "Absent")?.count || 0;
-//       const total = presentCount + absentCount;
-//       const rate = total > 0 ? (presentCount / total) * 100 : 0;
-
-//       return {
-//         date: session.startTime.toISOString().split('T')[0],
-//         present: presentCount,
-//         absent: absentCount,
-//         rate: Number(rate.toFixed(1))
-//       };
-//     }));
-
-//     const response = {
-//       labels: trends.map(t => t.date),
-//       present: trends.map(t => t.present),
-//       absent: trends.map(t => t.absent),
-//       rates: trends.map(t => t.rate)
-//     };
-
-//     res.status(200).json(response);
-//   } catch (error) {
-//     console.error("Error fetching attendance trends:", error);
-//     res.status(500).json({ message: "Error fetching attendance trends", error: error.message });
-//   }
-// };
-
 exports.getAttendanceTrends = async (req, res) => {
   try {
     const { unitId } = req.params;
@@ -483,8 +426,6 @@ exports.getCourseAttendanceRate = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
   }
 };
-
-// exports.getCourseAttendanceRate = async (req, res) => {
 //   try {
 //     const { courseId } = req.params;
 //     if (!mongoose.Types.ObjectId.isValid(courseId)) {
