@@ -3,7 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Chart } from "react-chartjs-2";
 import { Card, Select, Spin, Typography, Grid, Button, Space, Statistic, Row, Col, Badge, DatePicker } from "antd";
 import { ReloadOutlined, LineChartOutlined, TeamOutlined, PercentageOutlined } from '@ant-design/icons';
-import { getAttendanceTrends, getLecturerUnits } from "../services/api";
+import { getAttendanceTrends, getLecturerUnits } from "../../services/api";
 import moment from 'moment';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
@@ -102,8 +102,8 @@ const Analytics = () => {
   const { totalPresent, totalAbsent, avgAttendanceRate } = useMemo(() => {
     const presentSum = trends.present.reduce((sum, val) => sum + val, 0);
     const absentSum = trends.absent.reduce((sum, val) => sum + val, 0);
-    const rateAvg = trends.rates.length 
-      ? (trends.rates.reduce((sum, val) => sum + val, 0) / trends.rates.length).toFixed(1) 
+    const rateAvg = trends.rates.length
+      ? (trends.rates.reduce((sum, val) => sum + val, 0) / trends.rates.length).toFixed(1)
       : 0;
     return { totalPresent: presentSum, totalAbsent: absentSum, avgAttendanceRate: rateAvg };
   }, [trends]);
@@ -168,28 +168,28 @@ const Analytics = () => {
       },
     },
     scales: {
-      'y-count': { 
-        type: 'linear', 
-        position: 'left', 
-        title: { display: true, text: 'Students', font: { size: 14, weight: 'bold' }, color: '#666' }, 
-        beginAtZero: true, 
-        suggestedMax: Math.max(...(trends.present || []).concat(trends.absent || [])) * 1.2 || 10, 
-        grid: { color: 'rgba(0, 0, 0, 0.05)' }, 
-        ticks: { color: '#666' } 
+      'y-count': {
+        type: 'linear',
+        position: 'left',
+        title: { display: true, text: 'Students', font: { size: 14, weight: 'bold' }, color: '#666' },
+        beginAtZero: true,
+        suggestedMax: Math.max(...(trends.present || []).concat(trends.absent || [])) * 1.2 || 10,
+        grid: { color: 'rgba(0, 0, 0, 0.05)' },
+        ticks: { color: '#666' }
       },
-      'y-rate': { 
-        type: 'linear', 
-        position: 'right', 
-        min: 0, 
-        max: 100, 
-        title: { display: true, text: 'Rate (%)', font: { size: 14, weight: 'bold' }, color: '#666' }, 
-        grid: { drawOnChartArea: false }, 
-        ticks: { callback: value => `${value}%`, color: '#666' } 
+      'y-rate': {
+        type: 'linear',
+        position: 'right',
+        min: 0,
+        max: 100,
+        title: { display: true, text: 'Rate (%)', font: { size: 14, weight: 'bold' }, color: '#666' },
+        grid: { drawOnChartArea: false },
+        ticks: { callback: value => `${value}%`, color: '#666' }
       },
-      x: { 
-        title: { display: true, text: 'Date', font: { size: 14, weight: 'bold' }, color: '#666' }, 
-        grid: { display: false }, 
-        ticks: { maxRotation: screens.md ? 45 : 90, minRotation: 45, color: '#666' } 
+      x: {
+        title: { display: true, text: 'Date', font: { size: 14, weight: 'bold' }, color: '#666' },
+        grid: { display: false },
+        ticks: { maxRotation: screens.md ? 45 : 90, minRotation: 45, color: '#666' }
       },
     },
     maintainAspectRatio: false,
@@ -220,11 +220,11 @@ const Analytics = () => {
               <Option key={unit._id} value={unit._id}><Text strong>{unit.name}</Text> <Badge status="processing" text={unit.code} /></Option>
             ))}
           </Select>
-          <Button 
-            type="primary" 
-            icon={<ReloadOutlined />} 
-            onClick={fetchTrends} 
-            loading={loading.trends} 
+          <Button
+            type="primary"
+            icon={<ReloadOutlined />}
+            onClick={fetchTrends}
+            loading={loading.trends}
             disabled={loading.trends || !selectedUnit || ((filterType === 'Day' || filterType === 'Week') && !selectedDate)}
           >
             {screens.md ? 'Refresh Trends' : 'Refresh'}

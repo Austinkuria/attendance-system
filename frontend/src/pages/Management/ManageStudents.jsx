@@ -30,8 +30,8 @@ import {
   BookOutlined,
   FilterOutlined,
 } from "@ant-design/icons";
-import { getStudents, deleteStudent, downloadStudents } from "../services/api";
-import api from "../services/api";
+import { getStudents, deleteStudent, downloadStudents } from "../../services/api";
+import api from "../../services/api";
 import "../styles.css";
 
 const { Content } = Layout;
@@ -226,16 +226,16 @@ const ManageStudents = () => {
       const token = localStorage.getItem("token");
       if (!token) return navigate("/auth/login");
 
-          const formattedStudent = {
-            firstName: selectedStudent.firstName,
-            lastName: selectedStudent.lastName,
-            email: selectedStudent.email,
-            regNo: selectedStudent.regNo,
-            course: selectedStudent.courseId || selectedStudent.course, // Fallback to course if courseId not available
-            department: selectedStudent.departmentId || selectedStudent.department, // Fallback to department if departmentId not available
-            year: Number(selectedStudent.year) || selectedStudent.year,
-            semester: Number(selectedStudent.semester) || selectedStudent.semester,
-          };
+      const formattedStudent = {
+        firstName: selectedStudent.firstName,
+        lastName: selectedStudent.lastName,
+        email: selectedStudent.email,
+        regNo: selectedStudent.regNo,
+        course: selectedStudent.courseId || selectedStudent.course, // Fallback to course if courseId not available
+        department: selectedStudent.departmentId || selectedStudent.department, // Fallback to department if departmentId not available
+        year: Number(selectedStudent.year) || selectedStudent.year,
+        semester: Number(selectedStudent.semester) || selectedStudent.semester,
+      };
 
 
       console.log("Payload sent to API:", formattedStudent); // Debugging
@@ -373,37 +373,39 @@ const ManageStudents = () => {
     { title: (<><CalendarOutlined style={{ marginRight: 4 }} />Year</>), dataIndex: "year", key: "year", render: (year) => <span className="ant-tag ant-tag-blue">{year}</span> },
     { title: (<><BookOutlined style={{ marginRight: 4 }} />Course</>), dataIndex: "courseName", key: "course", render: (course) => (<div style={{ display: "flex", alignItems: "center" }}><BookOutlined style={{ color: "#999", marginRight: 4 }} />{course}</div>) },
     { title: (<><FilterOutlined style={{ marginRight: 4 }} />Semester</>), dataIndex: "semester", key: "semester", render: (semester) => <span className="ant-tag">{semester}</span> },
-    { title: "Actions", key: "actions", render: (_, record) => (
-      <div style={{ display: "flex", gap: 8 }}>
-        <Button type="primary" icon={<EditOutlined />} size="small" onClick={() => {
-          setSelectedStudent({
-            ...record,
-            courseId: record.courseId, // Ensure courseId is preserved
-            departmentId: record.departmentId, // Ensure departmentId is preserved
-          });
-          editForm.setFieldsValue({
-            firstName: record.firstName,
-            lastName: record.lastName,
-            email: record.email,
-            regNo: record.regNo,
-            course: record.courseId || record.course, // Pre-fill with ID, fallback to course
-            department: record.departmentId || record.department, // Pre-fill with ID, fallback to department
+    {
+      title: "Actions", key: "actions", render: (_, record) => (
+        <div style={{ display: "flex", gap: 8 }}>
+          <Button type="primary" icon={<EditOutlined />} size="small" onClick={() => {
+            setSelectedStudent({
+              ...record,
+              courseId: record.courseId, // Ensure courseId is preserved
+              departmentId: record.departmentId, // Ensure departmentId is preserved
+            });
+            editForm.setFieldsValue({
+              firstName: record.firstName,
+              lastName: record.lastName,
+              email: record.email,
+              regNo: record.regNo,
+              course: record.courseId || record.course, // Pre-fill with ID, fallback to course
+              department: record.departmentId || record.department, // Pre-fill with ID, fallback to department
 
-            year: record.year,
-            semester: record.semester
-          });
-          setIsEditModalVisible(true);
-        }}>
-          Edit
-        </Button>
-        <Button type="danger" icon={<DeleteOutlined />} size="small" onClick={() => {
-          setStudentToDelete(record._id);
-          setIsDeleteModalVisible(true);
-        }}>
-          Delete
-        </Button>
-      </div>
-    )}
+              year: record.year,
+              semester: record.semester
+            });
+            setIsEditModalVisible(true);
+          }}>
+            Edit
+          </Button>
+          <Button type="danger" icon={<DeleteOutlined />} size="small" onClick={() => {
+            setStudentToDelete(record._id);
+            setIsDeleteModalVisible(true);
+          }}>
+            Delete
+          </Button>
+        </div>
+      )
+    }
   ];
 
   if (loading) {

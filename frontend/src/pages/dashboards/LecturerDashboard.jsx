@@ -16,7 +16,7 @@ import {
 } from '@ant-design/icons';
 import Sidebar from "../../components/Sidebar";
 import AttendanceManagement from "../../components/AttendanceManagement";
-import Analytics from "../Analytics";
+import Analytics from "./Analytics";
 import BackToTop from "../../components/BackToTop";
 
 const { Header, Content } = Layout;
@@ -25,7 +25,7 @@ const LecturerDashboard = () => {
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [isMobile, setIsMobile] = useState(false);
 
   // Authentication check

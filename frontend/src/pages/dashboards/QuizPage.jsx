@@ -43,9 +43,9 @@ import {
   EyeOutlined,
   FilterOutlined,
 } from '@ant-design/icons';
-import { getLecturerUnits, createQuiz, getPastQuizzes, deleteQuiz } from '../services/api';
+import { getLecturerUnits, createQuiz, getPastQuizzes, deleteQuiz } from '../../services/api';
 import '../styles.css';
-import FeedbackView from '../components/FeedbackView'; // Add this line to import FeedbackView component
+import FeedbackView from '../../components/FeedbackView'; // Add this line to import FeedbackView component
 
 const { Header, Sider, Content } = Layout;
 const { Option } = Select;
@@ -354,7 +354,7 @@ const QuizPage = () => {
       try {
         setLoading((prev) => ({ ...prev, quizzes: true }));
         const quizData = await getPastQuizzes(lecturerId);
-  
+
         // Map unit ObjectId to unit name
         const validatedQuizData = quizData.map(quiz => {
           const unit = units.find(unit => unit._id === quiz.unit); // Find the unit by its ID
@@ -363,7 +363,7 @@ const QuizPage = () => {
             unit: unit ? unit.name : 'No Unit', // Use the unit name if found, otherwise default to 'No Unit'
           };
         });
-  
+
         setQuizzes(validatedQuizData || []);
       } catch {
         message.error('Failed to load quizzes');
@@ -371,11 +371,11 @@ const QuizPage = () => {
         setLoading((prev) => ({ ...prev, quizzes: false }));
       }
     };
-  
+
     if (lecturerId && units.length > 0) fetchQuizzes(); // Ensure units are fetched before mapping
   }, [lecturerId, units]);
-  
- 
+
+
   // Enhanced filtering, search and sort
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQuizzes, setSelectedQuizzes] = useState([]);
@@ -564,10 +564,10 @@ const QuizPage = () => {
               <div>
                 <h2>Dashboard</h2>
                 <p>Dashboard content goes here...</p>
-                  {/* Feedback View Section */}
-            <section style={{ marginBottom: 48 }}>
-              <FeedbackView />
-            </section>
+                {/* Feedback View Section */}
+                <section style={{ marginBottom: 48 }}>
+                  <FeedbackView />
+                </section>
               </div>
             )}
           </Content>

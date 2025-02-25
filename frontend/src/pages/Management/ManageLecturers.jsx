@@ -40,9 +40,9 @@ import {
   getUnits,
   getDepartments,
   downloadLecturers,
-} from "../services/api";
+} from "../../services/api";
 import "../styles.css";
-import api from "../services/api";
+import api from "../../services/api";
 const { Header, Content } = Layout;
 const { Option } = Select;
 
@@ -339,78 +339,78 @@ const ManageLecturers = () => {
   };
 
   // Handle CSV file upload (only CSV allowed)
-const handleFileUpload = (e) => {
-  const selectedFile = e.target.files[0];
-  const validCSVTypes = ["text/csv", "application/vnd.ms-excel"];
+  const handleFileUpload = (e) => {
+    const selectedFile = e.target.files[0];
+    const validCSVTypes = ["text/csv", "application/vnd.ms-excel"];
 
-  if (selectedFile && validCSVTypes.includes(selectedFile.type)) {
-    setFile(selectedFile);
-    setGlobalError(null); // Clear any previous errors
-  } else {
-    setGlobalError("Invalid file type. Please upload a valid CSV file.");
-    setFile(null);
-  }
-};
+    if (selectedFile && validCSVTypes.includes(selectedFile.type)) {
+      setFile(selectedFile);
+      setGlobalError(null); // Clear any previous errors
+    } else {
+      setGlobalError("Invalid file type. Please upload a valid CSV file.");
+      setFile(null);
+    }
+  };
 
-// Handle CSV import for lecturers
-const handleImport = async () => {
-  if (!file) {
-    setGlobalError("Please select a CSV file before importing.");
-    return;
-  }
-
-  try {
-    setLoading(true);
-    const token = localStorage.getItem("token");
-    if (!token) {
-      navigate("/auth/login");
+  // Handle CSV import for lecturers
+  const handleImport = async () => {
+    if (!file) {
+      setGlobalError("Please select a CSV file before importing.");
       return;
     }
 
-    const formData = new FormData();
-    formData.append("csvFile", file);
+    try {
+      setLoading(true);
+      const token = localStorage.getItem("token");
+      if (!token) {
+        navigate("/auth/login");
+        return;
+      }
 
-    const response = await api.post("/lecturers/upload", formData, {
-      headers: {
-        "Content-Type": "multipart/form-data",
-        Authorization: `Bearer ${token}`,
-      },
-    });
+      const formData = new FormData();
+      formData.append("csvFile", file);
 
-    if (response.data.successCount > 0) {
-      const updated = await getLecturers();
-      const formatted = updated.map((l) => ({
-        firstName: l.firstName || "N/A",
-        lastName: l.lastName || "N/A",
-        email: l.email || "N/A",
-        department: (l.department && (l.department.name || l.department)) || "N/A",
-        assignedUnits: (l.assignedUnits && l.assignedUnits.length > 0)
-          ? l.assignedUnits.map(unit => unit.name).join(", ")
-          : "N/A",
-      }));
+      const response = await api.post("/lecturers/upload", formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+          Authorization: `Bearer ${token}`,
+        },
+      });
 
-      setLecturers(formatted);
-      message.success(`Successfully imported ${response.data.successCount} lecturers`);
+      if (response.data.successCount > 0) {
+        const updated = await getLecturers();
+        const formatted = updated.map((l) => ({
+          firstName: l.firstName || "N/A",
+          lastName: l.lastName || "N/A",
+          email: l.email || "N/A",
+          department: (l.department && (l.department.name || l.department)) || "N/A",
+          assignedUnits: (l.assignedUnits && l.assignedUnits.length > 0)
+            ? l.assignedUnits.map(unit => unit.name).join(", ")
+            : "N/A",
+        }));
+
+        setLecturers(formatted);
+        message.success(`Successfully imported ${response.data.successCount} lecturers`);
+      }
+
+      setFile(null);
+
+      // Show detailed errors if any records failed
+      if (response.data.errorCount > 0) {
+        const errorMessages = response.data.errors.map((err, index) =>
+          `Row ${index + 1}: ${err.error}`
+        ).join("\n");
+
+        setGlobalError(`Some records failed to import:\n${errorMessages}`);
+      }
+    } catch (err) {
+      console.error("CSV import failed:", err);
+      setGlobalError("CSV import failed. Please check file format and try again.");
+      message.error("CSV import failed");
+    } finally {
+      setLoading(false);
     }
-
-    setFile(null);
-
-    // Show detailed errors if any records failed
-    if (response.data.errorCount > 0) {
-      const errorMessages = response.data.errors.map((err, index) => 
-        `Row ${index + 1}: ${err.error}`
-      ).join("\n");
-
-      setGlobalError(`Some records failed to import:\n${errorMessages}`);
-    }
-  } catch (err) {
-    console.error("CSV import failed:", err);
-    setGlobalError("CSV import failed. Please check file format and try again.");
-    message.error("CSV import failed");
-  } finally {
-    setLoading(false);
-  }
-};
+  };
 
   // ---------------------------
   // Table Columns

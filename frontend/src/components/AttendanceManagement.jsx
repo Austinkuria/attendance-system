@@ -428,13 +428,16 @@ const AttendanceManagement = () => {
   };
 
   const handleEndSession = async () => {
-    if (!currentSession) return;
+    if (!currentSession) {
+      message.warning('No active session to end');
+      return;
+    }
     try {
       setLoading(prevState => ({ ...prevState, session: true }));
       const token = localStorage.getItem('token');
       Modal.confirm({
-        title: 'Are you sure you want to end this session?',
-        content: 'This action cannot be undone.',
+        title: 'End Current Session?',
+        content: 'This will stop the session and mark absent students. The session data will be preserved.',
         okText: 'End Session',
         okType: 'danger',
         cancelText: 'Cancel',
@@ -442,9 +445,10 @@ const AttendanceManagement = () => {
           try {
             if (!currentSession?._id) throw new Error('Invalid session ID');
             console.log('Ending session with ID:', currentSession._id);
-            const response = await axios.delete(
+            const response = await axios.post(
               'https://attendance-system-w70n.onrender.com/api/sessions/end',
-              { data: { sessionId: currentSession._id }, headers: { 'Authorization': `Bearer ${token}` } }
+              { sessionId: currentSession._id },
+              { headers: { 'Authorization': `Bearer ${token}` } }
             );
             console.log('Session end response:', response.data);
             message.success('Session ended successfully');
@@ -456,8 +460,10 @@ const AttendanceManagement = () => {
             console.error('Error ending session:', { message: error.message, response: error.response?.data, sessionId: currentSession?._id });
             if (error.response?.status === 429) {
               message.warning('Too many requests. Please try ending the session again later.');
+            } else if (error.response?.status === 400) {
+              message.error('Invalid request. Session may already be ended.');
             } else {
-              message.error(error.response?.data?.message || 'Failed to end session. Please check console for details.');
+              message.error(error.response?.data?.message || 'Failed to end session');
             }
           } finally {
             setLoading(prevState => ({ ...prevState, session: false }));
