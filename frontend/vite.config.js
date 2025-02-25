@@ -45,6 +45,7 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'],
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // Set to 3 MiB (3,145,728 bytes)
         runtimeCaching: [
           {
             urlPattern: /\.(?:html|js|css)$/i,
@@ -92,5 +93,4 @@ export default defineConfig({
   define: {
     'process.env': {},
   },
-  // Removed external: ['firebase/app', 'firebase/messaging'] to ensure bundling
 });
