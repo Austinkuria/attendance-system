@@ -110,7 +110,7 @@ exports.markAbsentees = async (sessionId) => {
         session: sessionId,
         student: studentId,
         status: "Absent",
-        deviceId: "system-generated", // Placeholder for "Absent" records
+        deviceId: "system-generated",
         timestamp: new Date(),
       }))
     );
