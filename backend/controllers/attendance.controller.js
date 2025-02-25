@@ -55,9 +55,9 @@ exports.markAttendance = async (req, res) => {
     const unitId = session.unit._id;
     const existingDeviceRecord = await Attendance.findOne({
       student: studentId,
-      "session.unit": unitId, // Match any session for this unit
+      "session.unit": unitId,
       deviceId: deviceId,
-      status: "Present" // Only count successful marks
+      status: "Present"
     });
     if (existingDeviceRecord) {
       return res.status(403).json({ message: "This device has already marked attendance for this unit" });
@@ -77,9 +77,15 @@ exports.markAttendance = async (req, res) => {
       deviceId,
       qrToken,
       markedBy: req.user?._id,
+      attendedAt: new Date()
     });
-
     await attendance.save();
+
+    // Update session attendees
+    if (!session.attendees.some(a => a.student.toString() === studentId)) {
+      session.attendees.push({ student: studentId });
+      await session.save();
+    }
 
     res.status(201).json({ message: "Attendance marked as Present" });
   } catch (error) {
@@ -87,44 +93,6 @@ exports.markAttendance = async (req, res) => {
     res.status(500).json({ message: "Error marking attendance", error: error.message });
   }
 };
-
-// exports.markAttendance = async (req, res) => {
-//   try {
-//     const { sessionId, studentId } = req.body;
-
-//     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
-//       return res.status(400).json({ message: "Invalid ID format" });
-//     }
-
-//     const session = await Session.findById(sessionId);
-//     if (!session) {
-//       return res.status(404).json({ message: "Session not found" });
-//     }
-
-//     const now = new Date();
-//     if (now < session.startTime || now > session.endTime) {
-//       return res.status(400).json({ message: "Session is not active" });
-//     }
-
-//     const existingRecord = await Attendance.findOne({ session: sessionId, student: studentId });
-//     if (existingRecord) {
-//       return res.status(400).json({ message: "Attendance already marked" });
-//     }
-
-//     const attendance = new Attendance({
-//       session: sessionId,
-//       student: studentId,
-//       status: "Present",
-//       markedBy: req.user?._id // Add lecturer ID if available from auth middleware
-//     });
-
-//     await attendance.save();
-
-//     res.status(201).json({ message: "Attendance marked as Present" });
-//   } catch (error) {
-//     res.status(500).json({ message: "Error marking attendance", error: error.message });
-//   }
-// };
 
 const markAbsentees = async (sessionId) => {
   try {
@@ -171,12 +139,13 @@ exports.getStudentAttendance = async (req, res) => {
     }
 
     const attendanceRecords = await Attendance.find({ student: studentId })
-      .populate('session', 'unit startTime endTime')
+      .select('session status attendedAt') // Explicitly include attendedAt
       .populate({
         path: 'session',
+        select: 'unit startTime endTime',
         populate: { path: 'unit', select: 'name' }
       })
-      .sort({ 'session.startTime': -1 });
+      .sort({ attendedAt: -1 }); // Sort by attendedAt descending
 
     if (!attendanceRecords.length) {
       return res.status(200).json({
@@ -194,7 +163,7 @@ exports.getStudentAttendance = async (req, res) => {
     // Daily Events
     const dailyEvents = {};
     attendanceRecords.forEach(record => {
-      const sessionDate = new Date(record.session.startTime);
+      const sessionDate = new Date(record.attendedAt || record.session.startTime); // Use attendedAt if available
       const dateStr = sessionDate.toISOString().split('T')[0];
       if (!dailyEvents[dateStr]) {
         dailyEvents[dateStr] = [];
@@ -214,7 +183,7 @@ exports.getStudentAttendance = async (req, res) => {
     // Weekly Events
     const weeklyEvents = {};
     attendanceRecords.forEach(record => {
-      const sessionDate = new Date(record.session.startTime);
+      const sessionDate = new Date(record.attendedAt || record.session.startTime);
       const daysSinceStart = Math.floor((sessionDate - semesterStartDate) / oneDay);
       const weekNumber = Math.floor(daysSinceStart / 7) + 1;
       const weekStart = new Date(semesterStartDate.getTime() + (weekNumber - 1) * oneWeek);
@@ -246,24 +215,6 @@ exports.getStudentAttendance = async (req, res) => {
   }
 };
 
-// exports.getSessionAttendance = async (req, res) => {
-//   try {
-//     const { sessionId } = req.params;
-//     if (!mongoose.Types.ObjectId.isValid(sessionId)) {
-//       return res.status(400).json({ message: "Invalid session ID format" });
-//     }
-//     const attendanceRecords = await Attendance.find({ session: sessionId })
-//       .populate({
-//         path: 'student',
-//         select: 'regNo firstName lastName course year semester',
-//         populate: { path: 'course', select: 'name' }
-//       })
-//       .populate('session', 'unit');
-//     res.status(200).json(attendanceRecords);
-//   } catch (error) {
-//     res.status(500).json({ message: "Error fetching session attendance", error: error.message });
-//   }
-// };
 exports.getSessionAttendance = async (req, res) => {
   try {
     const { sessionId } = req.params;

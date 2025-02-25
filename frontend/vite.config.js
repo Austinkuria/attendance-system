@@ -47,7 +47,7 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'], // Cache all common assets
         runtimeCaching: [
           {
-            urlPattern: /\.(?:html|js|css)$/,
+            urlPattern: /\.(?:html|js|css)$/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'app-cache',
@@ -58,7 +58,7 @@ export default defineConfig({
             },
           },
           {
-            urlPattern: /\.(?:png|jpg|jpeg|svg)$/,
+            urlPattern: /\.(?:png|jpg|jpeg|svg)$/i,
             handler: 'CacheFirst',
             options: {
               cacheName: 'image-cache',
@@ -89,4 +89,12 @@ export default defineConfig({
     }),
     envCompatible(),
   ],
+  define: {
+    'process.env': {} // Ensures environment variables work correctly
+  },
+  build: {
+    rollupOptions: {
+      external: ['firebase/app', 'firebase/messaging'] // Prevents Rollup errors
+    }
+  }
 });

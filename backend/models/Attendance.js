@@ -37,6 +37,7 @@ const AttendanceSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
+  attendedAt: { type: Date },
 }, { timestamps: true });
 
 AttendanceSchema.index({ session: 1, status: 1 });
