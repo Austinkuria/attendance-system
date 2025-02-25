@@ -42,7 +42,7 @@ exports.markAttendance = async (req, res) => {
     // Check if student has already marked attendance for this session
     const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
     if (existingStudentRecord) {
-      return res.status(400).json({ message: "Attendance already marked by this student" });
+      return res.status(400).json({ message: "You have already marked attendance for this session" });
     }
 
     // Check if this device has already marked attendance for this session
@@ -52,7 +52,7 @@ exports.markAttendance = async (req, res) => {
       status: "Present"
     });
     if (existingDeviceRecord) {
-      return res.status(403).json({ message: "This device has already marked attendance for this session" });
+      return res.status(403).json({ message: "This device has already been used to mark attendance for this session. Proxy attendance is not allowed." });
     }
 
     // Verify student exists
