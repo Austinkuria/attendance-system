@@ -710,7 +710,7 @@ const StudentDashboard = () => {
               width={Math.min(window.innerWidth * 0.9, 400)}
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                <p>How was today's class?</p>
+                <p>How was today&apos;s class?</p>
                 <Rate
                   allowHalf
                   value={feedbackData.rating}
