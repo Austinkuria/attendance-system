@@ -9,12 +9,10 @@ exports.markAttendance = async (req, res) => {
   try {
     const { sessionId, studentId, deviceId, qrToken } = req.body;
 
-    // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    // Verify token matches studentId
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
       return res.status(401).json({ message: "No token provided" });
@@ -24,7 +22,6 @@ exports.markAttendance = async (req, res) => {
       return res.status(403).json({ message: "Unauthorized: Token does not match student ID" });
     }
 
-    // Verify session
     const session = await Session.findById(sessionId).populate('unit');
     if (!session) {
       return res.status(404).json({ message: "Session not found" });
@@ -34,18 +31,15 @@ exports.markAttendance = async (req, res) => {
       return res.status(400).json({ message: "Session is not active" });
     }
 
-    // Verify QR token
     if (!session.qrToken || session.qrToken !== qrToken) {
       return res.status(400).json({ message: "Invalid QR code" });
     }
 
-    // Check if student has already marked attendance for this session
     const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
     if (existingStudentRecord) {
       return res.status(400).json({ message: "You have already marked attendance for this session" });
     }
 
-    // Check if this device has already marked attendance for this session
     const existingDeviceRecord = await Attendance.findOne({
       session: sessionId,
       deviceId: deviceId,
@@ -57,13 +51,11 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // Verify student exists
     const student = await User.findById(studentId);
     if (!student) {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Mark attendance
     const attendance = new Attendance({
       session: sessionId,
       student: studentId,
@@ -75,7 +67,6 @@ exports.markAttendance = async (req, res) => {
     });
     await attendance.save();
 
-    // Update session attendees
     if (!session.attendees.some(a => a.student.toString() === studentId)) {
       session.attendees.push({ student: studentId });
       await session.save();
@@ -90,7 +81,6 @@ exports.markAttendance = async (req, res) => {
 
 exports.markAbsentees = async (sessionId) => {
   try {
-    // Fetch the session and populate the unit with enrolled students
     const session = await Session.findById(sessionId).populate({
       path: 'unit',
       populate: { path: 'studentsEnrolled', model: 'User' }
@@ -100,25 +90,21 @@ exports.markAbsentees = async (sessionId) => {
       return;
     }
 
-    // Get enrolled students from the unit
     const enrolledStudents = session.unit.studentsEnrolled.map(student => student._id.toString());
     if (enrolledStudents.length === 0) {
       console.log("No students enrolled in unit for session:", sessionId);
       return;
     }
 
-    // Get students who marked attendance for this session
     const existingAttendance = await Attendance.find({ session: sessionId }).select('student');
     const markedStudents = new Set(existingAttendance.map(record => record.student.toString()));
 
-    // Identify absent students (enrolled but not marked as present)
     const absentees = enrolledStudents.filter(studentId => !markedStudents.has(studentId));
     if (absentees.length === 0) {
       console.log("All enrolled students marked attendance for session:", sessionId);
       return;
     }
 
-    // Mark absentees
     await Attendance.insertMany(
       absentees.map(studentId => ({
         session: sessionId,
@@ -142,7 +128,7 @@ exports.handleSessionEnd = async (req, res) => {
       return res.status(400).json({ message: "Invalid session ID format" });
     }
 
-    await exports.markAbsentees(sessionId); // Use exports.markAbsentees to call within module
+    await exports.markAbsentees(sessionId);
     res.status(200).json({ message: "Absent students marked successfully" });
   } catch (error) {
     console.error("Error processing session end:", error);

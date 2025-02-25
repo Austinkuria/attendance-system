@@ -72,6 +72,33 @@ exports.createSession = async (req, res) => {
     session.qrCode = qrCode;
     await session.save();
 
+    // Schedule automatic session end and absentee marking
+    schedule.scheduleJob(`end-session-${session._id}`, end, async () => {
+      try {
+        const updatedSession = await Session.findById(session._id);
+        if (!updatedSession.ended) {
+          updatedSession.ended = true;
+          updatedSession.feedbackEnabled = true;
+          await updatedSession.save();
+
+          await markAbsentees(session._id);
+
+          const attendees = updatedSession.attendees.map(a => a.student.toString());
+          if (attendees.length > 0) {
+            await sendNotification(attendees, {
+              title: "Session Ended",
+              message: `The session for ${updatedSession.unit.name} has ended. Please provide your feedback.`,
+              data: { sessionId: updatedSession._id.toString(), action: "openFeedback" }
+            });
+          }
+
+          console.log(`Automatically ended session and marked absentees for session: ${session._id}`);
+        }
+      } catch (error) {
+        console.error(`Failed to auto-end session ${session._id}:`, error);
+      }
+    });
+
     res.status(201).json({ message: "Session created successfully", session, qrCode: session.qrCode });
   } catch (error) {
     console.error("Error in createSession:", error);
@@ -128,7 +155,14 @@ exports.endSession = async (req, res) => {
     session.feedbackEnabled = true;
     await session.save();
 
-    // Mark absentees for enrolled students
+    // Cancel the scheduled job if it exists
+    const jobName = `end-session-${sessionId}`;
+    if (schedule.scheduledJobs[jobName]) {
+      schedule.cancelJob(jobName);
+      console.log(`Cancelled scheduled job for session: ${sessionId}`);
+    }
+
+    // Mark absentees immediately
     await markAbsentees(sessionId);
 
     // Send notifications to attendees
