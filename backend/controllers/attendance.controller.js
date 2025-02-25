@@ -242,6 +242,85 @@ exports.getSessionAttendance = async (req, res) => {
   }
 };
 
+exports.getStudentAttendanceByFilter = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { filter, startDate, endDate } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID format" });
+    }
+
+    let query = { student: studentId };
+    if (startDate && endDate) {
+      query.attendedAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    } else if (filter === '30days') {
+      const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+      query.attendedAt = { $gte: thirtyDaysAgo };
+    }
+
+    const attendanceRecords = await Attendance.find(query)
+      .select('session status attendedAt')
+      .populate({
+        path: 'session',
+        select: 'unit startTime endTime',
+        populate: { path: 'unit', select: 'name' }
+      })
+      .sort({ attendedAt: -1 });
+
+    if (!attendanceRecords.length) {
+      return res.status(200).json({ events: [] });
+    }
+
+    const oneDay = 24 * 60 * 60 * 1000;
+    const oneWeek = 7 * oneDay;
+    const semesterStartDate = new Date('2025-01-01');
+
+    const formatEvent = (record) => ({
+      unitName: record.session.unit?.name || 'Unknown',
+      status: record.status,
+      startTime: record.session.startTime,
+    });
+
+    let events = [];
+    switch (filter) {
+      case 'daily':
+      case '30days': // Treat 30days as daily within the date range
+        const dailyEvents = {};
+        attendanceRecords.forEach(record => {
+          const dateStr = new Date(record.attendedAt || record.session.startTime).toISOString().split('T')[0];
+          if (!dailyEvents[dateStr]) dailyEvents[dateStr] = [];
+          dailyEvents[dateStr].push(formatEvent(record));
+        });
+        events = Object.entries(dailyEvents).map(([date, evts]) => ({ date, events: evts }));
+        break;
+      case 'weekly':
+        const weeklyEvents = {};
+        attendanceRecords.forEach(record => {
+          const sessionDate = new Date(record.attendedAt || record.session.startTime);
+          const daysSinceStart = Math.floor((sessionDate - semesterStartDate) / oneDay);
+          const weekNumber = Math.floor(daysSinceStart / 7) + 1;
+          const weekStart = new Date(semesterStartDate.getTime() + (weekNumber - 1) * oneWeek);
+          const weekEnd = new Date(weekStart.getTime() + 6 * oneDay);
+          const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+          if (!weeklyEvents[weekLabel]) weeklyEvents[weekLabel] = [];
+          weeklyEvents[weekLabel].push(formatEvent(record));
+        });
+        events = Object.entries(weeklyEvents).map(([week, evts]) => ({ week, events: evts }));
+        break;
+      default:
+        return res.status(400).json({ message: "Invalid filter. Use 'daily', 'weekly', or '30days'" });
+    }
+
+    res.status(200).json({ events });
+  } catch (error) {
+    res.status(500).json({ message: "Error fetching filtered attendance", error: error.message });
+  }
+};
+
 exports.updateAttendanceStatus = async (req, res) => {
   try {
     const { attendanceId } = req.params;
