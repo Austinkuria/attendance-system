@@ -1,9 +1,9 @@
 const Session = require('../models/Session');
 const Attendance = require('../models/Attendance');
 const User = require("../models/User");
+const Unit = require("../models/Unit");
 const mongoose = require('mongoose');
 const jwt = require("jsonwebtoken");
-const Unit = require("../models/Unit");
 
 exports.markAttendance = async (req, res) => {
   try {
@@ -52,7 +52,9 @@ exports.markAttendance = async (req, res) => {
       status: "Present"
     });
     if (existingDeviceRecord) {
-      return res.status(403).json({ message: "This device has already been used to mark attendance for this session. Proxy attendance is not allowed." });
+      return res.status(403).json({ 
+        message: "This device has already been used to mark attendance for this session. Proxy attendance is not allowed." 
+      });
     }
 
     // Verify student exists
@@ -86,26 +88,47 @@ exports.markAttendance = async (req, res) => {
   }
 };
 
-const markAbsentees = async (sessionId) => {
+exports.markAbsentees = async (sessionId) => {
   try {
-    const session = await Session.findById(sessionId);
-    if (!session) return;
+    // Fetch the session and populate the unit with enrolled students
+    const session = await Session.findById(sessionId).populate({
+      path: 'unit',
+      populate: { path: 'studentsEnrolled', model: 'User' }
+    });
+    if (!session || !session.unit) {
+      console.error("Session or unit not found for sessionId:", sessionId);
+      return;
+    }
 
-    const allStudents = await User.find({ role: "student" });
+    // Get enrolled students from the unit
+    const enrolledStudents = session.unit.studentsEnrolled.map(student => student._id.toString());
+    if (enrolledStudents.length === 0) {
+      console.log("No students enrolled in unit for session:", sessionId);
+      return;
+    }
+
+    // Get students who marked attendance for this session
     const existingAttendance = await Attendance.find({ session: sessionId }).select('student');
-
     const markedStudents = new Set(existingAttendance.map(record => record.student.toString()));
-    const absentees = allStudents.filter(student => !markedStudents.has(student._id.toString()));
 
+    // Identify absent students (enrolled but not marked as present)
+    const absentees = enrolledStudents.filter(studentId => !markedStudents.has(studentId));
+    if (absentees.length === 0) {
+      console.log("All enrolled students marked attendance for session:", sessionId);
+      return;
+    }
+
+    // Mark absentees
     await Attendance.insertMany(
-      absentees.map(student => ({
+      absentees.map(studentId => ({
         session: sessionId,
-        student: student._id,
-        status: "Absent"
+        student: studentId,
+        status: "Absent",
+        timestamp: new Date(),
       }))
     );
 
-    console.log("Absent students marked for session:", sessionId);
+    console.log(`Marked ${absentees.length} students as absent for session:`, sessionId);
   } catch (error) {
     console.error("Error marking absentees:", error.message);
     throw error;
@@ -115,9 +138,14 @@ const markAbsentees = async (sessionId) => {
 exports.handleSessionEnd = async (req, res) => {
   try {
     const { sessionId } = req.body;
-    await markAbsentees(sessionId);
-    res.status(200).json({ message: "Absent students marked" });
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID format" });
+    }
+
+    await exports.markAbsentees(sessionId); // Use exports.markAbsentees to call within module
+    res.status(200).json({ message: "Absent students marked successfully" });
   } catch (error) {
+    console.error("Error processing session end:", error);
     res.status(500).json({ message: "Error processing absentees", error: error.message });
   }
 };

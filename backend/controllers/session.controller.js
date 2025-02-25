@@ -23,7 +23,7 @@ exports.detectCurrentSession = async (req, res) => {
       ended: false
     };
 
-    if (unitId && mongoose.isValidObjectId(unitId)) { // Validate unitId
+    if (unitId && mongoose.isValidObjectId(unitId)) {
       query.unit = unitId;
     } else if (unitId === 'undefined' || !unitId) {
       return res.status(400).json({ message: 'Invalid or missing unit ID' });
@@ -123,12 +123,15 @@ exports.endSession = async (req, res) => {
       return res.status(400).json({ message: "Session already ended" });
     }
 
+    // Mark session as ended and enable feedback
     session.ended = true;
     session.feedbackEnabled = true;
     await session.save();
 
+    // Mark absentees for enrolled students
     await markAbsentees(sessionId);
 
+    // Send notifications to attendees
     const attendees = session.attendees.map(a => a.student.toString());
     if (attendees.length > 0) {
       await sendNotification(attendees, {
@@ -138,41 +141,12 @@ exports.endSession = async (req, res) => {
       });
     }
 
-    res.status(200).json({ message: "Session ended successfully", session });
+    res.status(200).json({ message: "Session ended and absentees marked successfully", session });
   } catch (error) {
     console.error("Error ending session:", error);
     res.status(500).json({ message: "Error ending session", error: error.message });
   }
 };
-
-// exports.endSession = async (req, res) => {
-//   try {
-//     const { sessionId } = req.body;
-
-//     if (!mongoose.isValidObjectId(sessionId)) {
-//       return res.status(400).json({ message: "Invalid session ID format" });
-//     }
-
-//     const session = await Session.findById(sessionId);
-//     if (!session) {
-//       return res.status(404).json({ message: "Session not found" });
-//     }
-
-//     if (session.ended) {
-//       return res.status(400).json({ message: "Session already ended" });
-//     }
-
-//     session.ended = true;
-//     await session.save();
-
-//     await markAbsentees(sessionId);
-
-//     res.status(200).json({ message: "Session ended successfully", session });
-//   } catch (error) {
-//     console.error("Error ending session:", error);
-//     res.status(500).json({ message: "Error ending session", error: error.message });
-//   }
-// };
 
 exports.getLastSession = async (req, res) => {
   try {
