@@ -44,7 +44,7 @@ router.use("/sessions", authLimiter, authenticate, sessionRoutes);
 
 router.use('/', userRoutes);
 
-app.use('/feedback', feedbackRoutes);
+router.use('/feedback', feedbackRoutes);
 // Students
 router.get('/students', getStudents);
 
