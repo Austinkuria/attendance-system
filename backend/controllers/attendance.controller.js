@@ -60,7 +60,7 @@ exports.markAttendance = async (req, res) => {
       session: sessionId,
       student: studentId,
       status: "Present",
-      deviceId,
+      deviceId, // Real device ID from FingerprintJS for "Present"
       qrToken,
       markedBy: req.user?._id,
       attendedAt: new Date()
@@ -110,6 +110,7 @@ exports.markAbsentees = async (sessionId) => {
         session: sessionId,
         student: studentId,
         status: "Absent",
+        deviceId: "system-generated", // Placeholder for "Absent" records
         timestamp: new Date(),
       }))
     );
