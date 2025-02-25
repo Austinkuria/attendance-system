@@ -26,7 +26,7 @@ const LecturerDashboard = () => {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
   const [collapsed, setCollapsed] = useState(true);
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(true);
 
   // Authentication check
   useEffect(() => {
