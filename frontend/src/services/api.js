@@ -368,7 +368,6 @@ export const getUnits = async () => {
   }
 };
 
-// export const getUnitsByCourse = async (courseId) => {
 //   const token = localStorage.getItem("token");
 //   try {
 //     const response = await axios.get(`${API_URL}/course/${courseId}/units`, {
@@ -441,7 +440,6 @@ export const getAttendanceRate = async () => {
   }
 };
 
-// Fetch attendance rate for a specific course
 // export const getCourseAttendanceRate = async (courseId) => {
 //   try {
 //     const response = await api.get(`/attendance/rate/${courseId}`);
@@ -526,7 +524,6 @@ export const downloadStudents = async () => {
   }
 };
 
-// create a new course
 // export const createCourse = async (courseData) => {
 //   const token = localStorage.getItem("token");
 //   try {
@@ -593,7 +590,6 @@ export const getDepartments = async () => {
   }
 };
 
-// Fetch courses by department
 // export const addUnitToCourse = async (courseId, unitData) => {
 //   const token = localStorage.getItem("token");
 //   try {
@@ -683,7 +679,6 @@ export const getCourseByDepartment = async (departmentId, courseName) => {
   }
 };
 
-// // update lecturer
 // export const updateLecturer = async (id, lecturerData) => {
 //   const token = localStorage.getItem("token");
 //   try {
@@ -719,8 +714,6 @@ export const sendQuiz = (quizData) => api.post("/quiz", quizData);
 // getquizresults
 export const getQuizResults = (quizId) => api.get(`/quiz/results/${quizId}`);
 
-
-// export const getUnitEnrollments = (unitId) => api.get(`/unit/${unitId}/students`);
 // export const createSession = async (attendanceData) => {
 //   const token = localStorage.getItem("token"); // Retrieve the token from local storage
 //   try {
@@ -907,8 +900,6 @@ export const deleteQuiz = async (quizId) => {
   }
 };
 
-
-
 export const getSessionFeedback = async (sessionId) => {
   const token = localStorage.getItem("token");
   try {
@@ -927,9 +918,6 @@ export const getSessionFeedback = async (sessionId) => {
     throw new Error(error.message || "Failed to fetch feedback");
   }
 };
-
-
-
 
 export const submitFeedback = async (feedbackData) => {
   const token = localStorage.getItem("token");

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col } from 'antd';
 import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
@@ -451,15 +451,19 @@ const AttendanceManagement = () => {
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
             console.log('Session end response:', response.data);
-            message.success('Session ended successfully');
-            setCurrentSession(prev => ({ ...prev, ended: true }));
-            setQrData('');
-            setAttendance([]);
-            localStorage.removeItem('currentSession');
+            if (response.data.session.ended) {
+              message.success('Session ended successfully');
+              setCurrentSession({ ...response.data.session, ended: true });
+              setQrData('');
+              setAttendance([]);
+              localStorage.removeItem('currentSession');
+            } else {
+              throw new Error('Session not marked as ended');
+            }
           } catch (error) {
-            console.error('Error ending session:', { message: error.message, response: error.response?.data, sessionId: currentSession?._id });
+            console.error('Error ending session:', error);
             if (error.response?.status === 429) {
-              message.warning('Too many requests. Please try ending the session again later.');
+              message.warning('Too many requests. Please try again later.');
             } else if (error.response?.status === 400) {
               message.error('Invalid request. Session may already be ended.');
             } else {
