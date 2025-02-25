@@ -14,7 +14,7 @@ const{authLimiter,sensitiveLimiter} = require('../middleware/rateLimiter');
 router.get('/current', authenticate, detectCurrentSession); // Get any current active session
 router.get('/current/:selectedUnit',authLimiter, authenticate, detectCurrentSession); // Get current active session for a specific unit
 router.post('/create', authenticate,sensitiveLimiter, createSession); // Create a new session
-router.delete('/end', authenticate, endSession); // End an existing session
+router.post('/end', authenticate, endSession); // End an existing session
 router.get('/last/:unitId', authenticate, getLastSession); // Get the most recent ended session for a unit
 router.post('/regenerate-qr', regenerateQR);
 router.get('/active/:unitId', authenticate, getActiveSessionForUnit);
