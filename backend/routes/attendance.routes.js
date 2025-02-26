@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const attendanceController = require('../controllers/attendance.controller');
 const authenticate = require('../middleware/authMiddleware');
+const { attendanceMarkLimiter } = require('../middleware/rateLimiter');
 
 router.post('/mark', authenticate, attendanceMarkLimiter, attendanceController.markAttendance);
 router.post('/handle-session-end', authenticate, attendanceController.handleSessionEnd);
