@@ -17,7 +17,8 @@ const {
   importLecturers,
   downloadLecturers,
   sendResetLink,
-  resetPassword
+  resetPassword,
+  updateFcmToken
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
@@ -97,5 +98,7 @@ router.post("/auth/reset-password", [
   check('email').isEmail().withMessage('Enter a valid email address')
 ], sendResetLink);
 router.put("/auth/reset-password/:token", resetPassword);
+
+router.post('/update-fcm-token', updateFcmToken);
 
 module.exports = router;

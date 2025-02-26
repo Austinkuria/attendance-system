@@ -1,14 +1,14 @@
 /* eslint-env serviceworker */
 
 try {
-  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  importScripts('/firebase-app.js');
   console.log('firebase-app.js loaded successfully');
 } catch (error) {
   console.error('Failed to load firebase-app.js:', error);
 }
 
 try {
-  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js');
+  importScripts('/firebase-messaging.js');
   console.log('firebase-messaging.js loaded successfully');
 } catch (error) {
   console.error('Failed to load firebase-messaging.js:', error);
@@ -35,7 +35,7 @@ try {
     const notificationTitle = payload?.notification?.title || "Feedback Available";
     const notificationOptions = {
       body: payload?.notification?.body || "A session has ended. Please provide your feedback.",
-      icon: "/icon-512x512.png", // Use an existing icon from public/
+      icon: "/icon-512x512.png",
       data: payload.data,
       tag: `feedback-${payload.data.sessionId}`,
       renotify: true

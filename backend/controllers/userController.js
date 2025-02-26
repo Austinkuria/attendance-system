@@ -870,6 +870,27 @@ const resetPassword = async (req, res) => {
   }
 };
 
+exports.updateFcmToken = async (req, res) => {
+  try {
+    const { token } = req.body;
+    const userId = req.user.userId; // From auth middleware
+
+    if (!token) return res.status(400).json({ message: 'FCM token is required' });
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      { fcmToken: token },
+      { new: true }
+    );
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    res.status(200).json({ message: 'FCM token updated successfully' });
+  } catch (error) {
+    console.error('Error updating FCM token:', error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
 module.exports = {
   login,
   signup,
@@ -889,5 +910,6 @@ module.exports = {
   importLecturers,
   downloadLecturers,
   sendResetLink,
-  resetPassword
+  resetPassword,
+  updateFcmToken
 };
