@@ -18,6 +18,15 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
+    // Validate required fields
+    if (!deviceId || !compositeFingerprint || !qrToken) {
+      return res.status(400).json({
+        success: false,
+        code: "MISSING_FIELDS",
+        message: "Device ID, composite fingerprint, and QR token are required."
+      });
+    }
+
     // Validate token
     const token = req.headers.authorization?.split(" ")[1];
     if (!token) {
@@ -75,10 +84,11 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // Check for device/fingerprint conflicts
+    // Check for device/fingerprint conflicts with stricter matching
     const existingDeviceRecord = await Attendance.findOne({
       session: sessionId,
       $or: [
+        { deviceId: deviceId, compositeFingerprint: compositeFingerprint },
         { deviceId: deviceId },
         { compositeFingerprint: compositeFingerprint }
       ],
@@ -88,7 +98,7 @@ exports.markAttendance = async (req, res) => {
       return res.status(403).json({
         success: false,
         code: "DEVICE_CONFLICT",
-        message: "This device has already marked attendance for this session."
+        message: "This device or fingerprint has already marked attendance for this session."
       });
     }
 
@@ -156,8 +166,8 @@ exports.markAbsentees = async (sessionId) => {
         student: studentId,
         status: "Absent",
         deviceId: "system-generated",
-        compositeFingerprint:"system-generated",
-        qrToken:"sytem-generated",
+        compositeFingerprint: "system-generated",
+        qrToken: "system-generated",
         timestamp: new Date(),
       }))
     );

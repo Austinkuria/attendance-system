@@ -27,38 +27,46 @@ const QRScanner = () => {
 
   // Enhanced fingerprint generation
   const generateDeviceFingerprint = async () => {
-    const fp = await FingerprintJS.load();
-    const result = await fp.get();
-    setDeviceId(result.visitorId);
+    try {
+      const fp = await FingerprintJS.load();
+      const result = await fp.get();
+      setDeviceId(result.visitorId); // Basic visitor ID
 
-    // Cross-browser attributes
-    const getStableAttributes = () => {
-      const screen = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
-      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-      const hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
-      const platform = navigator.platform;
-      
-      // WebGL fingerprint
-      const gl = document.createElement('canvas').getContext('webgl');
-      const debugInfo = gl?.getExtension('WEBGL_debug_renderer_info');
-      const renderer = gl ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unsupported';
-      
-      return `${screen}|${timezone}|${hardwareConcurrency}|${platform}|${renderer}`;
-    };
+      // More stable cross-browser attributes
+      const attributes = {
+        screen: `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`,
+        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+        platform: navigator.platform || 'unknown',
+        language: navigator.language || 'unknown',
+        userAgent: navigator.userAgent || 'unknown',
+        // WebGL renderer for additional uniqueness
+        webglRenderer: (() => {
+          const gl = document.createElement('canvas').getContext('webgl');
+          const debugInfo = gl?.getExtension('WEBGL_debug_renderer_info');
+          return gl ? (gl.getParameter(debugInfo?.UNMASKED_RENDERER_WEBGL) || 'unknown') : 'unsupported';
+        })(),
+      };
 
-    // Generate SHA-256 hash
-    const encoder = new TextEncoder();
-    const data = encoder.encode(getStableAttributes());
-    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    const fingerprint = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-    setCompositeFingerprint(fingerprint);
+      // Generate SHA-256 hash of combined attributes
+      const encoder = new TextEncoder();
+      const data = encoder.encode(JSON.stringify(attributes));
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      const fingerprint = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+      setCompositeFingerprint(fingerprint);
+
+      console.log('Generated Device ID:', result.visitorId);
+      console.log('Generated Composite Fingerprint:', fingerprint);
+    } catch (error) {
+      console.error('Error generating fingerprint:', error);
+      message.error('Failed to generate device fingerprint. Please try again.');
+    }
   };
 
   useEffect(() => {
     generateDeviceFingerprint();
 
-    // Consent dialog
     if (!localStorage.getItem('fingerprintConsent')) {
       Modal.confirm({
         title: 'Device Analysis',
@@ -82,16 +90,10 @@ const QRScanner = () => {
         const session = await getActiveSessionForUnit(selectedUnit);
         if (session && session._id && !session.ended) {
           setSessionId(session._id);
-          const now = new Date();
-          if (new Date(session.endTime) <= now) {
-            setSessionEnded(true);
-            message.warning("The session has ended.");
-          } else {
-            setSessionEnded(false);
-          }
+          setSessionEnded(false);
         } else {
           setSessionEnded(true);
-          message.error("No active session found for this unit.");
+          message.error("No active session found for this unit or the session has ended.");
         }
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || "Error fetching session details";
@@ -109,34 +111,33 @@ const QRScanner = () => {
       message.error("Session has ended. Attendance cannot be marked.");
       return;
     }
-  
+
     stopScanner();
     setScannedResult(result?.data);
     setLoading(true);
     clearTimeout(scanTimeoutRef.current);
-  
+
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication failed. Please log in again.");
-  
+
       const decoded = jwtDecode(token);
       const studentId = decoded.userId;
       const base64Data = result.data;
-  
+
       const response = await markAttendance(
-        sessionId, 
-        studentId, 
-        token, 
-        deviceId, 
+        sessionId,
+        studentId,
+        token,
+        deviceId,
         base64Data,
         compositeFingerprint
       );
-  
+
       if (response.success) {
         message.success(response.message || "Attendance marked successfully!");
         navigate("/student-dashboard");
       } else {
-        // Handle backend errors
         switch (response.code) {
           case "INVALID_ID_FORMAT":
           case "NO_TOKEN_PROVIDED":
@@ -153,15 +154,14 @@ const QRScanner = () => {
         }
       }
     } catch (err) {
-      // Handle network or unexpected errors
       message.error(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
-  
+
   const startScanner = useCallback(() => {
-    if (!videoEl.current || sessionEnded) return;
+    if (!videoEl.current || sessionEnded || !sessionId) return;
 
     if (scanner.current) {
       scanner.current.destroy();
@@ -187,10 +187,10 @@ const QRScanner = () => {
       stopScanner();
       message.error("Scanning timed out. Please try again.");
     }, 30000);
-  }, [onScanSuccess, sessionEnded]);
+  }, [onScanSuccess, sessionEnded, sessionId]);
 
   useEffect(() => {
-    if (!sessionEnded) {
+    if (!loading && !sessionEnded && sessionId) {
       startScanner();
     }
     return () => {
@@ -200,7 +200,7 @@ const QRScanner = () => {
         scanner.current.destroy();
       }
     };
-  }, [startScanner, sessionEnded]);
+  }, [startScanner, loading, sessionEnded, sessionId]);
 
   const stopScanner = () => {
     if (scanner.current) {

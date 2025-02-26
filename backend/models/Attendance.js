@@ -26,12 +26,13 @@ const AttendanceSchema = new mongoose.Schema({
   },
   deviceId: { 
     type: String, 
-    required: true 
+    required: true,
+    index: true // Add index for faster lookups
   },
   compositeFingerprint: { 
     type: String, 
     required: true,
-    index: true
+    index: true // Ensure unique lookups
   },
   qrToken: { 
     type: String, 
@@ -41,5 +42,7 @@ const AttendanceSchema = new mongoose.Schema({
 }, { timestamps: true });
 
 AttendanceSchema.index({ session: 1, status: 1 });
+AttendanceSchema.index({ session: 1, deviceId: 1 }); // Composite index for device checks
+AttendanceSchema.index({ session: 1, compositeFingerprint: 1 }); // Composite index for fingerprint checks
 
 module.exports = mongoose.model("Attendance", AttendanceSchema);
