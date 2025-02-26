@@ -50,15 +50,11 @@
       ]
     },
     {
+      "source": "/firebase-messaging-sw.js",
       "headers": [
         {
-          "source": "/firebase-messaging-sw.js",
-          "headers": [
-            {
-              "key": "Content-Type",
-              "value": "application/javascript"
-            }
-          ]
+          "key": "Content-Type",
+          "value": "application/javascript"
         }
       ]
     }
