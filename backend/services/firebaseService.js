@@ -13,6 +13,7 @@ exports.sendNotification = async (userIds, payload) => {
   try {
     const users = await User.find({ _id: { $in: userIds } });
     const fcmTokens = users.filter(u => u.fcmToken).map(u => u.fcmToken);
+    console.log('Users found:', users.length, 'FCM tokens:', fcmTokens); // Log token retrieval
     if (fcmTokens.length === 0) {
       console.log('No FCM tokens found for users:', userIds);
       return;
@@ -27,7 +28,7 @@ exports.sendNotification = async (userIds, payload) => {
       tokens: fcmTokens,
     };
     const response = await admin.messaging().sendMulticast(message);
-    console.log('Notification sent:', response);
+    console.log('Notification sent successfully:', response);
   } catch (error) {
     console.error('Error sending notification:', error);
   }

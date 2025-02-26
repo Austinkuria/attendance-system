@@ -53,6 +53,7 @@ import {
   LogoutOutlined,
   QrcodeOutlined,
   CalendarOutlined,
+  BellOutlined,
 } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
@@ -91,6 +92,7 @@ const StudentDashboard = () => {
   const [hasShownLowAttendanceAlert, setHasShownLowAttendanceAlert] = useState(false);
   const [viewMode, setViewMode] = useState('weekly');
   const [selectedDate, setSelectedDate] = useState(null);
+  const [pendingFeedbacks, setPendingFeedbacks] = useState([]);
 
   const navigate = useNavigate();
 
@@ -102,7 +104,7 @@ const StudentDashboard = () => {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker
           .register('/firebase-messaging-sw.js')
-          .then((registration) => console.log('Service Worker registered:', registration))
+          .then((registration) => console.log('Service Worker registered:', registration.scope))
           .catch((error) => console.error('Service Worker registration failed:', error));
       }
 
@@ -160,26 +162,28 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     const handleNotification = (payload) => {
-      const { sessionId, action } = payload.data;
+      const { sessionId, action, unitName } = payload.data || {};
       const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
+
       if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present") {
-        notification.open({
+        setPendingFeedbacks((prev) => {
+          if (!prev.some((pf) => pf.sessionId === sessionId)) {
+            return [...prev, {
+              sessionId,
+              unitName,
+              title: payload.notification.title,
+              message: payload.notification.body,
+              timestamp: new Date(),
+            }];
+          }
+          return prev;
+        });
+      } else if (action === "feedbackSubmitted") {
+        setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
+        notification.success({
           message: payload.notification.title,
           description: payload.notification.body,
-          btn: (
-            <Button
-              type="primary"
-              size="small"
-              onClick={() => {
-                setActiveSessionId(sessionId);
-                setFeedbackModalVisible(true);
-              }}
-            >
-              Provide Feedback
-            </Button>
-          ),
-          duration: 0,
-          onClose: () => console.log("Notification closed"),
+          duration: 5,
         });
       }
     };
@@ -294,6 +298,7 @@ const StudentDashboard = () => {
         title: `${record.session.unit?.name || 'Unknown'} - ${record.status || 'Unknown'}`,
         date: record.session.startTime ? moment(record.session.startTime) : null,
         status: record.status || 'Unknown',
+        sessionId: record.session._id,
       }));
     }
 
@@ -353,7 +358,7 @@ const StudentDashboard = () => {
           <List
             dataSource={filteredEvents()}
             renderItem={(item) => (
-              <List.Item>
+              <List.Item key={item.sessionId || `${item.title}-${item.date?.toISOString()}`}>
                 <List.Item.Meta
                   title={item.title}
                   description={item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}
@@ -365,6 +370,59 @@ const StudentDashboard = () => {
           <p style={{ textAlign: 'center', color: '#888' }}>No events found for the selected period.</p>
         )}
       </Space>
+    </Card>
+  );
+
+  const renderNotifications = () => (
+    <Card
+      title={<><BellOutlined /> Notifications</>}
+      style={{ marginTop: 24, borderRadius: 10, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
+      extra={
+        pendingFeedbacks.length > 0 && (
+          <Button
+            type="link"
+            onClick={() => setPendingFeedbacks([])}
+          >
+            Clear All
+          </Button>
+        )
+      }
+    >
+      {pendingFeedbacks.length > 0 ? (
+        <List
+          dataSource={pendingFeedbacks}
+          renderItem={(item) => (
+            <List.Item
+              key={item.sessionId}
+              actions={[
+                <Button
+                  key="provide-feedback"
+                  type="primary"
+                  onClick={() => {
+                    setActiveSessionId(item.sessionId);
+                    setFeedbackModalVisible(true);
+                  }}
+                >
+                  Provide Feedback
+                </Button>,
+                <Button
+                  key="dismiss"
+                  onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
+                >
+                  Dismiss
+                </Button>,
+              ]}
+            >
+              <List.Item.Meta
+                title={item.title}
+                description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
+              />
+            </List.Item>
+          )}
+        />
+      ) : (
+        <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
+      )}
     </Card>
   );
 
@@ -507,6 +565,8 @@ const StudentDashboard = () => {
           rec.session._id === activeSessionId ? { ...rec, feedbackSubmitted: true } : rec
         ),
       }));
+      setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== activeSessionId));
+      await fetchAllData();
     } catch (error) {
       console.error('Feedback submission failed:', error);
       message.error(`Error submitting feedback: ${error.message || 'Unknown error'}`);
@@ -649,7 +709,7 @@ const StudentDashboard = () => {
             </Row>
 
             {renderCalendarEvents()}
-
+            {renderNotifications()}
             <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Attendance Overview</AntTitle>
             <Card style={{ marginTop: 16, borderRadius: 10 }}>
               <div style={{ height: '400px' }}>

@@ -20,18 +20,18 @@ const messaging = getMessaging(app);
 export const registerFcmToken = async () => {
   try {
     const permission = await Notification.requestPermission();
-    if (permission === "granted") {
+    if (permission === 'granted') {
       const token = await getToken(messaging, {
         vapidKey: import.meta.env.VITE_APP_FIREBASE_VAPID_KEY,
       });
-      console.log("FCM Token:", token);
+      console.log('FCM Token generated:', token);
       return token;
     } else {
-      console.warn("Notification permission denied.");
+      console.warn('Notification permission denied by user.');
       return null;
     }
   } catch (error) {
-    console.error("Error getting FCM token:", error);
+    console.error('Error getting FCM token:', error);
     return null;
   }
 };

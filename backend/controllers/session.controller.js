@@ -73,32 +73,66 @@ exports.createSession = async (req, res) => {
     await session.save();
 
     // Schedule automatic session end and absentee marking
+    // schedule.scheduleJob(`end-session-${session._id}`, end, async () => {
+    //   try {
+    //     const updatedSession = await Session.findById(session._id);
+    //     if (!updatedSession.ended) {
+    //       updatedSession.ended = true;
+    //       updatedSession.feedbackEnabled = true;
+    //       await updatedSession.save();
+
+    //       await markAbsentees(session._id);
+
+    //       const attendees = updatedSession.attendees.map(a => a.student.toString());
+    //       if (attendees.length > 0) {
+    //         await sendNotification(attendees, {
+    //           title: "Session Ended",
+    //           message: `The session for ${updatedSession.unit.name} has ended. Please provide your feedback.`,
+    //           data: { sessionId: updatedSession._id.toString(), action: "openFeedback" }
+    //         });
+    //       }
+
+    //       console.log(`Automatically ended session and marked absentees for session: ${session._id}`);
+    //     }
+    //   } catch (error) {
+    //     console.error(`Failed to auto-end session ${session._id}:`, error);
+    //   }
+    // });
     schedule.scheduleJob(`end-session-${session._id}`, end, async () => {
       try {
-        const updatedSession = await Session.findById(session._id);
+        const updatedSession = await Session.findById(session._id).populate('unit');
         if (!updatedSession.ended) {
           updatedSession.ended = true;
           updatedSession.feedbackEnabled = true;
           await updatedSession.save();
-
+    
           await markAbsentees(session._id);
-
-          const attendees = updatedSession.attendees.map(a => a.student.toString());
-          if (attendees.length > 0) {
-            await sendNotification(attendees, {
-              title: "Session Ended",
-              message: `The session for ${updatedSession.unit.name} has ended. Please provide your feedback.`,
-              data: { sessionId: updatedSession._id.toString(), action: "openFeedback" }
+    
+          const attendanceRecords = await Attendance.find({ 
+            session: session._id, 
+            status: "Present" 
+          }).distinct('student');
+          const presentStudents = attendanceRecords.map(id => id.toString());
+    
+          if (presentStudents.length > 0) {
+            await sendNotification(presentStudents, {
+              title: "Feedback Available",
+              message: `The session for ${updatedSession.unit.name} has ended. Please provide your feedback now.`,
+              data: { 
+                sessionId: updatedSession._id.toString(), 
+                action: "openFeedback",
+                unitName: updatedSession.unit.name
+              }
             });
+            console.log(`Auto-sent feedback notification to ${presentStudents.length} students`);
           }
-
-          console.log(`Automatically ended session and marked absentees for session: ${session._id}`);
+    
+          console.log(`Automatically ended session: ${session._id}`);
         }
       } catch (error) {
         console.error(`Failed to auto-end session ${session._id}:`, error);
       }
     });
-
     res.status(201).json({ message: "Session created successfully", session, qrCode: session.qrCode });
   } catch (error) {
     console.error("Error in createSession:", error);
@@ -152,12 +186,11 @@ exports.endSession = async (req, res) => {
       return res.status(400).json({ message: "Session already ended" });
     }
 
-    console.log(`Ending session: ${sessionId}, current state:`, session.toObject());
     session.ended = true;
     session.feedbackEnabled = true;
-    session.endTime = new Date(); // Update endTime to current time
+    session.endTime = new Date();
     const updatedSession = await session.save();
-    console.log(`Session updated successfully: ${sessionId}`, updatedSession.toObject());
+    console.log(`Session ended: ${sessionId}`, updatedSession.toObject());
 
     const jobName = `end-session-${sessionId}`;
     if (schedule.scheduledJobs[jobName]) {
@@ -167,13 +200,26 @@ exports.endSession = async (req, res) => {
 
     await markAbsentees(sessionId);
 
-    const attendees = session.attendees.map(a => a.student.toString());
-    if (attendees.length > 0) {
-      await sendNotification(attendees, {
-        title: "Session Ended",
-        message: `The session for ${session.unit.name} has ended. Please provide your feedback.`,
-        data: { sessionId: session._id.toString(), action: "openFeedback" }
+    // Get students who marked attendance as "Present"
+    const attendanceRecords = await Attendance.find({ 
+      session: sessionId, 
+      status: "Present" 
+    }).distinct('student');
+    const presentStudents = attendanceRecords.map(id => id.toString());
+
+    if (presentStudents.length > 0) {
+      await sendNotification(presentStudents, {
+        title: "Feedback Available",
+        message: `The session for ${session.unit.name} has ended. Please provide your feedback now.`,
+        data: { 
+          sessionId: session._id.toString(), 
+          action: "openFeedback",
+          unitName: session.unit.name // Include unit name for dashboard display
+        }
       });
+      console.log(`Sent feedback notification to ${presentStudents.length} students`);
+    } else {
+      console.log(`No students marked as Present for session: ${sessionId}`);
     }
 
     res.status(200).json({ message: "Session ended and absentees marked successfully", session: updatedSession });
@@ -182,6 +228,56 @@ exports.endSession = async (req, res) => {
     res.status(500).json({ message: "Error ending session", error: error.message });
   }
 };
+
+// exports.endSession = async (req, res) => {
+//   try {
+//     const { sessionId } = req.body;
+
+//     if (!mongoose.isValidObjectId(sessionId)) {
+//       return res.status(400).json({ message: "Invalid session ID format" });
+//     }
+
+//     const session = await Session.findById(sessionId).populate('unit');
+//     if (!session) {
+//       console.log(`Session not found for ID: ${sessionId}`);
+//       return res.status(404).json({ message: "Session not found" });
+//     }
+
+//     if (session.ended) {
+//       console.log(`Session already ended: ${sessionId}`);
+//       return res.status(400).json({ message: "Session already ended" });
+//     }
+
+//     console.log(`Ending session: ${sessionId}, current state:`, session.toObject());
+//     session.ended = true;
+//     session.feedbackEnabled = true;
+//     session.endTime = new Date(); // Update endTime to current time
+//     const updatedSession = await session.save();
+//     console.log(`Session updated successfully: ${sessionId}`, updatedSession.toObject());
+
+//     const jobName = `end-session-${sessionId}`;
+//     if (schedule.scheduledJobs[jobName]) {
+//       schedule.cancelJob(jobName);
+//       console.log(`Cancelled scheduled job for session: ${sessionId}`);
+//     }
+
+//     await markAbsentees(sessionId);
+
+//     const attendees = session.attendees.map(a => a.student.toString());
+//     if (attendees.length > 0) {
+//       await sendNotification(attendees, {
+//         title: "Session Ended",
+//         message: `The session for ${session.unit.name} has ended. Please provide your feedback.`,
+//         data: { sessionId: session._id.toString(), action: "openFeedback" }
+//       });
+//     }
+
+//     res.status(200).json({ message: "Session ended and absentees marked successfully", session: updatedSession });
+//   } catch (error) {
+//     console.error(`Error ending session ${req.body.sessionId}:`, error);
+//     res.status(500).json({ message: "Error ending session", error: error.message });
+//   }
+// };
 
 exports.getLastSession = async (req, res) => {
   try {
