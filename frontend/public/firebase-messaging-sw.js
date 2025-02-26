@@ -1,5 +1,7 @@
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js');
-importScripts('https://www.gstatic.com/firebasejs/10.8.0/firebase-messaging.js');
+/* eslint-env serviceworker */
+
+importScripts('/firebase-app.js');
+importScripts('/firebase-messaging.js');
 
 const firebaseConfig = {
   apiKey: "AIzaSyDt9tzcX01IKqAPKjUDk-tOT3NZm4hHl2Y",
@@ -11,7 +13,7 @@ const firebaseConfig = {
   measurementId: "G-XFH8TQ70W5"
 };
 
-const app = firebase.initializeApp(firebaseConfig);
+firebase.initializeApp(firebaseConfig);
 const messaging = firebase.messaging();
 
 messaging.onBackgroundMessage((payload) => {
@@ -21,17 +23,16 @@ messaging.onBackgroundMessage((payload) => {
   const notificationOptions = {
     body: payload?.notification?.body || "A session has ended. Please provide your feedback.",
     icon: "/firebase-logo.png",
-    data: payload.data, // Pass sessionId, action, unitName
-    tag: `feedback-${payload.data.sessionId}`, // Stack notifications by sessionId
-    renotify: true // Vibrate again for new notifications
+    data: payload.data,
+    tag: `feedback-${payload.data.sessionId}`,
+    renotify: true
   };
 
   self.registration.showNotification(notificationTitle, notificationOptions);
 });
 
-// Handle notification clicks (optional: open app to dashboard)
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  const url = '/student-dashboard'; // Adjust based on your routing
+  const url = '/student-dashboard';
   event.waitUntil(clients.openWindow(url));
 });
