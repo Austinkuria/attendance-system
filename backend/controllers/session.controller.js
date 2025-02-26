@@ -1,4 +1,5 @@
 const Session = require('../models/Session');
+const Attendance = require('../models/Attendance'); // Add this line
 const generateQRToken = require('../utils/session.utils');
 const schedule = require("node-schedule");
 const { markAbsentees } = require("../controllers/attendance.controller");
