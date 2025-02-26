@@ -12,7 +12,8 @@ const LecturerFeedbackView = () => {
     const fetchFeedback = async () => {
       try {
         const data = await getFeedbackForLecturer();
-        setFeedback(data);
+        console.log('Received feedback data:', data); // Debug log
+        setFeedback(data || []); // Default to empty array if data is null
       } catch (error) {
         console.error('Error fetching feedback:', error);
       } finally {
@@ -30,17 +31,19 @@ const LecturerFeedbackView = () => {
         dataSource={feedback}
         renderItem={(item) => (
           <Card style={{ marginBottom: '16px' }}>
-            <Text strong>Unit: </Text>{item.unit.name} ({item.unit.code})<br />
+            <Text strong>Unit: </Text>
+            {item.unit ? `${item.unit.name || 'Unnamed'} (${item.unit.code || 'N/A'})` : 'N/A'}<br />
             <Text strong>Course: </Text>{item.course?.name || 'N/A'}<br />
-            <Text strong>Student: </Text>{item.studentId.name}<br />
-            <Text strong>Rating: </Text><Rate disabled value={item.rating} /><br />
+            <Text strong>Student: </Text>{item.studentId?.name || 'Unknown'}<br />
+            <Text strong>Rating: </Text><Rate disabled value={item.rating || 0} /><br />
             <Text strong>Comments: </Text>{item.feedbackText || 'None'}<br />
             <Text strong>Pace: </Text>{item.pace || 'N/A'}<br />
-            <Text strong>Interactivity: </Text><Rate disabled value={item.interactivity} /><br />
+            <Text strong>Interactivity: </Text><Rate disabled value={item.interactivity || 0} /><br />
             <Text strong>Clarity: </Text>{item.clarity ? 'Yes' : 'No'}<br />
             <Text strong>Resources: </Text>{item.resources || 'None'}
           </Card>
         )}
+        locale={{ emptyText: 'No feedback available' }} // Custom empty message
       />
     </div>
   );

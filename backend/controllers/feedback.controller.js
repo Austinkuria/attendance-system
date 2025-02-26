@@ -65,10 +65,22 @@ exports.getFeedbackForLecturer = async (req, res) => {
 
     const feedback = await Feedback.find({ sessionId: { $in: sessionIds } })
       .populate('studentId', 'name')
-      .populate('unit', 'name code')
+      .populate('unit', 'name code') // Ensure unit is populated
       .populate('course', 'name');
 
-    res.json(feedback.map(f => ({
+    // Log feedback for debugging
+    console.log('Fetched feedback:', feedback);
+
+    // Filter out feedback with missing critical data (optional safeguard)
+    const validFeedback = feedback.filter(item => {
+      if (!item.unit || !item.unit.name) {
+        console.warn('Feedback item missing unit data:', item);
+        return false;
+      }
+      return true;
+    });
+
+    res.json(validFeedback.map(f => ({
       ...f.toObject(),
       studentId: f.anonymous ? { name: 'Anonymous' } : f.studentId // Hide student name if anonymous
     })));
