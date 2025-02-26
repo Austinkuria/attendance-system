@@ -170,26 +170,23 @@ exports.regenerateQR = async (req, res) => {
 exports.endSession = async (req, res) => {
   try {
     const { sessionId } = req.body;
-
     if (!mongoose.isValidObjectId(sessionId)) {
       return res.status(400).json({ message: "Invalid session ID format" });
     }
 
     const session = await Session.findById(sessionId).populate('unit');
-    if (!session) {
-      console.log(`Session not found for ID: ${sessionId}`);
-      return res.status(404).json({ message: "Session not found" });
-    }
-
-    if (session.ended) {
-      console.log(`Session already ended: ${sessionId}`);
-      return res.status(400).json({ message: "Session already ended" });
-    }
+    if (!session) return res.status(404).json({ message: "Session not found" });
+    if (session.ended) return res.status(400).json({ message: "Session already ended" });
 
     session.ended = true;
     session.feedbackEnabled = true;
     session.endTime = new Date();
-    const updatedSession = await session.save();
+    await session.save();
+    const updatedSession = await Session.findById(sessionId); // Verify update
+    if (!updatedSession.ended) {
+      console.error(`Failed to set ended to true for session: ${sessionId}`);
+      return res.status(500).json({ message: "Failed to update session status" });
+    }
     console.log(`Session ended: ${sessionId}`, updatedSession.toObject());
 
     const jobName = `end-session-${sessionId}`;
@@ -200,12 +197,12 @@ exports.endSession = async (req, res) => {
 
     await markAbsentees(sessionId);
 
-    // Get students who marked attendance as "Present"
     const attendanceRecords = await Attendance.find({ 
       session: sessionId, 
       status: "Present" 
     }).distinct('student');
     const presentStudents = attendanceRecords.map(id => id.toString());
+    console.log(`Found ${presentStudents.length} present students:`, presentStudents);
 
     if (presentStudents.length > 0) {
       await sendNotification(presentStudents, {
@@ -214,7 +211,7 @@ exports.endSession = async (req, res) => {
         data: { 
           sessionId: session._id.toString(), 
           action: "openFeedback",
-          unitName: session.unit.name // Include unit name for dashboard display
+          unitName: session.unit.name 
         }
       });
       console.log(`Sent feedback notification to ${presentStudents.length} students`);
