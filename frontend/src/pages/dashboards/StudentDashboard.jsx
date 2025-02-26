@@ -87,7 +87,7 @@ const StudentDashboard = () => {
     interactivity: 3,
     clarity: true,
     resources: '',
-    anonymous: false, // Added anonymous option
+    anonymous: false,
   });
   const [quiz, setQuiz] = useState(null);
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -160,7 +160,7 @@ const StudentDashboard = () => {
       const { sessionId, action, unitName } = payload.data || {};
       const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
 
-      if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present") {
+      if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present" && sessionRecord.session.ended) {
         setPendingFeedbacks((prev) => {
           if (!prev.some((pf) => pf.sessionId === sessionId)) {
             return [...prev, {
@@ -210,7 +210,7 @@ const StudentDashboard = () => {
 
     if (!hasShownLowAttendanceAlert && rates.some(rate => rate.value !== null && parseFloat(rate.value) < 75)) {
       message.warning({
-        content: 'Low attendance in some units may risk not attaining the required average attendance rate for your semester!',
+        content: 'Low attendance(<75%) in some units may risk not attaining the required average attendance rate for your semester!',
         duration: 5,
       });
       setHasShownLowAttendanceAlert(true);
@@ -488,7 +488,20 @@ const StudentDashboard = () => {
       setFeedbackModalVisible(true);
     } catch (error) {
       console.error('Error fetching session status:', error);
-      message.error('Unable to verify session status.');
+      if (!latestSession.session.ended) {
+        message.info('Feedback is only available after the latest session ends.');
+        return;
+      }
+      if (latestSession.status !== 'Present') {
+        message.info('You must mark attendance for the latest session to provide feedback.');
+        return;
+      }
+      if (latestSession.feedbackSubmitted) {
+        message.info('Feedback already submitted for the latest session.');
+        return;
+      }
+      setActiveSessionId(latestSession.session._id);
+      setFeedbackModalVisible(true);
     }
   };
 

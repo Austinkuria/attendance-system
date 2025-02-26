@@ -18,13 +18,11 @@ exports.submitFeedback = async (req, res) => {
       return res.status(400).json({ message: 'Feedback can only be submitted for ended sessions' });
     }
 
-    // Check if student was present in the session
     const attendance = await Attendance.findOne({ session: sessionId, student: studentId, status: 'Present' });
     if (!attendance) {
       return res.status(403).json({ message: 'You must be present in this session to provide feedback' });
     }
 
-    // Check if this is the latest session for the unit
     const latestSession = await Session.findOne({ unit: session.unit._id, ended: true }).sort({ endTime: -1 });
     if (latestSession._id.toString() !== sessionId) {
       return res.status(403).json({ message: 'Feedback can only be submitted for the latest session' });
@@ -39,7 +37,7 @@ exports.submitFeedback = async (req, res) => {
       sessionId,
       studentId,
       unit: session.unit._id,
-      course: session.unit.course, // Assuming unit has a course reference
+      course: session.unit.course,
       rating,
       feedbackText,
       pace,
@@ -65,13 +63,11 @@ exports.getFeedbackForLecturer = async (req, res) => {
 
     const feedback = await Feedback.find({ sessionId: { $in: sessionIds } })
       .populate('studentId', 'name')
-      .populate('unit', 'name code') // Ensure unit is populated
+      .populate('unit', 'name code')
       .populate('course', 'name');
 
-    // Log feedback for debugging
     console.log('Fetched feedback:', feedback);
 
-    // Filter out feedback with missing critical data (optional safeguard)
     const validFeedback = feedback.filter(item => {
       if (!item.unit || !item.unit.name) {
         console.warn('Feedback item missing unit data:', item);
@@ -82,7 +78,7 @@ exports.getFeedbackForLecturer = async (req, res) => {
 
     res.json(validFeedback.map(f => ({
       ...f.toObject(),
-      studentId: f.anonymous ? { name: 'Anonymous' } : f.studentId // Hide student name if anonymous
+      studentId: f.anonymous ? { name: 'Anonymous' } : f.studentId
     })));
   } catch (error) {
     console.error('Error fetching feedback:', error);
@@ -137,7 +133,7 @@ exports.getFeedbackSummary = async (req, res) => {
           as: 'unit'
         }
       },
-      { $unwind: '$unit' },
+      { $unwind: { path: '$unit', preserveNullAndEmptyArrays: true } },
       {
         $lookup: {
           from: 'courses',
@@ -146,7 +142,7 @@ exports.getFeedbackSummary = async (req, res) => {
           as: 'course'
         }
       },
-      { $unwind: '$course' },
+      { $unwind: { path: '$course', preserveNullAndEmptyArrays: true } },
       {
         $project: {
           sessionId: '$_id.sessionId',
@@ -160,6 +156,7 @@ exports.getFeedbackSummary = async (req, res) => {
         }
       }
     ]);
+    console.log('Aggregated summary:', summary);
     res.json(summary);
   } catch (error) {
     console.error('Error fetching feedback summary:', error);
@@ -167,7 +164,6 @@ exports.getFeedbackSummary = async (req, res) => {
   }
 };
 
-// Feedback Reminder Job (runs daily at 8 AM)
 schedule.scheduleJob('0 8 * * *', async () => {
   try {
     const recentSessions = await Session.find({
