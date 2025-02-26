@@ -113,6 +113,8 @@ exports.markAbsentees = async (sessionId) => {
         student: studentId,
         status: "Absent",
         deviceId: "system-generated",
+        compositeFingerprint:"system-generated",
+        qrToken:"sytem-generated",
         timestamp: new Date(),
       }))
     );
