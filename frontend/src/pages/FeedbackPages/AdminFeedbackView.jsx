@@ -27,21 +27,27 @@ const AdminFeedbackView = () => {
 
   const columns = [
     { title: 'Session ID', dataIndex: 'sessionId', key: 'sessionId' },
-    { title: 'Unit', dataIndex: 'unit', key: 'unit', render: (unit) => unit.name },
-    { title: 'Avg Rating', dataIndex: 'averageRating', key: 'averageRating' },
-    { title: 'Avg Pace', dataIndex: 'averagePace', key: 'averagePace' },
-    { title: 'Avg Interactivity', dataIndex: 'averageInteractivity', key: 'averageInteractivity' },
+    { title: 'Unit', dataIndex: 'unit', key: 'unit' },
+    { title: 'Course', dataIndex: 'course', key: 'course' },
+    { title: 'Avg Rating', dataIndex: 'averageRating', key: 'averageRating', render: (val) => val.toFixed(2) },
+    { title: 'Avg Pace', dataIndex: 'averagePace', key: 'averagePace', render: (val) => val?.toFixed(2) || 'N/A' },
+    { title: 'Avg Interactivity', dataIndex: 'averageInteractivity', key: 'averageInteractivity', render: (val) => val.toFixed(2) },
     { title: 'Clarity (Yes)', dataIndex: 'clarityYes', key: 'clarityYes' },
     { title: 'Total Feedback', dataIndex: 'totalFeedback', key: 'totalFeedback' },
   ];
 
   const chartData = {
-    labels: summary.map(s => s.unit.name),
+    labels: summary.map(s => `${s.unit} (${s.course})`),
     datasets: [
       {
         label: 'Average Rating',
         data: summary.map(s => s.averageRating),
         backgroundColor: 'rgba(75, 192, 192, 0.6)',
+      },
+      {
+        label: 'Average Interactivity',
+        data: summary.map(s => s.averageInteractivity),
+        backgroundColor: 'rgba(255, 159, 64, 0.6)',
       },
     ],
   };
@@ -50,7 +56,7 @@ const AdminFeedbackView = () => {
     <div style={{ padding: '24px' }}>
       <Title level={2}>Feedback Summary</Title>
       <Card style={{ marginBottom: '24px' }}>
-        <Bar data={chartData} options={{ responsive: true, plugins: { title: { display: true, text: 'Feedback Ratings by Unit' } } }} />
+        <Bar data={chartData} options={{ responsive: true, plugins: { title: { display: true, text: 'Feedback Ratings by Unit and Course' }, legend: { position: 'top' } } }} />
       </Card>
       <Table
         columns={columns}

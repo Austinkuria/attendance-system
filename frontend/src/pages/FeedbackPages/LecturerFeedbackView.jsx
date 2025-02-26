@@ -1,4 +1,4 @@
-import  { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, List, Typography, Rate } from 'antd';
 import { getFeedbackForLecturer } from '../../services/api';
 
@@ -30,7 +30,8 @@ const LecturerFeedbackView = () => {
         dataSource={feedback}
         renderItem={(item) => (
           <Card style={{ marginBottom: '16px' }}>
-            <Text strong>Unit: </Text>{item.sessionId.unit.name}<br />
+            <Text strong>Unit: </Text>{item.unit.name} ({item.unit.code})<br />
+            <Text strong>Course: </Text>{item.course?.name || 'N/A'}<br />
             <Text strong>Student: </Text>{item.studentId.name}<br />
             <Text strong>Rating: </Text><Rate disabled value={item.rating} /><br />
             <Text strong>Comments: </Text>{item.feedbackText || 'None'}<br />

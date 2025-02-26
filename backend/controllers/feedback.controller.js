@@ -1,18 +1,33 @@
 const Feedback = require('../models/Feedback');
 const Session = require('../models/Session');
+const Attendance = require('../models/Attendance');
+const { sendNotification } = require('../services/firebaseService');
+const schedule = require('node-schedule');
 
 exports.submitFeedback = async (req, res) => {
   try {
-    const { sessionId, rating, feedbackText, pace, interactivity, clarity, resources } = req.body;
-    const studentId = req.user.userId; // From JWT middleware
+    const { sessionId, rating, feedbackText, pace, interactivity, clarity, resources, anonymous } = req.body;
+    const studentId = req.user.userId;
 
     if (!sessionId || !rating) {
       return res.status(400).json({ message: 'Session ID and rating are required' });
     }
 
-    const session = await Session.findById(sessionId);
+    const session = await Session.findById(sessionId).populate('unit');
     if (!session || !session.ended) {
       return res.status(400).json({ message: 'Feedback can only be submitted for ended sessions' });
+    }
+
+    // Check if student was present in the session
+    const attendance = await Attendance.findOne({ session: sessionId, student: studentId, status: 'Present' });
+    if (!attendance) {
+      return res.status(403).json({ message: 'You must be present in this session to provide feedback' });
+    }
+
+    // Check if this is the latest session for the unit
+    const latestSession = await Session.findOne({ unit: session.unit._id, ended: true }).sort({ endTime: -1 });
+    if (latestSession._id.toString() !== sessionId) {
+      return res.status(403).json({ message: 'Feedback can only be submitted for the latest session' });
     }
 
     const existingFeedback = await Feedback.findOne({ sessionId, studentId });
@@ -23,12 +38,15 @@ exports.submitFeedback = async (req, res) => {
     const feedback = new Feedback({
       sessionId,
       studentId,
+      unit: session.unit._id,
+      course: session.unit.course, // Assuming unit has a course reference
       rating,
       feedbackText,
       pace,
       interactivity,
       clarity,
-      resources
+      resources,
+      anonymous
     });
 
     await feedback.save();
@@ -42,14 +60,18 @@ exports.submitFeedback = async (req, res) => {
 exports.getFeedbackForLecturer = async (req, res) => {
   try {
     const lecturerId = req.user.userId;
-    const sessions = await Session.find({ lecturer: lecturerId, ended: true }).select('_id');
+    const sessions = await Session.find({ lecturer: lecturerId, ended: true }).select('_id unit');
     const sessionIds = sessions.map(s => s._id);
 
     const feedback = await Feedback.find({ sessionId: { $in: sessionIds } })
       .populate('studentId', 'name')
-      .populate('sessionId', 'unit');
+      .populate('unit', 'name code')
+      .populate('course', 'name');
 
-    res.json(feedback);
+    res.json(feedback.map(f => ({
+      ...f.toObject(),
+      studentId: f.anonymous ? { name: 'Anonymous' } : f.studentId // Hide student name if anonymous
+    })));
   } catch (error) {
     console.error('Error fetching feedback:', error);
     res.status(500).json({ message: 'Error fetching feedback', error: error.message });
@@ -60,8 +82,13 @@ exports.getAllFeedback = async (req, res) => {
   try {
     const feedback = await Feedback.find()
       .populate('studentId', 'name')
+      .populate('unit', 'name code')
+      .populate('course', 'name')
       .populate('sessionId', 'unit lecturer');
-    res.json(feedback);
+    res.json(feedback.map(f => ({
+      ...f.toObject(),
+      studentId: f.anonymous ? { name: 'Anonymous' } : f.studentId
+    })));
   } catch (error) {
     console.error('Error fetching all feedback:', error);
     res.status(500).json({ message: 'Error fetching feedback', error: error.message });
@@ -73,7 +100,7 @@ exports.getFeedbackSummary = async (req, res) => {
     const summary = await Feedback.aggregate([
       {
         $group: {
-          _id: '$sessionId',
+          _id: { sessionId: '$sessionId', unit: '$unit' },
           averageRating: { $avg: '$rating' },
           averagePace: { $avg: '$pace' },
           averageInteractivity: { $avg: '$interactivity' },
@@ -84,16 +111,35 @@ exports.getFeedbackSummary = async (req, res) => {
       {
         $lookup: {
           from: 'sessions',
-          localField: '_id',
+          localField: '_id.sessionId',
           foreignField: '_id',
           as: 'session'
         }
       },
       { $unwind: '$session' },
       {
+        $lookup: {
+          from: 'units',
+          localField: '_id.unit',
+          foreignField: '_id',
+          as: 'unit'
+        }
+      },
+      { $unwind: '$unit' },
+      {
+        $lookup: {
+          from: 'courses',
+          localField: 'unit.course',
+          foreignField: '_id',
+          as: 'course'
+        }
+      },
+      { $unwind: '$course' },
+      {
         $project: {
-          sessionId: '$_id',
-          unit: '$session.unit',
+          sessionId: '$_id.sessionId',
+          unit: '$unit.name',
+          course: '$course.name',
           averageRating: 1,
           averagePace: 1,
           averageInteractivity: 1,
@@ -108,3 +154,30 @@ exports.getFeedbackSummary = async (req, res) => {
     res.status(500).json({ message: 'Error fetching summary', error: error.message });
   }
 };
+
+// Feedback Reminder Job (runs daily at 8 AM)
+schedule.scheduleJob('0 8 * * *', async () => {
+  try {
+    const recentSessions = await Session.find({
+      ended: true,
+      endTime: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
+    }).populate('unit');
+
+    for (const session of recentSessions) {
+      const attendees = await Attendance.find({ session: session._id, status: 'Present' });
+      for (const attendee of attendees) {
+        const feedback = await Feedback.findOne({ sessionId: session._id, studentId: attendee.student });
+        if (!feedback) {
+          await sendNotification([attendee.student.toString()], {
+            title: 'Feedback Reminder',
+            message: `Please submit your feedback for the session on ${session.unit.name}.`,
+            data: { sessionId: session._id.toString(), action: 'openFeedback' }
+          });
+          console.log(`Sent feedback reminder to student ${attendee.student} for session ${session._id}`);
+        }
+      }
+    }
+  } catch (error) {
+    console.error('Error sending feedback reminders:', error);
+  }
+});

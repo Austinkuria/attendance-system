@@ -42,6 +42,7 @@ import {
   DatePicker,
   Select,
   List,
+  Checkbox,
 } from 'antd';
 import {
   UserOutlined,
@@ -86,6 +87,7 @@ const StudentDashboard = () => {
     interactivity: 3,
     clarity: true,
     resources: '',
+    anonymous: false, // Added anonymous option
   });
   const [quiz, setQuiz] = useState(null);
   const [quizAnswers, setQuizAnswers] = useState({});
@@ -134,14 +136,7 @@ const StudentDashboard = () => {
       ]);
 
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
-      const sanitizedUnits = unitsData.filter((unit) => {
-        const isValid = unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '';
-        if (!isValid) console.warn("Invalid unit detected:", unit);
-        return isValid;
-      });
-      if (sanitizedUnits.length === 0) {
-        message.warning("No valid units assigned to your account.");
-      }
+      const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
       setUnits(sanitizedUnits);
 
       if (profileRes._id) {
@@ -199,10 +194,9 @@ const StudentDashboard = () => {
       const unitData = attendanceData.attendanceRecords.filter(
         (record) => record.session.unit._id.toString() === unitId.toString()
       );
-      if (!unitData || unitData.length === 0) return null;
+      if (!unitData.length) return null;
       const attendedSessions = unitData.filter((att) => att.status === 'Present').length;
-      const totalSessions = unitData.length;
-      return ((attendedSessions / totalSessions) * 100).toFixed(2);
+      return ((attendedSessions / unitData.length) * 100).toFixed(2);
     },
     [attendanceData]
   );
@@ -469,7 +463,7 @@ const StudentDashboard = () => {
   const openFeedbackModal = async (unitId) => {
     const unitAttendance = attendanceData.attendanceRecords
       .filter((data) => data.session.unit._id.toString() === unitId.toString())
-      .sort((a, b) => new Date(b.attendedAt) - new Date(a.attendedAt));
+      .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
     const latestSession = unitAttendance[0];
     if (!latestSession) {
       message.warning('No attendance records found for this unit.');
@@ -478,10 +472,7 @@ const StudentDashboard = () => {
 
     try {
       const session = await fetchSessionStatus(unitId);
-      console.log('Fetched session status:', session);
-
-      const sessionEnded = session.ended === true;
-      if (!sessionEnded) {
+      if (!session.ended) {
         message.info('Feedback is only available after the latest session ends.');
         return;
       }
@@ -495,29 +486,9 @@ const StudentDashboard = () => {
       }
       setActiveSessionId(latestSession.session._id);
       setFeedbackModalVisible(true);
-
-      await fetchAllData();
     } catch (error) {
       console.error('Error fetching session status:', error);
-      if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try again later.');
-      } else {
-        const sessionEnded = latestSession.session.ended || new Date() > new Date(latestSession.session.endTime);
-        if (!sessionEnded) {
-          message.info('Feedback is only available after the latest session ends.');
-          return;
-        }
-        if (latestSession.status !== 'Present') {
-          message.info('You must mark attendance for the latest session to provide feedback.');
-          return;
-        }
-        if (latestSession.feedbackSubmitted) {
-          message.info('Feedback already submitted for the latest session.');
-          return;
-        }
-        setActiveSessionId(latestSession.session._id);
-        setFeedbackModalVisible(true);
-      }
+      message.error('Unable to verify session status.');
     }
   };
 
@@ -555,10 +526,11 @@ const StudentDashboard = () => {
         interactivity: feedbackData.interactivity,
         clarity: feedbackData.clarity,
         resources: feedbackData.resources,
+        anonymous: feedbackData.anonymous,
       });
       message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
-      setFeedbackData({ rating: 3, text: '', pace: 50, interactivity: 3, clarity: true, resources: '' });
+      setFeedbackData({ rating: 3, text: '', pace: 50, interactivity: 3, clarity: true, resources: '', anonymous: false });
       setAttendanceData((prev) => ({
         ...prev,
         attendanceRecords: prev.attendanceRecords.map((rec) =>
@@ -569,7 +541,7 @@ const StudentDashboard = () => {
       await fetchAllData();
     } catch (error) {
       console.error('Feedback submission failed:', error);
-      message.error(`Error submitting feedback: ${error.message || 'Unknown error'}`);
+      message.error(`Error submitting feedback: ${error.response?.data?.message || error.message}`);
     }
   };
 
@@ -592,23 +564,20 @@ const StudentDashboard = () => {
 
   const handleAttendClick = async (unitId) => {
     if (!unitId || typeof unitId !== 'string' || unitId.trim() === '' || unitId === 'undefined') {
-      console.error("Invalid unitId passed to handleAttendClick:", unitId);
-      message.error("Unit ID is missing or invalid. Please try again or contact support.");
+      console.error("Invalid unitId:", unitId);
+      message.error("Unit ID is missing or invalid.");
       return;
     }
     try {
-      console.log("Calling getActiveSessionForUnit with unitId:", unitId);
       const session = await getActiveSessionForUnit(unitId);
       if (session && session._id && !session.ended) {
-        const url = `/qr-scanner/${unitId}`;
-        console.log("Navigating to URL:", url);
-        navigate(url);
+        navigate(`/qr-scanner/${unitId}`);
       } else {
         message.error("No active session available for this unit.");
       }
     } catch (err) {
       console.error('Error checking active session:', err);
-      message.error(`No active session available or error checking session: ${err.message || 'Unknown error'}`);
+      message.error(`No active session available: ${err.message || 'Unknown error'}`);
     }
   };
 
@@ -637,7 +606,7 @@ const StudentDashboard = () => {
           ]} />
         </Sider>
 
-        <Content style={{ marginTop: 64, marginBottom: 16, marginLeft: collapsed ? 96 : 266, marginRight: 16, padding: 24, minHeight: 'calc(100vh - 64px)', overflow: 'auto', maxWidth: 1200 }} className="ant-layout-content">
+        <Content style={{ marginTop: 64, marginBottom: 16, marginLeft: collapsed ? 96 : 266, marginRight: 16, padding: 24, minHeight: 'calc(100vh - 64px)', overflow: 'auto', maxWidth: 1200 }}>
           <Spin spinning={loading} tip="Loading data...">
             <Row gutter={[16, 16]} justify="center">
               <Col xs={24} sm={12} md={8} lg={6}>
@@ -776,6 +745,12 @@ const StudentDashboard = () => {
                   value={feedbackData.resources}
                   onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
                 />
+                <Checkbox
+                  checked={feedbackData.anonymous}
+                  onChange={(e) => setFeedbackData({ ...feedbackData, anonymous: e.target.checked })}
+                >
+                  Submit anonymously
+                </Checkbox>
               </Space>
             </Modal>
 
