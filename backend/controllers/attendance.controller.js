@@ -3,6 +3,7 @@ const Attendance = require('../models/Attendance');
 const User = require("../models/User");
 const mongoose = require('mongoose');
 const jwt = require("jsonwebtoken");
+const Unit = require("../models/Unit");
 
 exports.markAttendance = async (req, res) => {
   try {
