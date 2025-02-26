@@ -1,72 +1,74 @@
 const Session = require('../models/Session');
 const Attendance = require('../models/Attendance');
 const User = require("../models/User");
-const Unit = require("../models/Unit");
 const mongoose = require('mongoose');
 const jwt = require("jsonwebtoken");
 
 exports.markAttendance = async (req, res) => {
   try {
-    const { sessionId, studentId, deviceId, qrToken } = req.body;
+    const { sessionId, studentId, deviceId, qrToken, compositeFingerprint } = req.body;
 
+    // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
+    // Validate token
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
-      return res.status(401).json({ message: "No token provided" });
-    }
+    if (!token) return res.status(401).json({ message: "No token provided" });
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.userId !== studentId) {
       return res.status(403).json({ message: "Unauthorized: Token does not match student ID" });
     }
 
-    const session = await Session.findById(sessionId).populate('unit');
-    if (!session) {
-      return res.status(404).json({ message: "Session not found" });
-    }
+    // Validate session
+    const session = await Session.findById(sessionId);
+    if (!session) return res.status(404).json({ message: "Session not found" });
     const now = new Date();
     if (now < session.startTime || now > session.endTime || session.ended) {
       return res.status(400).json({ message: "Session is not active" });
     }
 
+    // Validate QR token
     if (!session.qrToken || session.qrToken !== qrToken) {
       return res.status(400).json({ message: "Invalid QR code" });
     }
 
+    // Check for existing attendance
     const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
     if (existingStudentRecord) {
       return res.status(400).json({ message: "You have already marked attendance for this session" });
     }
 
+    // Check for device/fingerprint conflicts
     const existingDeviceRecord = await Attendance.findOne({
       session: sessionId,
-      deviceId: deviceId,
+      $or: [
+        { deviceId: deviceId },
+        { compositeFingerprint: compositeFingerprint }
+      ],
       status: "Present"
     });
     if (existingDeviceRecord) {
       return res.status(403).json({ 
-        message: "This device has already been used to mark attendance for this session. Proxy attendance is not allowed." 
+        message: "This device has already marked attendance for this session",
+        code: "DEVICE_CONFLICT"
       });
     }
 
-    const student = await User.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ message: "Student not found" });
-    }
-
+    // Save attendance
     const attendance = new Attendance({
       session: sessionId,
       student: studentId,
       status: "Present",
-      deviceId, // Real device ID from FingerprintJS for "Present"
+      deviceId,
+      compositeFingerprint,
       qrToken,
-      markedBy: req.user?._id,
       attendedAt: new Date()
     });
     await attendance.save();
 
+    // Update session attendees
     if (!session.attendees.some(a => a.student.toString() === studentId)) {
       session.attendees.push({ student: studentId });
       await session.save();

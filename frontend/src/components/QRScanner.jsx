@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { Button, Spin, Alert, Typography, Card, message, Space } from "antd";
+import { Button, Spin, Alert, Typography, Card, message, Space, Modal } from "antd";
 import QrScanner from "qr-scanner";
 import { markAttendance, getActiveSessionForUnit } from "../services/api";
 import { jwtDecode } from "jwt-decode";
@@ -19,25 +19,58 @@ const QRScanner = () => {
   const [sessionId, setSessionId] = useState(null);
   const [sessionEnded, setSessionEnded] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
+  const [compositeFingerprint, setCompositeFingerprint] = useState(null);
 
   const { selectedUnit } = useParams();
   const navigate = useNavigate();
   const scanTimeoutRef = useRef(null);
 
-  useEffect(() => {
-    const generateDeviceFingerprint = async () => {
-      const fp = await FingerprintJS.load();
-      const result = await fp.get();
-      setDeviceId(result.visitorId);
+  // Enhanced fingerprint generation
+  const generateDeviceFingerprint = async () => {
+    const fp = await FingerprintJS.load();
+    const result = await fp.get();
+    setDeviceId(result.visitorId);
+
+    // Cross-browser attributes
+    const getStableAttributes = () => {
+      const screen = `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`;
+      const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      const hardwareConcurrency = navigator.hardwareConcurrency || 'unknown';
+      const platform = navigator.platform;
+      
+      // WebGL fingerprint
+      const gl = document.createElement('canvas').getContext('webgl');
+      const debugInfo = gl?.getExtension('WEBGL_debug_renderer_info');
+      const renderer = gl ? gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL) : 'unsupported';
+      
+      return `${screen}|${timezone}|${hardwareConcurrency}|${platform}|${renderer}`;
     };
+
+    // Generate SHA-256 hash
+    const encoder = new TextEncoder();
+    const data = encoder.encode(getStableAttributes());
+    const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    const fingerprint = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    setCompositeFingerprint(fingerprint);
+  };
+
+  useEffect(() => {
     generateDeviceFingerprint();
+
+    // Consent dialog
+    if (!localStorage.getItem('fingerprintConsent')) {
+      Modal.confirm({
+        title: 'Device Analysis',
+        content: 'We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.',
+        onOk: () => localStorage.setItem('fingerprintConsent', 'true')
+      });
+    }
   }, []);
 
   useEffect(() => {
     const fetchSession = async () => {
-      console.log("QRScanner: selectedUnit from useParams:", selectedUnit); // Debug log
       if (!selectedUnit || selectedUnit === 'undefined') {
-        console.error("QRScanner: Invalid selectedUnit:", selectedUnit);
         message.error("Invalid unit selected. Please try again from the dashboard.");
         setSessionEnded(true);
         setLoading(false);
@@ -62,7 +95,6 @@ const QRScanner = () => {
         }
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || "Error fetching session details";
-        console.error("QRScanner: Error fetching session:", errorMsg);
         message.error(errorMsg);
         setSessionEnded(true);
       } finally {
@@ -72,46 +104,41 @@ const QRScanner = () => {
     fetchSession();
   }, [selectedUnit]);
 
-  const onScanSuccess = useCallback(
-    async (result) => {
-      if (!sessionId || sessionEnded) {
-        message.error("Session has ended. Attendance cannot be marked.");
-        return;
-      }
+  const onScanSuccess = useCallback(async (result) => {
+    if (!sessionId || sessionEnded) {
+      message.error("Session has ended. Attendance cannot be marked.");
+      return;
+    }
 
-      stopScanner();
-      setScannedResult(result?.data);
-      setLoading(true);
-      clearTimeout(scanTimeoutRef.current);
+    stopScanner();
+    setScannedResult(result?.data);
+    setLoading(true);
+    clearTimeout(scanTimeoutRef.current);
 
-      try {
-        const token = localStorage.getItem("token");
-        if (!token) throw new Error("Authentication failed. Please log in again.");
+    try {
+      const token = localStorage.getItem("token");
+      if (!token) throw new Error("Authentication failed. Please log in again.");
 
-        const decoded = jwtDecode(token);
-        const studentId = decoded.userId;
-        const base64Data = result.data;
+      const decoded = jwtDecode(token);
+      const studentId = decoded.userId;
+      const base64Data = result.data;
 
-        console.log("Marking attendance with:", { sessionId, studentId, qrToken: base64Data, deviceId });
-        if (!deviceId) throw new Error("Device identification failed.");
-
-        const decodedData = JSON.parse(atob(base64Data));
-        if (decodedData.s !== sessionId) {
-          throw new Error("Invalid QR code for this session.");
-        }
-
-        await markAttendance(sessionId, studentId, token, deviceId, base64Data);
-        message.success("Attendance marked successfully!");
-        navigate("/student-dashboard");
-      } catch (err) {
-        const errorMsg = err.response?.data?.message || err.message || "Error marking attendance";
-        message.error(errorMsg);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [sessionId, sessionEnded, navigate, deviceId]
-  );
+      await markAttendance(
+        sessionId, 
+        studentId, 
+        token, 
+        deviceId, 
+        base64Data,
+        compositeFingerprint // Pass composite fingerprint
+      );
+      message.success("Attendance marked successfully!");
+      navigate("/student-dashboard");
+    } catch (err) {
+      message.error(err.message || "Error marking attendance");
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
 
   const startScanner = useCallback(() => {
     if (!videoEl.current || sessionEnded) return;

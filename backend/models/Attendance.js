@@ -24,20 +24,20 @@ const AttendanceSchema = new mongoose.Schema({
     default: "Present",
     required: true
   },
-  markedBy: { 
-    type: mongoose.Schema.Types.ObjectId, 
-    ref: "User",
-    required: false
-  },
-  updatedAt: { 
-    type: Date, 
-    default: null
-  },
   deviceId: { 
     type: String, 
     required: true 
   },
-  attendedAt: { type: Date },
+  compositeFingerprint: { 
+    type: String, 
+    required: true,
+    index: true
+  },
+  qrToken: { 
+    type: String, 
+    required: true 
+  },
+  attendedAt: { type: Date }
 }, { timestamps: true });
 
 AttendanceSchema.index({ session: 1, status: 1 });

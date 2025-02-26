@@ -27,8 +27,16 @@ const authLimiter = rateLimit({
   headers: true
 });
 
+const attendanceMarkLimiter = rateLimit({
+  windowMs: 5 * 60 * 1000, // 5 minutes
+  max: 3, // Max 3 attempts per IP
+  message: 'Too many attendance attempts, please try again later',
+  skipFailedRequests: true
+});
+
 module.exports = {
   apiLimiter,
   sensitiveLimiter,
-  authLimiter
+  authLimiter,
+  attendanceMarkLimiter
 };
