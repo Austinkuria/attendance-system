@@ -9,14 +9,6 @@
       "destination": "/firebase-messaging-sw.js"
     },
     {
-      "source": "/firebase-app.js",
-      "destination": "/firebase-app.js"
-    },
-    {
-      "source": "/firebase-messaging.js",
-      "destination": "/firebase-messaging.js"
-    },
-    {
       "source": "/icon-(.*).png",
       "destination": "/icon-$1.png"
     },
@@ -45,32 +37,6 @@
     },
     {
       "source": "/firebase-messaging-sw.js",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/firebase-app.js",
-      "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
-      ]
-    },
-    {
-      "source": "/firebase-messaging.js",
       "headers": [
         {
           "key": "Content-Type",

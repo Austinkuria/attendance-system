@@ -1,14 +1,17 @@
 /* eslint-env serviceworker */
 
-console.log('Attempting to load Firebase scripts...');
 try {
   importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
-  console.log('firebase-app.js loaded');
-  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js');
-  console.log('firebase-messaging.js loaded');
+  console.log('firebase-app.js loaded successfully');
 } catch (error) {
-  console.error('Failed to load Firebase scripts:', error);
-  throw error;
+  console.error('Failed to load firebase-app.js:', error);
+}
+
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js');
+  console.log('firebase-messaging.js loaded successfully');
+} catch (error) {
+  console.error('Failed to load firebase-messaging.js:', error);
 }
 
 const firebaseConfig = {
@@ -21,26 +24,31 @@ const firebaseConfig = {
   measurementId: "G-XFH8TQ70W5"
 };
 
-firebase.initializeApp(firebaseConfig);
-const messaging = firebase.messaging();
+try {
+  firebase.initializeApp(firebaseConfig);
+  console.log('Firebase initialized');
+  const messaging = firebase.messaging();
 
-messaging.onBackgroundMessage((payload) => {
-  console.log('[Firebase Messaging] Background message received:', payload);
+  messaging.onBackgroundMessage((payload) => {
+    console.log('[Firebase Messaging] Background message received:', payload);
 
-  const notificationTitle = payload?.notification?.title || "Feedback Available";
-  const notificationOptions = {
-    body: payload?.notification?.body || "A session has ended. Please provide your feedback.",
-    icon: "/firebase-logo.png",
-    data: payload.data,
-    tag: `feedback-${payload.data.sessionId}`,
-    renotify: true
-  };
+    const notificationTitle = payload?.notification?.title || "Feedback Available";
+    const notificationOptions = {
+      body: payload?.notification?.body || "A session has ended. Please provide your feedback.",
+      icon: "/icon-512x512.png", // Use an existing icon from public/
+      data: payload.data,
+      tag: `feedback-${payload.data.sessionId}`,
+      renotify: true
+    };
 
-  self.registration.showNotification(notificationTitle, notificationOptions);
-});
+    self.registration.showNotification(notificationTitle, notificationOptions);
+  });
 
-self.addEventListener('notificationclick', (event) => {
-  event.notification.close();
-  const url = '/student-dashboard';
-  event.waitUntil(clients.openWindow(url));
-});
+  self.addEventListener('notificationclick', (event) => {
+    event.notification.close();
+    const url = '/student-dashboard';
+    event.waitUntil(clients.openWindow(url));
+  });
+} catch (error) {
+  console.error('Error in Firebase setup:', error);
+}
