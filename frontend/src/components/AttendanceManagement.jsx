@@ -72,32 +72,15 @@ const AttendanceManagement = () => {
   }, [departments]);
 
   const checkCurrentSession = useCallback(async () => {
-    const savedSession = localStorage.getItem('currentSession');
-    const parsedSession = savedSession ? JSON.parse(savedSession) : null;
-
-    if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
-      setCurrentSession(parsedSession);
-      setQrData(parsedSession.qrCode || '');
-      const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
-        ? parsedSession.unit._id
-        : typeof parsedSession.unit === 'string'
-          ? parsedSession.unit
-          : null;
-      setSelectedUnit(unitId);
-      setLoading(prevState => ({ ...prevState, session: false }));
-      setLoadingSessionData(false);
-      return;
-    }
-
     try {
       setLoading(prevState => ({ ...prevState, session: true }));
       setLoadingSessionData(true);
       const { data } = await detectCurrentSession(lecturerId);
       console.log('Detected session from backend:', data);
 
-      if (data && !data.ended) {
-        const validStartTime = data.startTime ? new Date(data.startTime) : null;
-        const validEndTime = data.endTime ? new Date(data.endTime) : null;
+      if (data && !data.ended && new Date(data.endTime) > new Date()) {
+        const validStartTime = new Date(data.startTime);
+        const validEndTime = new Date(data.endTime);
         if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
           throw new Error('Invalid session times detected');
         }
@@ -107,28 +90,17 @@ const AttendanceManagement = () => {
       } else {
         setCurrentSession(null);
         setQrData('');
+        localStorage.removeItem('currentSession');
       }
     } catch (error) {
       console.error("Error checking current session:", error);
+      setCurrentSession(null);
+      setQrData('');
+      localStorage.removeItem('currentSession');
       if (error.response?.status === 429) {
-        message.warning('Too many requests to check session. Using local session data.');
-        if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
-          setCurrentSession(parsedSession);
-          setQrData(parsedSession.qrCode || '');
-          const unitId = parsedSession.unit && typeof parsedSession.unit === 'object' && parsedSession.unit._id
-            ? parsedSession.unit._id
-            : typeof parsedSession.unit === 'string'
-              ? parsedSession.unit
-              : null;
-          setSelectedUnit(unitId);
-        } else {
-          setCurrentSession(null);
-          setQrData('');
-        }
+        message.warning('Too many requests to check session. Please try again later.');
       } else {
         message.error(error.message || 'Failed to detect current session');
-        setCurrentSession(null);
-        setQrData('');
       }
     } finally {
       setLoading(prevState => ({ ...prevState, session: false }));
@@ -146,7 +118,7 @@ const AttendanceManagement = () => {
       intervalId = setInterval(() => {
         const now = new Date();
         if (now > new Date(currentSession.endSession)) {
-          setCurrentSession(prev => ({ ...prev, ended: true }));
+          setCurrentSession(null);
           setQrData('');
           localStorage.removeItem('currentSession');
           clearInterval(intervalId);
@@ -185,9 +157,9 @@ const AttendanceManagement = () => {
   }, [lecturerId, selectedUnit, currentSession, units]);
 
   useEffect(() => {
-    if (!selectedUnit) {
+    if (!selectedUnit || currentSession?.ended) {
       setLoadingSessionData(false);
-      if (!currentSession) {
+      if (!currentSession || currentSession.ended) {
         setCurrentSession(null);
         setQrData('');
       }
@@ -195,23 +167,6 @@ const AttendanceManagement = () => {
     }
 
     const fetchCurrentSession = async () => {
-      const savedSession = localStorage.getItem('currentSession');
-      const parsedSession = savedSession ? JSON.parse(savedSession) : null;
-
-      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit) {
-        const unitId = typeof parsedSession.unit === 'object' && parsedSession.unit._id
-          ? parsedSession.unit._id
-          : typeof parsedSession.unit === 'string'
-            ? parsedSession.unit
-            : null;
-        if (unitId === selectedUnit) {
-          setCurrentSession(parsedSession);
-          setQrData(parsedSession.qrCode || '');
-          setLoadingSessionData(false);
-          return;
-        }
-      }
-
       const token = localStorage.getItem('token');
       if (!token) {
         console.error("No authentication token found");
@@ -230,17 +185,19 @@ const AttendanceManagement = () => {
       try {
         setLoadingSessionData(true);
         console.log("Fetching session for unit:", selectedUnit);
-        const response = await axios.get(`https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`, {
-          headers: { 'Authorization': `Bearer ${token}` },
-          validateStatus: status => status >= 200 && status < 300
-        });
+        const response = await axios.get(
+          `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
+          {
+            headers: { 'Authorization': `Bearer ${token}` },
+            validateStatus: status => status >= 200 && status < 300
+          }
+        );
         console.log("Full API response for current session:", response.data);
         if (response.data && response.data._id && !response.data.ended) {
           const validStartTime = response.data.startTime ? new Date(response.data.startTime) : null;
           const validEndTime = response.data.endTime ? new Date(response.data.endTime) : null;
           if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
             message.warning("Invalid session times received.");
-            if (currentSession && !currentSession.ended && new Date(currentSession.endSession) > new Date()) return;
             setCurrentSession(null);
             setQrData('');
           } else {
@@ -256,41 +213,20 @@ const AttendanceManagement = () => {
       } catch (error) {
         console.error("Error fetching session:", error);
         if (error.response?.status === 429) {
-          message.warning('Too many requests to fetch session. Using local session data.');
-          if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date() && parsedSession.unit) {
-            const unitId = typeof parsedSession.unit === 'object' && parsedSession.unit._id
-              ? parsedSession.unit._id
-              : typeof parsedSession.unit === 'string'
-                ? parsedSession.unit
-                : null;
-            if (unitId === selectedUnit) {
-              setCurrentSession(parsedSession);
-              setQrData(parsedSession.qrCode || '');
-            } else {
-              setCurrentSession(null);
-              setQrData('');
-            }
-          } else {
-            setCurrentSession(null);
-            setQrData('');
-          }
+          message.warning('Too many requests to fetch session. Please try again later.');
         } else if (error.response?.status === 400) {
           message.error("Invalid unit ID provided.");
         } else {
           message.error(error.response?.data?.message || "Failed to fetch session.");
-          if (currentSession && !currentSession.ended && new Date(currentSession.endSession) > new Date()) {
-            return;
-          } else {
-            setCurrentSession(null);
-            setQrData('');
-          }
         }
+        setCurrentSession(null);
+        setQrData('');
       } finally {
         setLoadingSessionData(false);
       }
     };
     fetchCurrentSession();
-  }, [selectedUnit, units]);
+  }, [selectedUnit, units, currentSession?.ended]);
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -453,10 +389,11 @@ const AttendanceManagement = () => {
             console.log('Session end response:', response.data);
             if (response.data.session.ended) {
               message.success('Session ended successfully');
-              setCurrentSession({ ...response.data.session, ended: true });
+              setCurrentSession(null);
               setQrData('');
               setAttendance([]);
               localStorage.removeItem('currentSession');
+              setSelectedUnit(null); // Reset to force re-selection
             } else {
               throw new Error('Session not marked as ended');
             }
@@ -466,6 +403,9 @@ const AttendanceManagement = () => {
               message.warning('Too many requests. Please try again later.');
             } else if (error.response?.status === 400) {
               message.error('Invalid request. Session may already be ended.');
+              setCurrentSession(null);
+              setQrData('');
+              localStorage.removeItem('currentSession');
             } else {
               message.error(error.response?.data?.message || 'Failed to end session');
             }

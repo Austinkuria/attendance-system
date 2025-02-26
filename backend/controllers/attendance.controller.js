@@ -10,34 +10,68 @@ exports.markAttendance = async (req, res) => {
 
     // Validate IDs
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
-      return res.status(400).json({ message: "Invalid ID format" });
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_ID_FORMAT",
+        message: "Invalid ID format provided."
+      });
     }
 
     // Validate token
     const token = req.headers.authorization?.split(" ")[1];
-    if (!token) return res.status(401).json({ message: "No token provided" });
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        code: "NO_TOKEN_PROVIDED",
+        message: "No authentication token provided."
+      });
+    }
+
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
     if (decoded.userId !== studentId) {
-      return res.status(403).json({ message: "Unauthorized: Token does not match student ID" });
+      return res.status(403).json({
+        success: false,
+        code: "TOKEN_MISMATCH",
+        message: "Unauthorized: Token does not match student ID."
+      });
     }
 
     // Validate session
     const session = await Session.findById(sessionId);
-    if (!session) return res.status(404).json({ message: "Session not found" });
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        code: "SESSION_NOT_FOUND",
+        message: "Session not found."
+      });
+    }
+
     const now = new Date();
     if (now < session.startTime || now > session.endTime || session.ended) {
-      return res.status(400).json({ message: "Session is not active" });
+      return res.status(400).json({
+        success: false,
+        code: "SESSION_INACTIVE",
+        message: "Session is not active."
+      });
     }
 
     // Validate QR token
     if (!session.qrToken || session.qrToken !== qrToken) {
-      return res.status(400).json({ message: "Invalid QR code" });
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_QR_CODE",
+        message: "Invalid QR code for this session."
+      });
     }
 
     // Check for existing attendance
     const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
     if (existingStudentRecord) {
-      return res.status(400).json({ message: "You have already marked attendance for this session" });
+      return res.status(400).json({
+        success: false,
+        code: "ATTENDANCE_ALREADY_MARKED",
+        message: "You have already marked attendance for this session."
+      });
     }
 
     // Check for device/fingerprint conflicts
@@ -50,9 +84,10 @@ exports.markAttendance = async (req, res) => {
       status: "Present"
     });
     if (existingDeviceRecord) {
-      return res.status(403).json({ 
-        message: "This device has already marked attendance for this session",
-        code: "DEVICE_CONFLICT"
+      return res.status(403).json({
+        success: false,
+        code: "DEVICE_CONFLICT",
+        message: "This device has already marked attendance for this session."
       });
     }
 
@@ -74,10 +109,17 @@ exports.markAttendance = async (req, res) => {
       await session.save();
     }
 
-    res.status(201).json({ message: "Attendance marked as Present" });
+    res.status(201).json({
+      success: true,
+      message: "Attendance marked as Present."
+    });
   } catch (error) {
     console.error("Error marking attendance:", error);
-    res.status(500).json({ message: "Error marking attendance", error: error.message });
+    res.status(500).json({
+      success: false,
+      code: "SERVER_ERROR",
+      message: "An unexpected error occurred. Please try again later."
+    });
   }
 };
 

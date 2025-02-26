@@ -1057,31 +1057,23 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
     );
     return response.data;
   } catch (error) {
-    throw error.response ? error.response.data : new Error(error.message || "Network error");
+    if (error.response) {
+      // Backend error with response
+      throw {
+        message: error.response.data.message,
+        code: error.response.data.code,
+        success: error.response.data.success
+      };
+    } else {
+      // Network or unexpected error
+      throw {
+        message: "Network error. Please check your connection.",
+        code: "NETWORK_ERROR",
+        success: false
+      };
+    }
   }
 };
-
-
-// export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken) => {
-//   try {
-//     if (!/^[0-9a-fA-F]{24}$/.test(studentId)) {
-//       throw new Error("Invalid student ID format");
-//     }
-
-//     const response = await axios.post(
-//       `${API_URL}/attendance/mark`,
-//       { sessionId, studentId, deviceId, qrToken },
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     throw error.response ? error.response.data : new Error(error.message || "Network error");
-//   }
-// };
 
 export const regenerateQR = async (sessionId, token) => {
   try {

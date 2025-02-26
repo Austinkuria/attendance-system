@@ -15,4 +15,14 @@ router.get('/trends/:unitId', authenticate, (req, res) => {
     attendanceController.getAttendanceTrends(req, res);
   });
   router.get('/course-rate/:courseId', authenticate, attendanceController.getCourseAttendanceRate);
+
+  // Error-handling middleware
+router.use((err, req, res, next) => {
+  console.error("Error:", err);
+  res.status(500).json({
+    success: false,
+    code: "SERVER_ERROR",
+    message: "An unexpected error occurred. Please try again later."
+  });
+});
 module.exports = router;

@@ -109,37 +109,57 @@ const QRScanner = () => {
       message.error("Session has ended. Attendance cannot be marked.");
       return;
     }
-
+  
     stopScanner();
     setScannedResult(result?.data);
     setLoading(true);
     clearTimeout(scanTimeoutRef.current);
-
+  
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication failed. Please log in again.");
-
+  
       const decoded = jwtDecode(token);
       const studentId = decoded.userId;
       const base64Data = result.data;
-
-      await markAttendance(
+  
+      const response = await markAttendance(
         sessionId, 
         studentId, 
         token, 
         deviceId, 
         base64Data,
-        compositeFingerprint // Pass composite fingerprint
+        compositeFingerprint
       );
-      message.success("Attendance marked successfully!");
-      navigate("/student-dashboard");
+  
+      if (response.success) {
+        message.success(response.message || "Attendance marked successfully!");
+        navigate("/student-dashboard");
+      } else {
+        // Handle backend errors
+        switch (response.code) {
+          case "INVALID_ID_FORMAT":
+          case "NO_TOKEN_PROVIDED":
+          case "TOKEN_MISMATCH":
+          case "SESSION_NOT_FOUND":
+          case "SESSION_INACTIVE":
+          case "INVALID_QR_CODE":
+          case "ATTENDANCE_ALREADY_MARKED":
+          case "DEVICE_CONFLICT":
+            message.error(response.message);
+            break;
+          default:
+            message.error("An unexpected error occurred. Please try again.");
+        }
+      }
     } catch (err) {
-      message.error(err.message || "Error marking attendance");
+      // Handle network or unexpected errors
+      message.error(err.message || "An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
   }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
-
+  
   const startScanner = useCallback(() => {
     if (!videoEl.current || sessionEnded) return;
 

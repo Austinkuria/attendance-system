@@ -30,7 +30,11 @@ const authLimiter = rateLimit({
 const attendanceMarkLimiter = rateLimit({
   windowMs: 5 * 60 * 1000, // 5 minutes
   max: 3, // Max 3 attempts per IP
-  message: 'Too many attendance attempts, please try again later',
+  message: {
+    success: false,
+    code: "RATE_LIMIT_EXCEEDED",
+    message: "Too many attendance attempts. Please try again later."
+  },
   skipFailedRequests: true
 });
 
