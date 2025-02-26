@@ -1,7 +1,15 @@
 /* eslint-env serviceworker */
 
-importScripts('/firebase-app.js');
-importScripts('/firebase-messaging.js');
+console.log('Attempting to load Firebase scripts...');
+try {
+  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js');
+  console.log('firebase-app.js loaded');
+  importScripts('https://www.gstatic.com/firebasejs/10.12.0/firebase-messaging.js');
+  console.log('firebase-messaging.js loaded');
+} catch (error) {
+  console.error('Failed to load Firebase scripts:', error);
+  throw error;
+}
 
 const firebaseConfig = {
   apiKey: "AIzaSyDt9tzcX01IKqAPKjUDk-tOT3NZm4hHl2Y",
