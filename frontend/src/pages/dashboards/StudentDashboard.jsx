@@ -36,7 +36,7 @@ import {
   theme,
   Typography,
   Spin,
-  notification,
+  // notification,
   Slider,
   Switch,
   DatePicker,
@@ -58,7 +58,6 @@ import {
 } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
-import { messaging, onMessage, registerFcmToken } from '../../firebase';
 import 'antd/dist/reset.css';
 import './StudentDashboard.css';
 
@@ -105,24 +104,68 @@ const StudentDashboard = () => {
     } else {
       if ('serviceWorker' in navigator) {
         navigator.serviceWorker
-          .register('/firebase-messaging-sw.js')
-          .then((registration) => console.log('Service Worker registered:', registration.scope))
+          .register('/onesignal-sw.js')
+          .then((registration) => {
+            console.log('Service Worker registered:', registration.scope);
+            // Initialize OneSignal
+            window.OneSignalDeferred = window.OneSignalDeferred || [];
+            window.OneSignalDeferred.push((OneSignal) => {
+              OneSignal.User.PushSubscription.optIn()
+                .then(() => {
+                  console.log('User subscribed to OneSignal push notifications');
+                  OneSignal.User.getUserId()
+                    .then((playerId) => {
+                      if (playerId) {
+                        console.log('OneSignal Player ID:', playerId);
+                        axios.post(
+                          `${API_URL}/users/update-push-token`,
+                          { token: playerId },
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        )
+                          .then(() => console.log('Player ID registered:', playerId))
+                          .catch((error) => console.error('Error registering Player ID:', error));
+                      }
+                    });
+                })
+                .catch((error) => console.error('OneSignal subscription failed:', error));
+
+              // Handle foreground notifications
+              OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+                const notification = event.getNotification();
+                console.log('Foreground notification received:', notification);
+                const { sessionId, action, unitName } = notification.additionalData || {};
+                const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
+
+                if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present" && sessionRecord.session.ended) {
+                  setPendingFeedbacks((prev) => {
+                    if (!prev.some((pf) => pf.sessionId === sessionId)) {
+                      return [...prev, {
+                        sessionId,
+                        unitName,
+                        title: notification.title || "Feedback Available",
+                        message: notification.body || "Please provide your feedback.",
+                        timestamp: new Date(),
+                      }];
+                    }
+                    return prev;
+                  });
+                } else if (action === "feedbackSubmitted") {
+                  setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
+                  notification.success({
+                    message: notification.title || "Feedback Submitted",
+                    description: notification.body || "Thank you for your feedback!",
+                    duration: 5,
+                  });
+                }
+              });
+            });
+          })
           .catch((error) => console.error('Service Worker registration failed:', error));
       }
 
-      registerFcmToken().then((fcmToken) => {
-        if (fcmToken) {
-          axios.post(
-            `${API_URL}/users/update-fcm-token`,
-            { token: fcmToken },
-            { headers: { Authorization: `Bearer ${token}` } }
-          )
-            .then(() => console.log('FCM Token registered:', fcmToken))
-            .catch((error) => console.error('Error registering FCM token:', error));
-        }
-      });
+      fetchAllData();
     }
-  }, [navigate]);
+  }, [navigate, attendanceData, fetchAllData]);
 
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -154,40 +197,6 @@ const StudentDashboard = () => {
   useEffect(() => {
     fetchAllData();
   }, [fetchAllData]);
-
-  useEffect(() => {
-    const handleNotification = (payload) => {
-      const { sessionId, action, unitName } = payload.data || {};
-      const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
-
-      if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present" && sessionRecord.session.ended) {
-        setPendingFeedbacks((prev) => {
-          if (!prev.some((pf) => pf.sessionId === sessionId)) {
-            return [...prev, {
-              sessionId,
-              unitName,
-              title: payload.notification.title,
-              message: payload.notification.body,
-              timestamp: new Date(),
-            }];
-          }
-          return prev;
-        });
-      } else if (action === "feedbackSubmitted") {
-        setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
-        notification.success({
-          message: payload.notification.title,
-          description: payload.notification.body,
-          duration: 5,
-        });
-      }
-    };
-
-    onMessage(messaging, (payload) => {
-      console.log('Foreground notification received:', payload);
-      handleNotification(payload);
-    });
-  }, [attendanceData]);
 
   const calculateAttendanceRate = useCallback(
     (unitId) => {

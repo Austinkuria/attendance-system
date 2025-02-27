@@ -99,6 +99,4 @@ router.post("/auth/reset-password", [
 ], sendResetLink);
 router.put("/auth/reset-password/:token", resetPassword);
 
-router.post('/update-fcm-token', updateFcmToken);
-
 module.exports = router;

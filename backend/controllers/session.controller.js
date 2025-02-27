@@ -1,10 +1,37 @@
 const Session = require('../models/Session');
-const Attendance = require('../models/Attendance'); // Add this line
+const Attendance = require('../models/Attendance');
+const User = require('../models/User');
 const generateQRToken = require('../utils/session.utils');
 const schedule = require("node-schedule");
 const { markAbsentees } = require("../controllers/attendance.controller");
 const mongoose = require('mongoose');
-const { sendNotification } = require('../services/firebaseService');
+const axios = require('axios');
+require('dotenv').config();
+const ONE_SIGNAL_APP_ID = process.env.ONE_SIGNAL_APP_ID;
+const ONE_SIGNAL_API_KEY = `Basic ${process.env.ONE_SIGNAL_API_KEY}`;
+const sendNotification = async (playerIds, notification) => {
+  try {
+    const response = await axios.post(
+      'https://onesignal.com/api/v1/notifications',
+      {
+        app_id: ONE_SIGNAL_APP_ID,
+        include_player_ids: playerIds,
+        headings: { en: notification.title },
+        contents: { en: notification.message },
+        data: notification.data
+      },
+      {
+        headers: {
+          Authorization: ONE_SIGNAL_API_KEY,
+          'Content-Type': 'application/json'
+        }
+      }
+    );
+    console.log(`Sent notification to ${playerIds.length} users:`, response.data);
+  } catch (error) {
+    console.error('Error sending OneSignal notification:', error.response ? error.response.data : error);
+  }
+};
 
 exports.detectCurrentSession = async (req, res) => {
   try {
@@ -88,9 +115,10 @@ exports.createSession = async (req, res) => {
             status: "Present" 
           }).distinct('student');
           const presentStudents = attendanceRecords.map(id => id.toString());
+          const playerIds = await User.find({ _id: { $in: presentStudents } }).distinct('pushToken');
 
-          if (presentStudents.length > 0) {
-            await sendNotification(presentStudents, {
+          if (playerIds.length > 0) {
+            await sendNotification(playerIds, {
               title: "Feedback Available",
               message: `The session for ${updatedSession.unit.name} has ended. Please provide your feedback now.`,
               data: { 
@@ -99,7 +127,7 @@ exports.createSession = async (req, res) => {
                 unitName: updatedSession.unit.name
               }
             });
-            console.log(`Auto-sent feedback notification to ${presentStudents.length} students`);
+            console.log(`Auto-sent feedback notification to ${playerIds.length} students`);
           }
 
           console.log(`Automatically ended session: ${session._id}`);
@@ -178,8 +206,10 @@ exports.endSession = async (req, res) => {
       status: "Present" 
     }).distinct('student');
     const presentStudents = attendanceRecords.map(id => id.toString());
-    if (presentStudents.length > 0) {
-      await sendNotification(presentStudents, {
+    const playerIds = await User.find({ _id: { $in: presentStudents } }).distinct('pushToken');
+
+    if (playerIds.length > 0) {
+      await sendNotification(playerIds, {
         title: "Feedback Available",
         message: `The session for ${session.unit.name} has ended. Please provide your feedback now.`,
         data: { 
@@ -188,7 +218,7 @@ exports.endSession = async (req, res) => {
           unitName: session.unit.name 
         }
       });
-      console.log(`Sent feedback notification to ${presentStudents.length} students`);
+      console.log(`Sent feedback notification to ${playerIds.length} students`);
     }
 
     res.status(200).json({ message: "Session ended and absentees marked successfully", session: updatedSession });
