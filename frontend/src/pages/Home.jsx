@@ -1,6 +1,6 @@
 import { Layout, Button, Typography, Row, Col, Card, Space, Collapse, Carousel, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, BarChartOutlined, TeamOutlined, GlobalOutlined, PlayCircleOutlined, MessageOutlined } from '@ant-design/icons';
+import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, TeamOutlined, GlobalOutlined, MessageOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect } from 'react';
 
@@ -10,7 +10,7 @@ const { Panel } = Collapse;
 
 // Animated QR code component
 const AnimatedQR = animated(() => (
-  <QrcodeOutlined style={{ fontSize: '220px', color: '#52c41a', margin: '40px 0' }} />
+  <QrcodeOutlined style={{ fontSize: '220px', color: '#52c41a' }} />
 ));
 
 const Home = () => {
@@ -31,14 +31,14 @@ const Home = () => {
   // Simulate live scan counter
   useEffect(() => {
     const interval = setInterval(() => {
-      setScanCount((prev) => prev + Math.floor(Math.random() * 3) + 1); // Subtle, realistic increments
-    }, 4000); // Slower for natural feel
+      setScanCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
+    }, 4000);
     return () => clearInterval(interval);
   }, []);
 
   // Simulate loading delay
   useEffect(() => {
-    setTimeout(() => setLoading(false), 1200); // Faster loading for better UX
+    setTimeout(() => setLoading(false), 1200);
   }, []);
 
   if (loading) {
@@ -65,7 +65,14 @@ const Home = () => {
 
       <Content style={{ padding: '0 50px' }}>
         {/* Hero Section */}
-        <section style={{ padding: '120px 0', background: 'linear-gradient(145deg, #e6f7e6 0%, #b7e1cd 100%)' }}>
+        <section style={{ 
+          padding: '120px 0', 
+          background: 'linear-gradient(145deg, #e6f7e6 0%, #b7e1cd 100%)',
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center' 
+        }}>
           <Title level={1} style={{ marginBottom: '20px', color: '#1f2a44' }}>
             Attendance, Redefined
           </Title>
@@ -75,7 +82,7 @@ const Home = () => {
             </Text>
           </animated.div>
           <AnimatedQR style={qrAnimation} />
-          <Space size="large">
+          <Space size="large" style={{ marginTop: '40px' }}>
             <Button
               type="primary"
               size="large"
@@ -141,7 +148,7 @@ const Home = () => {
             <Col xs={24} md={18}>
               <div style={{
                 position: 'relative',
-                paddingBottom: '56.25%', // 16:9 aspect ratio
+                paddingBottom: '56.25%',
                 height: 0,
                 overflow: 'hidden',
                 borderRadius: '10px',
@@ -156,7 +163,7 @@ const Home = () => {
                     height: '100%',
                     border: 'none',
                   }}
-                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=your-placeholder-id" // Placeholder: Rickroll as a fun demo
+                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=your-placeholder-id"
                   title="QRollCall Demo"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
@@ -175,19 +182,19 @@ const Home = () => {
           <Carousel autoplay dots={{ className: 'custom-dots' }}>
             <div>
               <Card style={{ maxWidth: '600px', margin: '0 auto' }}>
-                <Text>"QRollCall’s instant scans cut our attendance time in half."</Text>
+                <Text>&quot;QRollCall’s instant scans cut our attendance time in half.&quot;</Text>
                 <Text strong block style={{ marginTop: '10px' }}>- Dr. Maya Patel, Horizon University</Text>
               </Card>
             </div>
             <div>
               <Card style={{ maxWidth: '600px', margin: '0 auto' }}>
-                <Text>"No more proxy issues—device tracking is a game-changer."</Text>
+                <Text>&quot;No more proxy issues—device tracking is a game-changer.&quot;</Text>
                 <Text strong block style={{ marginTop: '10px' }}>- Prof. Liam Carter, Summit College</Text>
               </Card>
             </div>
             <div>
               <Card style={{ maxWidth: '600px', margin: '0 auto' }}>
-                <Text>"Students love the feedback feature—it’s sparked real dialogue."</Text>
+                <Text>&quot;Students love the feedback feature—it’s sparked real dialogue.&quot;</Text>
                 <Text strong block style={{ marginTop: '10px' }}>- Ms. Elena Ortiz, Bright Academy</Text>
               </Card>
             </div>
@@ -204,7 +211,7 @@ const Home = () => {
               <Text>Real-time data sharing for instructors and admins.</Text>
             </Col>
             <Col xs={24} md={12}>
-              <PlayCircleOutlined style={{ fontSize: '100px', color: '#52c41a' }} />
+              <TeamOutlined style={{ fontSize: '100px', color: '#52c41a' }} />
               <Title level={4} style={{ margin: '20px 0' }}>Fast Onboarding</Title>
               <Text>Interactive tutorials and 24/7 support to get you started.</Text>
             </Col>
