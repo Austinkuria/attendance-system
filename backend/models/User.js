@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema(
     resetPasswordToken: String,
     resetPasswordExpires: Date,
     deviceId: { type: String },
-    pushToken: { type: String },
+    // pushToken: { type: String },
   },
   { timestamps: true }
 );

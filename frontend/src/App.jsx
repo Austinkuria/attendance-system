@@ -136,7 +136,7 @@ function App() {
           <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
           <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
           <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-          <Route path="/student/attendance-trends" element={<ProtectedRoute>< AttendanceTrends /></ProtectedRoute>} />
+          <Route path="/student/attendance-trends" element={<ProtectedRoute><AttendanceTrends /></ProtectedRoute>} />
           <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
           <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
           <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />

@@ -870,26 +870,26 @@ const resetPassword = async (req, res) => {
   }
 };
 
-const updatePushToken = async (req, res) => {
-  try {
-    const { token } = req.body; // OneSignal playerId
-    const userId = req.user.userId; // From auth middleware
+// const updatePushToken = async (req, res) => {
+//   try {
+//     const { token } = req.body; // OneSignal playerId
+//     const userId = req.user.userId; // From auth middleware
 
-    if (!token) return res.status(400).json({ message: 'Push token is required' });
+//     if (!token) return res.status(400).json({ message: 'Push token is required' });
 
-    const user = await User.findByIdAndUpdate(
-      userId,
-      { pushToken: token },
-      { new: true }
-    );
-    if (!user) return res.status(404).json({ message: 'User not found' });
+//     const user = await User.findByIdAndUpdate(
+//       userId,
+//       { pushToken: token },
+//       { new: true }
+//     );
+//     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    res.status(200).json({ message: 'Push token updated successfully' });
-  } catch (error) {
-    console.error('Error updating push token:', error);
-    res.status(500).json({ message: 'Server error', error: error.message });
-  }
-};
+//     res.status(200).json({ message: 'Push token updated successfully' });
+//   } catch (error) {
+//     console.error('Error updating push token:', error);
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 
 module.exports = {
   login,
@@ -911,5 +911,5 @@ module.exports = {
   downloadLecturers,
   sendResetLink,
   resetPassword,
-  updatePushToken
+  // updatePushToken
 };

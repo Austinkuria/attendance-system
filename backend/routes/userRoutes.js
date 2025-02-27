@@ -18,7 +18,7 @@ const {
   downloadLecturers,
   sendResetLink,
   resetPassword,
-  updatePushToken
+  // updatePushToken
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
@@ -99,6 +99,6 @@ router.post("/auth/reset-password", [
 ], sendResetLink);
 router.put("/auth/reset-password/:token", resetPassword);
 
-router.post('/update-push-token', authenticate, updatePushToken);
+// router.post('/update-push-token', authenticate, updatePushToken);
 
 module.exports = router;

@@ -1,8 +1,6 @@
 const Feedback = require('../models/Feedback');
 const Session = require('../models/Session');
 const Attendance = require('../models/Attendance');
-const { sendNotification } = require('../controllers/session.controller');
-const schedule = require('node-schedule');
 
 exports.submitFeedback = async (req, res) => {
   try {
@@ -48,6 +46,11 @@ exports.submitFeedback = async (req, res) => {
     });
 
     await feedback.save();
+
+    // Update the attendance record to mark feedback as submitted
+    attendance.feedbackSubmitted = true;
+    await attendance.save();
+
     res.status(201).json({ message: 'Feedback submitted successfully', feedback });
   } catch (error) {
     console.error('Error submitting feedback:', error);
@@ -163,29 +166,3 @@ exports.getFeedbackSummary = async (req, res) => {
     res.status(500).json({ message: 'Error fetching summary', error: error.message });
   }
 };
-
-schedule.scheduleJob('0 8 * * *', async () => {
-  try {
-    const recentSessions = await Session.find({
-      ended: true,
-      endTime: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) }
-    }).populate('unit');
-
-    for (const session of recentSessions) {
-      const attendees = await Attendance.find({ session: session._id, status: 'Present' });
-      for (const attendee of attendees) {
-        const feedback = await Feedback.findOne({ sessionId: session._id, studentId: attendee.student });
-        if (!feedback) {
-          await sendNotification([attendee.student.toString()], {
-            title: 'Feedback Reminder',
-            message: `Please submit your feedback for the session on ${session.unit.name}.`,
-            data: { sessionId: session._id.toString(), action: 'openFeedback' }
-          });
-          console.log(`Sent feedback reminder to student ${attendee.student} for session ${session._id}`);
-        }
-      }
-    }
-  } catch (error) {
-    console.error('Error sending feedback reminders:', error);
-  }
-});
