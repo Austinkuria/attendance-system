@@ -8,17 +8,18 @@
 <body>
   <div id="root"></div>
   <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
-  <script>
-    window.OneSignalDeferred = window.OneSignalDeferred || [];
-    OneSignalDeferred.push(function(OneSignal) {
-      OneSignal.init({
-        appId: "639c8347-1ff8-4e3f-a180-c000a89155eb",
-        autoResubscribe: true,
-        notifyButton: { enable: true },
-        serviceWorkerPath: 'OneSignalSDKWorker.js', // Use OneSignal's default worker
-        serviceWorkerParam: { scope: '/' }
-      });
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+<script>
+  window.OneSignalDeferred = window.OneSignalDeferred || [];
+  OneSignalDeferred.push(function(OneSignal) {
+    OneSignal.init({
+      appId: "639c8347-1ff8-4e3f-a180-c000a89155eb",
+      autoResubscribe: true,
+      notifyButton: { enable: true },
+      serviceWorkerPath: 'OneSignalSDKWorker.js',
+      serviceWorkerParam: { scope: '/' }
     });
-  </script>
+  });
+</script>
 </body>
 </html>
