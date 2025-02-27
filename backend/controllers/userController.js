@@ -870,7 +870,7 @@ const resetPassword = async (req, res) => {
   }
 };
 
-exports.updatePushToken = async (req, res) => {
+const updatePushToken = async (req, res) => {
   try {
     const { token } = req.body; // OneSignal playerId
     const userId = req.user.userId; // From auth middleware
