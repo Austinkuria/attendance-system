@@ -36,7 +36,6 @@ import {
   theme,
   Typography,
   Spin,
-  // notification,
   Slider,
   Switch,
   DatePicker,
@@ -97,6 +96,34 @@ const StudentDashboard = () => {
 
   const navigate = useNavigate();
 
+  // Move fetchAllData above useEffect
+  const fetchAllData = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    setLoading(true);
+    try {
+      const [profileRes, unitsRes] = await Promise.all([
+        getUserProfile(token),
+        getStudentUnits(token),
+      ]);
+
+      const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
+      const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
+      setUnits(sanitizedUnits);
+
+      if (profileRes._id) {
+        const attendanceRes = await getStudentAttendance(profileRes._id);
+        setAttendanceData(attendanceRes);
+      }
+    } catch (error) {
+      console.error("Error fetching data:", error);
+      message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -131,9 +158,9 @@ const StudentDashboard = () => {
 
               // Handle foreground notifications
               OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
-                const notification = event.getNotification();
-                console.log('Foreground notification received:', notification);
-                const { sessionId, action, unitName } = notification.additionalData || {};
+                const notificationData = event.getNotification();
+                console.log('Foreground notification received:', notificationData);
+                const { sessionId, action, unitName } = notificationData.additionalData || {};
                 const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
 
                 if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present" && sessionRecord.session.ended) {
@@ -142,8 +169,8 @@ const StudentDashboard = () => {
                       return [...prev, {
                         sessionId,
                         unitName,
-                        title: notification.title || "Feedback Available",
-                        message: notification.body || "Please provide your feedback.",
+                        title: notificationData.title || "Feedback Available",
+                        message: notificationData.body || "Please provide your feedback.",
                         timestamp: new Date(),
                       }];
                     }
@@ -151,48 +178,20 @@ const StudentDashboard = () => {
                   });
                 } else if (action === "feedbackSubmitted") {
                   setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
-                  notification.success({
-                    message: notification.title || "Feedback Submitted",
-                    description: notification.body || "Thank you for your feedback!",
-                    duration: 5,
-                  });
+                  message.success(notificationData.body || "Feedback submitted successfully!");
                 }
               });
             });
           })
-          .catch((error) => console.error('Service Worker registration failed:', error));
+          .catch((error) => {
+            console.error('Service Worker registration failed:', error);
+            message.error('Failed to register notifications service.');
+          });
       }
 
       fetchAllData();
     }
   }, [navigate, attendanceData, fetchAllData]);
-
-  const fetchAllData = useCallback(async () => {
-    const token = localStorage.getItem('token');
-    if (!token) return;
-
-    setLoading(true);
-    try {
-      const [profileRes, unitsRes] = await Promise.all([
-        getUserProfile(token),
-        getStudentUnits(token),
-      ]);
-
-      const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
-      const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
-      setUnits(sanitizedUnits);
-
-      if (profileRes._id) {
-        const attendanceRes = await getStudentAttendance(profileRes._id);
-        setAttendanceData(attendanceRes);
-      }
-    } catch (error) {
-      console.error("Error fetching data:", error);
-      message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
 
   useEffect(() => {
     fetchAllData();

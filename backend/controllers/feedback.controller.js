@@ -1,7 +1,7 @@
 const Feedback = require('../models/Feedback');
 const Session = require('../models/Session');
 const Attendance = require('../models/Attendance');
-const { sendNotification } = require('../services/firebaseService');
+const { sendNotification } = require('../controllers/session.controller');
 const schedule = require('node-schedule');
 
 exports.submitFeedback = async (req, res) => {
