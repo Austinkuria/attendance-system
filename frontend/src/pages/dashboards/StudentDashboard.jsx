@@ -96,7 +96,6 @@ const StudentDashboard = () => {
 
   const navigate = useNavigate();
 
-  // Move fetchAllData above useEffect
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -123,68 +122,64 @@ const StudentDashboard = () => {
       setLoading(false);
     }
   }, []);
-  
+
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/auth/login');
-    } else {
-      // Remove service worker registration
-      window.OneSignalDeferred = window.OneSignalDeferred || [];
-      window.OneSignalDeferred.push((OneSignal) => {
-        OneSignal.User.PushSubscription.optIn()
-          .then(() => {
-            console.log('User subscribed to OneSignal push notifications');
-            OneSignal.User.getUserId()
-              .then((playerId) => {
-                if (playerId) {
-                  console.log('OneSignal Player ID:', playerId);
-                  axios.post(
-                    `${API_URL}/users/update-push-token`,
-                    { token: playerId },
-                    { headers: { Authorization: `Bearer ${token}` } }
-                  )
-                    .then(() => console.log('Player ID registered:', playerId))
-                    .catch((error) => console.error('Error registering Player ID:', error));
-                }
-              });
-          })
-          .catch((error) => console.error('OneSignal subscription failed:', error));
-  
-        OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
-          const notificationData = event.getNotification();
-          console.log('Foreground notification received:', notificationData);
-          const { sessionId, action, unitName } = notificationData.additionalData || {};
-          const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
-  
-          if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present" && sessionRecord.session.ended) {
-            setPendingFeedbacks((prev) => {
-              if (!prev.some((pf) => pf.sessionId === sessionId)) {
-                return [...prev, {
-                  sessionId,
-                  unitName,
-                  title: notificationData.title || "Feedback Available",
-                  message: notificationData.body || "Please provide your feedback.",
-                  timestamp: new Date(),
-                }];
-              }
-              return prev;
-            });
-          } else if (action === "feedbackSubmitted") {
-            setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
-            message.success(notificationData.body || "Feedback submitted successfully!");
-          }
-        });
-      });
-  
-      fetchAllData();
+      return;
     }
-  }, [navigate, attendanceData, fetchAllData]);
 
-  useEffect(() => {
+    // Initial fetch and OneSignal setup only on mount
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    window.OneSignalDeferred.push((OneSignal) => {
+      OneSignal.User.PushSubscription.optIn()
+        .then(() => {
+          console.log('User subscribed to OneSignal push notifications');
+          OneSignal.User.getUserId()
+            .then((playerId) => {
+              if (playerId) {
+                console.log('OneSignal Player ID:', playerId);
+                axios.post(
+                  `${API_URL}/users/update-push-token`,
+                  { token: playerId },
+                  { headers: { Authorization: `Bearer ${token}` } }
+                )
+                  .then(() => console.log('Player ID registered:', playerId))
+                  .catch((error) => console.error('Error registering Player ID:', error));
+              }
+            });
+        })
+        .catch((error) => console.error('OneSignal subscription failed:', error));
+
+      OneSignal.Notifications.addEventListener('foregroundWillDisplay', (event) => {
+        const notificationData = event.getNotification();
+        console.log('Foreground notification received:', notificationData);
+        const { sessionId, action, unitName } = notificationData.additionalData || {};
+        const sessionRecord = attendanceData.attendanceRecords.find((rec) => rec.session._id === sessionId);
+
+        if (action === "openFeedback" && sessionRecord && sessionRecord.status === "Present" && sessionRecord.session.ended) {
+          setPendingFeedbacks((prev) => {
+            if (!prev.some((pf) => pf.sessionId === sessionId)) {
+              return [...prev, {
+                sessionId,
+                unitName,
+                title: notificationData.title || "Feedback Available",
+                message: notificationData.body || "Please provide your feedback.",
+                timestamp: new Date(),
+              }];
+            }
+            return prev;
+          });
+        } else if (action === "feedbackSubmitted") {
+          setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
+          message.success(notificationData.body || "Feedback submitted successfully!");
+        }
+      });
+    });
+
     fetchAllData();
-  }, [fetchAllData]);
-
+  }, [navigate, fetchAllData]);
   const calculateAttendanceRate = useCallback(
     (unitId) => {
       const unitData = attendanceData.attendanceRecords.filter(
