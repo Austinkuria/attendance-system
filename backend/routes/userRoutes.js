@@ -1,5 +1,6 @@
 const express = require("express");
 const { check } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 const {
   login,
   signup,
@@ -68,6 +69,12 @@ router.put("/users/profile/update", authenticate, [
   check("email").isEmail().withMessage("Enter a valid email address(e.g., example@domain.com"),
 ], updateUserProfile);
 
+// Rate limiter configuration
+const updatePushTokenLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
 // Student management routes
 router.get("/students", authenticate, authorize(['admin']), getStudents);
 
@@ -99,6 +106,6 @@ router.post("/auth/reset-password", [
 ], sendResetLink);
 router.put("/auth/reset-password/:token", resetPassword);
 
-router.post('/update-push-token', authenticate, updatePushToken);
+router.post('/update-push-token', authenticate, updatePushTokenLimiter, updatePushToken);
 
 module.exports = router;
