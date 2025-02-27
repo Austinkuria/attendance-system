@@ -8,6 +8,7 @@ import {
   getSessionQuiz,
   submitQuizAnswers,
   getActiveSessionForUnit,
+  getPendingFeedbackAttendance
 } from '../../services/api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -102,10 +103,15 @@ const StudentDashboard = () => {
 
     setLoading(true);
     try {
-      const [profileRes, unitsRes] = await Promise.all([
+      const [profileRes, unitsRes, feedbackRes] = await Promise.all([
         getUserProfile(token),
         getStudentUnits(token),
+        getPendingFeedbackAttendance()
       ]);
+
+      console.log('Profile Response:', profileRes); // Debug
+      console.log('Units Response:', unitsRes); // Debug
+      console.log('Feedback Response:', feedbackRes); // Debug
 
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
@@ -113,29 +119,25 @@ const StudentDashboard = () => {
 
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
+        console.log('Attendance Response:', attendanceRes); // Debug
         setAttendanceData(attendanceRes);
-
-        // Update pendingFeedbacks based on attendance data
-        const newPendingFeedbacks = attendanceRes.attendanceRecords
-          .filter((record) => 
-            record.session.ended && 
-            record.session.feedbackEnabled && 
-            record.status === "Present" && 
-            !record.feedbackSubmitted
-          )
-          .map((record) => ({
-            sessionId: record.session._id,
-            unitName: record.session.unit.name,
-            title: "Feedback Available",
-            message: "Please provide your feedback for the session.",
-            timestamp: record.session.endTime || new Date(),
-          }));
-        setPendingFeedbacks((prev) => {
-          const existingIds = new Set(prev.map((pf) => pf.sessionId));
-          const filteredNew = newPendingFeedbacks.filter((pf) => !existingIds.has(pf.sessionId));
-          return [...prev, ...filteredNew];
-        });
       }
+
+      const newPendingFeedbacks = feedbackRes.pendingFeedbackRecords.map((record) => ({
+        sessionId: record.session._id,
+        unitName: record.session.unit.name,
+        title: "Feedback Available",
+        message: "Please provide your feedback for the session.",
+        timestamp: record.session.endTime || new Date(),
+      }));
+      console.log('New Pending Feedbacks:', newPendingFeedbacks); // Debug
+      setPendingFeedbacks((prev) => {
+        const existingIds = new Set(prev.map((pf) => pf.sessionId));
+        const filteredNew = newPendingFeedbacks.filter((pf) => !existingIds.has(pf.sessionId));
+        console.log('Filtered New Feedbacks:', filteredNew); // Debug
+        return [...prev, ...filteredNew];
+      });
+
     } catch (error) {
       console.error("Error fetching data:", error);
       message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
@@ -144,15 +146,14 @@ const StudentDashboard = () => {
     }
   }, []);
 
-  // Load pendingFeedbacks from localStorage on mount
   useEffect(() => {
     const savedFeedbacks = JSON.parse(localStorage.getItem('pendingFeedbacks')) || [];
     setPendingFeedbacks(savedFeedbacks);
   }, []);
 
-  // Save pendingFeedbacks to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('pendingFeedbacks', JSON.stringify(pendingFeedbacks));
+    console.log('Updated pendingFeedbacks in localStorage:', pendingFeedbacks); // Debug
   }, [pendingFeedbacks]);
 
   useEffect(() => {
@@ -342,58 +343,61 @@ const StudentDashboard = () => {
     </Card>
   );
 
-  const renderNotifications = () => (
-    <Card
-      title={<><BellOutlined /> Notifications</>}
-      style={{ marginTop: 24, borderRadius: 10, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
-      extra={
-        pendingFeedbacks.length > 0 && (
-          <Button
-            type="link"
-            onClick={() => setPendingFeedbacks([])}
-          >
-            Clear All
-          </Button>
-        )
-      }
-    >
-      {pendingFeedbacks.length > 0 ? (
-        <List
-          dataSource={pendingFeedbacks}
-          renderItem={(item) => (
-            <List.Item
-              key={item.sessionId}
-              actions={[
-                <Button
-                  key="provide-feedback"
-                  type="primary"
-                  onClick={() => {
-                    setActiveSessionId(item.sessionId);
-                    setFeedbackModalVisible(true);
-                  }}
-                >
-                  Provide Feedback
-                </Button>,
-                <Button
-                  key="dismiss"
-                  onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
-                >
-                  Dismiss
-                </Button>,
-              ]}
+  const renderNotifications = () => {
+    console.log('Rendering notifications with pendingFeedbacks:', pendingFeedbacks); // Debug
+    return (
+      <Card
+        title={<><BellOutlined /> Notifications</>}
+        style={{ marginTop: 24, borderRadius: 10, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
+        extra={
+          pendingFeedbacks.length > 0 && (
+            <Button
+              type="link"
+              onClick={() => setPendingFeedbacks([])}
             >
-              <List.Item.Meta
-                title={item.title}
-                description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
-              />
-            </List.Item>
-          )}
-        />
-      ) : (
-        <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
-      )}
-    </Card>
-  );
+              Clear All
+            </Button>
+          )
+        }
+      >
+        {pendingFeedbacks.length > 0 ? (
+          <List
+            dataSource={pendingFeedbacks}
+            renderItem={(item) => (
+              <List.Item
+                key={item.sessionId}
+                actions={[
+                  <Button
+                    key="provide-feedback"
+                    type="primary"
+                    onClick={() => {
+                      setActiveSessionId(item.sessionId);
+                      setFeedbackModalVisible(true);
+                    }}
+                  >
+                    Provide Feedback
+                  </Button>,
+                  <Button
+                    key="dismiss"
+                    onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
+                  >
+                    Dismiss
+                  </Button>,
+                ]}
+              >
+                <List.Item.Meta
+                  title={item.title}
+                  description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
+                />
+              </List.Item>
+            )}
+          />
+        ) : (
+          <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
+        )}
+      </Card>
+    );
+  };
 
   const profileItems = [
     { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => navigate('/student/profile') },
