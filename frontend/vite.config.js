@@ -16,46 +16,26 @@ export default defineConfig({
         start_url: '/',
         display: 'standalone',
         icons: [
-          {
-            src: '/icon-192x192.png',
-            sizes: '192x192',
-            type: 'image/png',
-          },
-          {
-            src: '/icon-512x512.png',
-            sizes: '512x512',
-            type: 'image/png',
-          },
+          { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
         screenshots: [
-          {
-            src: '/screenshot1.png',
-            sizes: '1080x1920',
-            type: 'image/png',
-            form_factor: 'wide',
-          },
-          {
-            src: '/screenshot2.png',
-            sizes: '1080x1920',
-            type: 'image/png',
-          },
+          { src: '/screenshot1.png', sizes: '1080x1920', type: 'image/png', form_factor: 'wide' },
+          { src: '/screenshot2.png', sizes: '1080x1920', type: 'image/png' },
         ],
       },
       workbox: {
         clientsClaim: true,
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024, // Set to 3 MiB (3,145,728 bytes)
+        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
         runtimeCaching: [
           {
             urlPattern: /\.(?:html|js|css)$/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'app-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 30 * 24 * 60 * 60, // 30 days
-              },
+              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
             },
           },
           {
@@ -63,34 +43,35 @@ export default defineConfig({
             handler: 'CacheFirst',
             options: {
               cacheName: 'image-cache',
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 24 * 60 * 60, // 60 days
-              },
+              expiration: { maxEntries: 100, maxAgeSeconds: 60 * 24 * 60 * 60 },
             },
           },
           {
-            urlPattern: /^https?.*/,
+            urlPattern: /^https:\/\/attendance-system-w70n\.onrender\.com\/api\/.*/,
             handler: 'NetworkFirst',
             options: {
               cacheName: 'api-cache',
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 24 * 60 * 60, // 1 day
-              },
+              expiration: { maxEntries: 20, maxAgeSeconds: 24 * 60 * 60 },
               networkTimeoutSeconds: 10,
             },
           },
         ],
+        // Add OneSignal worker integration
+        additionalManifestEntries: [
+          { url: '/OneSignalSDKWorker.js', revision: null }
+        ],
       },
       registerType: 'autoUpdate',
-      devOptions: {
-        enabled: true,
+      devOptions: { enabled: true },
+      // Include OneSignal worker
+      srcDir: 'public',
+      filename: 'sw.js',
+      strategies: 'injectManifest',
+      injectManifest: {
+        injectionPoint: undefined, // Let VitePWA handle Workbox
       },
     }),
     envCompatible(),
   ],
-  define: {
-    'process.env': {},
-  },
+  define: { 'process.env': {} },
 });
