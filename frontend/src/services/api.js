@@ -1344,4 +1344,11 @@ export const getFeedbackSummary = async () => {
   return response.data;
 };
 
+export const getPendingFeedbackAttendance = () => {
+  const token = localStorage.getItem('token');
+  return axios.get(`${API_URL}/attendance/pending-feedback`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }).then(res => res.data);
+};
+
 export default api;

@@ -38,7 +38,13 @@ const AttendanceSchema = new mongoose.Schema({
     type: String, 
     required: true 
   },
-  attendedAt: { type: Date }
+  attendedAt: { 
+    type: Date 
+  },
+  feedbackSubmitted: {
+    type: Boolean,
+    default: false
+  }
 }, { timestamps: true });
 
 AttendanceSchema.index({ session: 1, status: 1 });

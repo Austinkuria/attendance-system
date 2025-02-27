@@ -25,4 +25,7 @@ router.use((err, req, res, next) => {
     message: "An unexpected error occurred. Please try again later."
   });
 });
+
+router.get('/pending-feedback', authenticate, attendanceController.getPendingFeedbackAttendance);
+
 module.exports = router;

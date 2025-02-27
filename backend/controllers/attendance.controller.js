@@ -577,3 +577,41 @@ exports.getCourseAttendanceRate = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance rate", error: error.message });
   }
 };
+
+exports.getPendingFeedbackAttendance = async (req, res) => {
+  try {
+    const studentId = req.user.userId; // Assuming auth middleware sets req.user
+
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID format" });
+    }
+
+    const attendanceRecords = await Attendance.find({
+      student: studentId,
+      status: "Present",
+      feedbackSubmitted: false // Only fetch records where feedback isn’t submitted
+    })
+      .populate({
+        path: 'session',
+        select: '_id unit ended feedbackEnabled endTime',
+        match: { ended: true, feedbackEnabled: true }, // Only ended sessions with feedback enabled
+        populate: { 
+          path: 'unit', 
+          select: 'name' 
+        }
+      })
+      .select('status feedbackSubmitted');
+
+    // Filter out records where session population failed (e.g., session not ended)
+    const filteredRecords = attendanceRecords.filter(record => record.session !== null);
+
+    console.log('Pending Feedback Attendance Records:', filteredRecords); // Server-side debug
+
+    res.status(200).json({
+      pendingFeedbackRecords: filteredRecords
+    });
+  } catch (error) {
+    console.error('Error fetching pending feedback attendance:', error);
+    res.status(500).json({ message: "Error fetching pending feedback attendance", error: error.message });
+  }
+};
