@@ -56,20 +56,13 @@ export default defineConfig({
             },
           },
         ],
-        // Add OneSignal worker integration
+        // Ensure OneSignal worker is included
         additionalManifestEntries: [
           { url: '/OneSignalSDKWorker.js', revision: null }
         ],
       },
       registerType: 'autoUpdate',
       devOptions: { enabled: true },
-      // Include OneSignal worker
-      srcDir: 'public',
-      filename: 'sw.js',
-      strategies: 'injectManifest',
-      injectManifest: {
-        injectionPoint: undefined, // Let VitePWA handle Workbox
-      },
     }),
     envCompatible(),
   ],

@@ -3,7 +3,6 @@ export function register(config) {
   if (isProduction && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
       console.log('Service Worker registration handled by VitePWA');
-      // Remove manual registration; VitePWA's autoUpdate handles it
       if (config && config.onSuccess) {
         navigator.serviceWorker.ready.then((registration) => config.onSuccess(registration));
       }
