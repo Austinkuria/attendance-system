@@ -1,10 +1,6 @@
 {
   "rewrites": [
-    {
-      "source": "/sw.js",
-      "destination": "/sw.js"
-    },
-    { "source": "/onesignal-sw.js", "destination": "/onesignal-sw.js" },
+    { "source": "/sw.js", "destination": "/sw.js" },
     { "source": "/icon-(.*).png", "destination": "/icon-$1.png" },
     { "source": "/screenshot(.*).png", "destination": "/screenshot$1.png" },
     { "source": "/(.*)", "destination": "/index.html" }
@@ -13,36 +9,20 @@
     {
       "source": "/sw.js",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "application/javascript"
-        },
-        {
-          "key": "Cache-Control",
-          "value": "no-cache"
-        }
+        { "key": "Content-Type", "value": "application/javascript" },
+        { "key": "Cache-Control", "value": "no-cache" }
       ]
     },
-    { "source": "/onesignal-sw.js", "headers": [
-      { "key": "Content-Type", "value": "application/javascript" },
-      { "key": "Cache-Control", "value": "no-cache" }
-    ]},
     {
       "source": "/icon-(.*).png",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "image/png"
-        }
+        { "key": "Content-Type", "value": "image/png" }
       ]
     },
     {
       "source": "/screenshot(.*).png",
       "headers": [
-        {
-          "key": "Content-Type",
-          "value": "image/png"
-        }
+        { "key": "Content-Type", "value": "image/png" }
       ]
     }
   ]
