@@ -40,7 +40,7 @@ import {
   Select,
   List,
   Checkbox,
-  Pagination, // Added Pagination
+  Pagination,
 } from 'antd';
 import {
   UserOutlined,
@@ -89,9 +89,11 @@ const StudentDashboard = () => {
   const [viewMode, setViewMode] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(moment());
   const [pendingFeedbacks, setPendingFeedbacks] = useState([]);
-  const [eventPage, setEventPage] = useState(1); // Pagination for Attendance Events
-  const [notificationPage, setNotificationPage] = useState(1); // Pagination for Notifications
-  const [pageSize] = useState(5); // Items per page, adjustable
+  const [eventPage, setEventPage] = useState(1);
+  const [notificationPage, setNotificationPage] = useState(1);
+  const [pageSize] = useState(5);
+  const [eventSortOrder, setEventSortOrder] = useState('mostRecent');
+  const [notificationSortOrder, setNotificationSortOrder] = useState('mostRecent');
 
   const navigate = useNavigate();
 
@@ -270,38 +272,44 @@ const StudentDashboard = () => {
   };
 
   const filteredEvents = () => {
+    let events = [];
     if (!selectedDate) {
-      return attendanceData.attendanceRecords.map((record) => ({
+      events = attendanceData.attendanceRecords.map((record) => ({
         title: `${record.session.unit?.name || 'Unknown'} - ${record.status || 'Unknown'}`,
         date: record.session.startTime ? moment(record.session.startTime) : null,
         status: record.status || 'Unknown',
         sessionId: record.session._id,
       }));
-    }
-
-    if (viewMode === 'weekly') {
+    } else if (viewMode === 'weekly') {
       const selectedWeek = attendanceData.weeklyEvents.find((week) =>
         week.week === selectedDate.format('MMM D - MMM D, YYYY')
       );
-      return selectedWeek
+      events = selectedWeek
         ? selectedWeek.events.map((event) => ({
-          title: `${event.unitName} - ${event.status}`,
-          date: moment(event.startTime),
-          status: event.status,
-        }))
+            title: `${event.unitName} - ${event.status}`,
+            date: moment(event.startTime),
+            status: event.status,
+          }))
         : [];
     } else {
       const selectedDay = attendanceData.dailyEvents.find((day) =>
         day.date === selectedDate.format('YYYY-MM-DD')
       );
-      return selectedDay
+      events = selectedDay
         ? selectedDay.events.map((event) => ({
-          title: `${event.unitName} - ${event.status}`,
-          date: moment(event.startTime),
-          status: event.status,
-        }))
+            title: `${event.unitName} - ${event.status}`,
+            date: moment(event.startTime),
+            status: event.status,
+          }))
         : [];
     }
+
+    // Sort events based on eventSortOrder
+    return events.sort((a, b) => {
+      const dateA = a.date ? a.date.valueOf() : 0;
+      const dateB = b.date ? b.date.valueOf() : 0;
+      return eventSortOrder === 'mostRecent' ? dateB - dateA : dateA - dateB;
+    });
   };
 
   const renderCalendarEvents = () => {
@@ -317,30 +325,43 @@ const StudentDashboard = () => {
           <AntTitle level={3} style={{ textAlign: 'center' }}>
             <CalendarOutlined style={{ marginRight: 4 }} /> Attendance Events
           </AntTitle>
-          <Space size={4}>
-            <Select
-              value={viewMode}
-              onChange={(value) => {
-                setViewMode(value);
-                setSelectedDate(value === 'daily' ? moment() : null);
-                setEventPage(1); // Reset to first page on view mode change
-              }}
-              style={{ width: 80, fontSize: '12px' }}
-            >
-              <Option value="daily">Daily</Option>
-              <Option value="weekly">Weekly</Option>
-            </Select>
-            <DatePicker
-              picker={viewMode === 'weekly' ? 'week' : 'date'}
-              onChange={(date) => {
-                setSelectedDate(date);
-                setEventPage(1); // Reset to first page on date change
-              }}
-              value={selectedDate}
-              format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
-              placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
-              style={{ width: 120, fontSize: '12px' }}
-            />
+          <Space direction="vertical" size={4} style={{ width: '100%' }}>
+            <Space wrap size={4} className="event-controls">
+              <Select
+                value={viewMode}
+                onChange={(value) => {
+                  setViewMode(value);
+                  setSelectedDate(value === 'daily' ? moment() : null);
+                  setEventPage(1);
+                }}
+                style={{ width: 80, fontSize: '12px' }}
+              >
+                <Option value="daily">Daily</Option>
+                <Option value="weekly">Weekly</Option>
+              </Select>
+              <DatePicker
+                picker={viewMode === 'weekly' ? 'week' : 'date'}
+                onChange={(date) => {
+                  setSelectedDate(date);
+                  setEventPage(1);
+                }}
+                value={selectedDate}
+                format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
+                placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
+                style={{ width: 120, fontSize: '12px' }}
+              />
+              <Select
+                value={eventSortOrder}
+                onChange={(value) => {
+                  setEventSortOrder(value);
+                  setEventPage(1);
+                }}
+                style={{ width: 120, fontSize: '12px' }}
+              >
+                <Option value="mostRecent">Most Recent</Option>
+                <Option value="oldest">Oldest</Option>
+              </Select>
+            </Space>
           </Space>
           {totalEvents > 0 ? (
             <>
@@ -354,7 +375,7 @@ const StudentDashboard = () => {
                     />
                   </List.Item>
                 )}
-                style={{ maxHeight: '300px', overflow: 'auto' }} // Limit height with scroll
+                style={{ maxHeight: '300px', overflow: 'auto' }}
               />
               <Pagination
                 current={eventPage}
@@ -374,10 +395,15 @@ const StudentDashboard = () => {
   };
 
   const renderNotifications = () => {
-    const totalNotifications = pendingFeedbacks.length;
+    const sortedNotifications = [...pendingFeedbacks].sort((a, b) => {
+      const timeA = moment(a.timestamp).valueOf();
+      const timeB = moment(b.timestamp).valueOf();
+      return notificationSortOrder === 'mostRecent' ? timeB - timeA : timeA - timeB;
+    });
+    const totalNotifications = sortedNotifications.length;
     const startIndex = (notificationPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    const paginatedNotifications = pendingFeedbacks.slice(startIndex, endIndex);
+    const paginatedNotifications = sortedNotifications.slice(startIndex, endIndex);
 
     return (
       <Card
@@ -391,60 +417,75 @@ const StudentDashboard = () => {
           )
         }
       >
-        {totalNotifications > 0 ? (
-          <>
-            <List
-              dataSource={paginatedNotifications}
-              renderItem={(item) => {
-                const isFeedbackSubmitted = attendanceData.attendanceRecords.some(
-                  (rec) => rec.session._id === item.sessionId && rec.feedbackSubmitted
-                );
-                return (
-                  <List.Item
-                    key={item.sessionId}
-                    actions={[
-                      <Button
-                        key="provide-feedback"
-                        type="primary"
-                        size="small"
-                        onClick={() => {
-                          setActiveSessionId(item.sessionId);
-                          setFeedbackModalVisible(true);
-                        }}
-                        disabled={isFeedbackSubmitted}
-                      >
-                        Provide
-                      </Button>,
-                      <Button
-                        key="dismiss"
-                        size="small"
-                        onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
-                      >
-                        Dismiss
-                      </Button>,
-                    ]}
-                  >
-                    <List.Item.Meta
-                      title={item.title}
-                      description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
-                    />
-                  </List.Item>
-                );
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <Space size={4} style={{ justifyContent: 'flex-end', width: '100%' }}>
+            <Select
+              value={notificationSortOrder}
+              onChange={(value) => {
+                setNotificationSortOrder(value);
+                setNotificationPage(1);
               }}
-              style={{ maxHeight: '300px', overflow: 'auto' }} // Limit height with scroll
-            />
-            <Pagination
-              current={notificationPage}
-              pageSize={pageSize}
-              total={totalNotifications}
-              onChange={(page) => setNotificationPage(page)}
-              showSizeChanger={false}
-              style={{ textAlign: 'center', marginTop: 16 }}
-            />
-          </>
-        ) : (
-          <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
-        )}
+              style={{ width: 120, fontSize: '12px' }}
+            >
+              <Option value="mostRecent">Most Recent</Option>
+              <Option value="oldest">Oldest</Option>
+            </Select>
+          </Space>
+          {totalNotifications > 0 ? (
+            <>
+              <List
+                dataSource={paginatedNotifications}
+                renderItem={(item) => {
+                  const isFeedbackSubmitted = attendanceData.attendanceRecords.some(
+                    (rec) => rec.session._id === item.sessionId && rec.feedbackSubmitted
+                  );
+                  return (
+                    <List.Item
+                      key={item.sessionId}
+                      actions={[
+                        <Button
+                          key="provide-feedback"
+                          type="primary"
+                          size="small"
+                          onClick={() => {
+                            setActiveSessionId(item.sessionId);
+                            setFeedbackModalVisible(true);
+                          }}
+                          disabled={isFeedbackSubmitted}
+                        >
+                          Provide
+                        </Button>,
+                        <Button
+                          key="dismiss"
+                          size="small"
+                          onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
+                        >
+                          Dismiss
+                        </Button>,
+                      ]}
+                    >
+                      <List.Item.Meta
+                        title={item.title}
+                        description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
+                      />
+                    </List.Item>
+                  );
+                }}
+                style={{ maxHeight: '300px', overflow: 'auto' }}
+              />
+              <Pagination
+                current={notificationPage}
+                pageSize={pageSize}
+                total={totalNotifications}
+                onChange={(page) => setNotificationPage(page)}
+                showSizeChanger={false}
+                style={{ textAlign: 'center', marginTop: 16 }}
+              />
+            </>
+          ) : (
+            <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
+          )}
+        </Space>
       </Card>
     );
   };
@@ -499,7 +540,7 @@ const StudentDashboard = () => {
       return response.data.feedbackSubmitted;
     } catch (error) {
       console.error('Error checking feedback status:', error);
-      return false; // Default to false if error occurs
+      return false;
     }
   };
 

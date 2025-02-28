@@ -79,6 +79,18 @@ h1 {
     flex-grow: 1;
     margin-right: 0;
   }
+
+  /* Fix overlap in Attendance Events controls */
+  .event-controls {
+    width: 100%;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .event-controls > * {
+    margin-bottom: 8px; /* Add spacing between wrapped items */
+  }
 }
 
 @media (min-width: 768px) and (max-width: 991px) {

@@ -51,7 +51,6 @@ const styles = {
     margin: 0,
     width: '100%',
     overflowX: 'hidden',
-    border: '2px solid red', // Temporary debug border
   },
   content: {
     maxWidth: '100%',
@@ -63,7 +62,6 @@ const styles = {
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
     boxSizing: 'border-box',
     overflowX: 'hidden',
-    border: '2px solid blue', // Temporary debug border
   },
   headerRow: {
     marginBottom: '16px',
@@ -582,7 +580,7 @@ const ManageCourses = () => {
             </Button>,
           ]}
           width={{ xs: '90%', sm: '70%', md: '50%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
-          bodyStyle={styles.modalContent}
+          styles={{ body: styles.modalContent }} // Updated here
           className="responsive-modal"
         >
           <Form
@@ -628,7 +626,7 @@ const ManageCourses = () => {
             </Button>,
           ]}
           width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
-          bodyStyle={styles.modalContent}
+          styles={{ body: styles.modalContent }} // Updated here
         >
           <p style={{ color: '#f5222d' }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
@@ -647,7 +645,7 @@ const ManageCourses = () => {
             </Button>,
           ]}
           width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
-          bodyStyle={styles.modalContent}
+          styles={{ body: styles.modalContent }} // Updated here
         >
           <p style={{ color: '#f5222d' }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
@@ -667,7 +665,7 @@ const ManageCourses = () => {
           onCancel={() => setShowUnitsModal(false)}
           width={{ xs: '95%', sm: '90%', md: '80%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
           footer={null}
-          bodyStyle={styles.modalContent}
+          styles={{ body: styles.modalContent }} // Updated here
           className="responsive-modal"
         >
           <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
