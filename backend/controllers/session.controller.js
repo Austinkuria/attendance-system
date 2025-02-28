@@ -136,6 +136,7 @@ exports.endSession = async (req, res) => {
     if (!session) return res.status(404).json({ message: "Session not found" });
     if (session.ended) return res.status(400).json({ message: "Session already ended" });
 
+    console.log(`Ending session ${sessionId}...`); // Debug
     session.ended = true;
     session.feedbackEnabled = true;
     session.endTime = new Date();
@@ -153,7 +154,9 @@ exports.endSession = async (req, res) => {
       console.log(`Cancelled scheduled job for session: ${sessionId}`);
     }
 
+    console.log(`Calling markAbsentees for session ${sessionId}...`); // Debug
     await markAbsentees(sessionId);
+    console.log(`markAbsentees completed for session ${sessionId}`); // Debug
 
     res.status(200).json({ message: "Session ended and absentees marked successfully", session: updatedSession });
   } catch (error) {

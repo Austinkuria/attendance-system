@@ -169,6 +169,7 @@ exports.markAbsentees = async (sessionId) => {
         compositeFingerprint: "system-generated",
         qrToken: "system-generated",
         timestamp: new Date(),
+        feedbackSubmitted: false // Explicitly set
       }))
     );
 

@@ -380,20 +380,22 @@ const AttendanceManagement = () => {
         onOk: async () => {
           try {
             if (!currentSession?._id) throw new Error('Invalid session ID');
-            console.log('Ending session with ID:', currentSession._id);
+            console.log('Ending session with ID:', currentSession._id); // Debug
             const response = await axios.post(
               'https://attendance-system-w70n.onrender.com/api/sessions/end',
               { sessionId: currentSession._id },
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
-            console.log('Session end response:', response.data);
+            console.log('Session end response:', response.data); // Debug
             if (response.data.session.ended) {
               message.success('Session ended successfully');
               setCurrentSession(null);
               setQrData('');
-              setAttendance([]);
+              setAttendance([]); // Clear attendance display
               localStorage.removeItem('currentSession');
-              setSelectedUnit(null); // Reset to force re-selection
+              setSelectedUnit(null); // Reset unit selection
+              // Refresh session data to ensure absentees are reflected
+              await checkCurrentSession();
             } else {
               throw new Error('Session not marked as ended');
             }
@@ -414,7 +416,8 @@ const AttendanceManagement = () => {
           }
         }
       });
-    } catch {
+    } catch (error) {
+      console.error('Unexpected error in handleEndSession:', error);
       message.error('An unexpected error occurred');
       setLoading(prevState => ({ ...prevState, session: false }));
     }
