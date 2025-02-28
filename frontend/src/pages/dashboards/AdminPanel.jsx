@@ -23,20 +23,17 @@ import {
   Space,
   theme,
   message,
-  Typography
+  Typography,
+  Spin
 } from 'antd';
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
-// import '../../styles.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
-
-// Utility function to add delay between requests
-const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 const AdminPanel = () => {
   const { token: { colorBgContainer } } = theme.useToken();
@@ -50,7 +47,6 @@ const AdminPanel = () => {
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
 
-  // Authentication check
   useEffect(() => {
     const checkAuth = () => {
       const token = localStorage.getItem('token');
@@ -70,12 +66,12 @@ const AdminPanel = () => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
+    localStorage.removeItem('attendanceRates'); // Clear cache on logout
     sessionStorage.clear();
     window.location.href = '/auth/login';
     window.location.reload(true);
   };
 
-  // Fetch Students
   useEffect(() => {
     const fetchStudents = async () => {
       setStudentsLoading(true);
@@ -93,7 +89,6 @@ const AdminPanel = () => {
     fetchStudents();
   }, []);
 
-  // Fetch Lecturers
   useEffect(() => {
     const fetchLecturers = async () => {
       setLecturersLoading(true);
@@ -111,7 +106,6 @@ const AdminPanel = () => {
     fetchLecturers();
   }, []);
 
-  // Fetch Courses
   useEffect(() => {
     const fetchCourses = async () => {
       setCoursesLoading(true);
@@ -129,25 +123,35 @@ const AdminPanel = () => {
     fetchCourses();
   }, []);
 
-  // Fetch Attendance Rates (depends on courses)
   useEffect(() => {
     const fetchAttendanceRates = async () => {
-      if (!courses.length) return; // Wait for courses to load
+      if (!courses.length) return;
+
+      const cachedRates = localStorage.getItem('attendanceRates');
+      if (cachedRates) {
+        setAttendanceRates(JSON.parse(cachedRates));
+        console.log('Loaded attendance rates from cache:', JSON.parse(cachedRates));
+        return;
+      }
+
       setAttendanceLoading(true);
       try {
-        const rates = {};
-        for (const course of courses) {
-          try {
-            const rateData = await getCourseAttendanceRate(course._id);
-            rates[course._id] = rateData || { totalPresent: 0, totalPossible: 0 };
-            console.log(`Attendance for ${course._id}:`, rateData);
-            await delay(5000); // Respect rate limits
-          } catch (courseError) {
-            console.error(`Failed to fetch attendance for ${course._id}:`, courseError.message || 'Unknown error');
-            rates[course._id] = { totalPresent: 0, totalPossible: 0 };
-          }
-        }
+        const attendancePromises = courses.map(course =>
+          getCourseAttendanceRate(course._id)
+            .then(rateData => ({ courseId: course._id, rate: rateData }))
+            .catch(error => {
+              console.error(`Failed to fetch attendance for ${course._id}:`, error.message || 'Unknown error');
+              return { courseId: course._id, rate: { totalPresent: 0, totalPossible: 0 } };
+            })
+        );
+        const results = await Promise.all(attendancePromises);
+        const rates = results.reduce((acc, { courseId, rate }) => {
+          acc[courseId] = rate;
+          return acc;
+        }, {});
         setAttendanceRates(rates);
+        localStorage.setItem('attendanceRates', JSON.stringify(rates));
+        console.log('Attendance rates fetched:', rates);
       } catch (error) {
         console.error('Failed to fetch attendance rates:', error.message || 'Unknown error');
         message.error('Failed to load attendance data');
@@ -156,7 +160,7 @@ const AdminPanel = () => {
       }
     };
     fetchAttendanceRates();
-  }, [courses]); // Dependency on courses
+  }, [courses]);
 
   const calculateOverallRate = () => {
     const totalPresent = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.totalPresent || 0), 0);
@@ -164,7 +168,6 @@ const AdminPanel = () => {
     return totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
   };
 
-  // Line Chart Data (Attendance Rates per Course)
   const overviewChartData = {
     labels: courses.length ? courses.map(course => course.code) : ['No Data'],
     datasets: [
@@ -209,7 +212,6 @@ const AdminPanel = () => {
     layout: { padding: { top: 20, bottom: 20, left: 20, right: 20 } },
   };
 
-  // Pie Chart Data (Quick Stats - Sessions per Course)
   const quickStatsChartData = {
     labels: courses.length ? courses.map(course => course.name) : ['No Data'],
     datasets: [
@@ -328,74 +330,78 @@ const AdminPanel = () => {
           minHeight: 'calc(100vh - 64px)',
           overflow: 'auto'
         }}>
-          <Row gutter={[16, 16]} justify="center">
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Card
-                loading={studentsLoading}
-                style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
-                onClick={() => window.location.href = '/admin/manage-students'}
-              >
-                <Space direction="vertical">
-                  <TeamOutlined style={{ fontSize: 24 }} />
-                  <h3>Total Students</h3>
-                  <h1>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
-                </Space>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Card
-                loading={coursesLoading}
-                style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
-                onClick={() => window.location.href = '/admin/manage-courses'}
-              >
-                <Space direction="vertical">
-                  <BookOutlined style={{ fontSize: 24 }} />
-                  <h3>Total Courses</h3>
-                  <h1>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
-                </Space>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Card
-                loading={lecturersLoading}
-                style={{ background: 'linear-gradient(135deg, #fa8c16, #d46b08)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
-                onClick={() => window.location.href = '/admin/manage-lecturers'}
-              >
-                <Space direction="vertical">
-                  <UserOutlined style={{ fontSize: 24 }} />
-                  <h3>Total Lecturers</h3>
-                  <h1>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
-                </Space>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} lg={6}>
-              <Card
-                loading={attendanceLoading}
-                style={{ background: 'linear-gradient(135deg, #f5222d, #cf1322)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
-                onClick={() => window.location.href = '/admin/analytics'}
-              >
-                <Space direction="vertical">
-                  <CheckCircleOutlined style={{ fontSize: 24 }} />
-                  <h3>Attendance Rate</h3>
-                  <h1>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
-                </Space>
-              </Card>
-            </Col>
-          </Row>
+          <Spin spinning={studentsLoading || lecturersLoading || coursesLoading} tip="Loading dashboard data...">
+            <Row gutter={[16, 16]} justify="center">
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Card
+                  style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                  onClick={() => window.location.href = '/admin/manage-students'}
+                >
+                  <Space direction="vertical">
+                    <TeamOutlined style={{ fontSize: 24 }} />
+                    <h3>Total Students</h3>
+                    <h1>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Card
+                  style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                  onClick={() => window.location.href = '/admin/manage-courses'}
+                >
+                  <Space direction="vertical">
+                    <BookOutlined style={{ fontSize: 24 }} />
+                    <h3>Total Courses</h3>
+                    <h1>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Card
+                  style={{ background: 'linear-gradient(135deg, #fa8c16, #d46b08)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                  onClick={() => window.location.href = '/admin/manage-lecturers'}
+                >
+                  <Space direction="vertical">
+                    <UserOutlined style={{ fontSize: 24 }} />
+                    <h3>Total Lecturers</h3>
+                    <h1>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
+                  </Space>
+                </Card>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Spin spinning={attendanceLoading} tip="Loading attendance data...">
+                  <Card
+                    style={{ background: 'linear-gradient(135deg, #f5222d, #cf1322)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                    onClick={() => window.location.href = '/admin/analytics'}
+                  >
+                    <Space direction="vertical">
+                      <CheckCircleOutlined style={{ fontSize: 24 }} />
+                      <h3>Attendance Rate</h3>
+                      <h1>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
+                    </Space>
+                  </Card>
+                </Spin>
+              </Col>
+            </Row>
+          </Spin>
 
           <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Attendance Overview</AntTitle>
           <Card style={{ marginTop: 16 }}>
-            <div style={{ height: '600px' }}>
-              <Line data={overviewChartData} options={overviewChartOptions} />
-            </div>
-            <Button type="primary" style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }} onClick={() => window.location.href = '/admin/analytics'}>View Detailed Analytics</Button>
+            <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
+              <div style={{ height: '600px' }}>
+                <Line data={overviewChartData} options={overviewChartOptions} />
+              </div>
+              <Button type="primary" style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }} onClick={() => window.location.href = '/admin/analytics'}>View Detailed Analytics</Button>
+            </Spin>
           </Card>
 
           <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Quick Stats</AntTitle>
           <Card style={{ marginTop: 16, background: '#fafafa', borderRadius: 10 }}>
-            <div style={{ height: '400px' }}>
-              <Pie data={quickStatsChartData} options={quickStatsChartOptions} />
-            </div>
+            <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
+              <div style={{ height: '400px' }}>
+                <Pie data={quickStatsChartData} options={quickStatsChartOptions} />
+              </div>
+            </Spin>
           </Card>
         </Content>
       </Layout>

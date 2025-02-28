@@ -14,6 +14,7 @@ import {
   Tag,
   message,
   Typography,
+  Spin, // Added Spin
 } from 'antd';
 import {
   ArrowUpOutlined,
@@ -26,7 +27,6 @@ import {
   FilterOutlined,
   IdcardOutlined,
   ApartmentOutlined,
-  LoadingOutlined,
   ExclamationCircleOutlined,
 } from '@ant-design/icons';
 import {
@@ -165,7 +165,7 @@ const ManageCourses = () => {
   const [formData, setFormData] = useState({ name: '', code: '', department: '' });
   const [unitInput, setUnitInput] = useState({ name: '', code: '', year: '', semester: '' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(false); // Global loading state
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedCourseForUnits, setSelectedCourseForUnits] = useState(null);
   const [selectedUnitId, setSelectedUnitId] = useState(null);
@@ -307,19 +307,22 @@ const ManageCourses = () => {
   };
 
   const handleDeleteConfirmation = (courseId) => {
-    setSelectedCourse(courseId);
+    setSelectedCourse(courses.find(course => course._id === courseId));
     setShowDeleteModal(true);
   };
 
   const handleDelete = async () => {
     try {
-      await deleteCourse(selectedCourse);
+      setLoading(true);
+      await deleteCourse(selectedCourse._id);
       message.success('Course deleted successfully');
       await fetchData();
       setShowDeleteModal(false);
     } catch (err) {
       setError(`Failed to delete course: ${err.message}`);
       message.error('Failed to delete course');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -472,260 +475,70 @@ const ManageCourses = () => {
     <Layout style={styles.layout}>
       <Content style={styles.content} className="ant-layout-content">
         <style>{styles.responsiveOverrides}</style>
+        <Spin spinning={loading} tip="Loading data...">
+          {showBackToTop && (
+            <Button
+              type="primary"
+              shape="circle"
+              icon={<ArrowUpOutlined />}
+              style={styles.backToTopButton}
+              onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+            />
+          )}
 
-        {showBackToTop && (
-          <Button
-            type="primary"
-            shape="circle"
-            icon={<ArrowUpOutlined />}
-            style={styles.backToTopButton}
-            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
-          />
-        )}
-
-        <Row justify="space-between" align="middle" style={styles.headerRow} className="header-row">
-          <Button type="link" icon={<LeftOutlined />} onClick={() => navigate('/admin')}>
-            Back to Admin
-          </Button>
-          <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
-            <BookOutlined style={{ marginRight: 8 }} />
-            Course Management
-          </Title>
-          <Button
-            type="primary"
-            icon={<PlusOutlined />}
-            style={{ background: '#1890ff', borderColor: '#1890ff' }}
-            onClick={() => {
-              setShowCourseModal(true);
-              setSelectedCourse(null);
-              setFormData({ name: '', code: '', department: '' });
-              form.resetFields();
-            }}
-          >
-            Add Course
-          </Button>
-        </Row>
-
-        <Row gutter={[8, 8]} style={styles.filterRow}>
-          <Col xs={24} sm={12}>
-            <Select
-              placeholder="All Courses"
-              style={{ width: '100%' }}
-              value={selectedCode || undefined}
-              onChange={value => setSelectedCode(value)}
-              allowClear
-              size="large"
+          <Row justify="space-between" align="middle" style={styles.headerRow} className="header-row">
+            <Button type="link" icon={<LeftOutlined />} onClick={() => navigate('/admin')}>
+              Back to Admin
+            </Button>
+            <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
+              <BookOutlined style={{ marginRight: 8 }} />
+              Course Management
+            </Title>
+            <Button
+              type="primary"
+              icon={<PlusOutlined />}
+              style={{ background: '#1890ff', borderColor: '#1890ff' }}
+              onClick={() => {
+                setShowCourseModal(true);
+                setSelectedCourse(null);
+                setFormData({ name: '', code: '', department: '' });
+                form.resetFields();
+              }}
             >
-              {courseCodes.map(code => (
-                <Option key={code} value={code}>{code}</Option>
-              ))}
-            </Select>
-          </Col>
-          <Col xs={24} sm={12}>
-            <Select
-              placeholder="All Departments"
-              style={{ width: '100%' }}
-              value={selectedDepartment || undefined}
-              onChange={value => setSelectedDepartment(value)}
-              allowClear
-              size="large"
-            >
-              {departments.map(dept => (
-                <Option key={dept._id} value={dept._id}>{dept.name}</Option>
-              ))}
-            </Select>
-          </Col>
-        </Row>
+              Add Course
+            </Button>
+          </Row>
 
-        {error && (
-          <Alert
-            message={error}
-            type="error"
-            closable
-            onClose={() => setError('')}
-            style={{ marginBottom: 16, margin: '0 8px', width: 'calc(100% - 16px)' }}
-          />
-        )}
-        {loading && (
-          <Alert
-            message="Loading..."
-            type="info"
-            icon={<LoadingOutlined spin />}
-            style={{ marginBottom: 16, margin: '0 8px', width: 'calc(100% - 16px)' }}
-          />
-        )}
-
-        <Table
-          dataSource={filteredCourses}
-          columns={columns}
-          rowKey="_id"
-          scroll={{ x: 'max-content', y: 400 }}
-          pagination={{ pageSize: 10, responsive: true }}
-          style={styles.table}
-          className="ant-table-custom"
-        />
-
-        <Modal
-          open={showCourseModal}
-          title={<span style={styles.modalHeader}>{selectedCourse ? "Edit Course" : "Add Course"}</span>}
-          onCancel={() => {
-            setShowCourseModal(false);
-            setSelectedCourse(null);
-            form.resetFields();
-          }}
-          footer={[
-            <Button key="cancel" onClick={() => setShowCourseModal(false)}>Cancel</Button>,
-            <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading} style={{ background: '#1890ff', borderColor: '#1890ff' }}>
-              Save Course
-            </Button>,
-          ]}
-          width={{ xs: '90%', sm: '70%', md: '50%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
-          styles={{ body: styles.modalContent }} // Updated here
-          className="responsive-modal"
-        >
-          <Form
-            form={form}
-            layout="vertical"
-            initialValues={{
-              name: selectedCourse?.name || '',
-              code: selectedCourse?.code || '',
-              department: selectedCourse?.department?._id || '',
-            }}
-            onValuesChange={(_, allValues) => setFormData(allValues)}
-          >
-            <Form.Item label="Course Code" name="code" rules={[{ required: true, message: 'Please input the course code' }]}>
-              <Input size="large" />
-            </Form.Item>
-            <Form.Item label="Course Name" name="name" rules={[{ required: true, message: 'Please input the course name' }]}>
-              <Input size="large" />
-            </Form.Item>
-            <Form.Item label="Department" name="department" rules={[{ required: true, message: 'Please select a department' }]}>
+          <Row gutter={[8, 8]} style={styles.filterRow}>
+            <Col xs={24} sm={12}>
               <Select
-                placeholder="Select Department"
-                value={formData.department}
-                onChange={(value) => setFormData({ ...formData, department: value })}
+                placeholder="All Courses"
+                style={{ width: '100%' }}
+                value={selectedCode || undefined}
+                onChange={value => setSelectedCode(value)}
+                allowClear
+                size="large"
+              >
+                {courseCodes.map(code => (
+                  <Option key={code} value={code}>{code}</Option>
+                ))}
+              </Select>
+            </Col>
+            <Col xs={24} sm={12}>
+              <Select
+                placeholder="All Departments"
+                style={{ width: '100%' }}
+                value={selectedDepartment || undefined}
+                onChange={value => setSelectedDepartment(value)}
+                allowClear
                 size="large"
               >
                 {departments.map(dept => (
-                  <Select.Option key={dept._id} value={dept._id}>{dept.name}</Select.Option>
+                  <Option key={dept._id} value={dept._id}>{dept.name}</Option>
                 ))}
               </Select>
-            </Form.Item>
-          </Form>
-        </Modal>
-
-        <Modal
-          open={showDeleteModal}
-          title={<span style={styles.modalHeader}>Confirm Delete</span>}
-          centered
-          onCancel={() => setShowDeleteModal(false)}
-          footer={[
-            <Button key="cancel" onClick={() => setShowDeleteModal(false)}>Cancel</Button>,
-            <Button key="delete" type="primary" danger onClick={handleDelete} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
-              Delete Course
-            </Button>,
-          ]}
-          width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
-          styles={{ body: styles.modalContent }} // Updated here
-        >
-          <p style={{ color: '#f5222d' }}>
-            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
-            Are you sure you want to delete this course? This action cannot be undone.
-          </p>
-        </Modal>
-
-        <Modal
-          open={showUnitDeleteModal}
-          title={<span style={styles.modalHeader}>Confirm Unit Removal</span>}
-          onCancel={() => setShowUnitDeleteModal(false)}
-          footer={[
-            <Button key="cancel" onClick={() => setShowUnitDeleteModal(false)}>Cancel</Button>,
-            <Button key="remove" type="primary" danger onClick={confirmUnitDelete} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
-              Remove Unit
-            </Button>,
-          ]}
-          width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
-          styles={{ body: styles.modalContent }} // Updated here
-        >
-          <p style={{ color: '#f5222d' }}>
-            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
-            Are you sure you want to remove this unit? This action cannot be undone.
-          </p>
-        </Modal>
-
-        <Modal
-          open={showUnitsModal}
-          title={
-            <span style={styles.modalHeader}>
-              <UnorderedListOutlined style={{ marginRight: 8 }} />
-              Manage Units - {selectedCourseForUnits?.name}
-            </span>
-          }
-          centered
-          onCancel={() => setShowUnitsModal(false)}
-          width={{ xs: '95%', sm: '90%', md: '80%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
-          footer={null}
-          styles={{ body: styles.modalContent }} // Updated here
-          className="responsive-modal"
-        >
-          <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
-            <Row gutter={[8, 8]} style={{ marginBottom: 16, width: '100%' }}>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item name="name" rules={[{ required: true, message: 'Please enter Unit Name' }]}>
-                  <Input
-                    placeholder="Unit Name"
-                    value={unitInput.name}
-                    onChange={(e) => setUnitInput({ ...unitInput, name: e.target.value })}
-                    size="large"
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={6}>
-                <Form.Item name="code" rules={[{ required: true, message: 'Please enter Unit Code' }]}>
-                  <Input
-                    placeholder="Unit Code"
-                    value={unitInput.code}
-                    onChange={(e) => setUnitInput({ ...unitInput, code: e.target.value })}
-                    size="large"
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={12} sm={6} md={4}>
-                <Form.Item name="year" rules={[{ required: true, message: 'Year', min: 1, max: 4 }]}>
-                  <Input
-                    placeholder="Year"
-                    type="number"
-                    value={unitInput.year}
-                    onChange={(e) => setUnitInput({ ...unitInput, year: e.target.value })}
-                    size="large"
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={12} sm={6} md={4}>
-                <Form.Item name="semester" rules={[{ required: true, message: 'Semester', min: 1, max: 3 }]}>
-                  <Input
-                    placeholder="Semester"
-                    type="number"
-                    value={unitInput.semester}
-                    onChange={(e) => setUnitInput({ ...unitInput, semester: e.target.value })}
-                    size="large"
-                  />
-                </Form.Item>
-              </Col>
-              <Col xs={24} sm={12} md={4}>
-                <Button
-                  type="primary"
-                  icon={<PlusOutlined />}
-                  htmlType="submit"
-                  disabled={!unitInput.name.trim() || !unitInput.code.trim()}
-                  block
-                  style={{ background: '#1890ff', borderColor: '#1890ff' }}
-                >
-                  Add Unit
-                </Button>
-              </Col>
-            </Row>
-          </Form>
+            </Col>
+          </Row>
 
           {error && (
             <Alert
@@ -733,24 +546,215 @@ const ManageCourses = () => {
               type="error"
               closable
               onClose={() => setError('')}
-              style={{ marginBottom: 16, width: 'calc(100% - 16px)', margin: '0 8px' }}
+              style={{ marginBottom: 16, margin: '0 8px', width: 'calc(100% - 16px)' }}
             />
           )}
 
-          {units.length === 0 ? (
-            <Alert message="No units found for this course" type="info" style={{ width: 'calc(100% - 16px)', margin: '0 8px' }} />
-          ) : (
-            <Table
-              dataSource={units}
-              columns={unitColumns}
-              rowKey="_id"
-              pagination={false}
-              scroll={{ x: 'max-content', y: 300 }}
-              style={styles.table}
-              className="ant-table-custom"
-            />
-          )}
-        </Modal>
+          <Table
+            dataSource={filteredCourses}
+            columns={columns}
+            rowKey="_id"
+            scroll={{ x: 'max-content', y: 400 }}
+            pagination={{ pageSize: 10, responsive: true }}
+            style={styles.table}
+            className="ant-table-custom"
+          />
+
+          <Modal
+            open={showCourseModal}
+            title={<span style={styles.modalHeader}>{selectedCourse ? "Edit Course" : "Add Course"}</span>}
+            onCancel={() => {
+              setShowCourseModal(false);
+              setSelectedCourse(null);
+              form.resetFields();
+            }}
+            footer={[
+              <Button key="cancel" onClick={() => setShowCourseModal(false)}>Cancel</Button>,
+              <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading} style={{ background: '#1890ff', borderColor: '#1890ff' }}>
+                Save Course
+              </Button>,
+            ]}
+            width={{ xs: '90%', sm: '70%', md: '50%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
+            styles={{ body: styles.modalContent }}
+            className="responsive-modal"
+          >
+            <Spin spinning={loading} tip="Loading data...">
+              <Form
+                form={form}
+                layout="vertical"
+                initialValues={{
+                  name: selectedCourse?.name || '',
+                  code: selectedCourse?.code || '',
+                  department: selectedCourse?.department?._id || '',
+                }}
+                onValuesChange={(_, allValues) => setFormData(allValues)}
+              >
+                <Form.Item label="Course Code" name="code" rules={[{ required: true, message: 'Please input the course code' }]}>
+                  <Input size="large" />
+                </Form.Item>
+                <Form.Item label="Course Name" name="name" rules={[{ required: true, message: 'Please input the course name' }]}>
+                  <Input size="large" />
+                </Form.Item>
+                <Form.Item label="Department" name="department" rules={[{ required: true, message: 'Please select a department' }]}>
+                  <Select
+                    placeholder="Select Department"
+                    value={formData.department}
+                    onChange={(value) => setFormData({ ...formData, department: value })}
+                    size="large"
+                  >
+                    {departments.map(dept => (
+                      <Select.Option key={dept._id} value={dept._id}>{dept.name}</Select.Option>
+                    ))}
+                  </Select>
+                </Form.Item>
+              </Form>
+            </Spin>
+          </Modal>
+
+          <Modal
+            open={showDeleteModal}
+            title={<span style={styles.modalHeader}>Confirm Delete</span>}
+            centered
+            onCancel={() => setShowDeleteModal(false)}
+            footer={[
+              <Button key="cancel" onClick={() => setShowDeleteModal(false)}>Cancel</Button>,
+              <Button key="delete" type="primary" danger onClick={handleDelete} loading={loading} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
+                Delete Course
+              </Button>,
+            ]}
+            width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
+            styles={{ body: styles.modalContent }}
+          >
+            <Spin spinning={loading} tip="Loading data...">
+              <p style={{ color: '#f5222d' }}>
+                <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+                Are you sure you want to delete this course? This action cannot be undone.
+              </p>
+            </Spin>
+          </Modal>
+
+          <Modal
+            open={showUnitDeleteModal}
+            title={<span style={styles.modalHeader}>Confirm Unit Removal</span>}
+            onCancel={() => setShowUnitDeleteModal(false)}
+            footer={[
+              <Button key="cancel" onClick={() => setShowUnitDeleteModal(false)}>Cancel</Button>,
+              <Button key="remove" type="primary" danger onClick={confirmUnitDelete} loading={loading} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
+                Remove Unit
+              </Button>,
+            ]}
+            width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
+            styles={{ body: styles.modalContent }}
+          >
+            <Spin spinning={loading} tip="Loading data...">
+              <p style={{ color: '#f5222d' }}>
+                <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+                Are you sure you want to remove this unit? This action cannot be undone.
+              </p>
+            </Spin>
+          </Modal>
+
+          <Modal
+            open={showUnitsModal}
+            title={
+              <span style={styles.modalHeader}>
+                <UnorderedListOutlined style={{ marginRight: 8 }} />
+                Manage Units - {selectedCourseForUnits?.name}
+              </span>
+            }
+            centered
+            onCancel={() => setShowUnitsModal(false)}
+            width={{ xs: '95%', sm: '90%', md: '80%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
+            footer={null}
+            styles={{ body: styles.modalContent }}
+            className="responsive-modal"
+          >
+            <Spin spinning={loading} tip="Loading data...">
+              <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
+                <Row gutter={[8, 8]} style={{ marginBottom: 16, width: '100%' }}>
+                  <Col xs={24} sm={12} md={6}>
+                    <Form.Item name="name" rules={[{ required: true, message: 'Please enter Unit Name' }]}>
+                      <Input
+                        placeholder="Unit Name"
+                        value={unitInput.name}
+                        onChange={(e) => setUnitInput({ ...unitInput, name: e.target.value })}
+                        size="large"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12} md={6}>
+                    <Form.Item name="code" rules={[{ required: true, message: 'Please enter Unit Code' }]}>
+                      <Input
+                        placeholder="Unit Code"
+                        value={unitInput.code}
+                        onChange={(e) => setUnitInput({ ...unitInput, code: e.target.value })}
+                        size="large"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Item name="year" rules={[{ required: true, message: 'Year', type: 'number', min: 1, max: 4 }]}>
+                      <Input
+                        placeholder="Year"
+                        type="number"
+                        value={unitInput.year}
+                        onChange={(e) => setUnitInput({ ...unitInput, year: e.target.value })}
+                        size="large"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={12} sm={6} md={4}>
+                    <Form.Item name="semester" rules={[{ required: true, message: 'Semester', type: 'number', min: 1, max: 3 }]}>
+                      <Input
+                        placeholder="Semester"
+                        type="number"
+                        value={unitInput.semester}
+                        onChange={(e) => setUnitInput({ ...unitInput, semester: e.target.value })}
+                        size="large"
+                      />
+                    </Form.Item>
+                  </Col>
+                  <Col xs={24} sm={12} md={4}>
+                    <Button
+                      type="primary"
+                      icon={<PlusOutlined />}
+                      htmlType="submit"
+                      disabled={!unitInput.name.trim() || !unitInput.code.trim()}
+                      block
+                      style={{ background: '#1890ff', borderColor: '#1890ff' }}
+                    >
+                      Add Unit
+                    </Button>
+                  </Col>
+                </Row>
+              </Form>
+
+              {error && (
+                <Alert
+                  message={error}
+                  type="error"
+                  closable
+                  onClose={() => setError('')}
+                  style={{ marginBottom: 16, width: 'calc(100% - 16px)', margin: '0 8px' }}
+                />
+              )}
+
+              {units.length === 0 ? (
+                <Alert message="No units found for this course" type="info" style={{ width: 'calc(100% - 16px)', margin: '0 8px' }} />
+              ) : (
+                <Table
+                  dataSource={units}
+                  columns={unitColumns}
+                  rowKey="_id"
+                  pagination={false}
+                  scroll={{ x: 'max-content', y: 300 }}
+                  style={styles.table}
+                  className="ant-table-custom"
+                />
+              )}
+            </Spin>
+          </Modal>
+        </Spin>
       </Content>
     </Layout>
   );
