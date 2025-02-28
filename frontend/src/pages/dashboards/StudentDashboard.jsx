@@ -251,9 +251,8 @@ const StudentDashboard = () => {
         ticks: {
           maxRotation: 45,
           minRotation: 0,
-          callback: function(value, index, values) {
+          callback: function(value) {
             const label = this.getLabelForValue(value);
-            // Shorten labels on small screens
             return window.innerWidth < 576 && label.length > 10 ? label.substring(0, 10) + '...' : label;
           },
         },
@@ -305,16 +304,16 @@ const StudentDashboard = () => {
     <Card style={{ borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', height: '100%' }}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <AntTitle level={3} style={{ textAlign: 'center' }}>
-          <CalendarOutlined /> Attendance Events
+          <CalendarOutlined style={{ marginRight: 4 }} /> Attendance Events
         </AntTitle>
-        <Space>
+        <Space size={4}>
           <Select
             value={viewMode}
             onChange={(value) => {
               setViewMode(value);
               setSelectedDate(value === 'daily' ? moment() : null);
             }}
-            style={{ width: 100 }}
+            style={{ width: 80, fontSize: '12px' }}
           >
             <Option value="daily">Daily</Option>
             <Option value="weekly">Weekly</Option>
@@ -325,7 +324,7 @@ const StudentDashboard = () => {
             value={selectedDate}
             format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
             placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
-            style={{ width: 160 }}
+            style={{ width: 120, fontSize: '12px' }}
           />
         </Space>
         {filteredEvents().length > 0 ? (
@@ -445,6 +444,20 @@ const StudentDashboard = () => {
     }
   };
 
+  const checkFeedbackStatus = async (sessionId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API_URL}/attendance/feedback/status/${sessionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data.feedbackSubmitted;
+    } catch (error) {
+      console.error('Error checking feedback status:', error);
+      return false; // Default to false if error occurs
+    }
+  };
+
   const openFeedbackModal = async (unitId) => {
     const unitAttendance = attendanceData.attendanceRecords
       .filter((data) => data.session.unit._id.toString() === unitId.toString())
@@ -465,7 +478,8 @@ const StudentDashboard = () => {
         message.info('You must mark attendance for the latest session to provide feedback.');
         return;
       }
-      if (latestSession.feedbackSubmitted) {
+      const feedbackSubmitted = await checkFeedbackStatus(latestSession.session._id);
+      if (feedbackSubmitted) {
         message.info('Feedback already submitted for the latest session.');
         return;
       }
@@ -481,7 +495,8 @@ const StudentDashboard = () => {
         message.info('You must mark attendance for the latest session to provide feedback.');
         return;
       }
-      if (latestSession.feedbackSubmitted) {
+      const feedbackSubmitted = await checkFeedbackStatus(latestSession.session._id);
+      if (feedbackSubmitted) {
         message.info('Feedback already submitted for the latest session.');
         return;
       }
@@ -562,7 +577,7 @@ const StudentDashboard = () => {
           </Col>
           <Col flex="none">
             <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-              <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
+              <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 8 }} />
             </Dropdown>
           </Col>
         </Row>

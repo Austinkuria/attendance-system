@@ -616,3 +616,26 @@ exports.getPendingFeedbackAttendance = async (req, res) => {
     res.status(500).json({ message: "Error fetching pending feedback attendance", error: error.message });
   }
 };
+
+exports.checkFeedbackStatus = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID format" });
+    }
+
+    const attendance = await Attendance.findOne({
+      session: sessionId,
+      student: req.user.userId,
+    });
+
+    if (!attendance) {
+      return res.status(404).json({ message: "Attendance record not found" });
+    }
+
+    res.status(200).json({ feedbackSubmitted: attendance.feedbackSubmitted });
+  } catch (error) {
+    console.error("Error checking feedback status:", error);
+    res.status(500).json({ message: "Error checking feedback status", error: error.message });
+  }
+};

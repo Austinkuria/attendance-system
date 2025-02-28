@@ -14,11 +14,22 @@ import {
   Legend,
 } from 'chart.js';
 import { Layout, Button, Card, Space, theme, Typography, Spin, Select, DatePicker, Switch, message } from 'antd';
-import { ArrowLeftOutlined } from '@ant-design/icons';
+import { ArrowLeftOutlined } from '@ant-design/icons'; // Changed to LeftOutlined if preferred
 import moment from 'moment';
 import 'antd/dist/reset.css';
+import zoomPlugin from 'chartjs-plugin-zoom';
 
-ChartJS.register(CategoryScale, LinearScale, LineElement, BarElement, PointElement, Title, Tooltip, Legend);
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  LineElement,
+  BarElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+  zoomPlugin
+);
 
 const { Header, Content } = Layout;
 const { Title: AntTitle } = Typography;
@@ -30,7 +41,7 @@ const styles = {
     marginTop: 64,
     padding: '24px',
     minHeight: 'calc(100vh - 64px)',
-    overflowY: 'auto', // Changed to overflow-y only
+    overflowY: 'auto',
     maxWidth: '1600px',
     width: '100%',
     marginLeft: 'auto',
@@ -49,6 +60,17 @@ const styles = {
     flexWrap: 'wrap',
     gap: '8px',
   },
+  header: {
+    padding: '0 16px',
+    position: 'fixed',
+    width: '100%',
+    zIndex: 10,
+    maxWidth: '100%',
+    overflowX: 'hidden',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
   responsiveOverrides: `
     @media (max-width: 1600px) { 
       .ant-layout-content { max-width: 90vw; } 
@@ -62,14 +84,14 @@ const styles = {
       .controls { max-width: 100%; flex-direction: column; align-items: stretch; } 
       .chart-container { height: 350px; } 
       .ant-typography { font-size: 18px; }
-      .header-space { padding: 0 8px; } /* Reduce header padding */
+      .header-space { padding: 0 8px; }
     }
     @media (max-width: 480px) { 
       .chart-container { height: 250px; } 
-      .ant-btn { font-size: 14px; padding: 4px 8px; width: 48px; height: 48px; } /* Smaller button */
+      .ant-btn { font-size: 14px; padding: 4px 8px; height: 48px; }
       .ant-select, .ant-picker { width: 100% !important; } 
       .ant-typography { font-size: 16px; }
-      .header-space { padding: 0 4px; } /* Further reduce padding */
+      .header-space { padding: 0 4px; }
     }
   `,
 };
@@ -167,13 +189,22 @@ const AttendanceTrends = () => {
       dataPoints = Object.values(weeklyEvents).map(week => week.total ? (week.present / week.total) * 100 : 0);
     }
 
+    const barColors = [
+      'rgba(255, 99, 132, 0.6)',
+      'rgba(54, 162, 235, 0.6)',
+      'rgba(255, 206, 86, 0.6)',
+      'rgba(75, 192, 192, 0.6)',
+      'rgba(153, 102, 255, 0.6)',
+      'rgba(255, 159, 64, 0.6)',
+    ];
+
     return {
       labels,
       datasets: [{
         label: `${filter === '30days' ? 'Daily (Last 30 Days)' : filter === 'daily' ? 'Daily' : 'Weekly'} Attendance (%)`,
         data: dataPoints,
-        borderColor: '#1890ff',
-        backgroundColor: chartType === 'bar' ? 'rgba(24, 144, 255, 0.6)' : 'rgba(24, 144, 255, 0.2)',
+        borderColor: chartType === 'line' ? '#1890ff' : barColors.map((color, index) => barColors[index % barColors.length]),
+        backgroundColor: chartType === 'line' ? 'rgba(24, 144, 255, 0.2)' : barColors.map((color, index) => barColors[index % barColors.length]),
         borderWidth: chartType === 'line' ? 2 : 1,
         fill: chartType === 'line',
         tension: chartType === 'line' ? 0.3 : 0,
@@ -181,6 +212,19 @@ const AttendanceTrends = () => {
       }],
     };
   }, [attendanceData, filter, dateRange, chartType]);
+
+  const getXAxisLabel = useCallback(() => {
+    switch (filter) {
+      case '30days':
+        return 'Date (Last 30 Days)';
+      case 'daily':
+        return 'Date';
+      case 'weekly':
+        return 'Week';
+      default:
+        return 'Time Period';
+    }
+  }, [filter]);
 
   const trendOptions = {
     responsive: true,
@@ -191,12 +235,44 @@ const AttendanceTrends = () => {
         display: true,
         text: `Attendance Trend (${filter === '30days' ? 'Last 30 Days' : filter === 'daily' ? 'Daily' : 'Weekly'}${dateRange ? ` from ${dateRange[0]?.format('MMM D, YYYY')} to ${dateRange[1]?.format('MMM D, YYYY')}` : ''})`,
         font: { size: 16 },
+        color: '#1890ff',
       },
       tooltip: { callbacks: { label: (context) => `${context.raw.toFixed(2)}%` } },
+      zoom: {
+        zoom: {
+          wheel: { enabled: true },
+          pinch: { enabled: true },
+          mode: 'x',
+        },
+        pan: {
+          enabled: true,
+          mode: 'x',
+        },
+        limits: {
+          x: { min: 'original', max: 'original' },
+        },
+      },
     },
     scales: {
-      y: { beginAtZero: true, max: 100, title: { display: true, text: 'Rate (%)' } },
-      x: { ticks: { maxRotation: 45, minRotation: 0, font: { size: 12 } } },
+      y: {
+        beginAtZero: true,
+        max: 100,
+        title: {
+          display: true,
+          text: 'Attendance Rate (%)',
+          color: '#FF5733',
+          font: { size: 14 },
+        },
+      },
+      x: {
+        title: {
+          display: true,
+          text: getXAxisLabel(),
+          color: '#28A745',
+          font: { size: 14 },
+        },
+        ticks: { maxRotation: 45, minRotation: 0, font: { size: 12 } },
+      },
     },
   };
 
@@ -216,32 +292,18 @@ const AttendanceTrends = () => {
 
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
-      <Header 
-        style={{ 
-          padding: '0 16px', 
-          background: colorBgContainer, 
-          position: 'fixed', 
-          width: '100%', 
-          zIndex: 10, 
-          maxWidth: '100%', 
-          overflowX: 'hidden' // Prevent horizontal scroll in header
-        }}
-      >
-        <Space 
-          className="header-space" 
-          wrap={false} // Prevent wrapping unless necessary
-          style={{ overflow: 'hidden', whiteSpace: 'nowrap' }} // Constrain content
+      <Header style={{ ...styles.header, background: colorBgContainer }}>
+        <Button
+          type="link"
+          icon={<ArrowLeftOutlined />}
+          onClick={() => navigate('/student-dashboard')}
         >
-          <Button
-            type="text"
-            icon={<ArrowLeftOutlined />}
-            onClick={() => navigate('/student-dashboard')}
-            style={{ fontSize: '16px', width: 64, height: 64, flexShrink: 0 }} // Prevent button shrinkage
-          />
-          <AntTitle level={3} style={{ display: 'inline', margin: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-            Attendance Trends
-          </AntTitle>
-        </Space>
+          Dashboard
+        </Button>
+        <AntTitle level={3} style={{ margin: 0, textAlign: 'center', flexGrow: 1 }}>
+          Attendance Trends
+        </AntTitle>
+        <div style={{ width: 64 }} /> {/* Spacer for symmetry */}
       </Header>
 
       <Content style={styles.content} className="ant-layout-content">

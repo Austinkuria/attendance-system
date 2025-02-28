@@ -30,6 +30,25 @@ h1 {
   font-size: clamp(24px, 6vw, 32px);
 }
 
+/* Center "Student Dashboard" on large screens */
+.header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.title-col {
+  display: flex;
+  justify-content: flex-start;
+  flex-grow: 1;
+}
+
+@media (min-width: 992px) {
+  .title-col {
+    justify-content: center;
+  }
+}
+
 @media (max-width: 576px) {
   .ant-layout-content {
     padding: 16px !important;
@@ -49,11 +68,16 @@ h1 {
   }
 
   .ant-list-item-action {
-    margin-left: 8px; /* Prevent overlap */
+    margin-left: 8px;
   }
 
   .ant-btn {
-    padding: 4px 8px; /* Smaller padding for buttons */
+    padding: 4px 8px;
+  }
+
+  .title-col {
+    flex-grow: 1;
+    margin-right: 0;
   }
 }
 
@@ -70,13 +94,11 @@ h1 {
     max-width: 25%;
   }
 
-  /* Increase summary card height on large screens */
   .ant-card.summary-card {
-    height: 198px !important;
+    height: 200px !important;
   }
 }
 
-/* Ensure summary cards have a class for specific styling */
 .summary-card {
-  height: 150px;
+  height: 170px;
 }
