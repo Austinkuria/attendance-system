@@ -5,8 +5,6 @@ import {
   getStudentUnits,
   getUserProfile,
   submitFeedback,
-  getSessionQuiz,
-  submitQuizAnswers,
   getActiveSessionForUnit,
   getPendingFeedbackAttendance
 } from '../../services/api';
@@ -32,7 +30,6 @@ import {
   message,
   Input,
   Rate,
-  Radio,
   Space,
   theme,
   Typography,
@@ -77,22 +74,19 @@ const StudentDashboard = () => {
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState(true);
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
-  const [quizModalVisible, setQuizModalVisible] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [feedbackData, setFeedbackData] = useState({
-    rating: 3,
+    rating: 0,
     text: '',
-    pace: 50,
-    interactivity: 3,
-    clarity: true,
+    pace: 0,
+    interactivity: 0,
+    clarity: null,
     resources: '',
     anonymous: false,
   });
-  const [quiz, setQuiz] = useState(null);
-  const [quizAnswers, setQuizAnswers] = useState({});
   const [hasShownLowAttendanceAlert, setHasShownLowAttendanceAlert] = useState(false);
-  const [viewMode, setViewMode] = useState('weekly');
-  const [selectedDate, setSelectedDate] = useState(null);
+  const [viewMode, setViewMode] = useState('daily');
+  const [selectedDate, setSelectedDate] = useState(moment());
   const [pendingFeedbacks, setPendingFeedbacks] = useState([]);
 
   const navigate = useNavigate();
@@ -109,9 +103,9 @@ const StudentDashboard = () => {
         getPendingFeedbackAttendance()
       ]);
 
-      console.log('Profile Response:', profileRes); // Debug
-      console.log('Units Response:', unitsRes); // Debug
-      console.log('Feedback Response:', feedbackRes); // Debug
+      console.log('Profile Response:', profileRes);
+      console.log('Units Response:', unitsRes);
+      console.log('Feedback Response:', feedbackRes);
 
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
@@ -119,7 +113,7 @@ const StudentDashboard = () => {
 
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
-        console.log('Attendance Response:', attendanceRes); // Debug
+        console.log('Attendance Response:', attendanceRes);
         setAttendanceData(attendanceRes);
       }
 
@@ -130,11 +124,11 @@ const StudentDashboard = () => {
         message: "Please provide your feedback for the session.",
         timestamp: record.session.endTime || new Date(),
       }));
-      console.log('New Pending Feedbacks:', newPendingFeedbacks); // Debug
+      console.log('New Pending Feedbacks:', newPendingFeedbacks);
       setPendingFeedbacks((prev) => {
         const existingIds = new Set(prev.map((pf) => pf.sessionId));
         const filteredNew = newPendingFeedbacks.filter((pf) => !existingIds.has(pf.sessionId));
-        console.log('Filtered New Feedbacks:', filteredNew); // Debug
+        console.log('Filtered New Feedbacks:', filteredNew);
         return [...prev, ...filteredNew];
       });
 
@@ -153,7 +147,7 @@ const StudentDashboard = () => {
 
   useEffect(() => {
     localStorage.setItem('pendingFeedbacks', JSON.stringify(pendingFeedbacks));
-    console.log('Updated pendingFeedbacks in localStorage:', pendingFeedbacks); // Debug
+    console.log('Updated pendingFeedbacks in localStorage:', pendingFeedbacks);
   }, [pendingFeedbacks]);
 
   useEffect(() => {
@@ -253,7 +247,17 @@ const StudentDashboard = () => {
     },
     scales: {
       y: { beginAtZero: true, max: 100, title: { display: true, text: 'Attendance Rate (%)' } },
-      x: { ticks: { maxRotation: 45, minRotation: 0 } },
+      x: {
+        ticks: {
+          maxRotation: 45,
+          minRotation: 0,
+          callback: function(value, index, values) {
+            const label = this.getLabelForValue(value);
+            // Shorten labels on small screens
+            return window.innerWidth < 576 && label.length > 10 ? label.substring(0, 10) + '...' : label;
+          },
+        },
+      },
     },
     onClick: (event, elements) => {
       if (elements.length > 0) {
@@ -298,7 +302,7 @@ const StudentDashboard = () => {
   };
 
   const renderCalendarEvents = () => (
-    <Card style={{ marginTop: '24px', borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}>
+    <Card style={{ borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', height: '100%' }}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <AntTitle level={3} style={{ textAlign: 'center' }}>
           <CalendarOutlined /> Attendance Events
@@ -308,12 +312,12 @@ const StudentDashboard = () => {
             value={viewMode}
             onChange={(value) => {
               setViewMode(value);
-              setSelectedDate(null);
+              setSelectedDate(value === 'daily' ? moment() : null);
             }}
-            style={{ width: 120 }}
+            style={{ width: 100 }}
           >
-            <Option value="weekly">Weekly</Option>
             <Option value="daily">Daily</Option>
+            <Option value="weekly">Weekly</Option>
           </Select>
           <DatePicker
             picker={viewMode === 'weekly' ? 'week' : 'date'}
@@ -321,7 +325,7 @@ const StudentDashboard = () => {
             value={selectedDate}
             format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
             placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
-            style={{ width: 200 }}
+            style={{ width: 160 }}
           />
         </Space>
         {filteredEvents().length > 0 ? (
@@ -343,42 +347,44 @@ const StudentDashboard = () => {
     </Card>
   );
 
-  const renderNotifications = () => {
-    console.log('Rendering notifications with pendingFeedbacks:', pendingFeedbacks); // Debug
-    return (
-      <Card
-        title={<><BellOutlined /> Notifications</>}
-        style={{ marginTop: 24, borderRadius: 10, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)' }}
-        extra={
-          pendingFeedbacks.length > 0 && (
-            <Button
-              type="link"
-              onClick={() => setPendingFeedbacks([])}
-            >
-              Clear All
-            </Button>
-          )
-        }
-      >
-        {pendingFeedbacks.length > 0 ? (
-          <List
-            dataSource={pendingFeedbacks}
-            renderItem={(item) => (
+  const renderNotifications = () => (
+    <Card
+      title={<><BellOutlined /> Notifications</>}
+      style={{ borderRadius: 10, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', height: '100%' }}
+      extra={
+        pendingFeedbacks.length > 0 && (
+          <Button type="link" onClick={() => setPendingFeedbacks([])}>
+            Clear All
+          </Button>
+        )
+      }
+    >
+      {pendingFeedbacks.length > 0 ? (
+        <List
+          dataSource={pendingFeedbacks}
+          renderItem={(item) => {
+            const isFeedbackSubmitted = attendanceData.attendanceRecords.some(
+              (rec) => rec.session._id === item.sessionId && rec.feedbackSubmitted
+            );
+            return (
               <List.Item
                 key={item.sessionId}
                 actions={[
                   <Button
                     key="provide-feedback"
                     type="primary"
+                    size="small"
                     onClick={() => {
                       setActiveSessionId(item.sessionId);
                       setFeedbackModalVisible(true);
                     }}
+                    disabled={isFeedbackSubmitted}
                   >
-                    Provide Feedback
+                    Provide
                   </Button>,
                   <Button
                     key="dismiss"
+                    size="small"
                     onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
                   >
                     Dismiss
@@ -390,14 +396,14 @@ const StudentDashboard = () => {
                   description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
                 />
               </List.Item>
-            )}
-          />
-        ) : (
-          <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
-        )}
-      </Card>
-    );
-  };
+            );
+          }}
+        />
+      ) : (
+        <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
+      )}
+    </Card>
+  );
 
   const profileItems = [
     { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => navigate('/student/profile') },
@@ -484,45 +490,33 @@ const StudentDashboard = () => {
     }
   };
 
-  const openQuizModal = async (unitId) => {
-    const unitAttendance = attendanceData.attendanceRecords.filter(
-      (data) => data.session.unit._id.toString() === unitId.toString()
-    );
-    if (!unitAttendance.length) {
-      message.warning('No attendance records found.');
-      return;
-    }
-    const latestSession = unitAttendance[0];
-    setActiveSessionId(latestSession._id);
-    try {
-      const quizData = await getSessionQuiz(latestSession.session._id);
-      if (quizData?.questions) {
-        setQuiz(quizData);
-        setQuizModalVisible(true);
-      } else {
-        message.info('No quiz available.');
-      }
-    } catch {
-      message.error('Error fetching quiz.');
-    }
-  };
-
   const handleFeedbackSubmit = async () => {
     if (!activeSessionId) return message.error('No session selected.');
+
+    if (
+      feedbackData.rating === 0 ||
+      feedbackData.pace === 0 ||
+      feedbackData.interactivity === 0 ||
+      feedbackData.clarity === null
+    ) {
+      message.error('Please complete all required feedback fields (marked with *).');
+      return;
+    }
+
     try {
       await submitFeedback({
         sessionId: activeSessionId,
         rating: feedbackData.rating,
-        feedbackText: feedbackData.text,
+        feedbackText: feedbackData.text || '',
         pace: feedbackData.pace,
         interactivity: feedbackData.interactivity,
         clarity: feedbackData.clarity,
-        resources: feedbackData.resources,
+        resources: feedbackData.resources || '',
         anonymous: feedbackData.anonymous,
       });
       message.success('Feedback submitted!');
       setFeedbackModalVisible(false);
-      setFeedbackData({ rating: 3, text: '', pace: 50, interactivity: 3, clarity: true, resources: '', anonymous: false });
+      setFeedbackData({ rating: 0, text: '', pace: 0, interactivity: 0, clarity: null, resources: '', anonymous: false });
       setAttendanceData((prev) => ({
         ...prev,
         attendanceRecords: prev.attendanceRecords.map((rec) =>
@@ -534,23 +528,6 @@ const StudentDashboard = () => {
     } catch (error) {
       console.error('Feedback submission failed:', error);
       message.error(`Error submitting feedback: ${error.response?.data?.message || error.message}`);
-    }
-  };
-
-  const handleQuizAnswerChange = (questionIndex, value) => {
-    setQuizAnswers((prev) => ({ ...prev, [questionIndex]: value }));
-  };
-
-  const handleQuizSubmit = async () => {
-    if (!quiz?._id) return message.error('No quiz data.');
-    try {
-      await submitQuizAnswers({ quizId: quiz._id, answers: quizAnswers });
-      message.success('Quiz submitted!');
-      setQuizModalVisible(false);
-      setQuizAnswers({});
-      setQuiz(null);
-    } catch {
-      message.error('Error submitting quiz.');
     }
   };
 
@@ -576,12 +553,14 @@ const StudentDashboard = () => {
   return (
     <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
       <Header style={{ padding: '0 16px', background: colorBgContainer, position: 'fixed', width: '100%', zIndex: 10 }}>
-        <Row align="middle">
-          <Col flex="auto">
+        <Row align="middle" className="header-row">
+          <Col flex="none">
             <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} style={{ fontSize: '16px', width: 64, height: 64 }} />
-            <AntTitle level={3} style={{ display: 'inline', margin: 0 }}>Student Dashboard</AntTitle>
           </Col>
-          <Col>
+          <Col flex="auto" className="title-col">
+            <AntTitle level={3} style={{ margin: 0 }}>Student Dashboard</AntTitle>
+          </Col>
+          <Col flex="none">
             <Dropdown menu={{ items: profileItems }} trigger={['click']}>
               <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
             </Dropdown>
@@ -598,48 +577,49 @@ const StudentDashboard = () => {
           ]} />
         </Sider>
 
-        <Content style={{ marginTop: 64, marginBottom: 16, marginLeft: collapsed ? 96 : 266, marginRight: 16, padding: 24, minHeight: 'calc(100vh - 64px)', overflow: 'auto', maxWidth: 1200 }}>
+        <Content style={{ marginTop: 64, marginLeft: collapsed ? 96 : 266, marginRight: 16, padding: '16px 24px', minHeight: 'calc(100vh - 64px)', overflow: 'auto' }}>
           <Spin spinning={loading} tip="Loading data...">
-            <Row gutter={[16, 16]} justify="center">
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Card style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', width: '100%', minWidth: 200, height: 200 }} styles={{ body: { padding: '16px' } }}>
+            {/* Summary Cards */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              <Col xs={24} sm={12}>
+                <Card className="summary-card" style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center' }} styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' } }}>
                   <Space direction="vertical">
                     <BookOutlined style={{ fontSize: 24 }} />
-                    <h3>Total Units</h3>
-                    <h1>{units.length}</h1>
+                    <h3 style={{ margin: '8px 0' }}>Total Units</h3>
+                    <h1 style={{ margin: 0 }}>{units.length}</h1>
                   </Space>
                 </Card>
               </Col>
-              <Col xs={24} sm={12} md={8} lg={6}>
-                <Card style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', width: '100%', minWidth: 200, height: 200 }} styles={{ body: { padding: '16px' } }}>
+              <Col xs={24} sm={12}>
+                <Card className="summary-card" style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center' }} styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' } }}>
                   <Space direction="vertical">
                     <CheckCircleOutlined style={{ fontSize: 24 }} />
-                    <h3>Attendance Rate</h3>
-                    <h1>{attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%</h1>
+                    <h3 style={{ margin: '8px 0' }}>Attendance Rate</h3>
+                    <h1 style={{ margin: 0 }}>{attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%</h1>
                   </Space>
                 </Card>
               </Col>
             </Row>
 
-            <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>My Units</AntTitle>
-            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
+            {/* My Units */}
+            <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 16 }}>My Units</AntTitle>
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               {units.map((unit) => unit._id ? (
                 <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
-                  <Card title={unit.name || 'Untitled Unit'} extra={<span>{unit.code || 'N/A'}</span>} style={{ borderRadius: 10, width: '100%' }} styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }} onClick={() => setSelectedUnit(unit)}>
+                  <Card
+                    title={unit.name || 'Untitled Unit'}
+                    extra={<span>{unit.code || 'N/A'}</span>}
+                    style={{ borderRadius: 10, width: '100%' }}
+                    styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
+                    onClick={() => setSelectedUnit(unit)}
+                  >
                     <Space direction="vertical" style={{ width: '100%' }} size={16}>
                       {(() => {
                         const rate = calculateAttendanceRate(unit._id);
                         return rate === null ? (
                           <div style={{ color: '#888' }}>No sessions</div>
                         ) : (
-                          <div
-                            style={{
-                              background: '#e8ecef',
-                              borderRadius: 6,
-                              overflow: 'hidden',
-                              height: 20,
-                            }}
-                          >
+                          <div style={{ background: '#e8ecef', borderRadius: 6, overflow: 'hidden', height: 20 }}>
                             <div style={{
                               width: `${rate}%`,
                               minWidth: rate === '0.00' ? '20px' : '0',
@@ -655,30 +635,45 @@ const StudentDashboard = () => {
                         );
                       })()}
                       <Row gutter={[8, 8]} justify="space-between">
-                        <Col span={12}>
+                        <Col span={24}>
                           <Button type="primary" icon={<QrcodeOutlined />} block onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}>Attend</Button>
                         </Col>
-                        <Col span={12}>
-                          <Button block onClick={(e) => { e.stopPropagation(); openQuizModal(unit._id); }}>Quiz</Button>
+                        <Col span={24}>
+                          <Button
+                            block
+                            onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
+                            disabled={attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString() && rec.feedbackSubmitted)}
+                          >
+                            Feedback
+                          </Button>
                         </Col>
                       </Row>
-                      <Button block onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}>Feedback</Button>
                     </Space>
                   </Card>
                 </Col>
               ) : null)}
             </Row>
 
-            {renderCalendarEvents()}
-            {renderNotifications()}
-            <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Attendance Overview</AntTitle>
-            <Card style={{ marginTop: 16, borderRadius: 10 }}>
+            {/* Notifications and Attendance Events Side-by-Side */}
+            <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+              <Col xs={24} md={12}>
+                {renderNotifications()}
+              </Col>
+              <Col xs={24} md={12}>
+                {renderCalendarEvents()}
+              </Col>
+            </Row>
+
+            {/* Attendance Overview */}
+            <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 16 }}>Attendance Overview</AntTitle>
+            <Card style={{ borderRadius: 10, marginBottom: 64 }}>
               <div style={{ height: '400px' }}>
                 <Bar data={chartData} options={chartOptions} />
               </div>
               <Button type="primary" style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }} onClick={exportAttendanceData}>Export Data</Button>
             </Card>
 
+            {/* Modals */}
             <Modal open={!!selectedUnit} title={selectedUnit?.name} onCancel={() => setSelectedUnit(null)} footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>} centered width={Math.min(window.innerWidth * 0.9, 500)}>
               {selectedUnit && (
                 <Space direction="vertical">
@@ -699,11 +694,11 @@ const StudentDashboard = () => {
             >
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
                 <div>
-                  <p>Overall Satisfaction</p>
+                  <p>Overall Satisfaction <span style={{ color: 'red' }}>*</span></p>
                   <Rate allowHalf value={feedbackData.rating} onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })} />
                 </div>
                 <div>
-                  <p>Pace of the Session (Slow to Fast)</p>
+                  <p>Pace of the Session (Slow to Fast) <span style={{ color: 'red' }}>*</span></p>
                   <Slider
                     min={0}
                     max={100}
@@ -713,11 +708,11 @@ const StudentDashboard = () => {
                   />
                 </div>
                 <div>
-                  <p>Interactivity Level</p>
+                  <p>Interactivity Level <span style={{ color: 'red' }}>*</span></p>
                   <Rate value={feedbackData.interactivity} onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })} />
                 </div>
                 <div>
-                  <p>Was the content clear?</p>
+                  <p>Was the content clear? <span style={{ color: 'red' }}>*</span></p>
                   <Switch
                     checked={feedbackData.clarity}
                     onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
@@ -733,7 +728,7 @@ const StudentDashboard = () => {
                 />
                 <Input.TextArea
                   rows={3}
-                  placeholder="Suggestions for resources or improvements"
+                  placeholder="Suggestions for resources or improvements (optional)"
                   value={feedbackData.resources}
                   onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
                 />
@@ -743,23 +738,6 @@ const StudentDashboard = () => {
                 >
                   Submit anonymously
                 </Checkbox>
-              </Space>
-            </Modal>
-
-            <Modal open={quizModalVisible} title={quiz?.title || 'Quiz'} onCancel={() => setQuizModalVisible(false)} onOk={handleQuizSubmit} centered width={Math.min(window.innerWidth * 0.9, 500)}>
-              <Space direction="vertical" size={16} style={{ width: '100%' }}>
-                {quiz?.questions?.map((q, index) => (
-                  <div key={index}>
-                    <p>{q.question}</p>
-                    <Radio.Group onChange={(e) => handleQuizAnswerChange(index, e.target.value)} value={quizAnswers[index]}>
-                      <Space direction="vertical">
-                        {q.options?.map((opt, idx) => (
-                          <Radio key={idx} value={opt.optionText}>{opt.optionText}</Radio>
-                        ))}
-                      </Space>
-                    </Radio.Group>
-                  </div>
-                ))}
               </Space>
             </Modal>
           </Spin>
