@@ -28,7 +28,7 @@ import {
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
-import '../../styles.css';
+// import '../../styles.css';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 

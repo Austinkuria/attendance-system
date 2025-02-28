@@ -40,6 +40,7 @@ import {
   Select,
   List,
   Checkbox,
+  Pagination, // Added Pagination
 } from 'antd';
 import {
   UserOutlined,
@@ -88,6 +89,9 @@ const StudentDashboard = () => {
   const [viewMode, setViewMode] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(moment());
   const [pendingFeedbacks, setPendingFeedbacks] = useState([]);
+  const [eventPage, setEventPage] = useState(1); // Pagination for Attendance Events
+  const [notificationPage, setNotificationPage] = useState(1); // Pagination for Notifications
+  const [pageSize] = useState(5); // Items per page, adjustable
 
   const navigate = useNavigate();
 
@@ -300,109 +304,150 @@ const StudentDashboard = () => {
     }
   };
 
-  const renderCalendarEvents = () => (
-    <Card style={{ borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', height: '100%' }}>
-      <Space direction="vertical" size={12} style={{ width: '100%' }}>
-        <AntTitle level={3} style={{ textAlign: 'center' }}>
-          <CalendarOutlined style={{ marginRight: 4 }} /> Attendance Events
-        </AntTitle>
-        <Space size={4}>
-          <Select
-            value={viewMode}
-            onChange={(value) => {
-              setViewMode(value);
-              setSelectedDate(value === 'daily' ? moment() : null);
-            }}
-            style={{ width: 80, fontSize: '12px' }}
-          >
-            <Option value="daily">Daily</Option>
-            <Option value="weekly">Weekly</Option>
-          </Select>
-          <DatePicker
-            picker={viewMode === 'weekly' ? 'week' : 'date'}
-            onChange={(date) => setSelectedDate(date)}
-            value={selectedDate}
-            format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
-            placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
-            style={{ width: 120, fontSize: '12px' }}
-          />
-        </Space>
-        {filteredEvents().length > 0 ? (
-          <List
-            dataSource={filteredEvents()}
-            renderItem={(item) => (
-              <List.Item key={item.sessionId || `${item.title}-${item.date?.toISOString()}`}>
-                <List.Item.Meta
-                  title={item.title}
-                  description={item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}
-                />
-              </List.Item>
-            )}
-          />
-        ) : (
-          <p style={{ textAlign: 'center', color: '#888' }}>No events found for the selected period.</p>
-        )}
-      </Space>
-    </Card>
-  );
+  const renderCalendarEvents = () => {
+    const events = filteredEvents();
+    const totalEvents = events.length;
+    const startIndex = (eventPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedEvents = events.slice(startIndex, endIndex);
 
-  const renderNotifications = () => (
-    <Card
-      title={<><BellOutlined /> Notifications</>}
-      style={{ borderRadius: 10, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', height: '100%' }}
-      extra={
-        pendingFeedbacks.length > 0 && (
-          <Button type="link" onClick={() => setPendingFeedbacks([])}>
-            Clear All
-          </Button>
-        )
-      }
-    >
-      {pendingFeedbacks.length > 0 ? (
-        <List
-          dataSource={pendingFeedbacks}
-          renderItem={(item) => {
-            const isFeedbackSubmitted = attendanceData.attendanceRecords.some(
-              (rec) => rec.session._id === item.sessionId && rec.feedbackSubmitted
-            );
-            return (
-              <List.Item
-                key={item.sessionId}
-                actions={[
-                  <Button
-                    key="provide-feedback"
-                    type="primary"
-                    size="small"
-                    onClick={() => {
-                      setActiveSessionId(item.sessionId);
-                      setFeedbackModalVisible(true);
-                    }}
-                    disabled={isFeedbackSubmitted}
+    return (
+      <Card style={{ borderRadius: '10px', boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', height: '100%' }}>
+        <Space direction="vertical" size={12} style={{ width: '100%' }}>
+          <AntTitle level={3} style={{ textAlign: 'center' }}>
+            <CalendarOutlined style={{ marginRight: 4 }} /> Attendance Events
+          </AntTitle>
+          <Space size={4}>
+            <Select
+              value={viewMode}
+              onChange={(value) => {
+                setViewMode(value);
+                setSelectedDate(value === 'daily' ? moment() : null);
+                setEventPage(1); // Reset to first page on view mode change
+              }}
+              style={{ width: 80, fontSize: '12px' }}
+            >
+              <Option value="daily">Daily</Option>
+              <Option value="weekly">Weekly</Option>
+            </Select>
+            <DatePicker
+              picker={viewMode === 'weekly' ? 'week' : 'date'}
+              onChange={(date) => {
+                setSelectedDate(date);
+                setEventPage(1); // Reset to first page on date change
+              }}
+              value={selectedDate}
+              format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
+              placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
+              style={{ width: 120, fontSize: '12px' }}
+            />
+          </Space>
+          {totalEvents > 0 ? (
+            <>
+              <List
+                dataSource={paginatedEvents}
+                renderItem={(item) => (
+                  <List.Item key={item.sessionId || `${item.title}-${item.date?.toISOString()}`}>
+                    <List.Item.Meta
+                      title={item.title}
+                      description={item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}
+                    />
+                  </List.Item>
+                )}
+                style={{ maxHeight: '300px', overflow: 'auto' }} // Limit height with scroll
+              />
+              <Pagination
+                current={eventPage}
+                pageSize={pageSize}
+                total={totalEvents}
+                onChange={(page) => setEventPage(page)}
+                showSizeChanger={false}
+                style={{ textAlign: 'center', marginTop: 16 }}
+              />
+            </>
+          ) : (
+            <p style={{ textAlign: 'center', color: '#888' }}>No events found for the selected period.</p>
+          )}
+        </Space>
+      </Card>
+    );
+  };
+
+  const renderNotifications = () => {
+    const totalNotifications = pendingFeedbacks.length;
+    const startIndex = (notificationPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    const paginatedNotifications = pendingFeedbacks.slice(startIndex, endIndex);
+
+    return (
+      <Card
+        title={<><BellOutlined /> Notifications</>}
+        style={{ borderRadius: 10, boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)', height: '100%' }}
+        extra={
+          totalNotifications > 0 && (
+            <Button type="link" onClick={() => setPendingFeedbacks([])}>
+              Clear All
+            </Button>
+          )
+        }
+      >
+        {totalNotifications > 0 ? (
+          <>
+            <List
+              dataSource={paginatedNotifications}
+              renderItem={(item) => {
+                const isFeedbackSubmitted = attendanceData.attendanceRecords.some(
+                  (rec) => rec.session._id === item.sessionId && rec.feedbackSubmitted
+                );
+                return (
+                  <List.Item
+                    key={item.sessionId}
+                    actions={[
+                      <Button
+                        key="provide-feedback"
+                        type="primary"
+                        size="small"
+                        onClick={() => {
+                          setActiveSessionId(item.sessionId);
+                          setFeedbackModalVisible(true);
+                        }}
+                        disabled={isFeedbackSubmitted}
+                      >
+                        Provide
+                      </Button>,
+                      <Button
+                        key="dismiss"
+                        size="small"
+                        onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
+                      >
+                        Dismiss
+                      </Button>,
+                    ]}
                   >
-                    Provide
-                  </Button>,
-                  <Button
-                    key="dismiss"
-                    size="small"
-                    onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
-                  >
-                    Dismiss
-                  </Button>,
-                ]}
-              >
-                <List.Item.Meta
-                  title={item.title}
-                  description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
-                />
-              </List.Item>
-            );
-          }}
-        />
-      ) : (
-        <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
-      )}
-    </Card>
-  );
+                    <List.Item.Meta
+                      title={item.title}
+                      description={`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}
+                    />
+                  </List.Item>
+                );
+              }}
+              style={{ maxHeight: '300px', overflow: 'auto' }} // Limit height with scroll
+            />
+            <Pagination
+              current={notificationPage}
+              pageSize={pageSize}
+              total={totalNotifications}
+              onChange={(page) => setNotificationPage(page)}
+              showSizeChanger={false}
+              style={{ textAlign: 'center', marginTop: 16 }}
+            />
+          </>
+        ) : (
+          <p style={{ textAlign: 'center', color: '#888' }}>No new notifications.</p>
+        )}
+      </Card>
+    );
+  };
 
   const profileItems = [
     { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => navigate('/student/profile') },

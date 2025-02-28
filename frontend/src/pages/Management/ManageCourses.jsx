@@ -13,6 +13,7 @@ import {
   Col,
   Tag,
   message,
+  Typography,
 } from 'antd';
 import {
   ArrowUpOutlined,
@@ -30,17 +31,128 @@ import {
 } from '@ant-design/icons';
 import {
   getCourses,
-  // createCourse,
   deleteCourse,
   getDepartments,
-  // updateCourse,
   addUnitToCourse,
   removeUnitFromCourse,
   getUnitsByCourse,
 } from '../../services/api';
+import 'antd/dist/reset.css';
 
 const { Content } = Layout;
 const { Option } = Select;
+const { Title } = Typography;
+
+const styles = {
+  layout: {
+    minHeight: '100vh',
+    background: '#f0f2f5',
+    padding: 0,
+    margin: 0,
+    width: '100%',
+    overflowX: 'hidden',
+    border: '2px solid red', // Temporary debug border
+  },
+  content: {
+    maxWidth: '100%',
+    width: '100%',
+    margin: 0,
+    padding: '8px',
+    background: '#fff',
+    borderRadius: 8,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+    boxSizing: 'border-box',
+    overflowX: 'hidden',
+    border: '2px solid blue', // Temporary debug border
+  },
+  headerRow: {
+    marginBottom: '16px',
+    padding: '8px',
+    background: '#fafafa',
+    borderRadius: '8px 8px 0 0',
+    flexWrap: 'wrap',
+    gap: '8px',
+    alignItems: 'center',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  filterRow: {
+    marginBottom: '16px',
+    padding: '0 8px',
+    width: '100%',
+    boxSizing: 'border-box',
+  },
+  actionsContainer: {
+    display: 'flex',
+    gap: '8px',
+    flexWrap: 'wrap',
+  },
+  backToTopButton: {
+    position: 'fixed',
+    bottom: '16px',
+    right: '16px',
+    zIndex: 1000,
+    background: '#1890ff',
+    borderColor: '#1890ff',
+  },
+  table: {
+    borderRadius: 8,
+    overflow: 'hidden',
+    background: '#fff',
+    width: '100%',
+    margin: 0,
+    padding: 0,
+    boxSizing: 'border-box',
+  },
+  modalHeader: {
+    padding: '12px 16px',
+    background: '#1890ff',
+    color: '#fff',
+    borderRadius: '8px 8px 0 0',
+  },
+  modalContent: {
+    padding: '16px',
+    boxSizing: 'border-box',
+  },
+  responsiveOverrides: `
+    /* Reset browser defaults */
+    html, body, #root {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Reset Ant Design's Layout defaults */
+    .ant-layout, .ant-layout-content {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    @media (max-width: 768px) {
+      .ant-layout-content { 
+        padding: 4px !important; 
+      }
+      .header-row { 
+        padding: 4px !important; 
+      }
+      .filter-row { 
+        padding: 0 4px !important; 
+      }
+    }
+    @media (max-width: 480px) {
+      .ant-layout-content { 
+        padding: 2px !important; 
+      }
+      .header-row { 
+        padding: 2px !important; 
+      }
+      .filter-row { 
+        padding: 0 2px !important; 
+      }
+    }
+  `,
+};
 
 const ManageCourses = () => {
   const navigate = useNavigate();
@@ -52,17 +164,8 @@ const ManageCourses = () => {
   const [showUnitDeleteModal, setShowUnitDeleteModal] = useState(false);
   const [form] = Form.useForm();
   const [unitForm] = Form.useForm();
-  const [formData, setFormData] = useState({
-    name: '',
-    code: '',
-    department: '',
-  });
-  const [unitInput, setUnitInput] = useState({
-    name: '',
-    code: '',
-    year: '',
-    semester: '',
-  });
+  const [formData, setFormData] = useState({ name: '', code: '', department: '' });
+  const [unitInput, setUnitInput] = useState({ name: '', code: '', year: '', semester: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
@@ -73,28 +176,22 @@ const ManageCourses = () => {
   const [units, setUnits] = useState([]);
   const [showBackToTop, setShowBackToTop] = useState(false);
 
-  // Scroll handler for "Back to Top" button
   useEffect(() => {
     const handleScroll = () => setShowBackToTop(window.scrollY > 200);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Extract unique course codes from courses
-  const courseCodes = [...new Set(courses.map(course => course.code))];
-
-  // Fetch courses and departments on mount
   useEffect(() => {
     fetchData();
   }, []);
 
+  const courseCodes = [...new Set(courses.map(course => course.code))];
+
   const fetchData = async () => {
     try {
       setLoading(true);
-      const [coursesRes, deptsRes] = await Promise.all([
-        getCourses(),
-        getDepartments(),
-      ]);
+      const [coursesRes, deptsRes] = await Promise.all([getCourses(), getDepartments()]);
       setCourses(coursesRes);
       setDepartments(deptsRes);
       setError('');
@@ -105,33 +202,21 @@ const ManageCourses = () => {
     }
   };
 
-  // Filter courses based on selected code and department
   const filteredCourses = courses.filter(course => {
     const matchesCode = selectedCode ? course.code === selectedCode : true;
-    const matchesDepartment = selectedDepartment
-      ? course.department?._id === selectedDepartment
-      : true;
+    const matchesDepartment = selectedDepartment ? course.department?._id === selectedDepartment : true;
     return matchesCode && matchesDepartment;
   });
-
-  // Called when the course form fields change
-  // const handleCourseFormChange = (changedValues, allValues) => {
-  //   setFormData(allValues);
-  // };
 
   const handleCourseSubmit = async () => {
     try {
       const values = await form.validateFields();
       setLoading(true);
-
       const requestBody = {
         name: values.name,
         code: values.code,
-        departmentId: values.department?._id || values.department, // Ensure it's an ID
+        departmentId: values.department?._id || values.department,
       };
-
-      console.log("Submitting Course Data:", requestBody);
-
       let response;
       if (selectedCourse) {
         response = await fetch(`https://attendance-system-w70n.onrender.com/api/course/${selectedCourse._id}`, {
@@ -146,13 +231,8 @@ const ManageCourses = () => {
           body: JSON.stringify(requestBody),
         });
       }
-
-      const data = await response.json(); // Get response JSON
-
-      if (!response.ok) {
-        throw new Error(data.message || "Failed to save course");
-      }
-
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || "Failed to save course");
       message.success(selectedCourse ? "Course updated successfully" : "Course added successfully");
       setShowCourseModal(false);
       setSelectedCourse(null);
@@ -183,11 +263,9 @@ const ManageCourses = () => {
 
   const handleAddUnit = async () => {
     try {
-      await unitForm.validateFields(); // Ensure all fields are valid before submission
-
+      await unitForm.validateFields();
       setLoading(true);
       const newUnit = await addUnitToCourse(selectedCourseForUnits._id, unitInput);
-
       setUnits(prevUnits => [...prevUnits, newUnit]);
       setCourses(prevCourses =>
         prevCourses.map(course =>
@@ -196,14 +274,11 @@ const ManageCourses = () => {
             : course
         )
       );
-
       setUnitInput({ name: '', code: '', year: '', semester: '' });
-      unitForm.resetFields(); // Reset form fields after successful submission
+      unitForm.resetFields();
       message.success('Unit added successfully');
     } catch (err) {
-      if (err.errorFields) {
-        return; // Prevent error message if validation fails
-      }
+      if (err.errorFields) return;
       setError(`Failed to add unit: ${err.message}`);
       message.error('Failed to add unit');
     } finally {
@@ -250,75 +325,69 @@ const ManageCourses = () => {
     }
   };
 
-  // Columns for the Courses Table
   const columns = [
     {
       title: (
         <>
-          <IdcardOutlined style={{ marginRight: 4 }} />
+          <IdcardOutlined style={{ marginRight: 4, color: '#1890ff' }} />
           Code
         </>
       ),
       dataIndex: 'code',
       key: 'code',
       render: text => <span style={{ color: '#1890ff', fontWeight: 500 }}>{text}</span>,
+      width: 100,
     },
     {
       title: (
         <>
-          <BookOutlined style={{ marginRight: 4 }} />
+          <BookOutlined style={{ marginRight: 4, color: '#1890ff' }} />
           Name
         </>
       ),
       dataIndex: 'name',
       key: 'name',
+      width: 150,
     },
     {
       title: (
         <>
-          <ApartmentOutlined style={{ marginRight: 4 }} />
+          <ApartmentOutlined style={{ marginRight: 4, color: '#1890ff' }} />
           Department
         </>
       ),
       dataIndex: ['department', 'name'],
       key: 'department',
-      render: (dept) => dept || 'N/A',
+      render: dept => dept || 'N/A',
+      width: 150,
+      responsive: ['md'],
     },
     {
       title: (
         <>
-          <FilterOutlined style={{ marginRight: 4 }} />
+          <FilterOutlined style={{ marginRight: 4, color: '#1890ff' }} />
           Units
         </>
       ),
       key: 'units',
-      render: (_, record) => (
-        <Tag color="blue">
-          {record.units ? record.units.length : 0}
-        </Tag>
-      ),
+      render: (_, record) => <Tag color="#1890ff">{record.units ? record.units.length : 0}</Tag>,
+      width: 80,
+      responsive: ['sm'],
     },
     {
       title: 'Actions',
       key: 'actions',
       render: (_, record) => (
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={styles.actionsContainer} className="actions-container">
           <Button
             type="primary"
             icon={<EditOutlined />}
             size="small"
+            style={{ background: '#1890ff', borderColor: '#1890ff' }}
             onClick={() => {
               setSelectedCourse(record);
-              setFormData({
-                name: record.name,
-                code: record.code,
-                department: record.department?._id,
-              });
-              form.setFieldsValue({
-                name: record.name,
-                code: record.code,
-                department: record.department?._id,
-              });
+              setFormData({ name: record.name, code: record.code, department: record.department?._id });
+              form.setFieldsValue({ name: record.name, code: record.code, department: record.department?._id });
               setShowCourseModal(true);
             }}
           >
@@ -337,97 +406,146 @@ const ManageCourses = () => {
             danger
             icon={<DeleteOutlined />}
             size="small"
+            style={{ background: '#f5222d', borderColor: '#f5222d' }}
             onClick={() => handleDeleteConfirmation(record._id)}
           >
             Delete
           </Button>
         </div>
       ),
+      width: 200,
+    },
+  ];
+
+  const unitColumns = [
+    {
+      title: (
+        <>
+          <IdcardOutlined style={{ marginRight: 4, color: '#1890ff' }} />
+          Code
+        </>
+      ),
+      dataIndex: 'code',
+      key: 'code',
+      width: 100,
+    },
+    {
+      title: 'Name',
+      dataIndex: 'name',
+      key: 'name',
+      width: 150,
+    },
+    {
+      title: 'Year',
+      dataIndex: 'year',
+      key: 'year',
+      render: year => <Tag color="#1890ff">{year}</Tag>,
+      width: 80,
+      responsive: ['sm'],
+    },
+    {
+      title: 'Semester',
+      dataIndex: 'semester',
+      key: 'semester',
+      render: sem => <Tag color="#1890ff">{sem}</Tag>,
+      width: 80,
+      responsive: ['sm'],
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Button
+          type="primary"
+          danger
+          icon={<DeleteOutlined />}
+          size="small"
+          style={{ background: '#f5222d', borderColor: '#f5222d' }}
+          onClick={() => promptRemoveUnit(record._id)}
+        >
+          Remove
+        </Button>
+      ),
+      width: 120,
     },
   ];
 
   return (
-    <Layout style={{ minHeight: '100vh', padding: '20px' }}>
-      <Content>
-        {/* Back to Top Button */}
+    <Layout style={styles.layout}>
+      <Content style={styles.content} className="ant-layout-content">
+        <style>{styles.responsiveOverrides}</style>
+
         {showBackToTop && (
           <Button
             type="primary"
             shape="circle"
             icon={<ArrowUpOutlined />}
-            style={{
-              position: 'fixed',
-              bottom: 20,
-              right: 20,
-              zIndex: 1000,
-            }}
-            onClick={() =>
-              window.scrollTo({ top: 0, behavior: 'smooth' })
-            }
+            style={styles.backToTopButton}
+            onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           />
         )}
 
-        {/* Header Section */}
-        <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
+        <Row justify="space-between" align="middle" style={styles.headerRow} className="header-row">
           <Button type="link" icon={<LeftOutlined />} onClick={() => navigate('/admin')}>
             Back to Admin
           </Button>
-          <h2 style={{ margin: 0 }}>
+          <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
             <BookOutlined style={{ marginRight: 8 }} />
             Course Management
-          </h2>
-          <Button type="primary" icon={<PlusOutlined />} onClick={() => {
-            setShowCourseModal(true);
-            setSelectedCourse(null);
-            setFormData({ name: '', code: '', department: '' });
-            form.resetFields();
-          }}>
+          </Title>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            style={{ background: '#1890ff', borderColor: '#1890ff' }}
+            onClick={() => {
+              setShowCourseModal(true);
+              setSelectedCourse(null);
+              setFormData({ name: '', code: '', department: '' });
+              form.resetFields();
+            }}
+          >
             Add Course
           </Button>
         </Row>
 
-        {/* Filter Section */}
-        <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-          <Col xs={24} md={12}>
+        <Row gutter={[8, 8]} style={styles.filterRow}>
+          <Col xs={24} sm={12}>
             <Select
               placeholder="All Courses"
               style={{ width: '100%' }}
               value={selectedCode || undefined}
               onChange={value => setSelectedCode(value)}
               allowClear
+              size="large"
             >
               {courseCodes.map(code => (
-                <Option key={code} value={code}>
-                  {code}
-                </Option>
+                <Option key={code} value={code}>{code}</Option>
               ))}
             </Select>
           </Col>
-          <Col xs={24} md={12}>
+          <Col xs={24} sm={12}>
             <Select
               placeholder="All Departments"
               style={{ width: '100%' }}
               value={selectedDepartment || undefined}
               onChange={value => setSelectedDepartment(value)}
               allowClear
+              size="large"
             >
               {departments.map(dept => (
-                <Option key={dept._id} value={dept._id}>
-                  {dept.name}
-                </Option>
+                <Option key={dept._id} value={dept._id}>{dept.name}</Option>
               ))}
             </Select>
           </Col>
         </Row>
 
-        {/* Alerts */}
         {error && (
           <Alert
             message={error}
             type="error"
             closable
             onClose={() => setError('')}
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 16, margin: '0 8px', width: 'calc(100% - 16px)' }}
           />
         )}
         {loading && (
@@ -435,22 +553,23 @@ const ManageCourses = () => {
             message="Loading..."
             type="info"
             icon={<LoadingOutlined spin />}
-            style={{ marginBottom: 16 }}
+            style={{ marginBottom: 16, margin: '0 8px', width: 'calc(100% - 16px)' }}
           />
         )}
 
-        {/* Courses Table */}
         <Table
           dataSource={filteredCourses}
           columns={columns}
           rowKey="_id"
-          scroll={{ x: "max-content", y: 400 }}
+          scroll={{ x: 'max-content', y: 400 }}
+          pagination={{ pageSize: 10, responsive: true }}
+          style={styles.table}
+          className="ant-table-custom"
         />
 
-        {/* Course Add/Edit Modal */}
         <Modal
           open={showCourseModal}
-          title={selectedCourse ? "Edit Course" : "Add Course"}
+          title={<span style={styles.modalHeader}>{selectedCourse ? "Edit Course" : "Add Course"}</span>}
           onCancel={() => {
             setShowCourseModal(false);
             setSelectedCourse(null);
@@ -458,9 +577,13 @@ const ManageCourses = () => {
           }}
           footer={[
             <Button key="cancel" onClick={() => setShowCourseModal(false)}>Cancel</Button>,
-            <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading}>Save Course</Button>,
+            <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading} style={{ background: '#1890ff', borderColor: '#1890ff' }}>
+              Save Course
+            </Button>,
           ]}
-          width={window.innerWidth < 768 ? "90%" : "50%"}
+          width={{ xs: '90%', sm: '70%', md: '50%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
+          bodyStyle={styles.modalContent}
+          className="responsive-modal"
         >
           <Form
             form={form}
@@ -468,145 +591,137 @@ const ManageCourses = () => {
             initialValues={{
               name: selectedCourse?.name || '',
               code: selectedCourse?.code || '',
-              department: selectedCourse?.department?._id || '', // Ensure department is an ID
+              department: selectedCourse?.department?._id || '',
             }}
             onValuesChange={(_, allValues) => setFormData(allValues)}
           >
             <Form.Item label="Course Code" name="code" rules={[{ required: true, message: 'Please input the course code' }]}>
-              <Input />
+              <Input size="large" />
             </Form.Item>
             <Form.Item label="Course Name" name="name" rules={[{ required: true, message: 'Please input the course name' }]}>
-              <Input />
+              <Input size="large" />
             </Form.Item>
             <Form.Item label="Department" name="department" rules={[{ required: true, message: 'Please select a department' }]}>
               <Select
                 placeholder="Select Department"
                 value={formData.department}
                 onChange={(value) => setFormData({ ...formData, department: value })}
+                size="large"
               >
                 {departments.map(dept => (
-                  <Select.Option key={dept._id} value={dept._id}>
-                    {dept.name}
-                  </Select.Option>
+                  <Select.Option key={dept._id} value={dept._id}>{dept.name}</Select.Option>
                 ))}
               </Select>
             </Form.Item>
           </Form>
         </Modal>
 
-        {/* Course Delete Confirmation Modal */}
         <Modal
           open={showDeleteModal}
-          title="Confirm Delete"
+          title={<span style={styles.modalHeader}>Confirm Delete</span>}
           centered
           onCancel={() => setShowDeleteModal(false)}
           footer={[
-            <Button key="cancel" onClick={() => setShowDeleteModal(false)}>
-              Cancel
-            </Button>,
-            <Button key="delete" type="primary" danger onClick={handleDelete}>
+            <Button key="cancel" onClick={() => setShowDeleteModal(false)}>Cancel</Button>,
+            <Button key="delete" type="primary" danger onClick={handleDelete} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
               Delete Course
             </Button>,
           ]}
+          width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
+          bodyStyle={styles.modalContent}
         >
-          <p>
+          <p style={{ color: '#f5222d' }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
             Are you sure you want to delete this course? This action cannot be undone.
           </p>
         </Modal>
 
-        {/* Unit Delete Confirmation Modal */}
         <Modal
           open={showUnitDeleteModal}
-          title="Confirm Unit Removal"
+          title={<span style={styles.modalHeader}>Confirm Unit Removal</span>}
           onCancel={() => setShowUnitDeleteModal(false)}
           footer={[
-            <Button key="cancel" onClick={() => setShowUnitDeleteModal(false)}>
-              Cancel
-            </Button>,
-            <Button key="remove" type="primary" danger onClick={confirmUnitDelete}>
+            <Button key="cancel" onClick={() => setShowUnitDeleteModal(false)}>Cancel</Button>,
+            <Button key="remove" type="primary" danger onClick={confirmUnitDelete} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
               Remove Unit
             </Button>,
           ]}
+          width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
+          bodyStyle={styles.modalContent}
         >
-          <p>
+          <p style={{ color: '#f5222d' }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
             Are you sure you want to remove this unit? This action cannot be undone.
           </p>
         </Modal>
 
-        {/* Units Management Modal */}
         <Modal
           open={showUnitsModal}
           title={
-            <>
+            <span style={styles.modalHeader}>
               <UnorderedListOutlined style={{ marginRight: 8 }} />
               Manage Units - {selectedCourseForUnits?.name}
-            </>
+            </span>
           }
           centered
           onCancel={() => setShowUnitsModal(false)}
-          width="80%"
+          width={{ xs: '95%', sm: '90%', md: '80%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
           footer={null}
+          bodyStyle={styles.modalContent}
+          className="responsive-modal"
         >
           <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
-            <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
+            <Row gutter={[8, 8]} style={{ marginBottom: 16, width: '100%' }}>
               <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  name="name"
-                  rules={[{ required: true, message: 'Please enter Unit Name' }]}
-                >
+                <Form.Item name="name" rules={[{ required: true, message: 'Please enter Unit Name' }]}>
                   <Input
                     placeholder="Unit Name"
                     value={unitInput.name}
                     onChange={(e) => setUnitInput({ ...unitInput, name: e.target.value })}
+                    size="large"
                   />
                 </Form.Item>
               </Col>
               <Col xs={24} sm={12} md={6}>
-                <Form.Item
-                  name="code"
-                  rules={[{ required: true, message: 'Please enter Unit Code' }]}
-                >
+                <Form.Item name="code" rules={[{ required: true, message: 'Please enter Unit Code' }]}>
                   <Input
                     placeholder="Unit Code"
                     value={unitInput.code}
                     onChange={(e) => setUnitInput({ ...unitInput, code: e.target.value })}
+                    size="large"
                   />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={12} md={4}>
-                <Form.Item
-                  name="year"
-                  rules={[{ required: true, message: 'Please enter Year', min: 1, max: 4 }]}
-                >
+              <Col xs={12} sm={6} md={4}>
+                <Form.Item name="year" rules={[{ required: true, message: 'Year', min: 1, max: 4 }]}>
                   <Input
                     placeholder="Year"
                     type="number"
                     value={unitInput.year}
                     onChange={(e) => setUnitInput({ ...unitInput, year: e.target.value })}
+                    size="large"
                   />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={12} md={4}>
-                <Form.Item
-                  name="semester"
-                  rules={[{ required: true, message: 'Please enter Semester', min: 1, max: 3 }]}
-                >
+              <Col xs={12} sm={6} md={4}>
+                <Form.Item name="semester" rules={[{ required: true, message: 'Semester', min: 1, max: 3 }]}>
                   <Input
                     placeholder="Semester"
                     type="number"
                     value={unitInput.semester}
                     onChange={(e) => setUnitInput({ ...unitInput, semester: e.target.value })}
+                    size="large"
                   />
                 </Form.Item>
               </Col>
-              <Col xs={24} sm={24} md={4}>
+              <Col xs={24} sm={12} md={4}>
                 <Button
                   type="primary"
                   icon={<PlusOutlined />}
                   htmlType="submit"
                   disabled={!unitInput.name.trim() || !unitInput.code.trim()}
+                  block
+                  style={{ background: '#1890ff', borderColor: '#1890ff' }}
                 >
                   Add Unit
                 </Button>
@@ -620,62 +735,21 @@ const ManageCourses = () => {
               type="error"
               closable
               onClose={() => setError('')}
-              style={{ marginBottom: 16 }}
+              style={{ marginBottom: 16, width: 'calc(100% - 16px)', margin: '0 8px' }}
             />
           )}
 
           {units.length === 0 ? (
-            <Alert message="No units found for this course" type="info" />
+            <Alert message="No units found for this course" type="info" style={{ width: 'calc(100% - 16px)', margin: '0 8px' }} />
           ) : (
             <Table
               dataSource={units}
+              columns={unitColumns}
               rowKey="_id"
               pagination={false}
-              scroll={{ y: 300 }}
-              columns={[
-                {
-                  title: (
-                    <>
-                      <IdcardOutlined style={{ marginRight: 4 }} />
-                      Code
-                    </>
-                  ),
-                  dataIndex: 'code',
-                  key: 'code',
-                },
-                {
-                  title: 'Name',
-                  dataIndex: 'name',
-                  key: 'name',
-                },
-                {
-                  title: 'Year',
-                  dataIndex: 'year',
-                  key: 'year',
-                  render: year => <Tag color="blue">{year}</Tag>,
-                },
-                {
-                  title: 'Semester',
-                  dataIndex: 'semester',
-                  key: 'semester',
-                  render: sem => <Tag>{sem}</Tag>,
-                },
-                {
-                  title: 'Actions',
-                  key: 'actions',
-                  render: (_, record) => (
-                    <Button
-                      type="primary"
-                      danger
-                      icon={<DeleteOutlined />}
-                      size="small"
-                      onClick={() => promptRemoveUnit(record._id)}
-                    >
-                      Remove
-                    </Button>
-                  ),
-                },
-              ]}
+              scroll={{ x: 'max-content', y: 300 }}
+              style={styles.table}
+              className="ant-table-custom"
             />
           )}
         </Modal>
