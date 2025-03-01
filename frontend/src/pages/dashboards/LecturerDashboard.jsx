@@ -1,45 +1,62 @@
 import { useState, useEffect } from 'react';
 import {
-  Layout,
-  theme,
-  Dropdown,
-  Modal,
-  message,
-  Button
-} from 'antd';
-import {
   UserOutlined,
   SettingOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
-  MenuUnfoldOutlined
+  MenuUnfoldOutlined,
+  DashboardOutlined,
+  LineChartOutlined,
+  FormOutlined
 } from '@ant-design/icons';
-import Sidebar from "../../components/Sidebar";
+import {
+  Layout,
+  Menu,
+  Button,
+  Modal,
+  Dropdown,
+  Space,
+  theme,
+  message,
+  Typography,
+  Spin
+} from 'antd';
+import { Link } from "react-router-dom";
 import AttendanceManagement from "../../components/AttendanceManagement";
 import Analytics from "./Analytics";
 import BackToTop from "../../components/BackToTop";
 
-const { Header, Content } = Layout;
+const { Header, Sider, Content } = Layout;
+const { Title: AntTitle } = Typography;
 
 const LecturerDashboard = () => {
-  const {
-    token: { colorBgContainer, borderRadiusLG },
-  } = theme.useToken();
-  const [collapsed, setCollapsed] = useState(true);
-  const [isMobile, setIsMobile] = useState(true);
+  const { token: { colorBgContainer } } = theme.useToken();
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 992); // Collapse by default on small screens (lg breakpoint)
+  const [isMobile, setIsMobile] = useState(window.innerWidth < 992);
 
   // Authentication check
   useEffect(() => {
-    const token = localStorage.getItem('token');
-    if (!token) window.location.href = '/auth/login';
+    const checkAuth = () => {
+      const token = localStorage.getItem('token');
+      if (!token) window.location.href = '/auth/login';
+    };
+    checkAuth();
+    window.addEventListener('storage', checkAuth);
+    window.addEventListener('popstate', () => {
+      if (!localStorage.getItem('token')) window.location.href = '/auth/login';
+    });
+    return () => {
+      window.removeEventListener('storage', checkAuth);
+      window.removeEventListener('popstate', checkAuth);
+    };
   }, []);
 
   // Responsive layout
   useEffect(() => {
     const handleResize = () => {
-      const mobile = window.innerWidth < 768;
+      const mobile = window.innerWidth < 992;
       setIsMobile(mobile);
-      setCollapsed(mobile); // Collapse sidebar by default on mobile
+      setCollapsed(mobile); // Sync collapsed state with screen size
     };
     handleResize();
     window.addEventListener('resize', handleResize);
@@ -74,55 +91,126 @@ const LecturerDashboard = () => {
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh", background: '#f0f2f5' }}>
-      <Sidebar collapsed={collapsed} isMobile={isMobile} />
-      <Layout>
-        <Header style={{
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <Header
+        style={{
           padding: '0 16px',
           background: colorBgContainer,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'center',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.1)',
           position: 'fixed',
-          width: isMobile ? '100%' : `calc(100% - ${collapsed ? 80 : 200}px)`,
-          left: collapsed ? 80 : 200,
+          width: '100%',
           zIndex: 10,
-          transition: 'all 0.2s',
-        }}>
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <Space>
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: '16px', width: 64, height: 64, color: '#1890ff' }}
+            style={{ fontSize: '16px', width: 64, height: 64 }}
           />
-          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button
-              type="text"
-              icon={<UserOutlined style={{ fontSize: 24, color: '#1890ff' }} />}
-              style={{ marginRight: 24 }}
-            />
-          </Dropdown>
-        </Header>
-        <Content
+        </Space>
+        <AntTitle
+          level={3}
           style={{
-            margin: '80px 16px 24px',
-            padding: isMobile ? 16 : 24,
-            minHeight: 280,
-            background: colorBgContainer,
-            borderRadius: borderRadiusLG,
-            maxWidth: 1200,
-            marginLeft: 'auto',
-            marginRight: 'auto',
+            margin: 0,
+            flex: 1,
+            textAlign: 'center',
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: isMobile ? 'none' : 'block' // Hide on small screens
           }}
         >
-          <section style={{ marginBottom: 48 }}>
-            <AttendanceManagement />
-          </section>
-          <section>
-            <Analytics />
-          </section>
-          <BackToTop />
+          Lecturer Dashboard
+        </AntTitle>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            display: isMobile ? 'inline' : 'none', // Show only on small screens
+          }}
+        >
+          Lecturer Dashboard
+        </AntTitle>
+        <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+          <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
+        </Dropdown>
+      </Header>
+
+      <Layout>
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={250}
+          breakpoint="lg"
+          collapsedWidth={80}
+          style={{
+            background: colorBgContainer,
+            marginTop: 64,
+            position: 'fixed',
+            height: 'calc(100vh - 64px)',
+            overflow: 'auto',
+            zIndex: 11 // Ensure sidebar is above content
+          }}
+        >
+          <div className="demo-logo-vertical" />
+          <Menu
+            mode="inline"
+            defaultSelectedKeys={["1"]}
+            items={[
+              {
+                key: "1",
+                icon: <DashboardOutlined />,
+                label: <Link to="/lecturer-dashboard">Dashboard</Link>,
+              },
+              {
+                key: "2",
+                icon: <UserOutlined />,
+                label: <Link to="/attendance">Attendance</Link>,
+              },
+              {
+                key: "3",
+                icon: <LineChartOutlined />,
+                label: <Link to="/analytics">Analytics</Link>,
+              },
+              {
+                key: "4",
+                icon: <FormOutlined />,
+                label: <Link to="/lecturer/quizzes">Quizzes</Link>,
+              },
+              {
+                key: "5",
+                icon: <FormOutlined />,
+                label: <Link to="/lecturer/feedback">Feedback</Link>,
+              },
+            ]}
+          />
+        </Sider>
+
+        <Content
+          style={{
+            margin: collapsed ? '64px 16px 16px 80px' : '64px 16px 16px 250px',
+            padding: 24,
+            background: '#f0f2f5',
+            minHeight: 'calc(100vh - 64px)',
+            overflow: 'auto',
+            transition: 'margin-left 0.2s',
+            marginLeft: collapsed ? 80 : 250,
+          }}
+        >
+          <Spin spinning={false} tip="Loading...">
+            <section style={{ marginBottom: 48 }}>
+              <AttendanceManagement />
+            </section>
+            <section>
+              <Analytics />
+            </section>
+            <BackToTop />
+          </Spin>
         </Content>
       </Layout>
     </Layout>

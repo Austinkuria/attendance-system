@@ -9,7 +9,8 @@ import {
   LogoutOutlined,
   TeamOutlined,
   LineChartOutlined,
-  FormOutlined
+  FormOutlined,
+  ArrowUpOutlined
 } from '@ant-design/icons';
 import {
   Layout,
@@ -37,7 +38,7 @@ const { Title: AntTitle } = Typography;
 
 const AdminPanel = () => {
   const { token: { colorBgContainer } } = theme.useToken();
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 992); // Collapse by default on small screens (lg breakpoint)
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [students, setStudents] = useState([]);
   const [lecturers, setLecturers] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -46,6 +47,7 @@ const AdminPanel = () => {
   const [lecturersLoading, setLecturersLoading] = useState(false);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -65,11 +67,28 @@ const AdminPanel = () => {
 
   useEffect(() => {
     const handleResize = () => {
-      setCollapsed(window.innerWidth < 992); // Sync collapsed state with screen size
+      setCollapsed(window.innerWidth < 992);
     };
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      if (window.scrollY > 200) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+    return () => window.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToTop = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -316,7 +335,7 @@ const AdminPanel = () => {
             position: 'absolute',
             left: '50%',
             transform: 'translateX(-50%)',
-            display: window.innerWidth < 992 ? 'none' : 'block' // Hide on small screens
+            display: window.innerWidth < 992 ? 'none' : 'block'
           }}
         >
           Admin Dashboard
@@ -325,7 +344,7 @@ const AdminPanel = () => {
           level={3}
           style={{
             margin: 0,
-            display: window.innerWidth >= 992 ? 'none' : 'inline', // Show only on small screens
+            display: window.innerWidth >= 992 ? 'none' : 'inline',
           }}
         >
           Admin Dashboard
@@ -349,7 +368,7 @@ const AdminPanel = () => {
             position: 'fixed',
             height: 'calc(100vh - 64px)',
             overflow: 'auto',
-            zIndex: 11 // Ensure sidebar is above content
+            zIndex: 11
           }}
         >
           <div className="demo-logo-vertical" />
@@ -359,7 +378,7 @@ const AdminPanel = () => {
             items={[
               { key: '1', icon: <TeamOutlined />, label: 'Students', onClick: () => window.location.href = '/admin/manage-students' },
               { key: '2', icon: <BookOutlined />, label: 'Courses', onClick: () => window.location.href = '/admin/manage-courses' },
-              { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => window.location.href = '/admin/analytics' },
+              { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => document.getElementById('attendance-overview').scrollIntoView({ behavior: 'smooth' }) },
               { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
               { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' },
               { key: '6', icon: <FormOutlined />, label: 'Feedback', onClick: () => window.location.href = '/admin/feedback' }
@@ -369,20 +388,30 @@ const AdminPanel = () => {
 
         <Content
           style={{
-            margin: collapsed ? '64px 16px 16px 80px' : '64px 16px 16px 250px', // Adjusted for sidebar width
+            margin: collapsed ? '64px 16px 16px 80px' : '64px 16px 16px 250px',
             padding: 24,
             background: '#f0f2f5',
             minHeight: 'calc(100vh - 64px)',
             overflow: 'auto',
-            transition: 'margin-left 0.2s', // Smooth transition for sidebar toggle
-            marginLeft: collapsed ? 80 : 250, // Dynamic margin based on collapsed state
+            transition: 'margin-left 0.2s',
+            marginLeft: collapsed ? 80 : 250,
           }}
         >
           <Spin spinning={studentsLoading || lecturersLoading || coursesLoading} tip="Loading dashboard data...">
             <Row gutter={[16, 16]} justify="center">
               <Col xs={24} sm={12} md={8} lg={6}>
                 <Card
-                  style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                  style={{ 
+                    background: 'linear-gradient(135deg, #1890ff, #096dd9)', 
+                    color: 'white', 
+                    borderRadius: 10, 
+                    textAlign: 'center', 
+                    cursor: 'pointer',
+                    height: '200px', // Fixed height for all cards
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}
                   onClick={() => window.location.href = '/admin/manage-students'}
                 >
                   <Space direction="vertical">
@@ -394,7 +423,17 @@ const AdminPanel = () => {
               </Col>
               <Col xs={24} sm={12} md={8} lg={6}>
                 <Card
-                  style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                  style={{ 
+                    background: 'linear-gradient(135deg, #52c41a, #389e0d)', 
+                    color: 'white', 
+                    borderRadius: 10, 
+                    textAlign: 'center', 
+                    cursor: 'pointer',
+                    height: '200px', // Fixed height for all cards
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}
                   onClick={() => window.location.href = '/admin/manage-courses'}
                 >
                   <Space direction="vertical">
@@ -406,7 +445,17 @@ const AdminPanel = () => {
               </Col>
               <Col xs={24} sm={12} md={8} lg={6}>
                 <Card
-                  style={{ background: 'linear-gradient(135deg, #fa8c16, #d46b08)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                  style={{ 
+                    background: 'linear-gradient(135deg, #fa8c16, #d46b08)', 
+                    color: 'white', 
+                    borderRadius: 10, 
+                    textAlign: 'center', 
+                    cursor: 'pointer',
+                    height: '200px', // Fixed height for all cards
+                    display: 'flex',
+                    flexDirection: 'column',
+                    justifyContent: 'center'
+                  }}
                   onClick={() => window.location.href = '/admin/manage-lecturers'}
                 >
                   <Space direction="vertical">
@@ -419,7 +468,17 @@ const AdminPanel = () => {
               <Col xs={24} sm={12} md={8} lg={6}>
                 <Spin spinning={attendanceLoading} tip="Loading attendance data...">
                   <Card
-                    style={{ background: 'linear-gradient(135deg, #f5222d, #cf1322)', color: 'white', borderRadius: 10, textAlign: 'center', cursor: 'pointer' }}
+                    style={{ 
+                      background: 'linear-gradient(135deg, #f5222d, #cf1322)', 
+                      color: 'white', 
+                      borderRadius: 10, 
+                      textAlign: 'center', 
+                      cursor: 'pointer',
+                      height: '200px', // Fixed height for all cards
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'center'
+                    }}
                     onClick={() => window.location.href = '/admin/analytics'}
                   >
                     <Space direction="vertical">
@@ -433,7 +492,7 @@ const AdminPanel = () => {
             </Row>
           </Spin>
 
-          <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }}>Attendance Overview</AntTitle>
+          <AntTitle level={2} style={{ marginTop: 24, textAlign: 'center' }} id="attendance-overview">Attendance Overview</AntTitle>
           <Card style={{ marginTop: 16 }}>
             <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
               <div style={{ height: '600px' }}>
@@ -451,6 +510,21 @@ const AdminPanel = () => {
               </div>
             </Spin>
           </Card>
+
+          {showBackToTop && (
+            <Button
+              type="primary"
+              shape="circle"
+              icon={<ArrowUpOutlined />}
+              onClick={scrollToTop}
+              style={{
+                position: 'fixed',
+                bottom: 24,
+                right: 24,
+                zIndex: 1000,
+              }}
+            />
+          )}
         </Content>
       </Layout>
     </Layout>
