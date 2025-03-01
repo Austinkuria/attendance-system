@@ -642,11 +642,15 @@ const StudentDashboard = () => {
       if (session && session._id && !session.ended) {
         navigate(`/qr-scanner/${unitId}`);
       } else {
-        message.error("No active session available for this unit.");
+        message.info("No active session is currently available for this unit.");
       }
     } catch (err) {
       console.error('Error checking active session:', err);
-      message.error(`No active session available: ${err.message || 'Unknown error'}`);
+      // Handle 404 specifically or fallback to a generic message without exposing status code
+      const errorMessage = err.response?.status === 404
+        ? "No active session is currently available for this unit."
+        : "Unable to check for an active session at this time.";
+      message.info(errorMessage);
     }
   };
 
@@ -688,7 +692,7 @@ const StudentDashboard = () => {
             position: 'absolute',
             left: '50%',
             transform: 'translateX(-50%)',
-            display: collapsed ? 'none' : 'block' // Use collapsed instead of isMobile
+            display: collapsed ? 'none' : 'block'
           }}
         >
           Student Dashboard
@@ -697,7 +701,7 @@ const StudentDashboard = () => {
           level={3}
           style={{
             margin: 0,
-            display: collapsed ? 'inline' : 'none', // Use collapsed instead of isMobile
+            display: collapsed ? 'inline' : 'none'
           }}
         >
           Student Dashboard
@@ -721,7 +725,7 @@ const StudentDashboard = () => {
             position: 'fixed',
             height: 'calc(100vh - 64px)',
             overflow: 'auto',
-            zIndex: 11 // Ensure sidebar is above content
+            zIndex: 11
           }}
         >
           <div className="demo-logo-vertical" />
