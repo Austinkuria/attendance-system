@@ -567,14 +567,28 @@ const AttendanceManagement = () => {
             </Row>
           </Card>
         ) : null}
-
+  
         <Card
           title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
           extra={
             <Space wrap>
-              <Button icon={<DownloadOutlined />} onClick={() => downloadAttendanceReport(selectedUnit)} disabled={!selectedUnit}>
-                {screens.md ? 'Download Report' : 'Export'}
-              </Button>
+              <Select
+                placeholder="Select Unit"
+                style={{ width: 240 }}
+                onChange={setSelectedUnit}
+                value={selectedUnit}
+                loading={loading.units}
+              >
+                {filteredUnits.map(unit => (
+                  <Option key={unit._id} value={unit._id}>
+                    <Space>
+                      <BookOutlined />
+                      {unit.name}
+                      <Tag color="blue">{unit.code}</Tag>
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
               <Button
                 type="primary"
                 icon={<QrcodeOutlined />}
@@ -596,8 +610,16 @@ const AttendanceManagement = () => {
           }
         >
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            {/* Attendance Records Filter (formerly Real-time Unit Filters) */}
             <Card
-              title="Real-time Unit Filters"
+              title={
+                <Space>
+                  Attendance Records Filter
+                  {currentSession && !currentSession.ended && (
+                    <Tag color="green">Active Session</Tag>
+                  )}
+                </Space>
+              }
               size="small"
               extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
             >
@@ -646,47 +668,30 @@ const AttendanceManagement = () => {
                     <Option key={sem} value={sem}>Sem {sem}</Option>
                   ))}
                 </Select>
+                <Button
+                  icon={<DownloadOutlined />}
+                  onClick={() => downloadAttendanceReport(selectedUnit)}
+                  disabled={!selectedUnit}
+                >
+                  {screens.md ? 'Download Report' : 'Export'}
+                </Button>
+                <Button
+                  onClick={handleViewAttendance}
+                  loading={loading.attendance}
+                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                  type="primary"
+                >
+                  Refresh Attendance Data
+                </Button>
               </Space>
             </Card>
-            <Space wrap>
-              <Select
-                placeholder="Select Unit"
-                style={{ width: 240 }}
-                onChange={setSelectedUnit}
-                value={selectedUnit}
-                loading={loading.units}
-              >
-                {filteredUnits.map(unit => (
-                  <Option key={unit._id} value={unit._id}>
-                    <Space>
-                      <BookOutlined />
-                      {unit.name}
-                      <Tag color="blue">{unit.code}</Tag>
-                    </Space>
-                  </Option>
-                ))}
-              </Select>
-              <Button
-                onClick={handleViewAttendance}
-                loading={loading.attendance}
-                disabled={!selectedUnit || !currentSession || currentSession?.ended}
-                type="primary"
-              >
-                Refresh Attendance Data
-              </Button>
-            </Space>
-
+  
+            {/* Summary Cards */}
             {summaryCards}
-
-            <Card 
-              title={
-                <Space>
-                  Attendance Records Filter
-                  {currentSession && !currentSession.ended && (
-                    <Tag color="green">Active Session</Tag>
-                  )}
-                </Space>
-              }
+  
+            {/* Real-time Unit Filters (formerly Attendance Records Filter) */}
+            <Card
+              title="Real-time Unit Filters"
               size="small"
             >
               <Space wrap style={{ width: '100%' }}>
@@ -734,7 +739,7 @@ const AttendanceManagement = () => {
                 </Select>
               </Space>
             </Card>
-
+  
             <Skeleton active loading={loading.attendance}>
               <Table
                 columns={columns}
@@ -750,7 +755,7 @@ const AttendanceManagement = () => {
           </Space>
         </Card>
       </Spin>
-
+  
       <Modal
         title="Class QR Code"
         open={isQRModalOpen}
