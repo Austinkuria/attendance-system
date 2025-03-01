@@ -3,7 +3,7 @@ import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, messag
 import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
+import { getLecturerUnitAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -195,10 +195,7 @@ const AttendanceManagement = () => {
         console.log("Fetching session for unit:", selectedUnit);
         const response = await axios.get(
           `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
-          {
-            headers: { 'Authorization': `Bearer ${token}` },
-            validateStatus: status => status >= 200 && status < 300
-          }
+          { headers: { 'Authorization': `Bearer ${token}` } }
         );
         console.log("Full API response for current session:", response.data);
         if (response.data && response.data._id && !response.data.ended) {
@@ -237,17 +234,18 @@ const AttendanceManagement = () => {
   }, [selectedUnit, units, currentSession?.ended]);
 
   const handleViewAttendance = useCallback(async () => {
-    if (!selectedUnit || !currentSession || currentSession.ended) return;
+    if (!selectedUnit) return;
     try {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
-      const data = await getSessionAttendance(currentSession._id);
+      const data = await getLecturerUnitAttendance(selectedUnit);
+      console.log('Fetched lecturer unit attendance data:', data);
       setAttendance(data);
     } catch (error) {
-      console.error("Error fetching attendance:", error);
+      console.error("Error fetching lecturer unit attendance:", error);
       if (error.response?.status === 429) {
         message.warning('Too many requests. Please try again later.');
       } else if (error.response?.status === 400) {
-        message.error('Invalid session ID. Please try again.');
+        message.error('Invalid unit ID. Please try again.');
       } else {
         message.error('Unable to fetch attendance data.');
       }
@@ -255,13 +253,13 @@ const AttendanceManagement = () => {
     } finally {
       setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
-  }, [selectedUnit, currentSession]);
+  }, [selectedUnit]);
 
   useEffect(() => {
-    if (currentSession && selectedUnit && !currentSession.ended) {
+    if (selectedUnit) {
       handleViewAttendance();
     }
-  }, [currentSession, selectedUnit, handleViewAttendance]);
+  }, [selectedUnit, handleViewAttendance]);
 
   const filterOptions = useMemo(() => {
     const departments = new Set();
@@ -294,14 +292,14 @@ const AttendanceManagement = () => {
 
   const processedAttendance = useMemo(() => {
     if (!selectedUnit || !Array.isArray(attendance)) return [];
-    return attendance.filter(a => a.unit === selectedUnit);
+    return attendance.filter(a => a.session.unit.toString() === selectedUnit);
   }, [attendance, selectedUnit]);
 
   const filteredAttendance = useMemo(() => {
     return processedAttendance.filter(record => {
-      const searchMatch = record.regNo.toLowerCase().includes(filters.search.toLowerCase());
-      const yearMatch = filters.year ? record.year === filters.year : true;
-      const semesterMatch = filters.semester ? record.semester === filters.semester : true;
+      const searchMatch = record.student?.regNo.toLowerCase().includes(filters.search.toLowerCase());
+      const yearMatch = filters.year ? record.student?.year === filters.year : true;
+      const semesterMatch = filters.semester ? record.student?.semester === filters.semester : true;
       const statusMatch = filters.status ? record.status === filters.status : true;
       return searchMatch && yearMatch && semesterMatch && statusMatch;
     });
@@ -447,7 +445,7 @@ const AttendanceManagement = () => {
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setAttendance(prevState => prevState.map(a => a._id === recordId && a.unit === selectedUnit ? { ...a, status: newStatus } : a));
+      setAttendance(prevState => prevState.map(a => a._id === recordId ? { ...a, status: newStatus } : a));
       message.success(`Marked student as ${newStatus}`);
     } catch (error) {
       console.error("Error updating status:", error);
@@ -462,15 +460,23 @@ const AttendanceManagement = () => {
   };
 
   const columns = [
-    { title: 'Reg Number', dataIndex: 'regNo', key: 'regNo', sorter: (a, b) => a.regNo.localeCompare(b.regNo) },
-    { title: 'Course', dataIndex: 'course', key: 'course', sorter: (a, b) => a.course.localeCompare(b.course) },
-    { title: 'Year', dataIndex: 'year', key: 'year', render: year => <Tag color="blue">Year {year}</Tag>, sorter: (a, b) => a.year - b.year },
-    { title: 'Semester', dataIndex: 'semester', key: 'semester', render: semester => <Tag color="geekblue">Semester {semester}</Tag>, sorter: (a, b) => a.semester - b.semester },
+    { title: 'Reg Number', dataIndex: ['student', 'regNo'], key: 'regNo', sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo) },
+    { title: 'Course', dataIndex: ['student', 'course', 'name'], key: 'course', sorter: (a, b) => a.student.course.name.localeCompare(b.student.course.name) },
+    { title: 'Year', dataIndex: ['student', 'year'], key: 'year', render: year => <Tag color="blue">Year {year}</Tag>, sorter: (a, b) => a.student.year - b.student.year },
+    { title: 'Semester', dataIndex: ['student', 'semester'], key: 'semester', render: semester => <Tag color="geekblue">Semester {semester}</Tag>, sorter: (a, b) => a.student.semester - b.student.semester },
     { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, filters: [{ text: 'Present', value: 'present' }, { text: 'Absent', value: 'absent' }], onFilter: (value, record) => record.status === value },
     { title: 'Action', key: 'action', render: (_, record) => (
       <Button type="link" onClick={() => handleToggleStatus(record._id)} icon={<SyncOutlined />} disabled={currentSession?.ended}>
         Toggle Status
       </Button>
+    )}
+  ];
+
+  const attendanceFilterColumns = [
+    { title: 'Reg No', dataIndex: ['student', 'regNo'], key: 'regNo', width: 100 },
+    { title: 'Name', key: 'name', width: 150, render: (_, record) => `${record.student?.firstName} ${record.student?.lastName}` },
+    { title: 'Status', dataIndex: 'status', key: 'status', width: 100, render: status => (
+      <Tag color={status === 'present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>
     )}
   ];
 
@@ -572,7 +578,7 @@ const AttendanceManagement = () => {
             <Space wrap>
               <Select
                 placeholder="Select Unit"
-                style={{ width: 300 }} // Increased width for full name and code
+                style={{ width: 300 }}
                 onChange={setSelectedUnit}
                 value={selectedUnit}
                 loading={loading.units}
@@ -613,7 +619,7 @@ const AttendanceManagement = () => {
                 <Button
                   onClick={handleViewAttendance}
                   loading={loading.attendance}
-                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                  disabled={!selectedUnit}
                   type="primary"
                 >
                   Refresh Attendance Data
@@ -621,7 +627,6 @@ const AttendanceManagement = () => {
               }
             >
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
-                {/* Real-time Unit Filters */}
                 <Card
                   title={
                     <Space>
@@ -679,10 +684,8 @@ const AttendanceManagement = () => {
                   </Space>
                 </Card>
 
-                {/* Summary Cards */}
                 {summaryCards}
 
-                {/* Attendance Table */}
                 <Skeleton active loading={loading.attendance}>
                   <Table
                     columns={columns}
@@ -698,64 +701,78 @@ const AttendanceManagement = () => {
               </Space>
             </Card>
 
-            {/* Attendance Records Filter */}
             <Card
               title="Attendance Records Filter"
               size="small"
               extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
             >
-              <Space wrap style={{ width: '100%' }}>
-                <Select
-                  placeholder="Select Department"
-                  style={{ width: 160 }}
-                  onChange={handleDepartmentChange}
-                  allowClear
-                  value={unitFilters.department}
-                >
-                  {departments.map(department => (
-                    <Option key={department._id} value={department.name}>{department.name}</Option>
-                  ))}
-                </Select>
-                <Select
-                  placeholder="Course"
-                  style={{ width: 180 }}
-                  onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
-                  allowClear
-                  value={unitFilters.course}
-                >
-                  {filterOptions.courses.map(course => (
-                    <Option key={course} value={course}>{course}</Option>
-                  ))}
-                </Select>
-                <Select
-                  placeholder="Year"
-                  style={{ width: 120 }}
-                  onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
-                  allowClear
-                  value={unitFilters.year}
-                >
-                  {filterOptions.years.map(year => (
-                    <Option key={year} value={year}>Year {year}</Option>
-                  ))}
-                </Select>
-                <Select
-                  placeholder="Semester"
-                  style={{ width: 140 }}
-                  onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
-                  allowClear
-                  value={unitFilters.semester}
-                >
-                  {filterOptions.semesters.map(sem => (
-                    <Option key={sem} value={sem}>Sem {sem}</Option>
-                  ))}
-                </Select>
-                <Button
-                  icon={<DownloadOutlined />}
-                  onClick={() => downloadAttendanceReport(selectedUnit)}
-                  disabled={!selectedUnit}
-                >
-                  {screens.md ? 'Download Report' : 'Export'}
-                </Button>
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                <Space wrap style={{ width: '100%' }}>
+                  <Select
+                    placeholder="Select Department"
+                    style={{ width: 160 }}
+                    onChange={handleDepartmentChange}
+                    allowClear
+                    value={unitFilters.department}
+                  >
+                    {departments.map(department => (
+                      <Option key={department._id} value={department.name}>{department.name}</Option>
+                    ))}
+                  </Select>
+                  <Select
+                    placeholder="Course"
+                    style={{ width: 180 }}
+                    onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
+                    allowClear
+                    value={unitFilters.course}
+                  >
+                    {filterOptions.courses.map(course => (
+                      <Option key={course} value={course}>{course}</Option>
+                    ))}
+                  </Select>
+                  <Select
+                    placeholder="Year"
+                    style={{ width: 120 }}
+                    onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
+                    allowClear
+                    value={unitFilters.year}
+                  >
+                    {filterOptions.years.map(year => (
+                      <Option key={year} value={year}>Year {year}</Option>
+                    ))}
+                  </Select>
+                  <Select
+                    placeholder="Semester"
+                    style={{ width: 140 }}
+                    onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
+                    allowClear
+                    value={unitFilters.semester}
+                  >
+                    {filterOptions.semesters.map(sem => (
+                      <Option key={sem} value={sem}>Sem {sem}</Option>
+                    ))}
+                  </Select>
+                  <Button
+                    icon={<DownloadOutlined />}
+                    onClick={() => downloadAttendanceReport(selectedUnit)}
+                    disabled={!selectedUnit}
+                  >
+                    {screens.md ? 'Download Report' : 'Export'}
+                  </Button>
+                </Space>
+
+                <Skeleton active loading={loading.attendance}>
+                  <Table
+                    columns={attendanceFilterColumns}
+                    dataSource={attendance}
+                    rowKey="_id"
+                    pagination={false}
+                    size="small"
+                    bordered
+                    scroll={{ y: 200 }}
+                    locale={{ emptyText: 'No attendance records available' }}
+                  />
+                </Skeleton>
               </Space>
             </Card>
           </Space>

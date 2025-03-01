@@ -648,3 +648,40 @@ exports.checkFeedbackStatus = async (req, res) => {
     res.status(500).json({ message: "Error checking feedback status", error: error.message });
   }
 };
+
+exports.getLecturerUnitAttendance = async (req, res) => {
+  try {
+    const { unitId } = req.params;
+    const lecturerId = req.user.userId; // Get lecturer ID from authenticated user
+
+    if (!mongoose.Types.ObjectId.isValid(unitId) || !mongoose.Types.ObjectId.isValid(lecturerId)) {
+      return res.status(400).json({ message: "Invalid unit or lecturer ID format" });
+    }
+
+    // Fetch sessions for the unit where the lecturer is assigned
+    const sessions = await Session.find({ 
+      unit: unitId, 
+      lecturer: lecturerId 
+    }).select('_id');
+
+    if (!sessions.length) {
+      return res.status(200).json([]); // No sessions found, return empty array
+    }
+
+    const sessionIds = sessions.map(session => session._id);
+
+    // Fetch attendance records for all sessions
+    const attendanceRecords = await Attendance.find({ session: { $in: sessionIds } })
+      .populate({
+        path: 'student',
+        select: 'regNo firstName lastName course year semester',
+        populate: { path: 'course', select: 'name' }
+      })
+      .select('session status attendedAt');
+
+    res.status(200).json(attendanceRecords);
+  } catch (error) {
+    console.error("Error fetching lecturer unit attendance:", error);
+    res.status(500).json({ message: "Error fetching attendance records", error: error.message });
+  }
+};

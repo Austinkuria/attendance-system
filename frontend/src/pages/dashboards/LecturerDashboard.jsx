@@ -177,11 +177,11 @@ const LecturerDashboard = () => {
                 icon: <LineChartOutlined />,
                 label: <Link to="/analytics">Analytics</Link>,
               },
-              {
-                key: "4",
-                icon: <FormOutlined />,
-                label: <Link to="/lecturer/quizzes">Quizzes</Link>,
-              },
+              // {
+              //   key: "4",
+              //   icon: <FormOutlined />,
+              //   label: <Link to="/lecturer/quizzes">Quizzes</Link>,
+              // },
               {
                 key: "5",
                 icon: <FormOutlined />,

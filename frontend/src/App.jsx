@@ -18,7 +18,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import BackToTop from "./components/BackToTop";
 import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/dashboards/Analytics";
-import QuizPage from "./pages/dashboards/QuizPage";
+// import QuizPage from "./pages/dashboards/QuizPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import QRScanner from "./components/QRScanner";
 import NotFound from "./pages/ErrorPages/NotFound";
@@ -146,7 +146,7 @@ function App() {
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
           <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-          <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} />
+          {/* <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} /> */}
           <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>
       </div>
