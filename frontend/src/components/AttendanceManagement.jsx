@@ -7,7 +7,7 @@ import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDe
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
-const { Title, Text } = Typography;
+const { Text } = Typography;
 
 const AttendanceManagement = () => {
   const screens = useBreakpoint();
@@ -234,7 +234,7 @@ const AttendanceManagement = () => {
       }
     };
     fetchCurrentSession();
-  }, [selectedUnit, units, currentSession?.ended]); //eslint-disable-line
+  }, [selectedUnit, units, currentSession?.ended]);
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -394,21 +394,20 @@ const AttendanceManagement = () => {
         onOk: async () => {
           try {
             if (!currentSession?._id) throw new Error('Invalid session ID');
-            console.log('Ending session with ID:', currentSession._id); // Debug
+            console.log('Ending session with ID:', currentSession._id);
             const response = await axios.post(
               'https://attendance-system-w70n.onrender.com/api/sessions/end',
               { sessionId: currentSession._id },
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
-            console.log('Session end response:', response.data); // Debug
+            console.log('Session end response:', response.data);
             if (response.data.session.ended) {
               message.success('Session ended successfully');
               setCurrentSession(null);
               setQrData('');
-              setAttendance([]); // Clear attendance display
+              setAttendance([]);
               localStorage.removeItem('currentSession');
-              setSelectedUnit(null); // Reset unit selection
-              // Refresh session data to ensure absentees are reflected
+              setSelectedUnit(null);
               await checkCurrentSession();
             } else {
               throw new Error('Session not marked as ended');
@@ -567,14 +566,13 @@ const AttendanceManagement = () => {
             </Row>
           </Card>
         ) : null}
-  
+
         <Card
-          title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
           extra={
             <Space wrap>
               <Select
                 placeholder="Select Unit"
-                style={{ width: 240 }}
+                style={{ width: 300 }} // Increased width for full name and code
                 onChange={setSelectedUnit}
                 value={selectedUnit}
                 loading={loading.units}
@@ -583,8 +581,7 @@ const AttendanceManagement = () => {
                   <Option key={unit._id} value={unit._id}>
                     <Space>
                       <BookOutlined />
-                      {unit.name}
-                      <Tag color="blue">{unit.code}</Tag>
+                      {unit.name} – {unit.code}
                     </Space>
                   </Option>
                 ))}
@@ -610,16 +607,100 @@ const AttendanceManagement = () => {
           }
         >
           <Space direction="vertical" style={{ width: '100%' }} size="middle">
-            {/* Attendance Records Filter (formerly Real-time Unit Filters) */}
             <Card
-              title={
-                <Space>
-                  Attendance Records Filter
-                  {currentSession && !currentSession.ended && (
-                    <Tag color="green">Active Session</Tag>
-                  )}
-                </Space>
+              title="Attendance Overview"
+              extra={
+                <Button
+                  onClick={handleViewAttendance}
+                  loading={loading.attendance}
+                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                  type="primary"
+                >
+                  Refresh Attendance Data
+                </Button>
               }
+            >
+              <Space direction="vertical" style={{ width: '100%' }} size="middle">
+                {/* Real-time Unit Filters */}
+                <Card
+                  title={
+                    <Space>
+                      Real-time Unit Filters
+                      {currentSession && !currentSession.ended && (
+                        <Tag color="green">Active Session</Tag>
+                      )}
+                    </Space>
+                  }
+                  size="small"
+                >
+                  <Space wrap style={{ width: '100%' }}>
+                    <Input
+                      placeholder="Search by Reg Number"
+                      prefix={<SearchOutlined />}
+                      style={{ width: 240 }}
+                      onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                      allowClear
+                    />
+                    <Select
+                      placeholder="Filter by Year"
+                      allowClear
+                      suffixIcon={<CalendarOutlined />}
+                      style={{ width: 150 }}
+                      onChange={year => setFilters(prev => ({ ...prev, year }))}
+                      value={filters.year}
+                    >
+                      {[1, 2, 3, 4].map(year => (
+                        <Option key={year} value={year}>Year {year}</Option>
+                      ))}
+                    </Select>
+                    <Select
+                      placeholder="Filter by Semester"
+                      allowClear
+                      suffixIcon={<BookOutlined />}
+                      style={{ width: 170 }}
+                      onChange={semester => setFilters(prev => ({ ...prev, semester }))}
+                      value={filters.semester}
+                    >
+                      {[1, 2, 3].map(sem => (
+                        <Option key={sem} value={sem}>Semester {sem}</Option>
+                      ))}
+                    </Select>
+                    <Select
+                      placeholder="Filter by Status"
+                      allowClear
+                      suffixIcon={<FilterOutlined />}
+                      style={{ width: 150 }}
+                      onChange={status => setFilters(prev => ({ ...prev, status }))}
+                      value={filters.status}
+                    >
+                      <Option value="present">Present</Option>
+                      <Option value="absent">Absent</Option>
+                    </Select>
+                  </Space>
+                </Card>
+
+                {/* Summary Cards */}
+                {summaryCards}
+
+                {/* Attendance Table */}
+                <Skeleton active loading={loading.attendance}>
+                  <Table
+                    columns={columns}
+                    dataSource={filteredAttendance}
+                    rowKey="_id"
+                    scroll={{ x: true }}
+                    pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
+                    locale={{ emptyText: 'No attendance records found' }}
+                    bordered
+                    size="middle"
+                  />
+                </Skeleton>
+              </Space>
+            </Card>
+
+            {/* Attendance Records Filter */}
+            <Card
+              title="Attendance Records Filter"
               size="small"
               extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
             >
@@ -675,87 +756,12 @@ const AttendanceManagement = () => {
                 >
                   {screens.md ? 'Download Report' : 'Export'}
                 </Button>
-                <Button
-                  onClick={handleViewAttendance}
-                  loading={loading.attendance}
-                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
-                  type="primary"
-                >
-                  Refresh Attendance Data
-                </Button>
               </Space>
             </Card>
-  
-            {/* Summary Cards */}
-            {summaryCards}
-  
-            {/* Real-time Unit Filters (formerly Attendance Records Filter) */}
-            <Card
-              title="Real-time Unit Filters"
-              size="small"
-            >
-              <Space wrap style={{ width: '100%' }}>
-                <Input
-                  placeholder="Search by Reg Number"
-                  prefix={<SearchOutlined />}
-                  style={{ width: 240 }}
-                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  allowClear
-                />
-                <Select
-                  placeholder="Filter by Year"
-                  allowClear
-                  suffixIcon={<CalendarOutlined />}
-                  style={{ width: 150 }}
-                  onChange={year => setFilters(prev => ({ ...prev, year }))}
-                  value={filters.year}
-                >
-                  {[1, 2, 3, 4].map(year => (
-                    <Option key={year} value={year}>Year {year}</Option>
-                  ))}
-                </Select>
-                <Select
-                  placeholder="Filter by Semester"
-                  allowClear
-                  suffixIcon={<BookOutlined />}
-                  style={{ width: 170 }}
-                  onChange={semester => setFilters(prev => ({ ...prev, semester }))}
-                  value={filters.semester}
-                >
-                  {[1, 2, 3].map(sem => (
-                    <Option key={sem} value={sem}>Semester {sem}</Option>
-                  ))}
-                </Select>
-                <Select
-                  placeholder="Filter by Status"
-                  allowClear
-                  suffixIcon={<FilterOutlined />}
-                  style={{ width: 150 }}
-                  onChange={status => setFilters(prev => ({ ...prev, status }))}
-                  value={filters.status}
-                >
-                  <Option value="present">Present</Option>
-                  <Option value="absent">Absent</Option>
-                </Select>
-              </Space>
-            </Card>
-  
-            <Skeleton active loading={loading.attendance}>
-              <Table
-                columns={columns}
-                dataSource={filteredAttendance}
-                rowKey="_id"
-                scroll={{ x: true }}
-                pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
-                locale={{ emptyText: 'No attendance records found' }}
-                bordered
-                size="middle"
-              />
-            </Skeleton>
           </Space>
         </Card>
       </Spin>
-  
+
       <Modal
         title="Class QR Code"
         open={isQRModalOpen}
