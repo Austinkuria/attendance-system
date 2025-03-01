@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col } from 'antd';
+import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, Spin } from 'antd';
 import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
@@ -61,10 +61,13 @@ const AttendanceManagement = () => {
         const data = await getDepartments();
         setDepartments(data);
       } catch (error) {
+        console.error("Error fetching departments:", error);
         if (error.response?.status === 429) {
-          message.warning('Too many requests to fetch departments. Please try again later.');
+          message.warning('Too many requests. Please try again later.');
+        } else if (error.response?.status === 400) {
+          message.error('Invalid request to fetch departments. Please try again.');
         } else {
-          message.error('Failed to fetch departments');
+          message.error('Unable to fetch departments at this time.');
         }
       }
     };
@@ -98,9 +101,11 @@ const AttendanceManagement = () => {
       setQrData('');
       localStorage.removeItem('currentSession');
       if (error.response?.status === 429) {
-        message.warning('Too many requests to check session. Please try again later.');
+        message.warning('Too many requests. Please try again later.');
+      } else if (error.response?.status === 400) {
+        message.error('Invalid request to check session. Please try again.');
       } else {
-        message.error(error.message || 'Failed to detect current session');
+        message.error('Could not detect current session.');
       }
     } finally {
       setLoading(prevState => ({ ...prevState, session: false }));
@@ -144,10 +149,13 @@ const AttendanceManagement = () => {
           message.info("No units assigned to your account");
         }
       } catch (error) {
+        console.error("Error fetching units:", error);
         if (error.response?.status === 429) {
-          message.warning('Too many requests to fetch units. Please try again later.');
+          message.warning('Too many requests. Please try again later.');
+        } else if (error.response?.status === 400) {
+          message.error('Invalid request to fetch units. Please try again.');
         } else {
-          message.error("Failed to load unit data");
+          message.error('Unable to load unit data at this time.');
         }
       } finally {
         setLoading(prev => ({ ...prev, units: false }));
@@ -177,7 +185,7 @@ const AttendanceManagement = () => {
 
       if (!selectedUnit || selectedUnit === 'undefined') {
         console.error("No valid unit selected:", selectedUnit);
-        message.error("Please select a unit before fetching the session.");
+        message.error("Please select a valid unit.");
         setLoadingSessionData(false);
         return;
       }
@@ -213,11 +221,11 @@ const AttendanceManagement = () => {
       } catch (error) {
         console.error("Error fetching session:", error);
         if (error.response?.status === 429) {
-          message.warning('Too many requests to fetch session. Please try again later.');
+          message.warning('Too many requests. Please try again later.');
         } else if (error.response?.status === 400) {
-          message.error("Invalid unit ID provided.");
+          message.error('Invalid request to fetch session. Please select a valid unit.');
         } else {
-          message.error(error.response?.data?.message || "Failed to fetch session.");
+          message.error('Could not fetch current session.');
         }
         setCurrentSession(null);
         setQrData('');
@@ -226,7 +234,7 @@ const AttendanceManagement = () => {
       }
     };
     fetchCurrentSession();
-  }, [selectedUnit, units, currentSession?.ended]);
+  }, [selectedUnit, units, currentSession?.ended]); //eslint-disable-line
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -237,9 +245,11 @@ const AttendanceManagement = () => {
     } catch (error) {
       console.error("Error fetching attendance:", error);
       if (error.response?.status === 429) {
-        message.warning('Too many requests to fetch attendance data. Please try again later.');
+        message.warning('Too many requests. Please try again later.');
+      } else if (error.response?.status === 400) {
+        message.error('Invalid session ID. Please try again.');
       } else {
-        message.error(error.message || 'Failed to fetch attendance data');
+        message.error('Unable to fetch attendance data.');
       }
       setAttendance([]);
     } finally {
@@ -323,9 +333,11 @@ const AttendanceManagement = () => {
     } catch (error) {
       console.error("Error creating session:", error);
       if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try creating the session again later.');
+        message.warning('Too many requests. Please try again later.');
+      } else if (error.response?.status === 400) {
+        message.error('Invalid session details. Please check your input and try again.');
       } else {
-        message.error(error.message || 'Failed to create session');
+        message.error('Failed to create session. Please try again.');
       }
     } finally {
       setLoading(prevState => ({ ...prevState, session: false }));
@@ -354,9 +366,11 @@ const AttendanceManagement = () => {
     } catch (error) {
       console.error("Error generating QR code:", error);
       if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try generating the QR code again later.');
+        message.warning('Too many requests. Please try again later.');
+      } else if (error.response?.status === 400) {
+        message.error('Invalid session or unit. Please ensure an active session exists.');
       } else {
-        message.error(error.message || "Failed to generate QR code");
+        message.error('Failed to generate QR code. Please try again.');
       }
     } finally {
       setLoading(prevState => ({ ...prevState, qr: false }));
@@ -404,12 +418,12 @@ const AttendanceManagement = () => {
             if (error.response?.status === 429) {
               message.warning('Too many requests. Please try again later.');
             } else if (error.response?.status === 400) {
-              message.error('Invalid request. Session may already be ended.');
+              message.error('Invalid session ID. Session may already be ended.');
               setCurrentSession(null);
               setQrData('');
               localStorage.removeItem('currentSession');
             } else {
-              message.error(error.response?.data?.message || 'Failed to end session');
+              message.error('Failed to end session. Please try again.');
             }
           } finally {
             setLoading(prevState => ({ ...prevState, session: false }));
@@ -418,7 +432,7 @@ const AttendanceManagement = () => {
       });
     } catch (error) {
       console.error('Unexpected error in handleEndSession:', error);
-      message.error('An unexpected error occurred');
+      message.error('An unexpected error occurred. Please try again.');
       setLoading(prevState => ({ ...prevState, session: false }));
     }
   };
@@ -439,9 +453,11 @@ const AttendanceManagement = () => {
     } catch (error) {
       console.error("Error updating status:", error);
       if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try updating status again later.');
+        message.warning('Too many requests. Please try again later.');
+      } else if (error.response?.status === 400) {
+        message.error('Invalid attendance record. Please try again.');
       } else {
-        message.error('Failed to update attendance status');
+        message.error('Failed to update attendance status.');
       }
     }
   };
@@ -533,202 +549,207 @@ const AttendanceManagement = () => {
 
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
-      {loadingSessionData ? (
-        <Card loading style={{ marginBottom: 24 }}><Skeleton active /></Card>
-      ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
-        <Card
-          title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown Unit'}</Space>}
-          style={{ marginBottom: 24 }}
-        >
-          <Row gutter={[16, 16]}>
-            <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
-            <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
-            <Col span={24}><Button danger onClick={handleEndSession} loading={loading.session}>End Session Early</Button></Col>
-          </Row>
-        </Card>
-      ) : null}
-
-      <Card
-        title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
-        extra={
-          <Space wrap>
-            <Button icon={<DownloadOutlined />} onClick={() => downloadAttendanceReport(selectedUnit)} disabled={!selectedUnit}>
-              {screens.md ? 'Download Report' : 'Export'}
-            </Button>
-            <Button
-              type="primary"
-              icon={<QrcodeOutlined />}
-              onClick={handleGenerateQR}
-              disabled={!selectedUnit || !currentSession || currentSession?.ended}
-              loading={loading.qr}
-            >
-              {screens.md ? 'Generate QR Code' : 'QR Code'}
-            </Button>
-            <Button
-              type="primary"
-              icon={<CalendarOutlined />}
-              onClick={handleCreateSession}
-              disabled={loading.session || (currentSession && !currentSession.ended)}
-            >
-              {loading.session ? 'Creating...' : 'Create Attendance Session'}
-            </Button>
-          </Space>
-        }
+      <Spin 
+        spinning={loading.units || loading.session} 
+        tip={loading.units ? "Fetching units..." : "Checking session..."}
       >
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        {loadingSessionData ? (
+          <Card loading style={{ marginBottom: 24 }}><Skeleton active /></Card>
+        ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
           <Card
-            title="Real-time Unit Filters"
-            size="small"
-            extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
+            title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown Unit'}</Space>}
+            style={{ marginBottom: 24 }}
           >
-            <Space wrap style={{ width: '100%' }}>
-              <Select
-                placeholder="Select Department"
-                style={{ width: 160 }}
-                onChange={handleDepartmentChange}
-                allowClear
-                value={unitFilters.department}
-              >
-                {departments.map(department => (
-                  <Option key={department._id} value={department.name}>{department.name}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Course"
-                style={{ width: 180 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
-                allowClear
-                value={unitFilters.course}
-              >
-                {filterOptions.courses.map(course => (
-                  <Option key={course} value={course}>{course}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Year"
-                style={{ width: 120 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
-                allowClear
-                value={unitFilters.year}
-              >
-                {filterOptions.years.map(year => (
-                  <Option key={year} value={year}>Year {year}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Semester"
-                style={{ width: 140 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
-                allowClear
-                value={unitFilters.semester}
-              >
-                {filterOptions.semesters.map(sem => (
-                  <Option key={sem} value={sem}>Sem {sem}</Option>
-                ))}
-              </Select>
-            </Space>
+            <Row gutter={[16, 16]}>
+              <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
+              <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
+              <Col span={24}><Button danger onClick={handleEndSession} loading={loading.session}>End Session Early</Button></Col>
+            </Row>
           </Card>
-          <Space wrap>
-            <Select
-              placeholder="Select Unit"
-              style={{ width: 240 }}
-              onChange={setSelectedUnit}
-              value={selectedUnit}
-              loading={loading.units}
-            >
-              {filteredUnits.map(unit => (
-                <Option key={unit._id} value={unit._id}>
-                  <Space>
-                    <BookOutlined />
-                    {unit.name}
-                    <Tag color="blue">{unit.code}</Tag>
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-            <Button
-              onClick={handleViewAttendance}
-              loading={loading.attendance}
-              disabled={!selectedUnit || !currentSession || currentSession?.ended}
-              type="primary"
-            >
-              Refresh Attendance Data
-            </Button>
-          </Space>
+        ) : null}
 
-          {summaryCards}
-
-          <Card 
-            title={
-              <Space>
-                Attendance Records Filter
-                {currentSession && !currentSession.ended && (
-                  <Tag color="green">Active Session</Tag>
-                )}
+        <Card
+          title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
+          extra={
+            <Space wrap>
+              <Button icon={<DownloadOutlined />} onClick={() => downloadAttendanceReport(selectedUnit)} disabled={!selectedUnit}>
+                {screens.md ? 'Download Report' : 'Export'}
+              </Button>
+              <Button
+                type="primary"
+                icon={<QrcodeOutlined />}
+                onClick={handleGenerateQR}
+                disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                loading={loading.qr}
+              >
+                {screens.md ? 'Generate QR Code' : 'QR Code'}
+              </Button>
+              <Button
+                type="primary"
+                icon={<CalendarOutlined />}
+                onClick={handleCreateSession}
+                disabled={loading.session || (currentSession && !currentSession.ended)}
+              >
+                {loading.session ? 'Creating...' : 'Create Attendance Session'}
+              </Button>
+            </Space>
+          }
+        >
+          <Space direction="vertical" style={{ width: '100%' }} size="middle">
+            <Card
+              title="Real-time Unit Filters"
+              size="small"
+              extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
+            >
+              <Space wrap style={{ width: '100%' }}>
+                <Select
+                  placeholder="Select Department"
+                  style={{ width: 160 }}
+                  onChange={handleDepartmentChange}
+                  allowClear
+                  value={unitFilters.department}
+                >
+                  {departments.map(department => (
+                    <Option key={department._id} value={department.name}>{department.name}</Option>
+                  ))}
+                </Select>
+                <Select
+                  placeholder="Course"
+                  style={{ width: 180 }}
+                  onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
+                  allowClear
+                  value={unitFilters.course}
+                >
+                  {filterOptions.courses.map(course => (
+                    <Option key={course} value={course}>{course}</Option>
+                  ))}
+                </Select>
+                <Select
+                  placeholder="Year"
+                  style={{ width: 120 }}
+                  onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
+                  allowClear
+                  value={unitFilters.year}
+                >
+                  {filterOptions.years.map(year => (
+                    <Option key={year} value={year}>Year {year}</Option>
+                  ))}
+                </Select>
+                <Select
+                  placeholder="Semester"
+                  style={{ width: 140 }}
+                  onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
+                  allowClear
+                  value={unitFilters.semester}
+                >
+                  {filterOptions.semesters.map(sem => (
+                    <Option key={sem} value={sem}>Sem {sem}</Option>
+                  ))}
+                </Select>
               </Space>
-            }
-            size="small"
-          >
-            <Space wrap style={{ width: '100%' }}>
-              <Input
-                placeholder="Search by Reg Number"
-                prefix={<SearchOutlined />}
+            </Card>
+            <Space wrap>
+              <Select
+                placeholder="Select Unit"
                 style={{ width: 240 }}
-                onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                allowClear
-              />
-              <Select
-                placeholder="Filter by Year"
-                allowClear
-                suffixIcon={<CalendarOutlined />}
-                style={{ width: 150 }}
-                onChange={year => setFilters(prev => ({ ...prev, year }))}
-                value={filters.year}
+                onChange={setSelectedUnit}
+                value={selectedUnit}
+                loading={loading.units}
               >
-                {[1, 2, 3, 4].map(year => (
-                  <Option key={year} value={year}>Year {year}</Option>
+                {filteredUnits.map(unit => (
+                  <Option key={unit._id} value={unit._id}>
+                    <Space>
+                      <BookOutlined />
+                      {unit.name}
+                      <Tag color="blue">{unit.code}</Tag>
+                    </Space>
+                  </Option>
                 ))}
               </Select>
-              <Select
-                placeholder="Filter by Semester"
-                allowClear
-                suffixIcon={<BookOutlined />}
-                style={{ width: 170 }}
-                onChange={semester => setFilters(prev => ({ ...prev, semester }))}
-                value={filters.semester}
+              <Button
+                onClick={handleViewAttendance}
+                loading={loading.attendance}
+                disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                type="primary"
               >
-                {[1, 2, 3].map(sem => (
-                  <Option key={sem} value={sem}>Semester {sem}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Filter by Status"
-                allowClear
-                suffixIcon={<FilterOutlined />}
-                style={{ width: 150 }}
-                onChange={status => setFilters(prev => ({ ...prev, status }))}
-                value={filters.status}
-              >
-                <Option value="present">Present</Option>
-                <Option value="absent">Absent</Option>
-              </Select>
+                Refresh Attendance Data
+              </Button>
             </Space>
-          </Card>
 
-          <Skeleton active loading={loading.attendance}>
-            <Table
-              columns={columns}
-              dataSource={filteredAttendance}
-              rowKey="_id"
-              scroll={{ x: true }}
-              pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
-              locale={{ emptyText: 'No attendance records found' }}
-              bordered
-              size="middle"
-            />
-          </Skeleton>
-        </Space>
-      </Card>
+            {summaryCards}
+
+            <Card 
+              title={
+                <Space>
+                  Attendance Records Filter
+                  {currentSession && !currentSession.ended && (
+                    <Tag color="green">Active Session</Tag>
+                  )}
+                </Space>
+              }
+              size="small"
+            >
+              <Space wrap style={{ width: '100%' }}>
+                <Input
+                  placeholder="Search by Reg Number"
+                  prefix={<SearchOutlined />}
+                  style={{ width: 240 }}
+                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                  allowClear
+                />
+                <Select
+                  placeholder="Filter by Year"
+                  allowClear
+                  suffixIcon={<CalendarOutlined />}
+                  style={{ width: 150 }}
+                  onChange={year => setFilters(prev => ({ ...prev, year }))}
+                  value={filters.year}
+                >
+                  {[1, 2, 3, 4].map(year => (
+                    <Option key={year} value={year}>Year {year}</Option>
+                  ))}
+                </Select>
+                <Select
+                  placeholder="Filter by Semester"
+                  allowClear
+                  suffixIcon={<BookOutlined />}
+                  style={{ width: 170 }}
+                  onChange={semester => setFilters(prev => ({ ...prev, semester }))}
+                  value={filters.semester}
+                >
+                  {[1, 2, 3].map(sem => (
+                    <Option key={sem} value={sem}>Semester {sem}</Option>
+                  ))}
+                </Select>
+                <Select
+                  placeholder="Filter by Status"
+                  allowClear
+                  suffixIcon={<FilterOutlined />}
+                  style={{ width: 150 }}
+                  onChange={status => setFilters(prev => ({ ...prev, status }))}
+                  value={filters.status}
+                >
+                  <Option value="present">Present</Option>
+                  <Option value="absent">Absent</Option>
+                </Select>
+              </Space>
+            </Card>
+
+            <Skeleton active loading={loading.attendance}>
+              <Table
+                columns={columns}
+                dataSource={filteredAttendance}
+                rowKey="_id"
+                scroll={{ x: true }}
+                pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
+                locale={{ emptyText: 'No attendance records found' }}
+                bordered
+                size="middle"
+              />
+            </Skeleton>
+          </Space>
+        </Card>
+      </Spin>
 
       <Modal
         title="Class QR Code"
@@ -739,20 +760,22 @@ const AttendanceManagement = () => {
         destroyOnClose
         maskClosable={false}
       >
-        <div style={{ textAlign: 'center', padding: 24 }}>
-          {qrData ? (
-            <>
-              <img src={qrData} alt="Attendance QR Code" style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
-              {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
-              <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>Scan this QR code to mark attendance.</Typography.Text>
-            </>
-          ) : (
-            <div style={{ textAlign: "center", padding: 24 }}>
-              <Typography.Text type="danger">Failed to generate QR Code</Typography.Text>
-              <Skeleton.Image style={{ width: 300, height: 300 }} />
-            </div>
-          )}
-        </div>
+        <Spin spinning={loading.qr} tip="Generating QR code...">
+          <div style={{ textAlign: 'center', padding: 24 }}>
+            {qrData ? (
+              <>
+                <img src={qrData} alt="Attendance QR Code" style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+                {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
+                <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>Scan this QR code to mark attendance.</Typography.Text>
+              </>
+            ) : (
+              <div style={{ textAlign: "center", padding: 24 }}>
+                <Typography.Text type="danger">Failed to generate QR Code</Typography.Text>
+                <Skeleton.Image style={{ width: 300, height: 300 }} />
+              </div>
+            )}
+          </div>
+        </Spin>
       </Modal>
     </div>
   );

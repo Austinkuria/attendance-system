@@ -68,7 +68,7 @@ const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
 const StudentDashboard = () => {
   const { token: { colorBgContainer } } = theme.useToken();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 992); // Collapse by default on small screens (lg breakpoint)
   const [units, setUnits] = useState([]);
   const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
   const [attendanceRates, setAttendanceRates] = useState([]);
@@ -304,7 +304,6 @@ const StudentDashboard = () => {
         : [];
     }
 
-    // Sort events based on eventSortOrder
     return events.sort((a, b) => {
       const dateA = a.date ? a.date.valueOf() : 0;
       const dateB = b.date ? b.date.valueOf() : 0;
@@ -651,39 +650,112 @@ const StudentDashboard = () => {
     }
   };
 
+  const scrollToSection = (id) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
   return (
-    <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
-      <Header style={{ padding: '0 16px', background: colorBgContainer, position: 'fixed', width: '100%', zIndex: 10 }}>
-        <Row align="middle" className="header-row">
-          <Col flex="none">
-            <Button type="text" icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />} onClick={() => setCollapsed(!collapsed)} style={{ fontSize: '16px', width: 64, height: 64 }} />
-          </Col>
-          <Col flex="auto" className="title-col">
-            <AntTitle level={3} style={{ margin: 0 }}>Student Dashboard</AntTitle>
-          </Col>
-          <Col flex="none">
-            <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-              <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 8 }} />
-            </Dropdown>
-          </Col>
-        </Row>
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <Header
+        style={{
+          padding: '0 16px',
+          background: colorBgContainer,
+          position: 'fixed',
+          width: '100%',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <Space>
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            style={{ fontSize: '16px', width: 64, height: 64 }}
+          />
+        </Space>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            flex: 1,
+            textAlign: 'center',
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: collapsed ? 'none' : 'block' // Use collapsed instead of isMobile
+          }}
+        >
+          Student Dashboard
+        </AntTitle>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            display: collapsed ? 'inline' : 'none', // Use collapsed instead of isMobile
+          }}
+        >
+          Student Dashboard
+        </AntTitle>
+        <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+          <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
+        </Dropdown>
       </Header>
 
       <Layout>
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={{ background: colorBgContainer, marginTop: 64, position: 'fixed', height: 'calc(100vh - 64px)', overflow: 'auto' }}>
-          <Menu mode="inline" defaultSelectedKeys={['1']} items={[
-            { key: '1', icon: <BookOutlined />, label: 'Units', onClick: () => navigate('/student/dashboard') },
-            { key: '2', icon: <CheckCircleOutlined />, label: 'AttendanceTrends', onClick: () => navigate('/student/attendance-trends') },
-            { key: '3', icon: <UserOutlined />, label: 'Profile', onClick: () => navigate('/student/profile') },
-          ]} />
+        <Sider
+          collapsible
+          collapsed={collapsed}
+          onCollapse={setCollapsed}
+          width={250}
+          breakpoint="lg"
+          collapsedWidth={80}
+          style={{
+            background: colorBgContainer,
+            marginTop: 64,
+            position: 'fixed',
+            height: 'calc(100vh - 64px)',
+            overflow: 'auto',
+            zIndex: 11 // Ensure sidebar is above content
+          }}
+        >
+          <div className="demo-logo-vertical" />
+          <Menu
+            mode="inline"
+            defaultSelectedKeys={['1']}
+            items={[
+              { key: '1', icon: <BookOutlined />, label: 'My Units', onClick: () => scrollToSection('my-units') },
+              { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
+              { key: '3', icon: <CheckCircleOutlined />, label: 'AttendanceTrends', onClick: () => navigate('/student/attendance-trends') },
+            ]}
+          />
         </Sider>
 
-        <Content style={{ marginTop: 64, marginLeft: collapsed ? 96 : 266, marginRight: 16, padding: '16px 24px', minHeight: 'calc(100vh - 64px)', overflow: 'auto' }}>
+        <Content
+          style={{
+            margin: collapsed ? '64px 16px 16px 80px' : '64px 16px 16px 250px',
+            padding: 24,
+            background: '#f0f2f5',
+            minHeight: 'calc(100vh - 64px)',
+            overflow: 'auto',
+            transition: 'margin-left 0.2s',
+            marginLeft: collapsed ? 80 : 250,
+          }}
+        >
           <Spin spinning={loading} tip="Loading data...">
             {/* Summary Cards */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               <Col xs={24} sm={12}>
-                <Card className="summary-card" style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center' }} styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' } }}>
+                <Card
+                  className="summary-card"
+                  style={{ background: 'linear-gradient(135deg, #1890ff, #096dd9)', color: 'white', borderRadius: 10, textAlign: 'center' }}
+                  styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' } }}
+                >
                   <Space direction="vertical">
                     <BookOutlined style={{ fontSize: 24 }} />
                     <h3 style={{ margin: '8px 0' }}>Total Units</h3>
@@ -692,7 +764,11 @@ const StudentDashboard = () => {
                 </Card>
               </Col>
               <Col xs={24} sm={12}>
-                <Card className="summary-card" style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center' }} styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' } }}>
+                <Card
+                  className="summary-card"
+                  style={{ background: 'linear-gradient(135deg, #52c41a, #389e0d)', color: 'white', borderRadius: 10, textAlign: 'center' }}
+                  styles={{ body: { padding: '20px', display: 'flex', flexDirection: 'column', justifyContent: 'center' } }}
+                >
                   <Space direction="vertical">
                     <CheckCircleOutlined style={{ fontSize: 24 }} />
                     <h3 style={{ margin: '8px 0' }}>Attendance Rate</h3>
@@ -703,7 +779,7 @@ const StudentDashboard = () => {
             </Row>
 
             {/* My Units */}
-            <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 16 }}>My Units</AntTitle>
+            <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 16 }}>My Units</AntTitle>
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               {units.map((unit) => unit._id ? (
                 <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
@@ -766,7 +842,7 @@ const StudentDashboard = () => {
             </Row>
 
             {/* Attendance Overview */}
-            <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 16 }}>Attendance Overview</AntTitle>
+            <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 16 }}>Attendance Overview</AntTitle>
             <Card style={{ borderRadius: 10, marginBottom: 64 }}>
               <div style={{ height: '400px' }}>
                 <Bar data={chartData} options={chartOptions} />
