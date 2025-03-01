@@ -37,7 +37,7 @@ const { Title: AntTitle } = Typography;
 
 const AdminPanel = () => {
   const { token: { colorBgContainer } } = theme.useToken();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 992); // Collapse by default on small screens (lg breakpoint)
   const [students, setStudents] = useState([]);
   const [lecturers, setLecturers] = useState([]);
   const [courses, setCourses] = useState([]);
@@ -63,10 +63,18 @@ const AdminPanel = () => {
     };
   }, []);
 
+  useEffect(() => {
+    const handleResize = () => {
+      setCollapsed(window.innerWidth < 992); // Sync collapsed state with screen size
+    };
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('userData');
-    localStorage.removeItem('attendanceRates'); // Clear cache on logout
+    localStorage.removeItem('attendanceRates');
     sessionStorage.clear();
     window.location.href = '/auth/login';
     window.location.reload(true);
@@ -279,23 +287,52 @@ const AdminPanel = () => {
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ padding: '0 16px', background: colorBgContainer, position: 'fixed', width: '100%', zIndex: 10 }}>
-        <Row align="middle">
-          <Col flex="auto">
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{ fontSize: '16px', width: 64, height: 64 }}
-            />
-            <AntTitle level={3} style={{ display: 'inline', margin: 0 }}>Admin Dashboard</AntTitle>
-          </Col>
-          <Col>
-            <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-              <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
-            </Dropdown>
-          </Col>
-        </Row>
+      <Header
+        style={{
+          padding: '0 16px',
+          background: colorBgContainer,
+          position: 'fixed',
+          width: '100%',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between'
+        }}
+      >
+        <Space>
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            style={{ fontSize: '16px', width: 64, height: 64 }}
+          />
+        </Space>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            flex: 1,
+            textAlign: 'center',
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: window.innerWidth < 992 ? 'none' : 'block' // Hide on small screens
+          }}
+        >
+          Admin Dashboard
+        </AntTitle>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            display: window.innerWidth >= 992 ? 'none' : 'inline', // Show only on small screens
+          }}
+        >
+          Admin Dashboard
+        </AntTitle>
+        <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+          <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} style={{ marginRight: 24 }} />
+        </Dropdown>
       </Header>
 
       <Layout>
@@ -306,7 +343,14 @@ const AdminPanel = () => {
           width={250}
           breakpoint="lg"
           collapsedWidth={80}
-          style={{ background: colorBgContainer, marginTop: 64, position: 'fixed', height: 'calc(100vh - 64px)', overflow: 'auto' }}
+          style={{
+            background: colorBgContainer,
+            marginTop: 64,
+            position: 'fixed',
+            height: 'calc(100vh - 64px)',
+            overflow: 'auto',
+            zIndex: 11 // Ensure sidebar is above content
+          }}
         >
           <div className="demo-logo-vertical" />
           <Menu
@@ -323,13 +367,17 @@ const AdminPanel = () => {
           />
         </Sider>
 
-        <Content style={{
-          margin: collapsed ? '64px 16px 16px 96px' : '64px 16px 16px 266px',
-          padding: 24,
-          background: '#f0f2f5',
-          minHeight: 'calc(100vh - 64px)',
-          overflow: 'auto'
-        }}>
+        <Content
+          style={{
+            margin: collapsed ? '64px 16px 16px 80px' : '64px 16px 16px 250px', // Adjusted for sidebar width
+            padding: 24,
+            background: '#f0f2f5',
+            minHeight: 'calc(100vh - 64px)',
+            overflow: 'auto',
+            transition: 'margin-left 0.2s', // Smooth transition for sidebar toggle
+            marginLeft: collapsed ? 80 : 250, // Dynamic margin based on collapsed state
+          }}
+        >
           <Spin spinning={studentsLoading || lecturersLoading || coursesLoading} tip="Loading dashboard data...">
             <Row gutter={[16, 16]} justify="center">
               <Col xs={24} sm={12} md={8} lg={6}>

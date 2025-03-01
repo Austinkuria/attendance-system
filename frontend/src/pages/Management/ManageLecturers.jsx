@@ -13,21 +13,18 @@ import {
   Skeleton,
   Row,
   Col,
+  Spin, // Added Spin
 } from "antd";
 import {
   SearchOutlined,
   UserAddOutlined,
-  // LoadingOutlined,
   ExclamationCircleOutlined,
-  // UserOutlined,
   LeftOutlined,
   EditOutlined,
   DeleteOutlined,
   IdcardOutlined,
   BookOutlined,
   UnorderedListOutlined,
-  // CheckCircleOutlined,
-  ApartmentOutlined,
   ArrowUpOutlined,
   DownloadOutlined,
   ImportOutlined,
@@ -41,10 +38,182 @@ import {
   getDepartments,
   downloadLecturers,
 } from "../../services/api";
-import "../../styles.css";
 import api from "../../services/api";
-const { Header, Content } = Layout;
+
+const { Content } = Layout;
 const { Option } = Select;
+
+const styles = {
+  layout: {
+    minHeight: "100vh",
+    background: "#f0f2f5",
+    padding: 0,
+    margin: 0,
+    width: "100%",
+    overflowX: "hidden",
+    boxSizing: "border-box",
+  },
+  headerRow: {
+    marginBottom: "16px",
+    padding: "8px",
+    background: "#fafafa",
+    borderRadius: "8px 8px 0 0",
+    flexWrap: "wrap",
+    gap: "8px",
+    alignItems: "center",
+    width: "100%",
+    boxSizing: "border-box",
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+  },
+  headerTitle: {
+    color: "#1890ff",
+    margin: 0,
+    fontSize: "20px",
+  },
+  content: {
+    width: "100%",
+    maxWidth: "100%",
+    margin: 0,
+    padding: "8px",
+    background: "#fff",
+    borderRadius: 8,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+    boxSizing: "border-box",
+    overflowX: "hidden",
+  },
+  filtersContainer: {
+    background: "#fff",
+    padding: "8px",
+    borderRadius: 4,
+    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+    marginBottom: "16px",
+    width: "100%",
+    boxSizing: "border-box",
+  },
+  backToTopButton: {
+    position: "fixed",
+    bottom: "16px",
+    right: "16px",
+    zIndex: 1000,
+    background: "#1890ff",
+    borderColor: "#1890ff",
+  },
+  table: {
+    borderRadius: 8,
+    overflow: "hidden",
+    background: "#fff",
+    width: "100%",
+    margin: 0,
+    padding: 0,
+    boxSizing: "border-box",
+  },
+  actionsContainer: {
+    display: "flex",
+    gap: "8px",
+    flexWrap: "wrap",
+  },
+  unitTag: {
+    background: "#d9d9d9",
+    padding: "4px 8px",
+    marginRight: "4px",
+    borderRadius: "4px",
+    display: "inline-block",
+  },
+  modalHeader: {
+    padding: "12px 16px",
+    background: "#1890ff",
+    color: "#fff",
+    borderRadius: "8px 8px 0 0",
+  },
+  modalContent: {
+    padding: "16px",
+    boxSizing: "border-box",
+  },
+  responsiveOverrides: `
+    /* Reset browser defaults */
+    html, body, #root {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      overflow-x: hidden;
+    }
+
+    /* Reset Ant Design's Layout defaults */
+    .ant-layout, .ant-layout-content {
+      padding: 0 !important;
+      margin: 0 !important;
+    }
+
+    @media (max-width: 768px) {
+      .ant-layout-content { 
+        padding: 4px !important; 
+      }
+      .filters-container { 
+        padding: 4px !important; 
+      }
+      .header-row { 
+        padding: 4px !important; 
+      }
+      .ant-btn {
+        font-size: 12px;
+        padding: 4px 8px;
+      }
+      .ant-modal {
+        width: 90% !important;
+        margin: 0 auto;
+      }
+      .back-to-top-btn {
+        bottom: 40px;
+        right: 10px;
+      }
+    }
+    @media (max-width: 576px) {
+      .ant-layout-content { 
+        padding: 2px !important; 
+      }
+      .filters-container { 
+        padding: 2px !important; 
+        margin-bottom: 8px !important;
+      }
+      .header-row { 
+        padding: 2px !important; 
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+      }
+      .ant-row:not(.header-row) {
+        flex-direction: column;
+        margin: 0;
+      }
+      .ant-col {
+        width: 100%;
+        margin-bottom: 8px;
+        padding: 0;
+      }
+      .ant-table {
+        font-size: 12px;
+      }
+      .ant-modal {
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+      }
+      .ant-modal-content {
+        border-radius: 0;
+      }
+      .back-to-top-btn {
+        bottom: 30px;
+        right: 5px;
+        width: 32px;
+        height: 32px;
+        font-size: 14px;
+      }
+      .ant-alert {
+        margin-bottom: 8px !important;
+      }
+    }
+  `,
+};
 
 const ManageLecturers = () => {
   const navigate = useNavigate();
@@ -55,18 +224,15 @@ const ManageLecturers = () => {
   const [globalError, setGlobalError] = useState("");
   const [globalSuccess, setGlobalSuccess] = useState("");
 
-  // Filter states
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterUnit, setFilterUnit] = useState("");
 
-  // Modal states
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isUnitsModalVisible, setIsUnitsModalVisible] = useState(false);
 
-  // Lecturer selection and form data
   const [selectedLecturer, setSelectedLecturer] = useState(null);
   const [lecturerToDelete, setLecturerToDelete] = useState(null);
   const [selectedLecturerForUnits, setSelectedLecturerForUnits] = useState(null);
@@ -75,13 +241,9 @@ const ManageLecturers = () => {
   const [editForm] = Form.useForm();
   const [unitForm] = Form.useForm();
 
-  // Back-to-top button state
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [file, setFile] = useState(null);
 
-  // ---------------------------
-  // Authentication & Scroll
-  // ---------------------------
   useEffect(() => {
     const token = localStorage.getItem("token");
     if (!token) {
@@ -95,13 +257,11 @@ const ManageLecturers = () => {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // ---------------------------
-  // Data Fetching
-  // ---------------------------
   useEffect(() => {
     let isMounted = true;
     const fetchData = async () => {
       try {
+        setLoading(true); // Trigger global spinner
         const token = localStorage.getItem("token");
         if (!token) {
           navigate("/auth/login");
@@ -124,7 +284,7 @@ const ManageLecturers = () => {
           setLecturers([]);
         }
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) setLoading(false); // Hide global spinner
       }
     };
     fetchData();
@@ -133,9 +293,6 @@ const ManageLecturers = () => {
     };
   }, [navigate]);
 
-  // ---------------------------
-  // Filtering Lecturers
-  // ---------------------------
   const filteredLecturers = useMemo(() => {
     const query = searchQuery.toLowerCase().trim();
     return lecturers.filter((l) => {
@@ -157,113 +314,77 @@ const ManageLecturers = () => {
     });
   }, [lecturers, searchQuery, filterDepartment, filterUnit]);
 
-  // ---------------------------
-  // Modal Handlers
-  // ---------------------------
   const openUnitsModal = (lecturer) => {
     setSelectedLecturerForUnits(lecturer);
     unitForm.resetFields();
     setIsUnitsModalVisible(true);
   };
 
-  // ---------------------------
-  // CRUD Handlers
-  // ---------------------------
   const handleAddLecturer = async () => {
     try {
       const values = await addForm.validateFields();
-      setLoading(true);
-
+      setLoading(true); // Trigger modal spinner
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
-
       const response = await addLecturer({ ...values, role: "lecturer" });
-
       if (response?.message === "Lecturer created successfully") {
-        //  Refresh the lecturers list
         const updated = await getLecturers();
         setLecturers(updated || []);
-
-        //  Clear the form fields
         addForm.resetFields();
-
-        //  Close the modal
         setIsAddModalVisible(false);
-
-        //  Show success message
         message.success("Lecturer added successfully");
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to create lecturer";
-
       if (errorMessage.includes("already exists")) {
         message.warning("This lecturer already exists. Try using a different email.");
       } else {
         message.error(errorMessage);
       }
-
       setGlobalError(errorMessage);
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide modal spinner
     }
   };
 
   const handleEditLecturer = async () => {
     try {
       const values = await editForm.validateFields();
-      setLoading(true);
-
+      setLoading(true); // Trigger modal spinner
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
-
-      // Check if selectedLecturer has a valid _id
       if (!selectedLecturer?._id) {
         message.error("Selected lecturer is invalid.");
         return;
       }
-
-      // Prepare updated lecturer data
       const updatedLecturer = { ...selectedLecturer, ...values };
-
-      // Call the API to update the lecturer
       const response = await updateLecturer(selectedLecturer._id, updatedLecturer);
-
-      // Check if the update was successful
       if (response?.message === "Lecturer updated successfully") {
-        //  Update the list of lecturers in the state (refresh)
         const updated = await getLecturers();
         setLecturers(updated || []);
-
-        //  Clear the form fields
         editForm.resetFields();
-
-        //  Close the modal
         setIsEditModalVisible(false);
-
-        //  Show success message
         message.success("Lecturer updated successfully");
       } else {
-        // Show error message if the response is not successful
         message.error("Failed to update lecturer");
       }
     } catch (err) {
-      // Handle errors that might occur during the update process
       const errorMessage = err.response?.data?.message || "Failed to update lecturer";
       message.error(errorMessage);
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide modal spinner
     }
   };
 
   const handleConfirmDelete = async () => {
     try {
-      setLoading(true);
+      setLoading(true); // Trigger modal spinner
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
@@ -277,7 +398,7 @@ const ManageLecturers = () => {
       setGlobalError("Failed to delete lecturer. Please try again later.");
       message.error("Failed to delete lecturer");
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide modal spinner
     }
   };
 
@@ -285,148 +406,107 @@ const ManageLecturers = () => {
     try {
       const { newUnit } = await unitForm.validateFields();
       if (!newUnit || !selectedLecturerForUnits) return;
-
-      setLoading(true);
+      setLoading(true); // Trigger modal spinner
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
-
-      // Find the unit to add
       const unitToAdd = units.find((unit) => unit._id === newUnit);
       if (!unitToAdd) {
         throw new Error("Unit not found");
       }
-
-      // Prepare updated units array
       const updatedUnits = [
         ...(Array.isArray(selectedLecturerForUnits.assignedUnits)
           ? selectedLecturerForUnits.assignedUnits
           : []),
         unitToAdd,
       ];
-
-      // Prepare the updated lecturer data
       const updatedLecturer = {
         ...selectedLecturerForUnits,
         assignedUnits: updatedUnits,
       };
-
-      // Call the API to update lecturer with the new units
       const response = await updateLecturer(selectedLecturerForUnits._id, updatedLecturer);
-
       if (response?.message === "Lecturer updated successfully") {
-        // Fetch updated lecturers list and update state
         const updated = await getLecturers();
         setLecturers(updated || []);
         setSelectedLecturerForUnits(updatedLecturer);
-
-        // Reset the form and close the modal
         unitForm.resetFields();
         setIsUnitsModalVisible(false);
-
-        // Show success message
         message.success("Unit assigned successfully");
       }
     } catch (err) {
-      // Handle error if assignment fails
       setGlobalError(err.response?.data?.message || "Failed to assign unit");
       message.error("Failed to assign unit");
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide modal spinner
     }
   };
 
-  // Handle CSV file upload (only CSV allowed)
   const handleFileUpload = (e) => {
     const selectedFile = e.target.files[0];
     const validCSVTypes = ["text/csv", "application/vnd.ms-excel"];
-
     if (selectedFile && validCSVTypes.includes(selectedFile.type)) {
       setFile(selectedFile);
-      setGlobalError(null); // Clear any previous errors
+      setGlobalError(null);
     } else {
       setGlobalError("Invalid file type. Please upload a valid CSV file.");
       setFile(null);
     }
   };
 
-  // Handle CSV import for lecturers
   const handleImport = async () => {
     if (!file) {
       setGlobalError("Please select a CSV file before importing.");
       return;
     }
-
     try {
-      setLoading(true);
+      setLoading(true); // Trigger global spinner
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
         return;
       }
-
       const formData = new FormData();
       formData.append("csvFile", file);
-
       const response = await api.post("/lecturers/upload", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${token}`,
         },
       });
-
       if (response.data.successCount > 0) {
         const updated = await getLecturers();
-        const formatted = updated.map((l) => ({
-          firstName: l.firstName || "N/A",
-          lastName: l.lastName || "N/A",
-          email: l.email || "N/A",
-          department: (l.department && (l.department.name || l.department)) || "N/A",
-          assignedUnits: (l.assignedUnits && l.assignedUnits.length > 0)
-            ? l.assignedUnits.map(unit => unit.name).join(", ")
-            : "N/A",
-        }));
-
-        setLecturers(formatted);
+        setLecturers(updated);
         message.success(`Successfully imported ${response.data.successCount} lecturers`);
       }
-
       setFile(null);
-
-      // Show detailed errors if any records failed
       if (response.data.errorCount > 0) {
-        const errorMessages = response.data.errors.map((err, index) =>
-          `Row ${index + 1}: ${err.error}`
-        ).join("\n");
-
+        const errorMessages = response.data.errors
+          .map((err, index) => `Row ${index + 1}: ${err.error}`)
+          .join("\n");
         setGlobalError(`Some records failed to import:\n${errorMessages}`);
       }
-    } catch (err) {
-      console.error("CSV import failed:", err);
+    } catch {
       setGlobalError("CSV import failed. Please check file format and try again.");
       message.error("CSV import failed");
     } finally {
-      setLoading(false);
+      setLoading(false); // Hide global spinner
     }
   };
 
-  // ---------------------------
-  // Table Columns
-  // ---------------------------
   const columns = [
     {
       title: (
         <>
-          <IdcardOutlined style={{ marginRight: 4 }} />
+          <IdcardOutlined style={{ marginRight: 4, color: "#1890ff" }} />
           Name
         </>
       ),
       dataIndex: "firstName",
       key: "name",
       render: (text, record) => (
-        <span className="fw-semibold" style={{ color: "#1890ff" }}>
+        <span style={{ fontWeight: 500, color: "#1890ff" }}>
           {record.firstName} {record.lastName}
         </span>
       ),
@@ -439,7 +519,7 @@ const ManageLecturers = () => {
     {
       title: (
         <>
-          <ApartmentOutlined style={{ marginRight: 4 }} />
+          <BookOutlined style={{ marginRight: 4, color: "#1890ff" }} />
           Department
         </>
       ),
@@ -465,11 +545,12 @@ const ManageLecturers = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={styles.actionsContainer}>
           <Button
             type="primary"
             icon={<EditOutlined />}
             size="small"
+            style={{ background: "#1890ff", borderColor: "#1890ff" }}
             onClick={() => {
               setSelectedLecturer(record);
               editForm.setFieldsValue({
@@ -484,9 +565,11 @@ const ManageLecturers = () => {
             Edit
           </Button>
           <Button
-            type="danger"
+            type="primary"
+            danger
             icon={<DeleteOutlined />}
             size="small"
+            style={{ background: "#f5222d", borderColor: "#f5222d" }}
             onClick={() => {
               setLecturerToDelete(record._id);
               setIsDeleteModalVisible(true);
@@ -499,169 +582,164 @@ const ManageLecturers = () => {
     },
   ];
 
-  // ---------------------------
-  // Render
-  // ---------------------------
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Header style={{ background: "var(--ant-bg-color)", padding: "0 20px" }}>
-        <Row justify="space-between" align="middle">
-          <Button
-            type="link"
-            icon={<LeftOutlined />}
-            onClick={() => navigate("/admin")}
+    <Layout style={styles.layout}>
+      <Content style={styles.content} className="ant-layout-content">
+        <style>{styles.responsiveOverrides}</style>
+        <Spin spinning={loading} tip="Loading data...">
+          <Row
+            justify="space-between"
+            align="middle"
+            style={styles.headerRow}
+            className="header-row"
           >
-            Back to Admin
-          </Button>
-          <h2 style={{ color: "var(--ant-primary-color)" }}>
-            Lecturer Management
-          </h2>
-          <Button
-            type="primary"
-            icon={<UserAddOutlined />}
-            onClick={() => {
-              addForm.resetFields();
-              setIsAddModalVisible(true);
-            }}
-          >
-            Add Lecturer
-          </Button>
-        </Row>
-      </Header>
-      <Content style={{ padding: "20px" }}>
-        {showBackToTop && (
-          <Button
-            type="primary"
-            shape="circle"
-            icon={<ArrowUpOutlined />}
-            className="back-to-top-btn"
-            style={{ position: "fixed", bottom: 50, right: 30, zIndex: 1000 }}
-            onClick={() =>
-              window.scrollTo({ top: 0, behavior: "smooth" })
-            }
-          />
-        )}
-
-        {globalError && (
-          <Alert
-            message={globalError}
-            type="error"
-            closable
-            onClose={() => setGlobalError("")}
-            style={{ marginBottom: 16 }}
-          />
-        )}
-        {globalSuccess && (
-          <Alert
-            message={globalSuccess}
-            type="success"
-            closable
-            onClose={() => setGlobalSuccess("")}
-            style={{ marginBottom: 16 }}
-          />
-        )}
-
-        {/* Filters */}
-        <div style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
-          <Row gutter={[16, 16]} style={{ marginBottom: 20 }}>
-            <Col xs={24} md={8}>
-              <Input
-                placeholder="Search by name, email, or unit code..."
-                prefix={<SearchOutlined />}
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-            </Col>
-            <Col xs={24} md={8}>
-              <Select
-                placeholder="All Departments"
-                value={filterDepartment || undefined}
-                onChange={(value) => setFilterDepartment(value)}
-                style={{ width: "100%" }}
-                allowClear
-              >
-                {departments.map((dept) => (
-                  <Option key={dept._id} value={dept._id}>
-                    {dept.name}
-                  </Option>
-                ))}
-              </Select>
-            </Col>
-            <Col xs={24} md={8}>
-              <Select
-                placeholder="All Assigned Units"
-                value={filterUnit || undefined}
-                onChange={(value) => setFilterUnit(value)}
-                style={{ width: "100%" }}
-                allowClear
-              >
-                {units.map((unit) => (
-                  <Option key={unit.code} value={unit.code}>
-                    {unit.code} – {unit.name}
-                  </Option>
-                ))}
-              </Select>
-            </Col>
+            <Button
+              type="link"
+              icon={<LeftOutlined />}
+              onClick={() => navigate("/admin")}
+            >
+              Back to Admin
+            </Button>
+            <h2 style={styles.headerTitle}>Lecturer Management</h2>
+            <Button
+              type="primary"
+              icon={<UserAddOutlined />}
+              style={{ background: "#1890ff", borderColor: "#1890ff" }}
+              onClick={() => {
+                addForm.resetFields();
+                setIsAddModalVisible(true);
+              }}
+            >
+              Add Lecturer
+            </Button>
           </Row>
-          <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
-            <Col xs={24} md={8}>
-              <Row gutter={8} align="middle">
-                <Col flex="auto">
-                  <Input type="file" accept=".csv" onChange={handleFileUpload} />
-                </Col>
-                <Col>
-                  <Button
-                    type="primary"
-                    icon={<ImportOutlined />}
-                    disabled={!file}
-                    onClick={handleImport}
-                  >
-                    {file ? `Import ${file.name}` : "CSV Import"}
-                  </Button>
-                </Col>
-              </Row>
-            </Col>
-            <Col xs={12} md={8}>
-              <Button
-                type="primary"
-                icon={<DownloadOutlined />}
-                block
-                onClick={async () => {
-                  try {
-                    await downloadLecturers();
-                  } catch (err) {
-                    console.error("Error downloading students:", err);
-                    setGlobalError("Failed to download students");
-                    message.error("Failed to download students");
-                  }
-                }}
-              >
-                Export
-              </Button>
-            </Col>
-          </Row>
-        </div>
-        {/* Lecturer Table */}
-        {loading ? (
-          <Skeleton active />
-        ) : (
-          <Table
-            dataSource={filteredLecturers}
-            columns={columns}
-            rowKey="_id"
-            scroll={{ x: "max-content", y: 400 }}
-          />
-        )}
+
+          {showBackToTop && (
+            <Button
+              type="primary"
+              shape="circle"
+              icon={<ArrowUpOutlined />}
+              style={styles.backToTopButton}
+              className="back-to-top-btn"
+              onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+            />
+          )}
+
+          {globalError && (
+            <Alert
+              message={globalError}
+              type="error"
+              closable
+              onClose={() => setGlobalError("")}
+            />
+          )}
+          {globalSuccess && (
+            <Alert
+              message={globalSuccess}
+              type="success"
+              closable
+              onClose={() => setGlobalSuccess("")}
+            />
+          )}
+
+          <div style={styles.filtersContainer} className="filters-container">
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={8}>
+                <Input
+                  placeholder="Search by name, email, or unit code..."
+                  prefix={<SearchOutlined />}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </Col>
+              <Col xs={24} md={8}>
+                <Select
+                  placeholder="All Departments"
+                  value={filterDepartment || undefined}
+                  onChange={(value) => setFilterDepartment(value)}
+                  style={{ width: "100%" }}
+                  allowClear
+                >
+                  {departments.map((dept) => (
+                    <Option key={dept._id} value={dept._id}>
+                      {dept.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+              <Col xs={24} md={8}>
+                <Select
+                  placeholder="All Assigned Units"
+                  value={filterUnit || undefined}
+                  onChange={(value) => setFilterUnit(value)}
+                  style={{ width: "100%" }}
+                  allowClear
+                >
+                  {units.map((unit) => (
+                    <Option key={unit.code} value={unit.code}>
+                      {unit.code} – {unit.name}
+                    </Option>
+                  ))}
+                </Select>
+              </Col>
+            </Row>
+            <Row gutter={[16, 16]}>
+              <Col xs={24} md={8}>
+                <Row gutter={8} align="middle">
+                  <Col flex="auto">
+                    <Input type="file" accept=".csv" onChange={handleFileUpload} />
+                  </Col>
+                  <Col>
+                    <Button
+                      type="primary"
+                      icon={<ImportOutlined />}
+                      disabled={!file}
+                      style={{ background: "#1890ff", borderColor: "#1890ff" }}
+                      onClick={handleImport}
+                    >
+                      {file ? `Import ${file.name}` : "CSV Import"}
+                    </Button>
+                  </Col>
+                </Row>
+              </Col>
+              <Col xs={24} md={8}>
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  block
+                  style={{ background: "#1890ff", borderColor: "#1890ff" }}
+                  onClick={async () => {
+                    try {
+                      await downloadLecturers();
+                    } catch {
+                      setGlobalError("Failed to download lecturers");
+                      message.error("Failed to download lecturers");
+                    }
+                  }}
+                >
+                  Export
+                </Button>
+              </Col>
+            </Row>
+          </div>
+
+          {loading ? (
+            <Skeleton active />
+          ) : (
+            <Table
+              dataSource={filteredLecturers}
+              columns={columns}
+              rowKey="_id"
+              scroll={{ x: "max-content", y: 400 }}
+              style={styles.table}
+              className="ant-table-custom"
+            />
+          )}
+        </Spin>
       </Content>
 
-      {/* Add Lecturer Modal */}
       <Modal
-        title={
-          <>
-            <UserAddOutlined style={{ marginRight: 8 }} />
-            Add New Lecturer
-          </>
-        }
+        title={<span style={styles.modalHeader}>Add New Lecturer</span>}
         open={isAddModalVisible}
         onCancel={() => setIsAddModalVisible(false)}
         footer={[
@@ -673,67 +751,65 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleAddLecturer}
             loading={loading}
+            style={{ background: "#1890ff", borderColor: "#1890ff" }}
           >
             Add Lecturer
           </Button>,
         ]}
+        styles={{ body: styles.modalContent }}
       >
-        <Form form={addForm} layout="vertical">
-          <Form.Item
-            label="First Name"
-            name="firstName"
-            rules={[{ required: true, message: "First name is required" }]}
-          >
-            <Input placeholder="Enter first name" />
-          </Form.Item>
-          <Form.Item
-            label="Last Name"
-            name="lastName"
-            rules={[{ required: true, message: "Last name is required" }]}
-          >
-            <Input placeholder="Enter last name" />
-          </Form.Item>
-          <Form.Item
-            label="Email"
-            name="email"
-            rules={[
-              { required: true, message: "Email is required" },
-              { type: "email", message: "Invalid email format" },
-            ]}
-          >
-            <Input placeholder="Enter email" />
-          </Form.Item>
-          <Form.Item
-            label="Password"
-            name="password"
-            rules={[{ required: true, message: "Password is required" }]}
-          >
-            <Input.Password placeholder="Enter password" />
-          </Form.Item>
-          <Form.Item
-            label="Department"
-            name="department"
-            rules={[{ required: true, message: "Department is required" }]}
-          >
-            <Select placeholder="Select Department">
-              {departments.map((dept) => (
-                <Option key={dept._id} value={dept._id}>
-                  {dept.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
+        <Spin spinning={loading} tip="Loading data...">
+          <Form form={addForm} layout="vertical">
+            <Form.Item
+              label="First Name"
+              name="firstName"
+              rules={[{ required: true, message: "First name is required" }]}
+            >
+              <Input placeholder="Enter first name" />
+            </Form.Item>
+            <Form.Item
+              label="Last Name"
+              name="lastName"
+              rules={[{ required: true, message: "Last name is required" }]}
+            >
+              <Input placeholder="Enter last name" />
+            </Form.Item>
+            <Form.Item
+              label="Email"
+              name="email"
+              rules={[
+                { required: true, message: "Email is required" },
+                { type: "email", message: "Invalid email format" },
+              ]}
+            >
+              <Input placeholder="Enter email" />
+            </Form.Item>
+            <Form.Item
+              label="Password"
+              name="password"
+              rules={[{ required: true, message: "Password is required" }]}
+            >
+              <Input.Password placeholder="Enter password" />
+            </Form.Item>
+            <Form.Item
+              label="Department"
+              name="department"
+              rules={[{ required: true, message: "Department is required" }]}
+            >
+              <Select placeholder="Select Department">
+                {departments.map((dept) => (
+                  <Option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Spin>
       </Modal>
 
-      {/* Edit Lecturer Modal */}
       <Modal
-        title={
-          <>
-            <EditOutlined style={{ marginRight: 8 }} />
-            Edit Lecturer
-          </>
-        }
+        title={<span style={styles.modalHeader}>Edit Lecturer</span>}
         open={isEditModalVisible}
         onCancel={() => setIsEditModalVisible(false)}
         footer={[
@@ -745,36 +821,39 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleEditLecturer}
             loading={loading}
+            style={{ background: "#1890ff", borderColor: "#1890ff" }}
           >
             Save Changes
           </Button>,
         ]}
+        styles={{ body: styles.modalContent }}
       >
-        <Form form={editForm} layout="vertical">
-          <Form.Item label="First Name" name="firstName">
-            <Input placeholder="First name" />
-          </Form.Item>
-          <Form.Item label="Last Name" name="lastName">
-            <Input placeholder="Last name" />
-          </Form.Item>
-          <Form.Item label="Email" name="email">
-            <Input placeholder="Email" />
-          </Form.Item>
-          <Form.Item label="Department" name="department">
-            <Select placeholder="Select Department">
-              {departments.map((dept) => (
-                <Option key={dept._id} value={dept._id}>
-                  {dept.name}
-                </Option>
-              ))}
-            </Select>
-          </Form.Item>
-        </Form>
+        <Spin spinning={loading} tip="Loading data...">
+          <Form form={editForm} layout="vertical">
+            <Form.Item label="First Name" name="firstName">
+              <Input placeholder="First name" />
+            </Form.Item>
+            <Form.Item label="Last Name" name="lastName">
+              <Input placeholder="Last name" />
+            </Form.Item>
+            <Form.Item label="Email" name="email">
+              <Input placeholder="Email" />
+            </Form.Item>
+            <Form.Item label="Department" name="department">
+              <Select placeholder="Select Department">
+                {departments.map((dept) => (
+                  <Option key={dept._id} value={dept._id}>
+                    {dept.name}
+                  </Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Form>
+        </Spin>
       </Modal>
 
-      {/* Delete Confirmation Modal */}
       <Modal
-        title="Confirm Deletion"
+        title={<span style={styles.modalHeader}>Confirm Deletion</span>}
         open={isDeleteModalVisible}
         onCancel={() => setIsDeleteModalVisible(false)}
         footer={[
@@ -787,25 +866,28 @@ const ManageLecturers = () => {
             danger
             onClick={handleConfirmDelete}
             loading={loading}
+            style={{ background: "#f5222d", borderColor: "#f5222d" }}
           >
             Delete Lecturer
           </Button>,
         ]}
+        styles={{ body: styles.modalContent }}
       >
-        <p>
-          <ExclamationCircleOutlined style={{ marginRight: 8 }} />
-          Are you sure you want to delete this lecturer? This action cannot be undone.
-        </p>
+        <Spin spinning={loading} tip="Loading data...">
+          <p style={{ color: "#f5222d" }}>
+            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+            Are you sure you want to delete this lecturer? This action cannot be undone.
+          </p>
+        </Spin>
       </Modal>
 
-      {/* Units Management Modal */}
       <Modal
         title={
-          <>
+          <span style={styles.modalHeader}>
             Assigned Units for{" "}
             {selectedLecturerForUnits &&
               `${selectedLecturerForUnits.firstName} ${selectedLecturerForUnits.lastName}`}
-          </>
+          </span>
         }
         open={isUnitsModalVisible}
         onCancel={() => setIsUnitsModalVisible(false)}
@@ -813,59 +895,66 @@ const ManageLecturers = () => {
           <Button key="close" onClick={() => setIsUnitsModalVisible(false)}>
             Close
           </Button>,
-          <Button key="assign" type="primary" onClick={handleAssignUnit} loading={loading}>
+          <Button
+            key="assign"
+            type="primary"
+            onClick={handleAssignUnit}
+            loading={loading}
+            style={{ background: "#1890ff", borderColor: "#1890ff" }}
+          >
             Assign Unit
           </Button>,
         ]}
+        styles={{ body: styles.modalContent }}
       >
-        {selectedLecturerForUnits && (
-          <>
-            <p><strong>Current Units:</strong></p>
-            <div style={{ marginBottom: 16 }}>
-              {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
-                selectedLecturerForUnits.assignedUnits.length > 0
-                ? selectedLecturerForUnits.assignedUnits.map((unit) => (
-                  <span
-                    key={unit._id}
-                    style={{
-                      background: "#d9d9d9",
-                      padding: "4px 8px",
-                      marginRight: 4,
-                      borderRadius: 4,
-                      display: "inline-block",
-                    }}
-                  >
-                    {unit.name || unit.code}
-                  </span>
-                ))
-                : <span style={{ color: "#999" }}>No units assigned</span>}
-            </div>
-            <Form form={unitForm} layout="vertical">
-              <Form.Item
-                name="newUnit"
-                label={<><BookOutlined style={{ marginRight: 4 }} /> Assign New Unit</>}
-                rules={[{ required: true, message: "Please select a unit" }]}
-              >
-                <Select placeholder="Select a unit">
-                  {units
-                    .filter(
-                      (unit) =>
-                        !selectedLecturerForUnits.assignedUnits.some(
-                          (assignedUnit) => assignedUnit._id === unit._id
-                        )
-                    )
-                    .map((unit) => (
-                      <Option key={unit._id} value={unit._id}>
-                        {unit.name} – {unit.code}
-                      </Option>
-                    ))}
-                </Select>
-              </Form.Item>
-            </Form>
-          </>
-        )}
+        <Spin spinning={loading} tip="Loading data...">
+          {selectedLecturerForUnits && (
+            <>
+              <p>
+                <strong>Current Units:</strong>
+              </p>
+              <div style={{ marginBottom: 16 }}>
+                {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
+                selectedLecturerForUnits.assignedUnits.length > 0 ? (
+                  selectedLecturerForUnits.assignedUnits.map((unit) => (
+                    <span key={unit._id} style={styles.unitTag}>
+                      {unit.name || unit.code}
+                    </span>
+                  ))
+                ) : (
+                  <span style={{ color: "#999" }}>No units assigned</span>
+                )}
+              </div>
+              <Form form={unitForm} layout="vertical">
+                <Form.Item
+                  name="newUnit"
+                  label={
+                    <>
+                      <BookOutlined style={{ marginRight: 4, color: "#1890ff" }} /> Assign New Unit
+                    </>
+                  }
+                  rules={[{ required: true, message: "Please select a unit" }]}
+                >
+                  <Select placeholder="Select a unit">
+                    {units
+                      .filter(
+                        (unit) =>
+                          !selectedLecturerForUnits.assignedUnits.some(
+                            (assignedUnit) => assignedUnit._id === unit._id
+                          )
+                      )
+                      .map((unit) => (
+                        <Option key={unit._id} value={unit._id}>
+                          {unit.name} – {unit.code}
+                        </Option>
+                      ))}
+                  </Select>
+                </Form.Item>
+              </Form>
+            </>
+          )}
+        </Spin>
       </Modal>
-
     </Layout>
   );
 };
