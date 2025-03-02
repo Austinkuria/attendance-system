@@ -1363,5 +1363,12 @@ export const getLecturerUnitAttendance = async (unitId, startDate, endDate) => {
   });
   return response.data;
 };
+export const getEnrolledStudents = async (unitId) => {
+  const token = localStorage.getItem('token');
+  const response = await axios.get(`${API_URL}/units/${unitId}/students`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return response.data; // Expecting an array of student objects
+};
 
 export default api;

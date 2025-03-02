@@ -20,7 +20,9 @@ const AttendanceManagement = () => {
   const [qrData, setQrData] = useState('');
   const [currentSession, setCurrentSession] = useState(() => {
     const savedSession = localStorage.getItem('currentSession');
-    return savedSession ? JSON.parse(savedSession) : null;
+    const session = savedSession ? JSON.parse(savedSession) : null;
+    console.log('Initial currentSession from localStorage:', session);
+    return session;
   });
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
@@ -30,6 +32,7 @@ const AttendanceManagement = () => {
     qr: false,
     session: false
   });
+  const [loadingSessionData, setLoadingSessionData] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
     date: null
@@ -38,22 +41,27 @@ const AttendanceManagement = () => {
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem('currentSession', JSON.stringify(currentSession));
+      console.log('Updated localStorage with currentSession:', currentSession);
     } else {
       localStorage.removeItem('currentSession');
+      console.log('Cleared localStorage currentSession');
     }
   }, [currentSession]);
 
   const checkCurrentSession = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, session: true }));
+      setLoadingSessionData(true);
       const { data } = await detectCurrentSession(lecturerId);
+      console.log('Detected session from backend:', data);
       if (data && !data.ended && new Date(data.endTime) > new Date()) {
         const validStartTime = new Date(data.startTime);
         const validEndTime = new Date(data.endTime);
         if (isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
-          throw new Error('Invalid session times');
+          throw new Error('Invalid session times detected');
         }
-        setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime });
+        const unitName = data.unit?.name || units.find(u => u._id === (data.unit?._id || data.unit))?.name || 'Unknown Unit';
+        setCurrentSession({ ...data, unit: { ...data.unit, name: unitName }, startSession: validStartTime, endSession: validEndTime });
         setQrData(data.qrCode);
         setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
       } else {
@@ -63,24 +71,34 @@ const AttendanceManagement = () => {
         localStorage.removeItem('currentSession');
       }
     } catch (error) {
-      console.error("Error checking session:", error);
-      setCurrentSession(null);
-      setQrData('');
-      setRealTimeAttendance([]);
-      localStorage.removeItem('currentSession');
-      message.error('Could not detect current session.');
+      console.error("Error checking current session:", error);
+      if (currentSession && new Date(currentSession.endSession) > new Date()) {
+        message.warning('Could not verify session with server. Using cached session.');
+      } else {
+        setCurrentSession(null);
+        setQrData('');
+        setRealTimeAttendance([]);
+        localStorage.removeItem('currentSession');
+        message.error('Could not detect current session.');
+      }
     } finally {
       setLoading(prev => ({ ...prev, session: false }));
+      setLoadingSessionData(false);
     }
-  }, [lecturerId]);
+  }, [lecturerId, units]);
 
   useEffect(() => {
+    if (currentSession && new Date(currentSession.endSession) > new Date()) {
+      console.log('Preserving session from localStorage until backend check:', currentSession);
+      setQrData(currentSession.qrCode || '');
+      setSelectedUnit(currentSession.unit?._id || currentSession.unit);
+    }
     checkCurrentSession();
   }, [checkCurrentSession]);
 
   useEffect(() => {
     let intervalId;
-    if (currentSession && !currentSession.ended) {
+    if (currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended) {
       intervalId = setInterval(() => {
         const now = new Date();
         if (now > new Date(currentSession.endSession)) {
@@ -89,11 +107,84 @@ const AttendanceManagement = () => {
           setRealTimeAttendance([]);
           localStorage.removeItem('currentSession');
           clearInterval(intervalId);
+          console.log('Session expired, cleared localStorage');
         }
       }, 60000);
       return () => clearInterval(intervalId);
     }
   }, [currentSession]);
+
+  useEffect(() => {
+    if (!selectedUnit || currentSession?.ended) {
+      setLoadingSessionData(false);
+      if (!currentSession || currentSession.ended) {
+        setCurrentSession(null);
+        setQrData('');
+      }
+      return;
+    }
+
+    const fetchCurrentSession = async () => {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        console.error("No authentication token found");
+        message.error("Authentication token missing. Please log in again.");
+        setLoadingSessionData(false);
+        return;
+      }
+
+      if (!selectedUnit || selectedUnit === 'undefined') {
+        console.error("No valid unit selected:", selectedUnit);
+        message.error("Please select a valid unit.");
+        setLoadingSessionData(false);
+        return;
+      }
+
+      try {
+        setLoadingSessionData(true);
+        console.log("Fetching session for unit:", selectedUnit);
+        const response = await axios.get(
+          `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
+          {
+            headers: { 'Authorization': `Bearer ${token}` },
+            validateStatus: status => status >= 200 && status < 300
+          }
+        );
+        console.log("Full API response for current session:", response.data);
+        if (response.data && response.data._id && !response.data.ended) {
+          const validStartTime = response.data.startTime ? new Date(response.data.startTime) : null;
+          const validEndTime = response.data.endTime ? new Date(response.data.endTime) : null;
+          if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
+            message.warning("Invalid session times received.");
+            setCurrentSession(null);
+            setQrData('');
+          } else {
+            const unitFromResponse = response.data.unit || {};
+            const unitName = unitFromResponse.name || (units.find(u => u._id === response.data.unit)?.name) || "Unknown Unit";
+            setCurrentSession({ ...response.data, unit: { ...unitFromResponse, name: unitName }, startSession: validStartTime, endSession: validEndTime });
+            setQrData(response.data.qrCode);
+          }
+        } else {
+          setCurrentSession(null);
+          setQrData('');
+        }
+      } catch (error) {
+        console.error("Error fetching session:", error);
+        if (error.response?.status === 429) {
+          message.warning('Too many requests. Please try again later.');
+        } else if (error.response?.status === 400) {
+          message.error('Invalid request to fetch session. Please select a valid unit.');
+        } else {
+          message.error('Could not fetch current session.');
+        }
+        setCurrentSession(null);
+        setQrData('');
+      } finally {
+        setLoadingSessionData(false);
+      }
+    };
+    fetchCurrentSession();
+  }, [selectedUnit, units, currentSession?.ended]);
 
   useEffect(() => {
     const fetchUnits = async () => {
@@ -115,14 +206,23 @@ const AttendanceManagement = () => {
   }, [lecturerId, selectedUnit, currentSession, units]);
 
   const fetchRealTimeAttendance = useCallback(async () => {
-    if (!selectedUnit || !currentSession || currentSession.ended) return;
+    if (!selectedUnit || !currentSession || !currentSession._id || currentSession.ended) {
+      console.log('Skipping real-time attendance fetch: invalid or no active session', { selectedUnit, currentSession });
+      setRealTimeAttendance([]);
+      return;
+    }
     try {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
+      console.log('Fetching real-time attendance for session:', currentSession._id);
       const response = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/attendance/realtime/${currentSession._id}`,
         { headers: { 'Authorization': `Bearer ${token}` } }
       );
+      console.log('Real-time attendance response:', response.data);
       const uniqueAttendance = Object.values(
         (response.data || []).reduce((acc, record) => {
           acc[record.student.regNo] = record;
@@ -132,12 +232,23 @@ const AttendanceManagement = () => {
       setRealTimeAttendance(uniqueAttendance);
     } catch (error) {
       console.error("Error fetching real-time attendance:", error);
+      if (error.response?.status === 404) {
+        message.error('No active session found for real-time attendance. Session may have ended.');
+        setCurrentSession(null);
+        setQrData('');
+        setRealTimeAttendance([]);
+        localStorage.removeItem('currentSession');
+        await checkCurrentSession();
+      } else if (error.response?.status === 400) {
+        message.error('Invalid session ID for real-time attendance.');
+      } else {
+        message.error('Failed to fetch real-time attendance.');
+      }
       setRealTimeAttendance([]);
-      message.error('Failed to fetch real-time attendance.');
     } finally {
       setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
-  }, [selectedUnit, currentSession]);
+  }, [selectedUnit, currentSession, checkCurrentSession]);
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit) return;
@@ -183,23 +294,37 @@ const AttendanceManagement = () => {
     }
     try {
       setLoading(prev => ({ ...prev, session: true }));
+      setLoadingSessionData(true);
       const startTime = new Date().toISOString();
       const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       const data = await createSession({ unitId: selectedUnit, lecturerId, startTime, endTime });
-      setCurrentSession({ ...data, startSession: new Date(data.startTime), endSession: new Date(data.endTime), ended: false });
+      const validStartTime = data.startTime ? new Date(data.startTime) : new Date();
+      const validEndTime = data.endTime ? new Date(data.endTime) : new Date(Date.now() + 60 * 60 * 1000);
+      if (isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
+        throw new Error('Invalid session times received from API');
+      }
+      const unitName = units.find(u => u._id === selectedUnit)?.name || 'Unknown Unit';
+      setCurrentSession({ ...data, unit: { ...data.unit, name: unitName }, startSession: validStartTime, endSession: validEndTime, ended: false });
       setQrData(data.qrCode);
       message.success('Session created successfully');
     } catch (error) {
       console.error("Error creating session:", error);
-      message.error('Failed to create session.');
+      if (error.response?.status === 429) {
+        message.warning('Too many requests. Please try again later.');
+      } else if (error.response?.status === 400) {
+        message.error('Invalid session details. Please check your input and try again.');
+      } else {
+        message.error('Failed to create session. Please try again.');
+      }
     } finally {
       setLoading(prev => ({ ...prev, session: false }));
+      setLoadingSessionData(false);
     }
   };
 
   const handleGenerateQR = async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) {
-      message.error('No active session for selected unit');
+      message.error('Please select a unit and ensure an active session exists');
       return;
     }
     try {
@@ -209,36 +334,79 @@ const AttendanceManagement = () => {
         `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      if (!data.qrCode || data.ended) throw new Error("Invalid session");
+      console.log("QR Code API response:", data);
+      if (!data || !data.qrCode || data.ended) {
+        throw new Error("QR code is missing, invalid, or session has ended!");
+      }
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
     } catch (error) {
-      console.error("Error generating QR:", error);
-      message.error('Failed to generate QR code.');
+      console.error("Error generating QR code:", error);
+      if (error.response?.status === 429) {
+        message.warning('Too many requests. Please try again later.');
+      } else if (error.response?.status === 400) {
+        message.error('Invalid session or unit. Please ensure an active session exists.');
+      } else {
+        message.error('Failed to generate QR code. Please try again.');
+      }
     } finally {
       setLoading(prev => ({ ...prev, qr: false }));
     }
   };
 
   const handleEndSession = async () => {
-    if (!currentSession) return;
+    if (!currentSession) {
+      message.warning('No active session to end');
+      return;
+    }
     try {
       setLoading(prev => ({ ...prev, session: true }));
       const token = localStorage.getItem('token');
-      await axios.post(
-        'https://attendance-system-w70n.onrender.com/api/sessions/end',
-        { sessionId: currentSession._id },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      setCurrentSession(null);
-      setQrData('');
-      setRealTimeAttendance([]); // Reset scans after session ends
-      localStorage.removeItem('currentSession');
-      message.success('Session ended successfully');
-      await checkCurrentSession();
+      Modal.confirm({
+        title: 'End Current Session?',
+        content: 'This will stop the session and mark absent students. The session data will be preserved.',
+        okText: 'End Session',
+        okType: 'danger',
+        cancelText: 'Cancel',
+        onOk: async () => {
+          try {
+            if (!currentSession?._id) throw new Error('Invalid session ID');
+            console.log('Ending session with ID:', currentSession._id);
+            const response = await axios.post(
+              'https://attendance-system-w70n.onrender.com/api/sessions/end',
+              { sessionId: currentSession._id },
+              { headers: { 'Authorization': `Bearer ${token}` } }
+            );
+            console.log('Session end response:', response.data);
+            if (response.data.session.ended) {
+              message.success('Session ended successfully');
+              setCurrentSession(null);
+              setQrData('');
+              setRealTimeAttendance([]);
+              localStorage.removeItem('currentSession');
+              setSelectedUnit(null);
+              await checkCurrentSession();
+            } else {
+              throw new Error('Session not marked as ended');
+            }
+          } catch (error) {
+            console.error('Error ending session:', error);
+            if (error.response?.status === 429) {
+              message.warning('Too many requests. Please try again later.');
+            } else if (error.response?.status === 400) {
+              message.error('Invalid session ID. Session may already be ended.');
+              setCurrentSession(null);
+              setQrData('');
+              localStorage.removeItem('currentSession');
+            } else {
+              message.error('Failed to end session. Please try again.');
+            }
+          }
+        }
+      });
     } catch (error) {
-      console.error("Error ending session:", error);
-      message.error('Failed to end session.');
+      console.error('Unexpected error in handleEndSession:', error);
+      message.error('An unexpected error occurred. Please try again.');
     } finally {
       setLoading(prev => ({ ...prev, session: false }));
     }
@@ -260,16 +428,10 @@ const AttendanceManagement = () => {
 
   const { attendanceRate, totalEnrolled, totalScans } = useMemo(() => {
     if (!selectedUnit) return { attendanceRate: 0, totalEnrolled: 0, totalScans: 0 };
-
     const unit = units.find(u => u._id === selectedUnit);
     const enrolledCount = unit?.studentsEnrolled?.length || 0;
-
-    const sessionAttendance = currentSession && !currentSession.ended
-      ? realTimeAttendance // Use real-time data during active session
-      : attendance; // Use historical data when no session
-
+    const sessionAttendance = currentSession && !currentSession.ended ? realTimeAttendance : attendance;
     const scans = sessionAttendance.filter(a => a.status === 'Present').length;
-
     return {
       attendanceRate: enrolledCount > 0 ? Number((scans / enrolledCount * 100).toFixed(1)) : 0,
       totalEnrolled: enrolledCount,
@@ -286,42 +448,68 @@ const AttendanceManagement = () => {
   );
 
   const formatSessionTime = (session) => {
-    if (!session?.startSession || !session?.endSession) return 'N/A';
-    const start = new Date(session.startSession).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-    const end = new Date(session.endSession).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', hour12: true });
-    return `${start} - ${end}`;
+    if (!session || !session.startSession || !session.endSession) return 'No session time available';
+    try {
+      const startTime = new Date(session.startSession);
+      const endTime = new Date(session.endSession);
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) return 'Invalid session time';
+      const options = { hour: 'numeric', minute: '2-digit', hour12: true };
+      return `${startTime.toLocaleTimeString([], options)} - ${endTime.toLocaleTimeString([], options)}`;
+    } catch (error) {
+      console.error('Error formatting session time:', error);
+      return 'Error formatting time';
+    }
   };
 
   const SessionTimer = ({ end }) => {
-    const [timeLeft, setTimeLeft] = useState(() => Math.max(0, new Date(end).getTime() - Date.now()));
+    const [timeLeft, setTimeLeft] = useState(() => {
+      const endTime = new Date(end).getTime();
+      return isNaN(endTime) ? 0 : Math.max(0, endTime - Date.now());
+    });
     useEffect(() => {
-      const timer = setInterval(() => setTimeLeft(Math.max(0, new Date(end).getTime() - Date.now())), 1000);
+      if (isNaN(new Date(end).getTime())) {
+        setTimeLeft(0);
+        return;
+      }
+      const timer = setInterval(() => {
+        const endTime = new Date(end).getTime();
+        if (!isNaN(endTime)) setTimeLeft(Math.max(0, endTime - Date.now()));
+      }, 1000);
       return () => clearInterval(timer);
     }, [end]);
     const formatTime = (ms) => {
+      if (isNaN(ms) || ms < 0) return '0m 0s';
       const minutes = Math.floor(ms / 60000);
       const seconds = Math.floor((ms % 60000) / 1000);
       return `${minutes}m ${seconds}s`;
     };
-    return <Tag icon={<ClockCircleOutlined />} color="processing">Time Remaining: {formatTime(timeLeft)}</Tag>;
+    return (
+      <div style={{ marginTop: 16 }}>
+        <Tag icon={<ClockCircleOutlined />} color="processing">
+          Time Remaining: {formatTime(timeLeft)}
+        </Tag>
+      </div>
+    );
   };
 
   SessionTimer.propTypes = {
-    end: PropTypes.oneOfType([PropTypes.string, PropTypes.instanceOf(Date)]).isRequired
+    end: PropTypes.oneOfType([PropTypes.string, PropTypes.number, PropTypes.instanceOf(Date)]).isRequired
   };
 
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
-      <Spin spinning={loading.units || loading.session}>
-        {currentSession && !currentSession.ended && (
-          <Card title={<Space><ClockCircleOutlined /> Active Session: {units.find(u => u._id === selectedUnit)?.name || 'Unknown'}</Space>} style={{ marginBottom: 24 }}>
+      <Spin spinning={loading.units || loading.session} tip={loading.units ? "Fetching units..." : "Checking session..."}>
+        {loadingSessionData ? (
+          <Card loading style={{ marginBottom: 24 }}><Skeleton active /></Card>
+        ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
+          <Card title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown'}</Space>} style={{ marginBottom: 24 }}>
             <Row gutter={[16, 16]}>
               <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
               <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
               <Col span={24}><Button danger onClick={handleEndSession} loading={loading.session}>End Session</Button></Col>
             </Row>
           </Card>
-        )}
+        ) : null}
 
         <Card
           extra={
@@ -422,16 +610,19 @@ const AttendanceManagement = () => {
       <Modal
         title="Attendance QR Code"
         open={isQRModalOpen}
-        onCancel={() => setIsQRModalOpen(false)}
-        footer={[<Button key="close" onClick={() => setIsQRModalOpen(false)}>Close</Button>]}
         centered
+        onCancel={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}
+        footer={[<Button key="close" onClick={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}>Close</Button>]}
+        destroyOnClose
+        maskClosable={false}
       >
-        <Spin spinning={loading.qr}>
+        <Spin spinning={loading.qr} tip="Generating QR code...">
           <div style={{ textAlign: 'center', padding: 24 }}>
             {qrData ? (
               <>
                 <img src={qrData} alt="QR Code" style={{ maxWidth: 300 }} />
-                <SessionTimer end={currentSession?.endSession} />
+                {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
+                <Typography.Text type="secondary" style={{ marginTop: 16, display: "block" }}>Scan this QR code to mark attendance.</Typography.Text>
               </>
             ) : (
               <Typography.Text type="danger">Failed to load QR Code</Typography.Text>
