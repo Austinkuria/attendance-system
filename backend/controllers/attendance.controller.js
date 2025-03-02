@@ -649,34 +649,53 @@ exports.checkFeedbackStatus = async (req, res) => {
   }
 };
 
+// Updated endpoint to fetch attendance records for all lecturer's units with filters
 exports.getLecturerUnitAttendance = async (req, res) => {
   try {
-    const { unitId } = req.params;
-    const lecturerId = req.user.userId; // Get lecturer ID from authenticated user
+    const lecturerId = req.user.userId; // From authenticated middleware
+    const { unitId, startDate, endDate } = req.query;
 
-    if (!mongoose.Types.ObjectId.isValid(unitId) || !mongoose.Types.ObjectId.isValid(lecturerId)) {
-      return res.status(400).json({ message: "Invalid unit or lecturer ID format" });
+    if (!mongoose.Types.ObjectId.isValid(lecturerId)) {
+      return res.status(400).json({ message: "Invalid lecturer ID format" });
     }
 
-    // Fetch sessions for the unit where the lecturer is assigned
-    const sessions = await Session.find({ 
-      unit: unitId, 
-      lecturer: lecturerId 
-    }).select('_id');
+    // Fetch all units assigned to the lecturer
+    const unitQuery = { lecturer: lecturerId };
+    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
+      unitQuery._id = unitId; // Filter by specific unit if provided
+    }
+    const units = await Unit.find(unitQuery).select('_id');
+    const unitIds = units.map(unit => unit._id);
 
-    if (!sessions.length) {
+    if (!unitIds.length) {
+      return res.status(200).json([]); // No units assigned, return empty array
+    }
+
+    // Fetch sessions for these units
+    const sessionQuery = { unit: { $in: unitIds } };
+    const sessions = await Session.find(sessionQuery).select('_id unit');
+    const sessionIds = sessions.map(session => session._id);
+
+    if (!sessionIds.length) {
       return res.status(200).json([]); // No sessions found, return empty array
     }
 
-    const sessionIds = sessions.map(session => session._id);
+    // Fetch attendance records with optional date filters
+    const attendanceQuery = { session: { $in: sessionIds } };
+    if (startDate && endDate) {
+      attendanceQuery.attendedAt = {
+        $gte: new Date(startDate),
+        $lte: new Date(endDate),
+      };
+    }
 
-    // Fetch attendance records for all sessions
-    const attendanceRecords = await Attendance.find({ session: { $in: sessionIds } })
+    const attendanceRecords = await Attendance.find(attendanceQuery)
       .populate({
         path: 'student',
         select: 'regNo firstName lastName course year semester',
         populate: { path: 'course', select: 'name' }
       })
+      .populate('session', 'unit startTime endTime')
       .select('session status attendedAt');
 
     res.status(200).json(attendanceRecords);

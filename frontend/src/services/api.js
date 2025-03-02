@@ -1351,10 +1351,15 @@ export const getPendingFeedbackAttendance = () => {
   }).then(res => res.data);
 };
 
-export const getLecturerUnitAttendance = async (unitId) => {
+export const getLecturerUnitAttendance = async (unitId, startDate, endDate) => {
   const token = localStorage.getItem('token');
-  const response = await axios.get(`https://attendance-system-w70n.onrender.com/api/attendance/unit/${unitId}`, {
-    headers: { Authorization: `Bearer ${token}` }
+  const params = {};
+  if (unitId) params.unitId = unitId;
+  if (startDate) params.startDate = startDate;
+  if (endDate) params.endDate = endDate;
+  const response = await axios.get('https://attendance-system-w70n.onrender.com/api/attendance/unit/attendance', {
+    headers: { Authorization: `Bearer ${token}` },
+    params
   });
   return response.data;
 };

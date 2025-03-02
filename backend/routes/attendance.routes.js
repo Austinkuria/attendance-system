@@ -28,5 +28,5 @@ router.use((err, req, res, next) => {
 
 router.get('/pending-feedback', authenticate, attendanceController.getPendingFeedbackAttendance);
 router.get('/feedback/status/:sessionId', authenticate, attendanceController.checkFeedbackStatus);
-
+router.get('/unit/attendance', authenticate,attendanceController.getLecturerUnitAttendance);
 module.exports = router;
