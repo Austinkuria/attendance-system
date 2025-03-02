@@ -98,27 +98,54 @@ const getUnits = async (req, res) => {
 const getLecturerUnits = async (req, res) => {
     try {
       const { lecturerId } = req.params;
-      const lecturer = await User.findById(lecturerId)
-        .populate({
-          path: 'assignedUnits',
-          populate: {
-            path: 'course',
-            model: 'Course'
-          }
-        });
+      const lecturer = await User.findById(lecturerId);
   
       if (!lecturer) {
         return res.status(404).json({ message: "Lecturer not found" });
       }
   
-      res.status(200).json(lecturer.assignedUnits);
+      // Fetch units assigned to the lecturer with studentsEnrolled populated
+      const units = await Unit.find({ lecturer: lecturerId })
+        .populate({
+          path: 'course',
+          select: 'name'
+        })
+        .select('name code course year semester studentsEnrolled');
+  
+      res.status(200).json(units);
     } catch (error) {
+      console.error("Error fetching lecturer units:", error);
       res.status(500).json({ 
         message: "Error fetching lecturer units", 
         error: error.message 
       });
     }
   };
+  
+// const getLecturerUnits = async (req, res) => {
+//     try {
+//       const { lecturerId } = req.params;
+//       const lecturer = await User.findById(lecturerId)
+//         .populate({
+//           path: 'assignedUnits',
+//           populate: {
+//             path: 'course',
+//             model: 'Course'
+//           }
+//         });
+  
+//       if (!lecturer) {
+//         return res.status(404).json({ message: "Lecturer not found" });
+//       }
+  
+//       res.status(200).json(lecturer.assignedUnits);
+//     } catch (error) {
+//       res.status(500).json({ 
+//         message: "Error fetching lecturer units", 
+//         error: error.message 
+//       });
+//     }
+//   };
 
   const getUnitsByCourse = async (req, res) => {
       try {
