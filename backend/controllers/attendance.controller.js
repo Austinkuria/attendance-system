@@ -704,3 +704,29 @@ exports.getLecturerUnitAttendance = async (req, res) => {
     res.status(500).json({ message: "Error fetching attendance records", error: error.message });
   }
 };
+
+exports.getRealTimeAttendance = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID" });
+    }
+
+    const session = await Session.findById(sessionId);
+    if (!session || session.ended) {
+      return res.status(404).json({ message: "No active session found" });
+    }
+
+    const attendanceRecords = await Attendance.find({ session: sessionId })
+      .populate({
+        path: 'student',
+        select: 'regNo firstName lastName'
+      })
+      .select('status attendedAt');
+
+    res.status(200).json(attendanceRecords);
+  } catch (error) {
+    console.error("Error fetching real-time attendance:", error);
+    res.status(500).json({ message: "Error fetching real-time data", error: error.message });
+  }
+};
