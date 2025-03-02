@@ -1,23 +1,54 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../../services/api';
-import { Layout, Card, Typography, Button, message, Avatar, Row, Col, Space, Tooltip, Spin } from 'antd';
-import { UserOutlined, ArrowLeftOutlined, EditOutlined, MailOutlined, IdcardOutlined } from '@ant-design/icons';
+import { Layout, Card, Typography, Button, Spin, Row, Col, Space, Avatar, Breadcrumb, message } from 'antd';
+import { ArrowLeftOutlined, MailOutlined, IdcardOutlined, EditOutlined, LogoutOutlined, BookOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
+import { theme } from 'antd';
 
-const { Content } = Layout;
+const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 
 const ProfileCard = styled(Card)`
-  max-width: 800px;
-  margin: 0 auto;
+  max-width: 900px;
+  margin: 24px auto;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(to right, #f5f5f5, #e8e8e8);
+  background: #fff;
   padding: 24px;
+  transition: transform 0.2s;
+  &:hover {
+    transform: translateY(-4px);
+  }
+  @media (max-width: 576px) {
+    padding: 16px;
+    margin: 16px;
+  }
+`;
+
+const StyledAvatar = styled(Avatar)`
+  background-color: #1890ff;
+  font-size: 48px;
+  @media (max-width: 576px) {
+    font-size: 32px;
+    width: 80px;
+    height: 80px;
+  }
+`;
+
+const ActionBar = styled.div`
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+  gap: 8px;
+  @media (max-width: 576px) {
+    flex-direction: column;
+    align-items: stretch;
+  }
 `;
 
 const LecturerProfile = () => {
+  const { token: { colorBgContainer } } = theme.useToken();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
@@ -27,7 +58,8 @@ const LecturerProfile = () => {
       try {
         const profileData = await getUserProfile();
         setProfile(profileData);
-      } catch {
+      } catch (error) {
+        console.error('Error fetching profile:', error);
         message.error('Failed to load profile data. Please try again.');
       } finally {
         setLoading(false);
@@ -37,11 +69,19 @@ const LecturerProfile = () => {
     fetchProfile();
   }, [navigate]);
 
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('userData');
+    sessionStorage.clear();
+    message.success('Logged out successfully!');
+    setTimeout(() => window.location.href = '/auth/login', 500);
+  };
+
   if (loading) {
     return (
-      <Layout style={{ padding: '24px', minHeight: '100vh', background: '#f0f2f5' }}>
-        <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-          <Spin size="large" />
+      <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+        <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }}>
+          <Spin size="large" tip="Loading profile..." />
         </Content>
       </Layout>
     );
@@ -49,10 +89,10 @@ const LecturerProfile = () => {
 
   if (!profile) {
     return (
-      <Layout style={{ padding: '24px', minHeight: '100vh', background: '#f0f2f5' }}>
-        <Content>
+      <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+        <Content style={{ padding: '24px' }}>
           <Card>
-            <Typography.Title level={4}>Error Loading Profile</Typography.Title>
+            <Title level={4}>Error Loading Profile</Title>
             <Button type="primary" onClick={() => window.location.reload()}>Retry</Button>
             <Button style={{ marginLeft: 8 }} onClick={() => navigate('/lecturer-dashboard')}>
               Back to Dashboard
@@ -64,48 +104,79 @@ const LecturerProfile = () => {
   }
 
   return (
-    <Layout style={{ padding: '24px', minHeight: '100vh', background: '#f0f2f5' }}>
-      <Content>
+    <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
+      <Header
+        style={{
+          padding: '0 24px',
+          background: colorBgContainer,
+          position: 'fixed',
+          width: '100%',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          height: 64,
+        }}
+      >
+        <Space>
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate('/lecturer-dashboard')}
+            style={{ fontSize: '16px', width: 64, height: 64 }}
+          />
+          <Title level={3} style={{ margin: 0, color: '#1890ff' }}>Profile</Title>
+        </Space>
+      </Header>
+      <Content style={{ padding: '88px 24px 24px', maxWidth: '1200px', margin: '0 auto' }}>
+        <Breadcrumb style={{ marginBottom: 16 }}>
+          <Breadcrumb.Item><a onClick={() => navigate('/lecturer-dashboard')}>Dashboard</a></Breadcrumb.Item>
+          <Breadcrumb.Item>Profile</Breadcrumb.Item>
+        </Breadcrumb>
         <ProfileCard>
-          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
-            <Button 
-              type="text" 
-              icon={<ArrowLeftOutlined />} 
-              onClick={() => navigate('/lecturer-dashboard')} 
-              style={{ marginBottom: 16 }}
-            >
-              Back to Dashboard
-            </Button>
-
-            <Row align="middle" gutter={[24, 16]}>
-              <Col>
-                <Avatar size={128} icon={<UserOutlined />} src={profile.avatarUrl} />
+          <Space direction="vertical" size="large" style={{ width: '100%' }}>
+            <ActionBar>
+              <Button
+                type="primary"
+                icon={<EditOutlined />}
+                onClick={() => navigate('/lecturer/settings')}
+                style={{ minWidth: 120 }}
+              >
+                Edit Profile
+              </Button>
+              <Button
+                type="default"
+                icon={<LogoutOutlined />}
+                onClick={handleLogout}
+                style={{ minWidth: 120 }}
+              >
+                Logout
+              </Button>
+            </ActionBar>
+            <Row align="middle" gutter={[24, 24]}>
+              <Col xs={24} sm={6} style={{ textAlign: 'center' }}>
+                <StyledAvatar size={{ xs: 80, sm: 128 }} src={profile.avatarUrl}>
+                  {profile.firstName?.charAt(0)}{profile.lastName?.charAt(0)}
+                </StyledAvatar>
               </Col>
-              <Col flex="auto">
-                <Title level={2}>{profile.firstName} {profile.lastName}</Title>
+              <Col xs={24} sm={18}>
+                <Title level={2} style={{ margin: 0 }}>{profile.firstName} {profile.lastName}</Title>
                 <Text type="secondary">Lecturer Profile</Text>
-                <Tooltip title="Edit Profile">
-                  <Button 
-                    type="link" 
-                    icon={<EditOutlined />} 
-                    onClick={() => navigate('/lecturer/settings')}
-                    style={{ marginTop: '10px', fontSize: '16px' }}
-                  >
-                    Edit Profile
-                  </Button>
-                </Tooltip>
               </Col>
             </Row>
 
             <Row gutter={[16, 16]}>
-              <Col span={24}>
-                <Text strong>Email:</Text> <Text><MailOutlined style={{ marginRight: 8 }} /> {profile.email}</Text>
+              <Col xs={24} md={12}>
+                <Text strong><MailOutlined style={{ marginRight: 8 }} /> Email:</Text>
+                <Text block>{profile.email}</Text>
               </Col>
-              <Col span={24}>
-                <Text strong>Role:</Text> <Text><IdcardOutlined style={{ marginRight: 8 }} /> {profile.role}</Text>
+              <Col xs={24} md={12}>
+                <Text strong><IdcardOutlined style={{ marginRight: 8 }} /> Role:</Text>
+                <Text block>{profile.role}</Text>
               </Col>
-              <Col span={24}>
-                <Text strong>Department:</Text> {profile.department?.name || 'N/A'}
+              <Col xs={24} md={12}>
+                <Text strong><BookOutlined style={{ marginRight: 8 }} /> Department:</Text>
+                <Text block>{profile.department?.name || 'N/A'}</Text>
               </Col>
             </Row>
           </Space>

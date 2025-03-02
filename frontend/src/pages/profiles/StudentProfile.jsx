@@ -16,18 +16,18 @@ const styles = {
     padding: 0,
     margin: 0,
     width: '100%',
-    overflowX: 'hidden',
+    overflowX: 'hidden', // Prevent horizontal overflow
   },
   content: {
     maxWidth: '100%',
     width: '100%',
     margin: 0,
-    padding: '8px',
+    padding: '16px',
     background: '#fff',
     borderRadius: 8,
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
     boxSizing: 'border-box',
-    overflowX: 'hidden',
+    overflowX: 'hidden', // Prevent horizontal overflow
   },
   headerRow: {
     marginBottom: '16px',
@@ -57,26 +57,26 @@ const styles = {
 
     @media (max-width: 768px) {
       .ant-layout-content { 
-        padding: 4px !important; 
+        padding: 8px !important; 
       }
       .header-row { 
-        padding: 4px !important; 
+        padding: 8px !important; 
       }
     }
     @media (max-width: 480px) {
       .ant-layout-content { 
-        padding: 2px !important; 
+        padding: 4px !important; 
       }
       .header-row { 
-        padding: 2px !important; 
+        padding: 4px !important; 
       }
     }
   `,
 };
 
 const ProfileCard = styled(Card)`
-  max-width: 900px;
-  margin: 24px auto;
+  max-width: 100%; // Ensure the card doesn't exceed the viewport width
+  margin: 16px auto;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background: #fff;
