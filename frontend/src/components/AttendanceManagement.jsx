@@ -1,13 +1,15 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, Spin } from 'antd';
+import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, Spin, DatePicker } from 'antd';
 import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { getLecturerUnitAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
+import moment from 'moment';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { Text } = Typography;
+const { RangePicker } = DatePicker;
 
 const AttendanceManagement = () => {
   const screens = useBreakpoint();
@@ -36,7 +38,8 @@ const AttendanceManagement = () => {
     search: '',
     year: null,
     semester: null,
-    status: null
+    status: null,
+    dateRange: null
   });
   const [unitFilters, setUnitFilters] = useState({
     department: null,
@@ -234,10 +237,11 @@ const AttendanceManagement = () => {
   }, [selectedUnit, units, currentSession?.ended]);
 
   const handleViewAttendance = useCallback(async () => {
-    if (!selectedUnit) return;
     try {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
-      const data = await getLecturerUnitAttendance(selectedUnit);
+      const startDate = filters.dateRange ? filters.dateRange[0].toISOString() : null;
+      const endDate = filters.dateRange ? filters.dateRange[1].toISOString() : null;
+      const data = await getLecturerUnitAttendance(selectedUnit, startDate, endDate);
       console.log('Fetched lecturer unit attendance data:', data);
       setAttendance(data);
     } catch (error) {
@@ -245,7 +249,7 @@ const AttendanceManagement = () => {
       if (error.response?.status === 429) {
         message.warning('Too many requests. Please try again later.');
       } else if (error.response?.status === 400) {
-        message.error('Invalid unit ID. Please try again.');
+        message.error('Invalid request parameters. Please try again.');
       } else {
         message.error('Unable to fetch attendance data.');
       }
@@ -253,13 +257,11 @@ const AttendanceManagement = () => {
     } finally {
       setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
-  }, [selectedUnit]);
+  }, [selectedUnit, filters.dateRange]);
 
   useEffect(() => {
-    if (selectedUnit) {
-      handleViewAttendance();
-    }
-  }, [selectedUnit, handleViewAttendance]);
+    handleViewAttendance();
+  }, [selectedUnit, filters.dateRange, handleViewAttendance]);
 
   const filterOptions = useMemo(() => {
     const departments = new Set();
@@ -291,7 +293,8 @@ const AttendanceManagement = () => {
   }, [units, unitFilters]);
 
   const processedAttendance = useMemo(() => {
-    if (!selectedUnit || !Array.isArray(attendance)) return [];
+    if (!Array.isArray(attendance)) return [];
+    if (!selectedUnit) return attendance; // Show all units if none selected
     return attendance.filter(a => a.session.unit.toString() === selectedUnit);
   }, [attendance, selectedUnit]);
 
@@ -477,7 +480,8 @@ const AttendanceManagement = () => {
     { title: 'Name', key: 'name', width: 150, render: (_, record) => `${record.student?.firstName} ${record.student?.lastName}` },
     { title: 'Status', dataIndex: 'status', key: 'status', width: 100, render: status => (
       <Tag color={status === 'present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>
-    )}
+    )},
+    { title: 'Date', dataIndex: 'attendedAt', key: 'attendedAt', width: 150, render: date => moment(date).format('YYYY-MM-DD') }
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
@@ -514,7 +518,7 @@ const AttendanceManagement = () => {
 
   const clearFilters = () => {
     setUnitFilters({ department: null, course: null, year: null, semester: null });
-    setFilters({ search: '', year: null, semester: null, status: null });
+    setFilters({ search: '', year: null, semester: null, status: null, dateRange: null });
   };
 
   const SessionTimer = ({ end }) => {
@@ -577,11 +581,12 @@ const AttendanceManagement = () => {
           extra={
             <Space wrap>
               <Select
-                placeholder="Select Unit"
+                placeholder="Select Unit (All if empty)"
                 style={{ width: 300 }}
                 onChange={setSelectedUnit}
                 value={selectedUnit}
                 loading={loading.units}
+                allowClear
               >
                 {filteredUnits.map(unit => (
                   <Option key={unit._id} value={unit._id}>
@@ -619,7 +624,6 @@ const AttendanceManagement = () => {
                 <Button
                   onClick={handleViewAttendance}
                   loading={loading.attendance}
-                  disabled={!selectedUnit}
                   type="primary"
                 >
                   Refresh Attendance Data
@@ -704,7 +708,7 @@ const AttendanceManagement = () => {
             <Card
               title="Attendance Records Filter"
               size="small"
-              extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
+              extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean) && !filters.dateRange && !filters.status}>Clear Filters</Button>}
             >
               <Space direction="vertical" style={{ width: '100%' }} size="middle">
                 <Space wrap style={{ width: '100%' }}>
@@ -752,6 +756,11 @@ const AttendanceManagement = () => {
                       <Option key={sem} value={sem}>Sem {sem}</Option>
                     ))}
                   </Select>
+                  <RangePicker
+                    style={{ width: 240 }}
+                    onChange={dates => setFilters(prev => ({ ...prev, dateRange: dates }))}
+                    value={filters.dateRange}
+                  />
                   <Button
                     icon={<DownloadOutlined />}
                     onClick={() => downloadAttendanceReport(selectedUnit)}
