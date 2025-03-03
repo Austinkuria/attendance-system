@@ -1,19 +1,17 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, Spin, DatePicker } from 'antd';
-import { QrcodeOutlined, DownloadOutlined, SearchOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col } from 'antd';
+import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { getLecturerUnitAttendance, downloadAttendanceReport, getLecturerUnits, detectCurrentSession, createSession } from '../services/api';
-import moment from 'moment';
+import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
-const { Text } = Typography;
+const { Title, Text } = Typography;
 
 const AttendanceManagement = () => {
   const screens = useBreakpoint();
   const [attendance, setAttendance] = useState([]);
-  const [realTimeAttendance, setRealTimeAttendance] = useState([]);
   const [units, setUnits] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
@@ -24,6 +22,7 @@ const AttendanceManagement = () => {
     console.log('Initial currentSession from localStorage:', session);
     return session;
   });
+  const [departments, setDepartments] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
     units: true,
@@ -35,7 +34,15 @@ const AttendanceManagement = () => {
   const [loadingSessionData, setLoadingSessionData] = useState(true);
   const [filters, setFilters] = useState({
     search: '',
-    date: null
+    year: null,
+    semester: null,
+    status: null
+  });
+  const [unitFilters, setUnitFilters] = useState({
+    department: null,
+    course: null,
+    year: null,
+    semester: null
   });
 
   useEffect(() => {
@@ -48,51 +55,60 @@ const AttendanceManagement = () => {
     }
   }, [currentSession]);
 
+  useEffect(() => {
+    const fetchDepartments = async () => {
+      try {
+        const data = await getDepartments();
+        setDepartments(data);
+      } catch (error) {
+        if (error.response?.status === 429) {
+          message.warning('Too many requests to fetch departments. Please try again later.');
+        } else {
+          message.error('Failed to fetch departments');
+        }
+      }
+    };
+    if (departments.length === 0) fetchDepartments();
+  }, [departments]);
+
   const checkCurrentSession = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, session: true }));
+      setLoading(prevState => ({ ...prevState, session: true }));
       setLoadingSessionData(true);
       const { data } = await detectCurrentSession(lecturerId);
       console.log('Detected session from backend:', data);
+
       if (data && !data.ended && new Date(data.endTime) > new Date()) {
         const validStartTime = new Date(data.startTime);
         const validEndTime = new Date(data.endTime);
-        if (isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
+        if (!validStartTime || !validEndTime || isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
           throw new Error('Invalid session times detected');
         }
-        const unitName = data.unit?.name || units.find(u => u._id === (data.unit?._id || data.unit))?.name || 'Unknown Unit';
-        setCurrentSession({ ...data, unit: { ...data.unit, name: unitName }, startSession: validStartTime, endSession: validEndTime });
+        setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime });
         setQrData(data.qrCode);
         setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
       } else {
         setCurrentSession(null);
         setQrData('');
-        setRealTimeAttendance([]);
         localStorage.removeItem('currentSession');
       }
     } catch (error) {
       console.error("Error checking current session:", error);
-      if (currentSession && new Date(currentSession.endSession) > new Date()) {
-        message.warning('Could not verify session with server. Using cached session.');
+      setCurrentSession(null);
+      setQrData('');
+      localStorage.removeItem('currentSession');
+      if (error.response?.status === 429) {
+        message.warning('Too many requests to check session. Please try again later.');
       } else {
-        setCurrentSession(null);
-        setQrData('');
-        setRealTimeAttendance([]);
-        localStorage.removeItem('currentSession');
-        message.error('Could not detect current session.');
+        message.error(error.message || 'Failed to detect current session');
       }
     } finally {
-      setLoading(prev => ({ ...prev, session: false }));
+      setLoading(prevState => ({ ...prevState, session: false }));
       setLoadingSessionData(false);
     }
-  }, [lecturerId, units]);
+  }, [lecturerId]);
 
   useEffect(() => {
-    if (currentSession && new Date(currentSession.endSession) > new Date()) {
-      console.log('Preserving session from localStorage until backend check:', currentSession);
-      setQrData(currentSession.qrCode || '');
-      setSelectedUnit(currentSession.unit?._id || currentSession.unit);
-    }
     checkCurrentSession();
   }, [checkCurrentSession]);
 
@@ -104,15 +120,41 @@ const AttendanceManagement = () => {
         if (now > new Date(currentSession.endSession)) {
           setCurrentSession(null);
           setQrData('');
-          setRealTimeAttendance([]);
           localStorage.removeItem('currentSession');
           clearInterval(intervalId);
-          console.log('Session expired, cleared localStorage');
         }
       }, 60000);
       return () => clearInterval(intervalId);
     }
   }, [currentSession]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        if (!lecturerId) {
+          message.error("User session expired");
+          return;
+        }
+        setLoading(prev => ({ ...prev, units: true }));
+        const unitsData = await getLecturerUnits(lecturerId);
+        if (unitsData?.length > 0) {
+          setUnits(unitsData);
+          if (!selectedUnit && !currentSession) setSelectedUnit(unitsData[0]._id);
+        } else {
+          message.info("No units assigned to your account");
+        }
+      } catch (error) {
+        if (error.response?.status === 429) {
+          message.warning('Too many requests to fetch units. Please try again later.');
+        } else {
+          message.error("Failed to load unit data");
+        }
+      } finally {
+        setLoading(prev => ({ ...prev, units: false }));
+      }
+    };
+    if (lecturerId && units.length === 0) fetchData();
+  }, [lecturerId, selectedUnit, currentSession, units]);
 
   useEffect(() => {
     if (!selectedUnit || currentSession?.ended) {
@@ -135,7 +177,7 @@ const AttendanceManagement = () => {
 
       if (!selectedUnit || selectedUnit === 'undefined') {
         console.error("No valid unit selected:", selectedUnit);
-        message.error("Please select a valid unit.");
+        message.error("Please select a unit before fetching the session.");
         setLoadingSessionData(false);
         return;
       }
@@ -161,7 +203,7 @@ const AttendanceManagement = () => {
           } else {
             const unitFromResponse = response.data.unit || {};
             const unitName = unitFromResponse.name || (units.find(u => u._id === response.data.unit)?.name) || "Unknown Unit";
-            setCurrentSession({ ...response.data, unit: { ...unitFromResponse, name: unitName }, startSession: validStartTime, endSession: validEndTime });
+            setCurrentSession({ ...response.data, unit: { name: unitName }, startSession: validStartTime, endSession: validEndTime });
             setQrData(response.data.qrCode);
           }
         } else {
@@ -171,11 +213,11 @@ const AttendanceManagement = () => {
       } catch (error) {
         console.error("Error fetching session:", error);
         if (error.response?.status === 429) {
-          message.warning('Too many requests. Please try again later.');
+          message.warning('Too many requests to fetch session. Please try again later.');
         } else if (error.response?.status === 400) {
-          message.error('Invalid request to fetch session. Please select a valid unit.');
+          message.error("Invalid unit ID provided.");
         } else {
-          message.error('Could not fetch current session.');
+          message.error(error.response?.data?.message || "Failed to fetch session.");
         }
         setCurrentSession(null);
         setQrData('');
@@ -186,106 +228,78 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, [selectedUnit, units, currentSession?.ended]);
 
-  useEffect(() => {
-    const fetchUnits = async () => {
-      try {
-        setLoading(prev => ({ ...prev, units: true }));
-        const unitsData = await getLecturerUnits(lecturerId);
-        setUnits(unitsData || []);
-        if (unitsData?.length > 0 && !selectedUnit && !currentSession) {
-          setSelectedUnit(unitsData[0]._id);
-        }
-      } catch (error) {
-        console.error("Error fetching units:", error);
-        message.error('Unable to load units.');
-      } finally {
-        setLoading(prev => ({ ...prev, units: false }));
-      }
-    };
-    if (lecturerId && units.length === 0) fetchUnits();
-  }, [lecturerId, selectedUnit, currentSession, units]);
-
-  const fetchRealTimeAttendance = useCallback(async () => {
-    if (!selectedUnit || !currentSession || !currentSession._id || currentSession.ended) {
-      console.log('Skipping real-time attendance fetch: invalid or no active session', { selectedUnit, currentSession });
-      setRealTimeAttendance([]);
-      return;
-    }
-    try {
-      setLoading(prev => ({ ...prev, attendance: true, stats: true }));
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      console.log('Fetching real-time attendance for session:', currentSession._id);
-      const response = await axios.get(
-        `https://attendance-system-w70n.onrender.com/api/attendance/realtime/${currentSession._id}`,
-        { headers: { 'Authorization': `Bearer ${token}` } }
-      );
-      console.log('Real-time attendance response:', response.data);
-      const uniqueAttendance = Object.values(
-        (response.data || []).reduce((acc, record) => {
-          acc[record.student.regNo] = record;
-          return acc;
-        }, {})
-      );
-      setRealTimeAttendance(uniqueAttendance);
-    } catch (error) {
-      console.error("Error fetching real-time attendance:", error);
-      if (error.response?.status === 404) {
-        message.error('No active session found for real-time attendance. Session may have ended.');
-        setCurrentSession(null);
-        setQrData('');
-        setRealTimeAttendance([]);
-        localStorage.removeItem('currentSession');
-        await checkCurrentSession();
-      } else if (error.response?.status === 400) {
-        message.error('Invalid session ID for real-time attendance.');
-      } else {
-        message.error('Failed to fetch real-time attendance.');
-      }
-      setRealTimeAttendance([]);
-    } finally {
-      setLoading(prev => ({ ...prev, attendance: false, stats: false }));
-    }
-  }, [selectedUnit, currentSession, checkCurrentSession]);
-
   const handleViewAttendance = useCallback(async () => {
-    if (!selectedUnit) return;
+    if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
-      const date = filters.date ? filters.date.startOf('day').toISOString() : null;
-      const endDate = filters.date ? filters.date.endOf('day').toISOString() : null;
-      const data = await getLecturerUnitAttendance(selectedUnit, date, endDate);
-      const uniqueAttendance = Object.values(
-        (data || []).reduce((acc, record) => {
-          acc[record.student.regNo] = record;
-          return acc;
-        }, {})
-      );
-      setAttendance(uniqueAttendance);
+      const data = await getSessionAttendance(currentSession._id);
+      setAttendance(data);
     } catch (error) {
       console.error("Error fetching attendance:", error);
+      if (error.response?.status === 429) {
+        message.warning('Too many requests to fetch attendance data. Please try again later.');
+      } else {
+        message.error(error.message || 'Failed to fetch attendance data');
+      }
       setAttendance([]);
-      message.error('Unable to fetch attendance data.');
     } finally {
       setLoading(prev => ({ ...prev, attendance: false, stats: false }));
     }
-  }, [selectedUnit, filters.date]);
+  }, [selectedUnit, currentSession]);
 
   useEffect(() => {
-    if (currentSession && !currentSession.ended) {
-      fetchRealTimeAttendance();
-      const interval = setInterval(fetchRealTimeAttendance, 30000);
-      return () => clearInterval(interval);
-    } else {
-      setRealTimeAttendance([]);
+    if (currentSession && selectedUnit && !currentSession.ended) {
+      handleViewAttendance();
     }
-  }, [currentSession, fetchRealTimeAttendance]);
+  }, [currentSession, selectedUnit, handleViewAttendance]);
 
-  useEffect(() => {
-    handleViewAttendance();
-  }, [selectedUnit, filters.date, handleViewAttendance]);
+  const filterOptions = useMemo(() => {
+    const departments = new Set();
+    const courses = new Set();
+    const years = new Set();
+    const semesters = new Set();
+    units.forEach(unit => {
+      if (unit.department?.name) departments.add(unit.department.name);
+      if (unit.course?.name) courses.add(unit.course.name);
+      if (unit.year) years.add(unit.year);
+      if (unit.semester) semesters.add(unit.semester);
+    });
+    return {
+      departments: Array.from(departments).sort(),
+      courses: Array.from(courses).sort(),
+      years: Array.from(years).sort((a, b) => a - b),
+      semesters: Array.from(semesters).sort((a, b) => a - b)
+    };
+  }, [units]);
+
+  const filteredUnits = useMemo(() => {
+    return units.filter(unit => {
+      const departmentMatch = !unitFilters.department || unit.department?.name === unitFilters.department;
+      const courseMatch = !unitFilters.course || unit.course?.name === unitFilters.course;
+      const yearMatch = !unitFilters.year || unit.year === unitFilters.year;
+      const semesterMatch = !unitFilters.semester || unit.semester === unitFilters.semester;
+      return departmentMatch && courseMatch && yearMatch && semesterMatch;
+    });
+  }, [units, unitFilters]);
+
+  const processedAttendance = useMemo(() => {
+    if (!selectedUnit || !Array.isArray(attendance)) return [];
+    return attendance.filter(a => a.unit === selectedUnit);
+  }, [attendance, selectedUnit]);
+
+  const filteredAttendance = useMemo(() => {
+    return processedAttendance.filter(record => {
+      const searchMatch = record.regNo.toLowerCase().includes(filters.search.toLowerCase());
+      const yearMatch = filters.year ? record.year === filters.year : true;
+      const semesterMatch = filters.semester ? record.semester === filters.semester : true;
+      const statusMatch = filters.status ? record.status === filters.status : true;
+      return searchMatch && yearMatch && semesterMatch && statusMatch;
+    });
+  }, [processedAttendance, filters]);
+
+  const handleDepartmentChange = (value) => {
+    setUnitFilters(prevState => ({ ...prevState, department: value }));
+  };
 
   const handleCreateSession = async () => {
     if (!selectedUnit) {
@@ -293,7 +307,7 @@ const AttendanceManagement = () => {
       return;
     }
     try {
-      setLoading(prev => ({ ...prev, session: true }));
+      setLoading(prevState => ({ ...prevState, session: true }));
       setLoadingSessionData(true);
       const startTime = new Date().toISOString();
       const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -303,21 +317,18 @@ const AttendanceManagement = () => {
       if (isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
         throw new Error('Invalid session times received from API');
       }
-      const unitName = units.find(u => u._id === selectedUnit)?.name || 'Unknown Unit';
-      setCurrentSession({ ...data, unit: { ...data.unit, name: unitName }, startSession: validStartTime, endSession: validEndTime, ended: false });
-      setQrData(data.qrCode);
       message.success('Session created successfully');
+      setCurrentSession({ ...data, startSession: validStartTime, endSession: validEndTime, ended: false });
+      setQrData(data.qrCode);
     } catch (error) {
       console.error("Error creating session:", error);
       if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try again later.');
-      } else if (error.response?.status === 400) {
-        message.error('Invalid session details. Please check your input and try again.');
+        message.warning('Too many requests. Please try creating the session again later.');
       } else {
-        message.error('Failed to create session. Please try again.');
+        message.error(error.message || 'Failed to create session');
       }
     } finally {
-      setLoading(prev => ({ ...prev, session: false }));
+      setLoading(prevState => ({ ...prevState, session: false }));
       setLoadingSessionData(false);
     }
   };
@@ -328,7 +339,7 @@ const AttendanceManagement = () => {
       return;
     }
     try {
-      setLoading(prev => ({ ...prev, qr: true }));
+      setLoading(prevState => ({ ...prevState, qr: true }));
       const token = localStorage.getItem('token');
       const { data } = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
@@ -343,14 +354,12 @@ const AttendanceManagement = () => {
     } catch (error) {
       console.error("Error generating QR code:", error);
       if (error.response?.status === 429) {
-        message.warning('Too many requests. Please try again later.');
-      } else if (error.response?.status === 400) {
-        message.error('Invalid session or unit. Please ensure an active session exists.');
+        message.warning('Too many requests. Please try generating the QR code again later.');
       } else {
-        message.error('Failed to generate QR code. Please try again.');
+        message.error(error.message || "Failed to generate QR code");
       }
     } finally {
-      setLoading(prev => ({ ...prev, qr: false }));
+      setLoading(prevState => ({ ...prevState, qr: false }));
     }
   };
 
@@ -360,7 +369,7 @@ const AttendanceManagement = () => {
       return;
     }
     try {
-      setLoading(prev => ({ ...prev, session: true }));
+      setLoading(prevState => ({ ...prevState, session: true }));
       const token = localStorage.getItem('token');
       Modal.confirm({
         title: 'End Current Session?',
@@ -371,20 +380,21 @@ const AttendanceManagement = () => {
         onOk: async () => {
           try {
             if (!currentSession?._id) throw new Error('Invalid session ID');
-            console.log('Ending session with ID:', currentSession._id);
+            console.log('Ending session with ID:', currentSession._id); // Debug
             const response = await axios.post(
               'https://attendance-system-w70n.onrender.com/api/sessions/end',
               { sessionId: currentSession._id },
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
-            console.log('Session end response:', response.data);
+            console.log('Session end response:', response.data); // Debug
             if (response.data.session.ended) {
               message.success('Session ended successfully');
               setCurrentSession(null);
               setQrData('');
-              setRealTimeAttendance([]);
+              setAttendance([]); // Clear attendance display
               localStorage.removeItem('currentSession');
-              setSelectedUnit(null);
+              setSelectedUnit(null); // Reset unit selection
+              // Refresh session data to ensure absentees are reflected
               await checkCurrentSession();
             } else {
               throw new Error('Session not marked as ended');
@@ -394,56 +404,76 @@ const AttendanceManagement = () => {
             if (error.response?.status === 429) {
               message.warning('Too many requests. Please try again later.');
             } else if (error.response?.status === 400) {
-              message.error('Invalid session ID. Session may already be ended.');
+              message.error('Invalid request. Session may already be ended.');
               setCurrentSession(null);
               setQrData('');
               localStorage.removeItem('currentSession');
             } else {
-              message.error('Failed to end session. Please try again.');
+              message.error(error.response?.data?.message || 'Failed to end session');
             }
+          } finally {
+            setLoading(prevState => ({ ...prevState, session: false }));
           }
         }
       });
     } catch (error) {
       console.error('Unexpected error in handleEndSession:', error);
-      message.error('An unexpected error occurred. Please try again.');
-    } finally {
-      setLoading(prev => ({ ...prev, session: false }));
+      message.error('An unexpected error occurred');
+      setLoading(prevState => ({ ...prevState, session: false }));
     }
   };
 
-  const realTimeColumns = [
-    { title: 'Reg Number', dataIndex: ['student', 'regNo'], key: 'regNo', sorter: (a, b) => (a.student?.regNo || '').localeCompare(b.student?.regNo || '') },
-    { title: 'Name', key: 'name', render: (_, record) => `${record.student?.firstName || ''} ${record.student?.lastName || ''}` },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'Present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag> },
-    { title: 'Scan Time', dataIndex: 'attendedAt', key: 'attendedAt', render: date => date ? moment(date).format('HH:mm:ss') : 'N/A' }
+  const handleToggleStatus = async (recordId) => {
+    const record = processedAttendance.find(r => r._id === recordId);
+    if (!record) return;
+    const newStatus = record.status === 'present' ? 'absent' : 'present';
+    try {
+      const token = localStorage.getItem('token');
+      await axios.put(
+        `https://attendance-system-w70n.onrender.com/api/attendance/${recordId}`,
+        { status: newStatus },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      setAttendance(prevState => prevState.map(a => a._id === recordId && a.unit === selectedUnit ? { ...a, status: newStatus } : a));
+      message.success(`Marked student as ${newStatus}`);
+    } catch (error) {
+      console.error("Error updating status:", error);
+      if (error.response?.status === 429) {
+        message.warning('Too many requests. Please try updating status again later.');
+      } else {
+        message.error('Failed to update attendance status');
+      }
+    }
+  };
+
+  const columns = [
+    { title: 'Reg Number', dataIndex: 'regNo', key: 'regNo', sorter: (a, b) => a.regNo.localeCompare(b.regNo) },
+    { title: 'Course', dataIndex: 'course', key: 'course', sorter: (a, b) => a.course.localeCompare(b.course) },
+    { title: 'Year', dataIndex: 'year', key: 'year', render: year => <Tag color="blue">Year {year}</Tag>, sorter: (a, b) => a.year - b.year },
+    { title: 'Semester', dataIndex: 'semester', key: 'semester', render: semester => <Tag color="geekblue">Semester {semester}</Tag>, sorter: (a, b) => a.semester - b.semester },
+    { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, filters: [{ text: 'Present', value: 'present' }, { text: 'Absent', value: 'absent' }], onFilter: (value, record) => record.status === value },
+    { title: 'Action', key: 'action', render: (_, record) => (
+      <Button type="link" onClick={() => handleToggleStatus(record._id)} icon={<SyncOutlined />} disabled={currentSession?.ended}>
+        Toggle Status
+      </Button>
+    )}
   ];
 
-  const filterColumns = [
-    { title: 'Reg Number', dataIndex: ['student', 'regNo'], key: 'regNo', sorter: (a, b) => (a.student?.regNo || '').localeCompare(b.student?.regNo || '') },
-    { title: 'Name', key: 'name', render: (_, record) => `${record.student?.firstName || ''} ${record.student?.lastName || ''}` },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'Present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag> },
-    { title: 'Date', dataIndex: 'attendedAt', key: 'attendedAt', render: date => date ? moment(date).format('YYYY-MM-DD') : 'N/A' }
-  ];
-
-  const { attendanceRate, totalEnrolled, totalScans } = useMemo(() => {
-    if (!selectedUnit) return { attendanceRate: 0, totalEnrolled: 0, totalScans: 0 };
-    const unit = units.find(u => u._id === selectedUnit);
-    const enrolledCount = unit?.studentsEnrolled?.length || 0;
-    const sessionAttendance = currentSession && !currentSession.ended ? realTimeAttendance : attendance;
-    const scans = sessionAttendance.filter(a => a.status === 'Present').length;
+  const totalAssignedUnits = useMemo(() => units.length, [units]);
+  const { attendanceRate, totalEnrolledStudents } = useMemo(() => {
+    const presentCount = attendance.filter(a => a.status === 'present').length;
+    const totalStudents = attendance.length || 1;
     return {
-      attendanceRate: enrolledCount > 0 ? Number((scans / enrolledCount * 100).toFixed(1)) : 0,
-      totalEnrolled: enrolledCount,
-      totalScans: scans
+      attendanceRate: totalStudents > 0 ? Number(((presentCount / totalStudents) * 100).toFixed(1)) : 0,
+      totalEnrolledStudents: attendance.length
     };
-  }, [attendance, realTimeAttendance, selectedUnit, units, currentSession]);
+  }, [attendance]);
 
   const summaryCards = (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Enrolled Students" value={totalEnrolled} prefix={<TeamOutlined />} loading={loading.stats} /></Card></Col>
+      <Col xs={24} sm={12} md={8}><Card><Statistic title="Assigned Units" value={totalAssignedUnits} prefix={<TeamOutlined />} loading={loading.stats} /></Card></Col>
       <Col xs={24} sm={12} md={8}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.stats} /></Card></Col>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Total Scans" value={totalScans} prefix={<ScheduleOutlined />} loading={loading.stats} /></Card></Col>
+      <Col xs={24} sm={12} md={8}><Card><Statistic title="Total no of scans" value={totalEnrolledStudents} prefix={<ScheduleOutlined />} loading={loading.stats} /></Card></Col>
     </Row>
   );
 
@@ -459,6 +489,11 @@ const AttendanceManagement = () => {
       console.error('Error formatting session time:', error);
       return 'Error formatting time';
     }
+  };
+
+  const clearFilters = () => {
+    setUnitFilters({ department: null, course: null, year: null, semester: null });
+    setFilters({ search: '', year: null, semester: null, status: null });
   };
 
   const SessionTimer = ({ end }) => {
@@ -498,117 +533,205 @@ const AttendanceManagement = () => {
 
   return (
     <div style={{ padding: screens.md ? 24 : 16 }}>
-      <Spin spinning={loading.units || loading.session} tip={loading.units ? "Fetching units..." : "Checking session..."}>
-        {loadingSessionData ? (
-          <Card loading style={{ marginBottom: 24 }}><Skeleton active /></Card>
-        ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
-          <Card title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown'}</Space>} style={{ marginBottom: 24 }}>
-            <Row gutter={[16, 16]}>
-              <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
-              <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
-              <Col span={24}><Button danger onClick={handleEndSession} loading={loading.session}>End Session</Button></Col>
-            </Row>
-          </Card>
-        ) : null}
-
+      {loadingSessionData ? (
+        <Card loading style={{ marginBottom: 24 }}><Skeleton active /></Card>
+      ) : currentSession && currentSession.startSession && currentSession.endSession && !currentSession.ended ? (
         <Card
-          extra={
-            <Space wrap>
+          title={<Space><ClockCircleOutlined /> Active Session: {currentSession.unit?.name || 'Unknown Unit'}</Space>}
+          style={{ marginBottom: 24 }}
+        >
+          <Row gutter={[16, 16]}>
+            <Col span={24}><Text strong>Time: </Text>{formatSessionTime(currentSession)}</Col>
+            <Col span={24}><SessionTimer end={currentSession.endSession} /></Col>
+            <Col span={24}><Button danger onClick={handleEndSession} loading={loading.session}>End Session Early</Button></Col>
+          </Row>
+        </Card>
+      ) : null}
+
+      <Card
+        title={<Title level={4} style={{ margin: 0 }}>Attendance Management</Title>}
+        extra={
+          <Space wrap>
+            <Button icon={<DownloadOutlined />} onClick={() => downloadAttendanceReport(selectedUnit)} disabled={!selectedUnit}>
+              {screens.md ? 'Download Report' : 'Export'}
+            </Button>
+            <Button
+              type="primary"
+              icon={<QrcodeOutlined />}
+              onClick={handleGenerateQR}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended}
+              loading={loading.qr}
+            >
+              {screens.md ? 'Generate QR Code' : 'QR Code'}
+            </Button>
+            <Button
+              type="primary"
+              icon={<CalendarOutlined />}
+              onClick={handleCreateSession}
+              disabled={loading.session || (currentSession && !currentSession.ended)}
+            >
+              {loading.session ? 'Creating...' : 'Create Attendance Session'}
+            </Button>
+          </Space>
+        }
+      >
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Card
+            title="Real-time Unit Filters"
+            size="small"
+            extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
+          >
+            <Space wrap style={{ width: '100%' }}>
               <Select
-                placeholder="Select Unit"
-                style={{ width: 300 }}
-                onChange={setSelectedUnit}
-                value={selectedUnit}
-                loading={loading.units}
+                placeholder="Select Department"
+                style={{ width: 160 }}
+                onChange={handleDepartmentChange}
                 allowClear
+                value={unitFilters.department}
               >
-                {units.map(unit => (
-                  <Option key={unit._id} value={unit._id}>
-                    <Space><BookOutlined />{unit.name} – {unit.code}</Space>
-                  </Option>
+                {departments.map(department => (
+                  <Option key={department._id} value={department.name}>{department.name}</Option>
                 ))}
               </Select>
-              <Button type="primary" icon={<QrcodeOutlined />} onClick={handleGenerateQR} disabled={!currentSession || currentSession.ended} loading={loading.qr}>
-                {screens.md ? 'Generate QR Code' : 'QR'}
-              </Button>
-              <Button type="primary" icon={<CalendarOutlined />} onClick={handleCreateSession} disabled={currentSession && !currentSession.ended} loading={loading.session}>
-                Create Session
-              </Button>
+              <Select
+                placeholder="Course"
+                style={{ width: 180 }}
+                onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
+                allowClear
+                value={unitFilters.course}
+              >
+                {filterOptions.courses.map(course => (
+                  <Option key={course} value={course}>{course}</Option>
+                ))}
+              </Select>
+              <Select
+                placeholder="Year"
+                style={{ width: 120 }}
+                onChange={val => setUnitFilters(prev => ({ ...prev, year: val }))}
+                allowClear
+                value={unitFilters.year}
+              >
+                {filterOptions.years.map(year => (
+                  <Option key={year} value={year}>Year {year}</Option>
+                ))}
+              </Select>
+              <Select
+                placeholder="Semester"
+                style={{ width: 140 }}
+                onChange={val => setUnitFilters(prev => ({ ...prev, semester: val }))}
+                allowClear
+                value={unitFilters.semester}
+              >
+                {filterOptions.semesters.map(sem => (
+                  <Option key={sem} value={sem}>Sem {sem}</Option>
+                ))}
+              </Select>
             </Space>
-          }
-        >
-          <Space direction="vertical" style={{ width: '100%' }} size="middle">
-            <Card
-              title="Real-time Attendance"
-              extra={<Button onClick={fetchRealTimeAttendance} loading={loading.attendance} type="primary" disabled={!currentSession || currentSession.ended}>Refresh</Button>}
+          </Card>
+          <Space wrap>
+            <Select
+              placeholder="Select Unit"
+              style={{ width: 240 }}
+              onChange={setSelectedUnit}
+              value={selectedUnit}
+              loading={loading.units}
             >
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Input
-                  placeholder="Search by Reg Number"
-                  prefix={<SearchOutlined />}
-                  style={{ width: 240 }}
-                  onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
-                  allowClear
-                />
-                {summaryCards}
-                <Skeleton active loading={loading.attendance}>
-                  <Table
-                    columns={realTimeColumns}
-                    dataSource={realTimeAttendance.filter(a => a.student?.regNo?.toLowerCase().includes(filters.search.toLowerCase()))}
-                    rowKey="_id"
-                    scroll={{ x: true }}
-                    pagination={{ pageSize: 8, showTotal: total => `Total ${total} students` }}
-                    locale={{ emptyText: 'No attendance records' }}
-                    bordered
-                    size="middle"
-                  />
-                </Skeleton>
-              </Space>
-            </Card>
-
-            <Card title="Attendance Records Filter" size="small">
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Space wrap>
-                  <Select
-                    placeholder="Select Unit"
-                    style={{ width: 300 }}
-                    onChange={setSelectedUnit}
-                    value={selectedUnit}
-                    allowClear
-                  >
-                    {units.map(unit => (
-                      <Option key={unit._id} value={unit._id}>{unit.name} – {unit.code}</Option>
-                    ))}
-                  </Select>
-                  <DatePicker
-                    style={{ width: 150 }}
-                    onChange={date => setFilters(prev => ({ ...prev, date }))}
-                    value={filters.date}
-                  />
-                  <Button icon={<DownloadOutlined />} onClick={() => downloadAttendanceReport(selectedUnit)} disabled={!selectedUnit}>
-                    {screens.md ? 'Download Report' : 'Export'}
-                  </Button>
-                </Space>
-                <Skeleton active loading={loading.attendance}>
-                  <Table
-                    columns={filterColumns}
-                    dataSource={attendance}
-                    rowKey="_id"
-                    pagination={false}
-                    size="small"
-                    bordered
-                    scroll={{ y: 200 }}
-                    locale={{ emptyText: 'No records' }}
-                  />
-                </Skeleton>
-              </Space>
-            </Card>
+              {filteredUnits.map(unit => (
+                <Option key={unit._id} value={unit._id}>
+                  <Space>
+                    <BookOutlined />
+                    {unit.name}
+                    <Tag color="blue">{unit.code}</Tag>
+                  </Space>
+                </Option>
+              ))}
+            </Select>
+            <Button
+              onClick={handleViewAttendance}
+              loading={loading.attendance}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended}
+              type="primary"
+            >
+              Refresh Attendance Data
+            </Button>
           </Space>
-        </Card>
-      </Spin>
+
+          {summaryCards}
+
+          <Card 
+            title={
+              <Space>
+                Attendance Records Filter
+                {currentSession && !currentSession.ended && (
+                  <Tag color="green">Active Session</Tag>
+                )}
+              </Space>
+            }
+            size="small"
+          >
+            <Space wrap style={{ width: '100%' }}>
+              <Input
+                placeholder="Search by Reg Number"
+                prefix={<SearchOutlined />}
+                style={{ width: 240 }}
+                onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                allowClear
+              />
+              <Select
+                placeholder="Filter by Year"
+                allowClear
+                suffixIcon={<CalendarOutlined />}
+                style={{ width: 150 }}
+                onChange={year => setFilters(prev => ({ ...prev, year }))}
+                value={filters.year}
+              >
+                {[1, 2, 3, 4].map(year => (
+                  <Option key={year} value={year}>Year {year}</Option>
+                ))}
+              </Select>
+              <Select
+                placeholder="Filter by Semester"
+                allowClear
+                suffixIcon={<BookOutlined />}
+                style={{ width: 170 }}
+                onChange={semester => setFilters(prev => ({ ...prev, semester }))}
+                value={filters.semester}
+              >
+                {[1, 2, 3].map(sem => (
+                  <Option key={sem} value={sem}>Semester {sem}</Option>
+                ))}
+              </Select>
+              <Select
+                placeholder="Filter by Status"
+                allowClear
+                suffixIcon={<FilterOutlined />}
+                style={{ width: 150 }}
+                onChange={status => setFilters(prev => ({ ...prev, status }))}
+                value={filters.status}
+              >
+                <Option value="present">Present</Option>
+                <Option value="absent">Absent</Option>
+              </Select>
+            </Space>
+          </Card>
+
+          <Skeleton active loading={loading.attendance}>
+            <Table
+              columns={columns}
+              dataSource={filteredAttendance}
+              rowKey="_id"
+              scroll={{ x: true }}
+              pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
+              locale={{ emptyText: 'No attendance records found' }}
+              bordered
+              size="middle"
+            />
+          </Skeleton>
+        </Space>
+      </Card>
 
       <Modal
-        title="Attendance QR Code"
+        title="Class QR Code"
         open={isQRModalOpen}
         centered
         onCancel={() => Modal.confirm({ title: 'Are you sure you want to close?', content: 'The QR code will no longer be accessible.', okText: 'Yes', cancelText: 'No', onOk: () => setIsQRModalOpen(false) })}
@@ -616,19 +739,20 @@ const AttendanceManagement = () => {
         destroyOnClose
         maskClosable={false}
       >
-        <Spin spinning={loading.qr} tip="Generating QR code...">
-          <div style={{ textAlign: 'center', padding: 24 }}>
-            {qrData ? (
-              <>
-                <img src={qrData} alt="QR Code" style={{ maxWidth: 300 }} />
-                {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
-                <Typography.Text type="secondary" style={{ marginTop: 16, display: "block" }}>Scan this QR code to mark attendance.</Typography.Text>
-              </>
-            ) : (
-              <Typography.Text type="danger">Failed to load QR Code</Typography.Text>
-            )}
-          </div>
-        </Spin>
+        <div style={{ textAlign: 'center', padding: 24 }}>
+          {qrData ? (
+            <>
+              <img src={qrData} alt="Attendance QR Code" style={{ width: "100%", maxWidth: 300, margin: "0 auto", display: "block", borderRadius: 8, boxShadow: "0 4px 12px rgba(0,0,0,0.1)" }} />
+              {currentSession && !currentSession.ended && <SessionTimer end={currentSession.endSession} />}
+              <Typography.Text type="secondary" style={{ marginTop: 16, display: "block", fontSize: 16 }}>Scan this QR code to mark attendance.</Typography.Text>
+            </>
+          ) : (
+            <div style={{ textAlign: "center", padding: 24 }}>
+              <Typography.Text type="danger">Failed to generate QR Code</Typography.Text>
+              <Skeleton.Image style={{ width: 300, height: 300 }} />
+            </div>
+          )}
+        </div>
       </Modal>
     </div>
   );
