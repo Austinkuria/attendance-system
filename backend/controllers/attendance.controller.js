@@ -730,3 +730,95 @@ exports.getRealTimeAttendance = async (req, res) => {
     res.status(500).json({ message: "Error fetching real-time data", error: error.message });
   }
 };
+exports.getLecturerRealTimeAttendance = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      return res.status(400).json({ message: "Invalid session ID" });
+    }
+
+    const session = await Session.findById(sessionId);
+    if (!session || session.ended) {
+      return res.status(404).json({ message: "No active session found" });
+    }
+
+    const attendanceRecords = await Attendance.find({ session: sessionId })
+      .populate({
+        path: 'student',
+        select: 'regNo firstName lastName'
+      })
+      .select('status attendedAt');
+
+    res.status(200).json(attendanceRecords);
+  } catch (error) {
+    console.error("Error fetching lecturer real-time attendance:", error);
+    res.status(500).json({ message: "Error fetching real-time data", error: error.message });
+  }
+};
+
+// New endpoint for past session attendance
+exports.getLecturerPastAttendance = async (req, res) => {
+  try {
+    const lecturerId = req.user.userId; // From authenticated middleware
+    const { unitId, startDate, endDate, sessionId } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(lecturerId)) {
+      return res.status(400).json({ message: "Invalid lecturer ID format" });
+    }
+
+    // Fetch lecturer's units
+    const unitQuery = { lecturer: lecturerId };
+    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
+      unitQuery._id = unitId;
+    }
+    const units = await Unit.find(unitQuery).select('_id name');
+    const unitIds = units.map(unit => unit._id);
+
+    if (!unitIds.length) {
+      return res.status(200).json([]);
+    }
+
+    // Fetch sessions
+    const sessionQuery = { unit: { $in: unitIds }, ended: true }; // Only past (ended) sessions
+    if (startDate && endDate) {
+      sessionQuery.startTime = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    }
+    if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
+      sessionQuery._id = sessionId;
+    }
+    const sessions = await Session.find(sessionQuery).select('_id unit startTime endTime');
+    const sessionIds = sessions.map(session => session._id);
+
+    if (!sessionIds.length) {
+      return res.status(200).json([]);
+    }
+
+    // Fetch attendance records
+    const attendanceRecords = await Attendance.find({ session: { $in: sessionIds } })
+      .populate({
+        path: 'student',
+        select: 'regNo firstName lastName course year semester',
+        populate: { path: 'course', select: 'name' }
+      })
+      .populate({
+        path: 'session',
+        select: 'unit startTime endTime',
+        populate: { path: 'unit', select: 'name' }
+      })
+      .select('session status attendedAt');
+
+    // Structure response with session details
+    const response = sessions.map(session => ({
+      sessionId: session._id,
+      unitName: session.unit.name,
+      startTime: session.startTime,
+      endTime: session.endTime,
+      attendance: attendanceRecords.filter(record => record.session._id.toString() === session._id.toString())
+    }));
+
+    res.status(200).json(response);
+  } catch (error) {
+    console.error("Error fetching lecturer past attendance:", error);
+    res.status(500).json({ message: "Error fetching past attendance records", error: error.message });
+  }
+};

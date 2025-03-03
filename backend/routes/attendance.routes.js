@@ -30,4 +30,6 @@ router.get('/attendance/realtime/:sessionId', authenticate, attendanceController
 router.get('/pending-feedback', authenticate, attendanceController.getPendingFeedbackAttendance);
 router.get('/feedback/status/:sessionId', authenticate, attendanceController.checkFeedbackStatus);
 router.get('/unit/attendance', authenticate,attendanceController.getLecturerUnitAttendance);
+router.get('/realtime-lecturer/:sessionId', authenticate, attendanceController.getLecturerRealTimeAttendance);
+router.get('/past-lecturer', authenticate, attendanceController.getLecturerPastAttendance);
 module.exports = router;
