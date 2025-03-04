@@ -289,8 +289,9 @@ const AttendanceManagement = () => {
       );
       const sessions = response.data.map(session => ({
         ...session,
-        unitName: session.unitName || (units.find(u => u._id === session.unit)?.name) || 'Unknown Unit' // Fallback using units array
+        unitName: session.unitName || (units.find(u => u._id.toString() === session.unit.toString())?.name) || 'Unknown Unit'
       }));
+      console.log('Past sessions fetched:', sessions); // Debug log
       setPastSessions(sessions);
       
       if (!pastFilters.sessionId && sessions.length > 0) {

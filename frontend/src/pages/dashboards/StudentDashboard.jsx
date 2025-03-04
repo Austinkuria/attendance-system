@@ -68,7 +68,7 @@ const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
 const StudentDashboard = () => {
   const { token: { colorBgContainer } } = theme.useToken();
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 992); // Collapse by default on small screens (lg breakpoint)
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [units, setUnits] = useState([]);
   const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
   const [attendanceRates, setAttendanceRates] = useState([]);
@@ -109,33 +109,45 @@ const StudentDashboard = () => {
         getPendingFeedbackAttendance()
       ]);
 
-      console.log('Profile Response:', profileRes);
-      console.log('Units Response:', unitsRes);
-      console.log('Feedback Response:', feedbackRes);
-
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
       setUnits(sanitizedUnits);
 
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
-        console.log('Attendance Response:', attendanceRes);
         setAttendanceData(attendanceRes);
       }
 
       const newPendingFeedbacks = feedbackRes.pendingFeedbackRecords.map((record) => ({
         sessionId: record.session._id,
+        unitId: record.session.unit._id,
         unitName: record.session.unit.name,
         title: "Feedback Available",
         message: "Please provide your feedback for the session.",
         timestamp: record.session.endTime || new Date(),
       }));
-      console.log('New Pending Feedbacks:', newPendingFeedbacks);
+
+      // Filter out expired sessions on load
+      const filteredFeedbacks = await Promise.all(
+        newPendingFeedbacks.map(async (feedback) => {
+          try {
+            const { isExpired } = await fetchSessionStatus(feedback.unitId, feedback.sessionId);
+            if (isExpired) {
+              message.warning(`Notification dismissed: You cannot provide feedback for session ${feedback.sessionId} in ${feedback.unitName} since it is expired.`);
+              return null;
+            }
+            return feedback;
+          } catch (error) {
+            console.error(`Error checking session ${feedback.sessionId}:`, error);
+            return feedback; // Keep it if there's an error fetching status
+          }
+        })
+      );
+
       setPendingFeedbacks((prev) => {
         const existingIds = new Set(prev.map((pf) => pf.sessionId));
-        const filteredNew = newPendingFeedbacks.filter((pf) => !existingIds.has(pf.sessionId));
-        console.log('Filtered New Feedbacks:', filteredNew);
-        return [...prev, ...filteredNew];
+        const validNewFeedbacks = filteredFeedbacks.filter((pf) => pf && !existingIds.has(pf.sessionId));
+        return [...prev, ...validNewFeedbacks];
       });
 
     } catch (error) {
@@ -393,6 +405,58 @@ const StudentDashboard = () => {
     );
   };
 
+  const fetchSessionStatus = async (unitId, sessionIdToCheck) => {
+    try {
+      const token = localStorage.getItem('token');
+      const activeResponse = await axios.get(
+        `${API_URL}/sessions/active/${unitId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const activeSession = activeResponse.data;
+
+      if (activeSession && activeSession._id !== sessionIdToCheck && !activeSession.ended) {
+        return { isExpired: true, latestSession: activeSession };
+      }
+
+      const lastSessionResponse = await axios.get(
+        `${API_URL}/sessions/last/${unitId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const lastSession = lastSessionResponse.data;
+
+      if (lastSession._id !== sessionIdToCheck && new Date(lastSession.startTime) > new Date(activeSession?.startTime || 0)) {
+        return { isExpired: true, latestSession: lastSession };
+      }
+
+      return { isExpired: false, latestSession: lastSession };
+    } catch (error) {
+      console.error('Error fetching session status:', error);
+      if (error.response?.status === 404) {
+        const token = localStorage.getItem('token');
+        const lastSession = await axios.get(
+          `${API_URL}/sessions/last/${unitId}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        return { isExpired: lastSession.data._id !== sessionIdToCheck, latestSession: lastSession.data };
+      }
+      throw error;
+    }
+  };
+
+  const checkFeedbackStatus = async (sessionId) => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await axios.get(
+        `${API_URL}/attendance/feedback/status/${sessionId}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      return response.data.feedbackSubmitted;
+    } catch (error) {
+      console.error('Error checking feedback status:', error);
+      return false;
+    }
+  };
+
   const renderNotifications = () => {
     const sortedNotifications = [...pendingFeedbacks].sort((a, b) => {
       const timeA = moment(a.timestamp).valueOf();
@@ -403,6 +467,44 @@ const StudentDashboard = () => {
     const startIndex = (notificationPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     const paginatedNotifications = sortedNotifications.slice(startIndex, endIndex);
+
+    const handleProvideFeedback = async (sessionId, unitId) => {
+      try {
+        const { isExpired, latestSession } = await fetchSessionStatus(unitId, sessionId);
+
+        if (isExpired) {
+          message.warning(`Notification dismissed: You cannot provide feedback for this session since it is expired.`);
+          setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
+          return;
+        }
+
+        const feedbackSubmitted = await checkFeedbackStatus(sessionId);
+        if (feedbackSubmitted) {
+          message.info(`Notification dismissed: Feedback already submitted for this session.`);
+          setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
+          return;
+        }
+
+        if (!latestSession.ended) {
+          message.info('Feedback is only available after the session ends.');
+          return;
+        }
+
+        const attendanceRecord = attendanceData.attendanceRecords.find(
+          (rec) => rec.session._id === sessionId
+        );
+        if (attendanceRecord?.status !== 'Present') {
+          message.info('You must mark attendance for this session to provide feedback.');
+          return;
+        }
+
+        setActiveSessionId(sessionId);
+        setFeedbackModalVisible(true);
+      } catch (error) {
+        console.error('Error checking session status:', error);
+        message.error('Failed to verify session status.');
+      }
+    };
 
     return (
       <Card
@@ -446,10 +548,7 @@ const StudentDashboard = () => {
                           key="provide-feedback"
                           type="primary"
                           size="small"
-                          onClick={() => {
-                            setActiveSessionId(item.sessionId);
-                            setFeedbackModalVisible(true);
-                          }}
+                          onClick={() => handleProvideFeedback(item.sessionId, item.unitId)}
                           disabled={isFeedbackSubmitted}
                         >
                           Provide
@@ -508,41 +607,6 @@ const StudentDashboard = () => {
     },
   ];
 
-  const fetchSessionStatus = async (unitId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${API_URL}/sessions/active/${unitId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data;
-    } catch (error) {
-      if (error.response?.status === 404) {
-        const token = localStorage.getItem('token');
-        const lastSession = await axios.get(
-          `${API_URL}/sessions/last/${unitId}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        return lastSession.data;
-      }
-      throw error;
-    }
-  };
-
-  const checkFeedbackStatus = async (sessionId) => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await axios.get(
-        `${API_URL}/attendance/feedback/status/${sessionId}`,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-      return response.data.feedbackSubmitted;
-    } catch (error) {
-      console.error('Error checking feedback status:', error);
-      return false;
-    }
-  };
-
   const openFeedbackModal = async (unitId) => {
     const unitAttendance = attendanceData.attendanceRecords
       .filter((data) => data.session.unit._id.toString() === unitId.toString())
@@ -554,8 +618,12 @@ const StudentDashboard = () => {
     }
 
     try {
-      const session = await fetchSessionStatus(unitId);
-      if (!session.ended) {
+      const session = await fetchSessionStatus(unitId, latestSession.session._id);
+      if (session.isExpired) {
+        message.warning('You cannot provide feedback for this session since it is expired.');
+        return;
+      }
+      if (!session.latestSession.ended) {
         message.info('Feedback is only available after the latest session ends.');
         return;
       }
@@ -572,21 +640,7 @@ const StudentDashboard = () => {
       setFeedbackModalVisible(true);
     } catch (error) {
       console.error('Error fetching session status:', error);
-      if (!latestSession.session.ended) {
-        message.info('Feedback is only available after the latest session ends.');
-        return;
-      }
-      if (latestSession.status !== 'Present') {
-        message.info('You must mark attendance for the latest session to provide feedback.');
-        return;
-      }
-      const feedbackSubmitted = await checkFeedbackStatus(latestSession.session._id);
-      if (feedbackSubmitted) {
-        message.info('Feedback already submitted for the latest session.');
-        return;
-      }
-      setActiveSessionId(latestSession.session._id);
-      setFeedbackModalVisible(true);
+      message.error('Failed to fetch session status.');
     }
   };
 
@@ -614,7 +668,7 @@ const StudentDashboard = () => {
         resources: feedbackData.resources || '',
         anonymous: feedbackData.anonymous,
       });
-      message.success('Feedback submitted!');
+      message.success('Feedback submitted successfully!');
       setFeedbackModalVisible(false);
       setFeedbackData({ rating: 0, text: '', pace: 0, interactivity: 0, clarity: null, resources: '', anonymous: false });
       setAttendanceData((prev) => ({
@@ -623,7 +677,14 @@ const StudentDashboard = () => {
           rec.session._id === activeSessionId ? { ...rec, feedbackSubmitted: true } : rec
         ),
       }));
-      setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== activeSessionId));
+      // Auto-dismiss the notification after successful submission
+      setPendingFeedbacks((prev) => {
+        const updatedFeedbacks = prev.filter((pf) => pf.sessionId !== activeSessionId);
+        if (prev.length > updatedFeedbacks.length) {
+          message.info(`Notification for session ${activeSessionId} dismissed after feedback submission.`);
+        }
+        return updatedFeedbacks;
+      });
       await fetchAllData();
     } catch (error) {
       console.error('Feedback submission failed:', error);
@@ -646,7 +707,6 @@ const StudentDashboard = () => {
       }
     } catch (err) {
       console.error('Error checking active session:', err);
-      // Handle 404 specifically or fallback to a generic message without exposing status code
       const errorMessage = err.response?.status === 404
         ? "No active session is currently available for this unit."
         : "Unable to check for an active session at this time.";
@@ -752,7 +812,6 @@ const StudentDashboard = () => {
           }}
         >
           <Spin spinning={loading} tip="Loading data...">
-            {/* Summary Cards */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               <Col xs={24} sm={12}>
                 <Card
@@ -782,7 +841,6 @@ const StudentDashboard = () => {
               </Col>
             </Row>
 
-            {/* My Units */}
             <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 16 }}>My Units</AntTitle>
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               {units.map((unit) => unit._id ? (
@@ -835,7 +893,6 @@ const StudentDashboard = () => {
               ) : null)}
             </Row>
 
-            {/* Notifications and Attendance Events Side-by-Side */}
             <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
               <Col xs={24} md={12}>
                 {renderNotifications()}
@@ -845,7 +902,6 @@ const StudentDashboard = () => {
               </Col>
             </Row>
 
-            {/* Attendance Overview */}
             <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 16 }}>Attendance Overview</AntTitle>
             <Card style={{ borderRadius: 10, marginBottom: 64 }}>
               <div style={{ height: '400px' }}>
@@ -854,7 +910,6 @@ const StudentDashboard = () => {
               <Button type="primary" style={{ marginTop: 16, display: 'block', marginLeft: 'auto', marginRight: 'auto' }} onClick={exportAttendanceData}>Export Data</Button>
             </Card>
 
-            {/* Modals */}
             <Modal open={!!selectedUnit} title={selectedUnit?.name} onCancel={() => setSelectedUnit(null)} footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>} centered width={Math.min(window.innerWidth * 0.9, 500)}>
               {selectedUnit && (
                 <Space direction="vertical">
