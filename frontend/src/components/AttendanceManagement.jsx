@@ -24,6 +24,7 @@ const AttendanceManagement = () => {
     return session;
   });
   const [departments, setDepartments] = useState([]);
+  const [courses, setCourses] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
     units: true,
@@ -51,8 +52,27 @@ const AttendanceManagement = () => {
   const [pastFilters, setPastFilters] = useState({
     unit: null,
     date: moment().format('YYYY-MM-DD'),
-    sessionId: null
+    sessionId: null,
+    year: null,
+    semester: null,
+    course: null
   });
+
+  // Fetch courses using the correct /api/courses/ endpoint
+  useEffect(() => {
+    const fetchCourses = async () => {
+      try {
+        const response = await axios.get('https://attendance-system-w70n.onrender.com/api/courses/', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        });
+        setCourses(response.data);
+      } catch (error) {
+        console.error('Error fetching courses:', error);
+        message.error('Failed to fetch courses');
+      }
+    };
+    if (courses.length === 0) fetchCourses();
+  }, [courses]);
 
   useEffect(() => {
     if (currentSession) {
@@ -271,14 +291,15 @@ const AttendanceManagement = () => {
   const fetchPastSessions = useCallback(async () => {
     try {
       setLoading(prev => ({ ...prev, pastAttendance: true }));
-      const params = {};
-      if (pastFilters.unit) params.unitId = pastFilters.unit;
-      if (pastFilters.date) {
-        const date = new Date(pastFilters.date);
-        params.startDate = date.toISOString().split('T')[0];
-        params.endDate = new Date(date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
-      }
-      if (pastFilters.sessionId) params.sessionId = pastFilters.sessionId;
+      const params = {
+        unitId: pastFilters.unit,
+        startDate: pastFilters.date ? new Date(pastFilters.date).toISOString().split('T')[0] : null,
+        endDate: pastFilters.date ? new Date(new Date(pastFilters.date).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null,
+        sessionId: pastFilters.sessionId,
+        year: pastFilters.year,
+        semester: pastFilters.semester,
+        course: pastFilters.course
+      };
 
       const response = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/attendance/past-lecturer`,
@@ -287,15 +308,10 @@ const AttendanceManagement = () => {
           params
         }
       );
-      const sessions = response.data.map(session => {
-        if (!session.unitName) {
-          console.warn(`Missing unitName for session ${session.sessionId}`);
-        }
-        return {
-          ...session,
-          unitName: session.unitName || 'Unknown Unit' // Rely on backend-provided unitName
-        };
-      });
+      const sessions = response.data.map(session => ({
+        ...session,
+        unitName: session.unitName || (units.find(u => u._id.toString() === session.unit.toString())?.name) || 'Unknown Unit'
+      }));
       console.log('Past sessions fetched:', sessions);
       setPastSessions(sessions);
       
@@ -324,27 +340,26 @@ const AttendanceManagement = () => {
     } finally {
       setLoading(prev => ({ ...prev, pastAttendance: false }));
     }
-  }, [pastFilters]);
+  }, [pastFilters, units]);
 
   useEffect(() => {
-    console.log('Past sessions useEffect triggered');
     if (lecturerId) fetchPastSessions();
   }, [lecturerId, pastFilters]);
 
   const filterOptions = useMemo(() => {
     const departments = new Set();
-    const courses = new Set();
+    const coursesSet = new Set();
     const years = new Set();
     const semesters = new Set();
     units.forEach(unit => {
       if (unit.department?.name) departments.add(unit.department.name);
-      if (unit.course?.name) courses.add(unit.course.name);
+      if (unit.course?.name) coursesSet.add(unit.course.name);
       if (unit.year) years.add(unit.year);
       if (unit.semester) semesters.add(unit.semester);
     });
     return {
       departments: Array.from(departments).sort(),
-      courses: Array.from(courses).sort(),
+      courses: Array.from(coursesSet).sort(),
       years: Array.from(years).sort((a, b) => a - b),
       semesters: Array.from(semesters).sort((a, b) => a - b)
     };
@@ -551,7 +566,7 @@ const AttendanceManagement = () => {
       title: 'Scan Time', 
       dataIndex: 'attendedAt', 
       key: 'attendedAt', 
-      render: attendedAt => attendedAt ? <Tag color="purple">{new Date(attendedAt).toLocaleTimeString()}</Tag> : 'N/A', 
+      render: attendedAt => attendedAt ? <Tag color="purple">{new Date(attendedAt).toLocaleTimeString()}</Tag> : 'N/A', // Fixed typo
       sorter: (a, b) => new Date(a.attendedAt || 0) - new Date(b.attendedAt || 0) 
     },
     { 
@@ -584,7 +599,7 @@ const AttendanceManagement = () => {
       title: 'Scan Time', 
       dataIndex: 'attendedAt', 
       key: 'attendedAt', 
-      render: attendedAt => attendedAt ? <Tag color="purple">{new Date(attendedAt).toLocaleTimeString()}</Tag> : 'N/A', 
+      render: attendedAt => attendedAt ? <Tag color="purple">{new Date(attendedAt).toLocaleTimeString()}</Tag> : 'N/A',
       sorter: (a, b) => new Date(a.attendedAt || 0) - new Date(b.attendedAt || 0) 
     },
     { 
@@ -635,6 +650,7 @@ const AttendanceManagement = () => {
   const clearFilters = () => {
     setUnitFilters({ department: null, course: null, year: null, semester: null });
     setFilters({ search: '', year: null, semester: null, status: null });
+    setPastFilters({ unit: null, date: moment().format('YYYY-MM-DD'), sessionId: null, year: null, semester: null, course: null });
   };
 
   const SessionTimer = ({ end }) => {
@@ -848,6 +864,39 @@ const AttendanceManagement = () => {
                       {`${session.unitName} - ${moment(session.startTime).format('hh:mm A')} - ${moment(session.endTime).format('hh:mm A')} (${moment(session.startTime).format('DD/MM/YYYY')})`}
                     </Option>
                   ))}
+              </Select>
+              <Select
+                placeholder="Select Year"
+                style={{ width: 120 }}
+                onChange={value => setPastFilters(prev => ({ ...prev, year: value, sessionId: null }))}
+                allowClear
+                value={pastFilters.year}
+              >
+                {[1, 2, 3, 4].map(year => (
+                  <Option key={year} value={year}>Year {year}</Option>
+                ))}
+              </Select>
+              <Select
+                placeholder="Select Semester"
+                style={{ width: 140 }}
+                onChange={value => setPastFilters(prev => ({ ...prev, semester: value, sessionId: null }))}
+                allowClear
+                value={pastFilters.semester}
+              >
+                {[1, 2, 3].map(sem => (
+                  <Option key={sem} value={sem}>Sem {sem}</Option>
+                ))}
+              </Select>
+              <Select
+                placeholder="Select Course"
+                style={{ width: 180 }}
+                onChange={value => setPastFilters(prev => ({ ...prev, course: value, sessionId: null }))}
+                allowClear
+                value={pastFilters.course}
+              >
+                {courses.map(course => (
+                  <Option key={course._id} value={course._id}>{course.name}</Option>
+                ))}
               </Select>
             </Space>
             <Skeleton active loading={loading.pastAttendance}>
