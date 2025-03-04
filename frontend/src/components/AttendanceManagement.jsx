@@ -4,7 +4,7 @@ import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, Calen
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
-import moment from 'moment'; // Added for date handling
+import moment from 'moment';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -50,10 +50,9 @@ const AttendanceManagement = () => {
   const [pastFilters, setPastFilters] = useState({
     unit: null,
     date: moment().format('YYYY-MM-DD'), // Default to today
-    sessionId: null // Will set to latest session after fetch
+    sessionId: null
   });
 
-  // Unchanged useEffects
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem('currentSession', JSON.stringify(currentSession));
@@ -240,7 +239,7 @@ const AttendanceManagement = () => {
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
-      setLoading(prev => ({ ...prev, attendance: true, stats: true }));
+      setLoading(prev => ({ ...prev, attendance: true }));
       const response = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/attendance/realtime-lecturer/${currentSession._id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
@@ -255,7 +254,7 @@ const AttendanceManagement = () => {
       }
       setAttendance([]);
     } finally {
-      setLoading(prev => ({ ...prev, attendance: false, stats: false }));
+      setLoading(prev => ({ ...prev, attendance: false }));
     }
   }, [selectedUnit, currentSession]);
 
@@ -263,7 +262,7 @@ const AttendanceManagement = () => {
     let intervalId;
     if (currentSession && selectedUnit && !currentSession.ended) {
       handleViewAttendance();
-      intervalId = setInterval(handleViewAttendance, 10000); // Poll every 10 seconds
+      intervalId = setInterval(handleViewAttendance, 10000);
     }
     return () => clearInterval(intervalId);
   }, [currentSession, selectedUnit, handleViewAttendance]);
@@ -278,7 +277,6 @@ const AttendanceManagement = () => {
         params.startDate = date.toISOString().split('T')[0];
         params.endDate = new Date(date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       }
-      if (pastFilters.sessionId) params.sessionId = pastFilters.sessionId;
 
       const response = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/attendance/past-lecturer`,
@@ -289,13 +287,20 @@ const AttendanceManagement = () => {
       );
       const sessions = response.data;
       setPastSessions(sessions);
-      if (!pastFilters.sessionId && sessions.length > 0) {
-        // Set to latest session by default
-        const latestSession = sessions.reduce((latest, current) =>
-          new Date(current.endTime) > new Date(latest.endTime) ? current : latest
+      
+      if (sessions.length > 0 && !pastFilters.sessionId) {
+        const sessionsForDate = sessions.filter(session => 
+          moment(session.startTime).format('YYYY-MM-DD') === pastFilters.date
         );
-        setPastFilters(prev => ({ ...prev, sessionId: latestSession.sessionId }));
-        setPastAttendance(latestSession.attendance);
+        if (sessionsForDate.length > 0) {
+          const latestSession = sessionsForDate.reduce((latest, current) =>
+            new Date(current.endTime) > new Date(latest.endTime) ? current : latest
+          );
+          setPastFilters(prev => ({ ...prev, sessionId: latestSession.sessionId }));
+          setPastAttendance(latestSession.attendance);
+        } else {
+          setPastAttendance([]);
+        }
       } else if (pastFilters.sessionId) {
         const session = sessions.find(s => s.sessionId === pastFilters.sessionId);
         setPastAttendance(session ? session.attendance : []);
@@ -500,6 +505,32 @@ const AttendanceManagement = () => {
     });
   };
 
+  const fetchAbsentStudents = async () => {
+    if (!selectedUnit || !currentSession || currentSession.ended) return;
+    try {
+      setLoading(prev => ({ ...prev, attendance: true }));
+      const unit = units.find(u => u._id === selectedUnit);
+      if (!unit) throw new Error('Unit not found');
+      const enrolledStudents = unit.studentsEnrolled || [];
+      const presentIds = new Set(attendance.map(a => a.student._id.toString()));
+      const absentStudents = enrolledStudents.filter(id => !presentIds.has(id.toString()));
+
+      const response = await axios.get(
+        `https://attendance-system-w70n.onrender.com/api/attendance/realtime-lecturer/${currentSession._id}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      const allAttendance = response.data;
+      const absentRecords = allAttendance.filter(a => absentStudents.includes(a.student._id.toString()) || a.status === 'Absent');
+      setAttendance(absentRecords);
+      message.success('Showing absent students');
+    } catch (error) {
+      console.error("Error fetching absent students:", error);
+      message.error('Failed to fetch absent students');
+    } finally {
+      setLoading(prev => ({ ...prev, attendance: false }));
+    }
+  };
+
   const realTimeColumns = [
     { title: 'Reg Number', dataIndex: ['student', 'regNo'], key: 'regNo', sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo) },
     { title: 'First Name', dataIndex: ['student', 'firstName'], key: 'firstName', sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName) },
@@ -516,8 +547,11 @@ const AttendanceManagement = () => {
       dataIndex: 'status', 
       key: 'status', 
       render: status => <Tag color={status === 'Present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, 
-      filters: [{ text: 'Present', value: 'Present' }, { text: 'Absent', value: 'Absent' }], 
-      onFilter: (value, record) => record.status === value 
+      filters: [
+        { text: 'Present', value: 'Present' },
+        { text: 'Absent/Not Scanned', value: 'Absent', onFilter: () => fetchAbsentStudents() }
+      ],
+      onFilter: (value, record) => value === 'Present' ? record.status === 'Present' : false
     },
     { 
       title: 'Action', 
@@ -549,26 +583,26 @@ const AttendanceManagement = () => {
       filters: [{ text: 'Present', value: 'Present' }, { text: 'Absent', value: 'Absent' }], 
       onFilter: (value, record) => record.status === value 
     }
-    // No Action column for past sessions
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
-  const { attendanceRate, totalEnrolledStudents } = useMemo(() => {
-    if (!currentSession || !selectedUnit) return { attendanceRate: 0, totalEnrolledStudents: 0 };
+  const enrolledStudents = useMemo(() => {
+    if (!selectedUnit) return 0;
     const unit = units.find(u => u._id === selectedUnit);
-    const totalEnrolled = unit?.studentsEnrolled?.length || 1;
+    return unit?.studentsEnrolled?.length || 0;
+  }, [units, selectedUnit]);
+  const totalScans = useMemo(() => attendance.length, [attendance]);
+  const attendanceRate = useMemo(() => {
     const presentCount = attendance.filter(a => a.status === 'Present').length;
-    return {
-      attendanceRate: totalEnrolled > 0 ? Number(((presentCount / totalEnrolled) * 100).toFixed(1)) : 0,
-      totalEnrolledStudents: totalEnrolled
-    };
-  }, [attendance, units, selectedUnit, currentSession]);
+    return enrolledStudents > 0 ? Number(((presentCount / enrolledStudents) * 100).toFixed(1)) : 0;
+  }, [attendance, enrolledStudents]);
 
   const summaryCards = (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Assigned Units" value={totalAssignedUnits} prefix={<TeamOutlined />} loading={loading.stats} /></Card></Col>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.stats} /></Card></Col>
-      <Col xs={24} sm={12} md={8}><Card><Statistic title="Total Enrolled Students" value={totalEnrolledStudents} prefix={<ScheduleOutlined />} loading={loading.stats} /></Card></Col>
+      <Col xs={24} sm={12} md={6}><Card><Statistic title="Assigned Units" value={totalAssignedUnits} prefix={<TeamOutlined />} loading={loading.units} /></Card></Col>
+      <Col xs={24} sm={12} md={6}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.attendance} /></Card></Col>
+      <Col xs={24} sm={12} md={6}><Card><Statistic title="Total Enrolled Students" value={enrolledStudents} prefix={<ScheduleOutlined />} loading={loading.units} /></Card></Col>
+      <Col xs={24} sm={12} md={6}><Card><Statistic title="Total Scans" value={totalScans} prefix={<ScheduleOutlined />} loading={loading.attendance} /></Card></Col>
     </Row>
   );
 
@@ -773,7 +807,7 @@ const AttendanceManagement = () => {
               <Select
                 placeholder="Select Unit"
                 style={{ width: 240 }}
-                onChange={value => setPastFilters(prev => ({ ...prev, unit: value, sessionId: null }))} // Reset sessionId on unit change
+                onChange={value => setPastFilters(prev => ({ ...prev, unit: value, sessionId: null }))}
                 allowClear
                 value={pastFilters.unit}
               >
@@ -782,24 +816,26 @@ const AttendanceManagement = () => {
                 ))}
               </Select>
               <DatePicker
-                defaultValue={moment()} // Default to today
+                defaultValue={moment()}
                 placeholder="Select Date"
                 style={{ width: 150 }}
-                onChange={(_, dateString) => setPastFilters(prev => ({ ...prev, date: dateString, sessionId: null }))} // Reset sessionId on date change
+                onChange={(_, dateString) => setPastFilters(prev => ({ ...prev, date: dateString, sessionId: null }))}
                 allowClear
               />
               <Select
                 placeholder="Select Session"
-                style={{ width: 200 }}
+                style={{ width: 300 }} // Increased width for full visibility
                 onChange={value => setPastFilters(prev => ({ ...prev, sessionId: value }))}
                 allowClear
                 value={pastFilters.sessionId}
               >
-                {pastSessions.map(session => (
-                  <Option key={session.sessionId} value={session.sessionId}>
-                    {session.unitName} - {new Date(session.startTime).toLocaleDateString()}
-                  </Option>
-                ))}
+                {pastSessions
+                  .filter(session => moment(session.startTime).format('YYYY-MM-DD') === pastFilters.date)
+                  .map(session => (
+                    <Option key={session.sessionId} value={session.sessionId}>
+                      {`${session.unitName} - ${moment(session.startTime).format('hh:mm A')} - ${moment(session.endTime).format('hh:mm A')} (${moment(session.startTime).format('DD/MM/YYYY')})`}
+                    </Option>
+                  ))}
               </Select>
             </Space>
             <Skeleton active loading={loading.attendance}>
