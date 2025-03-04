@@ -759,7 +759,7 @@ exports.getLecturerRealTimeAttendance = async (req, res) => {
 exports.getLecturerPastAttendance = async (req, res) => {
   try {
     const lecturerId = req.user.userId; // From authenticated middleware
-    const { unitId, startDate, endDate, sessionId } = req.query;
+    const { unitId, startDate, endDate, sessionId, year, semester, course } = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(lecturerId)) {
       return res.status(400).json({ message: "Invalid lecturer ID format" });
@@ -786,7 +786,7 @@ exports.getLecturerPastAttendance = async (req, res) => {
       sessionQuery._id = sessionId;
     }
     const sessions = await Session.find(sessionQuery)
-      .populate('unit', 'name') // Populate unit to get name
+      .populate('unit', 'name')
       .select('_id unit startTime endTime');
     const sessionIds = sessions.map(session => session._id);
 
@@ -794,8 +794,20 @@ exports.getLecturerPastAttendance = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // Fetch attendance records
-    const attendanceRecords = await Attendance.find({ session: { $in: sessionIds } })
+    // Fetch attendance records with student filters
+    const attendanceQuery = { session: { $in: sessionIds } };
+    const userQuery = { role: 'student' };
+    if (year) userQuery.year = Number(year);
+    if (semester) userQuery.semester = Number(semester);
+    if (course && mongoose.Types.ObjectId.isValid(course)) userQuery.course = course;
+
+    const students = await User.find(userQuery).select('_id');
+    const studentIds = students.map(student => student._id);
+    if (studentIds.length > 0) {
+      attendanceQuery.student = { $in: studentIds };
+    }
+
+    const attendanceRecords = await Attendance.find(attendanceQuery)
       .populate({
         path: 'student',
         select: 'regNo firstName lastName course year semester',
@@ -811,8 +823,8 @@ exports.getLecturerPastAttendance = async (req, res) => {
     // Structure response with session details
     const response = sessions.map(session => ({
       sessionId: session._id,
-      unitName: session.unit.name, // Now correctly populated
-      unit: session.unit._id, // Include unit ID for frontend fallback
+      unitName: session.unit.name,
+      unit: session.unit._id,
       startTime: session.startTime,
       endTime: session.endTime,
       attendance: attendanceRecords.filter(record => record.session._id.toString() === session._id.toString())
