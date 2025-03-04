@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col } from 'antd';
+import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, DatePicker } from 'antd';
 import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
@@ -44,7 +44,11 @@ const AttendanceManagement = () => {
     year: null,
     semester: null
   });
+  const [pastSessions, setPastSessions] = useState([]);
+  const [pastAttendance, setPastAttendance] = useState([]);
+  const [pastFilters, setPastFilters] = useState({ unit: null, date: null, sessionId: null });
 
+  // Unchanged useEffects
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem('currentSession', JSON.stringify(currentSession));
@@ -232,10 +236,13 @@ const AttendanceManagement = () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
       setLoading(prev => ({ ...prev, attendance: true, stats: true }));
-      const data = await getSessionAttendance(currentSession._id);
-      setAttendance(data);
+      const response = await axios.get(
+        `https://attendance-system-w70n.onrender.com/api/attendance/realtime-lecturer/${currentSession._id}`,
+        { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
+      );
+      setAttendance(response.data);
     } catch (error) {
-      console.error("Error fetching attendance:", error);
+      console.error("Error fetching real-time attendance:", error);
       if (error.response?.status === 429) {
         message.warning('Too many requests to fetch attendance data. Please try again later.');
       } else {
@@ -248,10 +255,51 @@ const AttendanceManagement = () => {
   }, [selectedUnit, currentSession]);
 
   useEffect(() => {
+    let intervalId;
     if (currentSession && selectedUnit && !currentSession.ended) {
       handleViewAttendance();
+      intervalId = setInterval(handleViewAttendance, 10000); // Poll every 10 seconds
     }
+    return () => clearInterval(intervalId);
   }, [currentSession, selectedUnit, handleViewAttendance]);
+
+  const fetchPastSessions = useCallback(async () => {
+    try {
+      setLoading(prev => ({ ...prev, attendance: true }));
+      const params = {};
+      if (pastFilters.unit) params.unitId = pastFilters.unit;
+      if (pastFilters.date) {
+        const date = new Date(pastFilters.date);
+        params.startDate = date.toISOString().split('T')[0];
+        params.endDate = new Date(date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+      }
+      if (pastFilters.sessionId) params.sessionId = pastFilters.sessionId;
+
+      const response = await axios.get(
+        `https://attendance-system-w70n.onrender.com/api/attendance/past-lecturer`,
+        {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
+          params
+        }
+      );
+      setPastSessions(response.data);
+      if (pastFilters.sessionId) {
+        const session = response.data.find(s => s.sessionId === pastFilters.sessionId);
+        setPastAttendance(session ? session.attendance : []);
+      } else {
+        setPastAttendance([]);
+      }
+    } catch (error) {
+      console.error('Error fetching past sessions:', error);
+      message.error('Failed to fetch past sessions');
+    } finally {
+      setLoading(prev => ({ ...prev, attendance: false }));
+    }
+  }, [pastFilters]);
+
+  useEffect(() => {
+    if (lecturerId) fetchPastSessions();
+  }, [lecturerId, pastFilters]);
 
   const filterOptions = useMemo(() => {
     const departments = new Set();
@@ -281,21 +329,6 @@ const AttendanceManagement = () => {
       return departmentMatch && courseMatch && yearMatch && semesterMatch;
     });
   }, [units, unitFilters]);
-
-  const processedAttendance = useMemo(() => {
-    if (!selectedUnit || !Array.isArray(attendance)) return [];
-    return attendance.filter(a => a.unit === selectedUnit);
-  }, [attendance, selectedUnit]);
-
-  const filteredAttendance = useMemo(() => {
-    return processedAttendance.filter(record => {
-      const searchMatch = record.regNo.toLowerCase().includes(filters.search.toLowerCase());
-      const yearMatch = filters.year ? record.year === filters.year : true;
-      const semesterMatch = filters.semester ? record.semester === filters.semester : true;
-      const statusMatch = filters.status ? record.status === filters.status : true;
-      return searchMatch && yearMatch && semesterMatch && statusMatch;
-    });
-  }, [processedAttendance, filters]);
 
   const handleDepartmentChange = (value) => {
     setUnitFilters(prevState => ({ ...prevState, department: value }));
@@ -380,21 +413,20 @@ const AttendanceManagement = () => {
         onOk: async () => {
           try {
             if (!currentSession?._id) throw new Error('Invalid session ID');
-            console.log('Ending session with ID:', currentSession._id); // Debug
+            console.log('Ending session with ID:', currentSession._id);
             const response = await axios.post(
               'https://attendance-system-w70n.onrender.com/api/sessions/end',
               { sessionId: currentSession._id },
               { headers: { 'Authorization': `Bearer ${token}` } }
             );
-            console.log('Session end response:', response.data); // Debug
+            console.log('Session end response:', response.data);
             if (response.data.session.ended) {
               message.success('Session ended successfully');
               setCurrentSession(null);
               setQrData('');
-              setAttendance([]); // Clear attendance display
+              setAttendance([]);
               localStorage.removeItem('currentSession');
-              setSelectedUnit(null); // Reset unit selection
-              // Refresh session data to ensure absentees are reflected
+              setSelectedUnit(null);
               await checkCurrentSession();
             } else {
               throw new Error('Session not marked as ended');
@@ -424,9 +456,9 @@ const AttendanceManagement = () => {
   };
 
   const handleToggleStatus = async (recordId) => {
-    const record = processedAttendance.find(r => r._id === recordId);
+    const record = attendance.find(r => r._id === recordId) || pastAttendance.find(r => r._id === recordId);
     if (!record) return;
-    const newStatus = record.status === 'present' ? 'absent' : 'present';
+    const newStatus = record.status === 'Present' ? 'Absent' : 'Present';
     try {
       const token = localStorage.getItem('token');
       await axios.put(
@@ -434,7 +466,8 @@ const AttendanceManagement = () => {
         { status: newStatus },
         { headers: { Authorization: `Bearer ${token}` } }
       );
-      setAttendance(prevState => prevState.map(a => a._id === recordId && a.unit === selectedUnit ? { ...a, status: newStatus } : a));
+      setAttendance(prevState => prevState.map(a => a._id === recordId ? { ...a, status: newStatus } : a));
+      setPastAttendance(prevState => prevState.map(a => a._id === recordId ? { ...a, status: newStatus } : a));
       message.success(`Marked student as ${newStatus}`);
     } catch (error) {
       console.error("Error updating status:", error);
@@ -447,21 +480,38 @@ const AttendanceManagement = () => {
   };
 
   const columns = [
-    { title: 'Reg Number', dataIndex: 'regNo', key: 'regNo', sorter: (a, b) => a.regNo.localeCompare(b.regNo) },
-    { title: 'Course', dataIndex: 'course', key: 'course', sorter: (a, b) => a.course.localeCompare(b.course) },
-    { title: 'Year', dataIndex: 'year', key: 'year', render: year => <Tag color="blue">Year {year}</Tag>, sorter: (a, b) => a.year - b.year },
-    { title: 'Semester', dataIndex: 'semester', key: 'semester', render: semester => <Tag color="geekblue">Semester {semester}</Tag>, sorter: (a, b) => a.semester - b.semester },
-    { title: 'Status', dataIndex: 'status', key: 'status', render: status => <Tag color={status === 'present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, filters: [{ text: 'Present', value: 'present' }, { text: 'Absent', value: 'absent' }], onFilter: (value, record) => record.status === value },
-    { title: 'Action', key: 'action', render: (_, record) => (
-      <Button type="link" onClick={() => handleToggleStatus(record._id)} icon={<SyncOutlined />} disabled={currentSession?.ended}>
-        Toggle Status
-      </Button>
-    )}
+    { title: 'Reg Number', dataIndex: ['student', 'regNo'], key: 'regNo', sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo) },
+    { title: 'First Name', dataIndex: ['student', 'firstName'], key: 'firstName', sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName) },
+    { title: 'Last Name', dataIndex: ['student', 'lastName'], key: 'lastName', sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName) },
+    { 
+      title: 'Scan Time', 
+      dataIndex: 'attendedAt', 
+      key: 'attendedAt', 
+      render: attendedAt => attendedAt ? <Tag color="purple">{new Date(attendedAt).toLocaleTimeString()}</Tag> : 'N/A', 
+      sorter: (a, b) => new Date(a.attendedAt || 0) - new Date(b.attendedAt || 0) 
+    },
+    { 
+      title: 'Status', 
+      dataIndex: 'status', 
+      key: 'status', 
+      render: status => <Tag color={status === 'Present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, 
+      filters: [{ text: 'Present', value: 'Present' }, { text: 'Absent', value: 'Absent' }], 
+      onFilter: (value, record) => record.status === value 
+    },
+    { 
+      title: 'Action', 
+      key: 'action', 
+      render: (_, record) => (
+        <Button type="link" onClick={() => handleToggleStatus(record._id)} icon={<SyncOutlined />} disabled={currentSession?.ended}>
+          Toggle Status
+        </Button>
+      )
+    }
   ];
 
   const totalAssignedUnits = useMemo(() => units.length, [units]);
   const { attendanceRate, totalEnrolledStudents } = useMemo(() => {
-    const presentCount = attendance.filter(a => a.status === 'present').length;
+    const presentCount = attendance.filter(a => a.status === 'Present').length;
     const totalStudents = attendance.length || 1;
     return {
       attendanceRate: totalStudents > 0 ? Number(((presentCount / totalStudents) * 100).toFixed(1)) : 0,
@@ -577,7 +627,7 @@ const AttendanceManagement = () => {
       >
         <Space direction="vertical" style={{ width: '100%' }} size="middle">
           <Card
-            title="Real-time Unit Filters"
+            title="Real-time Unit Attendance"
             size="small"
             extra={<Button type="link" onClick={clearFilters} disabled={!Object.values(unitFilters).some(Boolean)}>Clear Filters</Button>}
           >
@@ -627,106 +677,98 @@ const AttendanceManagement = () => {
                 ))}
               </Select>
             </Space>
+            <Space wrap style={{ marginTop: 16 }}>
+              <Select
+                placeholder="Select Unit"
+                style={{ width: 240 }}
+                onChange={setSelectedUnit}
+                value={selectedUnit}
+                loading={loading.units}
+              >
+                {filteredUnits.map(unit => (
+                  <Option key={unit._id} value={unit._id}>
+                    <Space>
+                      <BookOutlined />
+                      {unit.name}
+                      <Tag color="blue">{unit.code}</Tag>
+                    </Space>
+                  </Option>
+                ))}
+              </Select>
+              <Button
+                onClick={handleViewAttendance}
+                loading={loading.attendance}
+                disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                type="primary"
+              >
+                Refresh Attendance Data
+              </Button>
+            </Space>
+            <Skeleton active loading={loading.attendance}>
+              <Table
+                columns={columns}
+                dataSource={attendance}
+                rowKey="_id"
+                scroll={{ x: true }}
+                pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
+                locale={{ emptyText: 'No active session attendance records found' }}
+                bordered
+                size="middle"
+              />
+            </Skeleton>
           </Card>
-          <Space wrap>
-            <Select
-              placeholder="Select Unit"
-              style={{ width: 240 }}
-              onChange={setSelectedUnit}
-              value={selectedUnit}
-              loading={loading.units}
-            >
-              {filteredUnits.map(unit => (
-                <Option key={unit._id} value={unit._id}>
-                  <Space>
-                    <BookOutlined />
-                    {unit.name}
-                    <Tag color="blue">{unit.code}</Tag>
-                  </Space>
-                </Option>
-              ))}
-            </Select>
-            <Button
-              onClick={handleViewAttendance}
-              loading={loading.attendance}
-              disabled={!selectedUnit || !currentSession || currentSession?.ended}
-              type="primary"
-            >
-              Refresh Attendance Data
-            </Button>
-          </Space>
 
           {summaryCards}
 
           <Card 
-            title={
-              <Space>
-                Attendance Records Filter
-                {currentSession && !currentSession.ended && (
-                  <Tag color="green">Active Session</Tag>
-                )}
-              </Space>
-            }
+            title={<Space>Attendance Records for Past Sessions</Space>}
             size="small"
           >
             <Space wrap style={{ width: '100%' }}>
-              <Input
-                placeholder="Search by Reg Number"
-                prefix={<SearchOutlined />}
+              <Select
+                placeholder="Select Unit"
                 style={{ width: 240 }}
-                onChange={e => setFilters(prev => ({ ...prev, search: e.target.value }))}
+                onChange={value => setPastFilters(prev => ({ ...prev, unit: value }))}
+                allowClear
+                value={pastFilters.unit}
+              >
+                {units.map(unit => (
+                  <Option key={unit._id} value={unit._id}>{unit.name}</Option>
+                ))}
+              </Select>
+              <DatePicker
+                placeholder="Select Date"
+                style={{ width: 150 }}
+                onChange={(_, dateString) => setPastFilters(prev => ({ ...prev, date: dateString }))}
                 allowClear
               />
               <Select
-                placeholder="Filter by Year"
+                placeholder="Select Session"
+                style={{ width: 200 }}
+                onChange={value => setPastFilters(prev => ({ ...prev, sessionId: value }))}
                 allowClear
-                suffixIcon={<CalendarOutlined />}
-                style={{ width: 150 }}
-                onChange={year => setFilters(prev => ({ ...prev, year }))}
-                value={filters.year}
+                value={pastFilters.sessionId}
               >
-                {[1, 2, 3, 4].map(year => (
-                  <Option key={year} value={year}>Year {year}</Option>
+                {pastSessions.map(session => (
+                  <Option key={session.sessionId} value={session.sessionId}>
+                    {session.unitName} - {new Date(session.startTime).toLocaleDateString()}
+                  </Option>
                 ))}
-              </Select>
-              <Select
-                placeholder="Filter by Semester"
-                allowClear
-                suffixIcon={<BookOutlined />}
-                style={{ width: 170 }}
-                onChange={semester => setFilters(prev => ({ ...prev, semester }))}
-                value={filters.semester}
-              >
-                {[1, 2, 3].map(sem => (
-                  <Option key={sem} value={sem}>Semester {sem}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Filter by Status"
-                allowClear
-                suffixIcon={<FilterOutlined />}
-                style={{ width: 150 }}
-                onChange={status => setFilters(prev => ({ ...prev, status }))}
-                value={filters.status}
-              >
-                <Option value="present">Present</Option>
-                <Option value="absent">Absent</Option>
               </Select>
             </Space>
+            <Skeleton active loading={loading.attendance}>
+              <Table
+                columns={columns}
+                dataSource={pastAttendance}
+                rowKey="_id"
+                scroll={{ x: true }}
+                pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
+                locale={{ emptyText: 'No past attendance records found' }}
+                bordered
+                size="middle"
+              />
+            </Skeleton>
           </Card>
-
-          <Skeleton active loading={loading.attendance}>
-            <Table
-              columns={columns}
-              dataSource={filteredAttendance}
-              rowKey="_id"
-              scroll={{ x: true }}
-              pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: total => `Total ${total} students` }}
-              locale={{ emptyText: 'No attendance records found' }}
-              bordered
-              size="middle"
-            />
-          </Skeleton>
         </Space>
       </Card>
 
