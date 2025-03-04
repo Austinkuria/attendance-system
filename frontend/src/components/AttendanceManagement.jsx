@@ -287,11 +287,16 @@ const AttendanceManagement = () => {
           params
         }
       );
-      const sessions = response.data.map(session => ({
-        ...session,
-        unitName: session.unitName || (units.find(u => u._id.toString() === session.unit.toString())?.name) || 'Unknown Unit'
-      }));
-      console.log('Past sessions fetched:', sessions); // Debug log
+      const sessions = response.data.map(session => {
+        if (!session.unitName) {
+          console.warn(`Missing unitName for session ${session.sessionId}`);
+        }
+        return {
+          ...session,
+          unitName: session.unitName || 'Unknown Unit' // Rely on backend-provided unitName
+        };
+      });
+      console.log('Past sessions fetched:', sessions);
       setPastSessions(sessions);
       
       if (!pastFilters.sessionId && sessions.length > 0) {
@@ -319,9 +324,10 @@ const AttendanceManagement = () => {
     } finally {
       setLoading(prev => ({ ...prev, pastAttendance: false }));
     }
-  }, [pastFilters, units]);
+  }, [pastFilters]);
 
   useEffect(() => {
+    console.log('Past sessions useEffect triggered');
     if (lecturerId) fetchPastSessions();
   }, [lecturerId, pastFilters]);
 

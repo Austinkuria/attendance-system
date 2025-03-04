@@ -756,7 +756,6 @@ exports.getLecturerRealTimeAttendance = async (req, res) => {
   }
 };
 
-// New endpoint for past session attendance
 exports.getLecturerPastAttendance = async (req, res) => {
   try {
     const lecturerId = req.user.userId; // From authenticated middleware
@@ -778,7 +777,7 @@ exports.getLecturerPastAttendance = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // Fetch sessions
+    // Fetch sessions with populated unit
     const sessionQuery = { unit: { $in: unitIds }, ended: true }; // Only past (ended) sessions
     if (startDate && endDate) {
       sessionQuery.startTime = { $gte: new Date(startDate), $lte: new Date(endDate) };
@@ -786,7 +785,9 @@ exports.getLecturerPastAttendance = async (req, res) => {
     if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
       sessionQuery._id = sessionId;
     }
-    const sessions = await Session.find(sessionQuery).select('_id unit startTime endTime');
+    const sessions = await Session.find(sessionQuery)
+      .populate('unit', 'name') // Populate unit to get name
+      .select('_id unit startTime endTime');
     const sessionIds = sessions.map(session => session._id);
 
     if (!sessionIds.length) {
@@ -810,7 +811,8 @@ exports.getLecturerPastAttendance = async (req, res) => {
     // Structure response with session details
     const response = sessions.map(session => ({
       sessionId: session._id,
-      unitName: session.unit.name,
+      unitName: session.unit.name, // Now correctly populated
+      unit: session.unit._id, // Include unit ID for frontend fallback
       startTime: session.startTime,
       endTime: session.endTime,
       attendance: attendanceRecords.filter(record => record.session._id.toString() === session._id.toString())
