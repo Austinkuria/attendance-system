@@ -27,7 +27,8 @@ const AttendanceManagement = () => {
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
     units: true,
-    attendance: false,
+    realTimeAttendance: false,
+    pastAttendance: false,
     stats: false,
     qr: false,
     session: false
@@ -49,7 +50,7 @@ const AttendanceManagement = () => {
   const [pastAttendance, setPastAttendance] = useState([]);
   const [pastFilters, setPastFilters] = useState({
     unit: null,
-    date: moment().format('YYYY-MM-DD'), // Default to today
+    date: moment().format('YYYY-MM-DD'),
     sessionId: null
   });
 
@@ -239,7 +240,7 @@ const AttendanceManagement = () => {
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
-      setLoading(prev => ({ ...prev, attendance: true }));
+      setLoading(prev => ({ ...prev, realTimeAttendance: true }));
       const response = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/attendance/realtime-lecturer/${currentSession._id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem('token')}` } }
@@ -254,7 +255,7 @@ const AttendanceManagement = () => {
       }
       setAttendance([]);
     } finally {
-      setLoading(prev => ({ ...prev, attendance: false }));
+      setLoading(prev => ({ ...prev, realTimeAttendance: false }));
     }
   }, [selectedUnit, currentSession]);
 
@@ -269,7 +270,7 @@ const AttendanceManagement = () => {
 
   const fetchPastSessions = useCallback(async () => {
     try {
-      setLoading(prev => ({ ...prev, attendance: true }));
+      setLoading(prev => ({ ...prev, pastAttendance: true }));
       const params = {};
       if (pastFilters.unit) params.unitId = pastFilters.unit;
       if (pastFilters.date) {
@@ -277,6 +278,7 @@ const AttendanceManagement = () => {
         params.startDate = date.toISOString().split('T')[0];
         params.endDate = new Date(date.getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0];
       }
+      if (pastFilters.sessionId) params.sessionId = pastFilters.sessionId;
 
       const response = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/attendance/past-lecturer`,
@@ -285,10 +287,13 @@ const AttendanceManagement = () => {
           params
         }
       );
-      const sessions = response.data;
+      const sessions = response.data.map(session => ({
+        ...session,
+        unitName: session.unitName || (units.find(u => u._id === session.unit)?.name) || 'Unknown Unit' // Fallback using units array
+      }));
       setPastSessions(sessions);
       
-      if (sessions.length > 0 && !pastFilters.sessionId) {
+      if (!pastFilters.sessionId && sessions.length > 0) {
         const sessionsForDate = sessions.filter(session => 
           moment(session.startTime).format('YYYY-MM-DD') === pastFilters.date
         );
@@ -311,9 +316,9 @@ const AttendanceManagement = () => {
       console.error('Error fetching past sessions:', error);
       message.error('Failed to fetch past sessions');
     } finally {
-      setLoading(prev => ({ ...prev, attendance: false }));
+      setLoading(prev => ({ ...prev, pastAttendance: false }));
     }
-  }, [pastFilters]);
+  }, [pastFilters, units]);
 
   useEffect(() => {
     if (lecturerId) fetchPastSessions();
@@ -508,7 +513,7 @@ const AttendanceManagement = () => {
   const fetchAbsentStudents = async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
-      setLoading(prev => ({ ...prev, attendance: true }));
+      setLoading(prev => ({ ...prev, realTimeAttendance: true }));
       const unit = units.find(u => u._id === selectedUnit);
       if (!unit) throw new Error('Unit not found');
       const enrolledStudents = unit.studentsEnrolled || [];
@@ -527,7 +532,7 @@ const AttendanceManagement = () => {
       console.error("Error fetching absent students:", error);
       message.error('Failed to fetch absent students');
     } finally {
-      setLoading(prev => ({ ...prev, attendance: false }));
+      setLoading(prev => ({ ...prev, realTimeAttendance: false }));
     }
   };
 
@@ -600,9 +605,9 @@ const AttendanceManagement = () => {
   const summaryCards = (
     <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
       <Col xs={24} sm={12} md={6}><Card><Statistic title="Assigned Units" value={totalAssignedUnits} prefix={<TeamOutlined />} loading={loading.units} /></Card></Col>
-      <Col xs={24} sm={12} md={6}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.attendance} /></Card></Col>
+      <Col xs={24} sm={12} md={6}><Card><Statistic title="Attendance Rate" value={attendanceRate} suffix="%" prefix={<PercentageOutlined />} loading={loading.realTimeAttendance} /></Card></Col>
       <Col xs={24} sm={12} md={6}><Card><Statistic title="Total Enrolled Students" value={enrolledStudents} prefix={<ScheduleOutlined />} loading={loading.units} /></Card></Col>
-      <Col xs={24} sm={12} md={6}><Card><Statistic title="Total Scans" value={totalScans} prefix={<ScheduleOutlined />} loading={loading.attendance} /></Card></Col>
+      <Col xs={24} sm={12} md={6}><Card><Statistic title="Total Scans" value={totalScans} prefix={<ScheduleOutlined />} loading={loading.realTimeAttendance} /></Card></Col>
     </Row>
   );
 
@@ -776,14 +781,14 @@ const AttendanceManagement = () => {
               </Select>
               <Button
                 onClick={handleViewAttendance}
-                loading={loading.attendance}
+                loading={loading.realTimeAttendance}
                 disabled={!selectedUnit || !currentSession || currentSession?.ended}
                 type="primary"
               >
                 Refresh Attendance Data
               </Button>
             </Space>
-            <Skeleton active loading={loading.attendance}>
+            <Skeleton active loading={loading.realTimeAttendance}>
               <Table
                 columns={realTimeColumns}
                 dataSource={attendance}
@@ -824,7 +829,7 @@ const AttendanceManagement = () => {
               />
               <Select
                 placeholder="Select Session"
-                style={{ width: 300 }} // Increased width for full visibility
+                style={{ width: 300 }}
                 onChange={value => setPastFilters(prev => ({ ...prev, sessionId: value }))}
                 allowClear
                 value={pastFilters.sessionId}
@@ -838,7 +843,7 @@ const AttendanceManagement = () => {
                   ))}
               </Select>
             </Space>
-            <Skeleton active loading={loading.attendance}>
+            <Skeleton active loading={loading.pastAttendance}>
               <Table
                 columns={pastColumns}
                 dataSource={pastAttendance}
