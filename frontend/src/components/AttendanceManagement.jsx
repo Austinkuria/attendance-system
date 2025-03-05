@@ -19,12 +19,9 @@ const AttendanceManagement = () => {
   const [qrData, setQrData] = useState('');
   const [currentSession, setCurrentSession] = useState(() => {
     const savedSession = localStorage.getItem('currentSession');
-    const session = savedSession ? JSON.parse(savedSession) : null;
-    console.log('Initial currentSession from localStorage:', session);
-    return session;
+    return savedSession ? JSON.parse(savedSession) : null;
   });
   const [departments, setDepartments] = useState([]);
-  const [courses, setCourses] = useState([]);
   const lecturerId = localStorage.getItem("userId");
   const [loading, setLoading] = useState({
     units: true,
@@ -35,15 +32,8 @@ const AttendanceManagement = () => {
     session: false
   });
   const [loadingSessionData, setLoadingSessionData] = useState(true);
-  const [filters, setFilters] = useState({
-    search: '',
-    year: null,
-    semester: null,
-    status: null
-  });
   const [unitFilters, setUnitFilters] = useState({
     department: null,
-    course: null,
     year: null,
     semester: null
   });
@@ -54,25 +44,8 @@ const AttendanceManagement = () => {
     date: moment().format('YYYY-MM-DD'),
     sessionId: null,
     year: null,
-    semester: null,
-    course: null
+    semester: null
   });
-
-  // Fetch courses using the correct /api/courses/ endpoint
-  useEffect(() => {
-    const fetchCourses = async () => {
-      try {
-        const response = await axios.get('https://attendance-system-w70n.onrender.com/api/courses/', {
-          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-        });
-        setCourses(response.data);
-      } catch (error) {
-        console.error('Error fetching courses:', error);
-        message.error('Failed to fetch courses');
-      }
-    };
-    if (courses.length === 0) fetchCourses();
-  }, [courses]);
 
   useEffect(() => {
     if (currentSession) {
@@ -102,7 +75,7 @@ const AttendanceManagement = () => {
 
   const checkCurrentSession = useCallback(async () => {
     try {
-      setLoading(prevState => ({ ...prevState, session: true }));
+      setLoading(prev => ({ ...prev, session: true }));
       setLoadingSessionData(true);
       const { data } = await detectCurrentSession(lecturerId);
       console.log('Detected session from backend:', data);
@@ -132,7 +105,7 @@ const AttendanceManagement = () => {
         message.error(error.message || 'Failed to detect current session');
       }
     } finally {
-      setLoading(prevState => ({ ...prevState, session: false }));
+      setLoading(prev => ({ ...prev, session: false }));
       setLoadingSessionData(false);
     }
   }, [lecturerId]);
@@ -297,8 +270,7 @@ const AttendanceManagement = () => {
         endDate: pastFilters.date ? new Date(new Date(pastFilters.date).getTime() + 24 * 60 * 60 * 1000).toISOString().split('T')[0] : null,
         sessionId: pastFilters.sessionId,
         year: pastFilters.year,
-        semester: pastFilters.semester,
-        course: pastFilters.course
+        semester: pastFilters.semester
       };
 
       const response = await axios.get(
@@ -348,18 +320,15 @@ const AttendanceManagement = () => {
 
   const filterOptions = useMemo(() => {
     const departments = new Set();
-    const coursesSet = new Set();
     const years = new Set();
     const semesters = new Set();
     units.forEach(unit => {
       if (unit.department?.name) departments.add(unit.department.name);
-      if (unit.course?.name) coursesSet.add(unit.course.name);
       if (unit.year) years.add(unit.year);
       if (unit.semester) semesters.add(unit.semester);
     });
     return {
       departments: Array.from(departments).sort(),
-      courses: Array.from(coursesSet).sort(),
       years: Array.from(years).sort((a, b) => a - b),
       semesters: Array.from(semesters).sort((a, b) => a - b)
     };
@@ -368,15 +337,14 @@ const AttendanceManagement = () => {
   const filteredUnits = useMemo(() => {
     return units.filter(unit => {
       const departmentMatch = !unitFilters.department || unit.department?.name === unitFilters.department;
-      const courseMatch = !unitFilters.course || unit.course?.name === unitFilters.course;
       const yearMatch = !unitFilters.year || unit.year === unitFilters.year;
       const semesterMatch = !unitFilters.semester || unit.semester === unitFilters.semester;
-      return departmentMatch && courseMatch && yearMatch && semesterMatch;
+      return departmentMatch && yearMatch && semesterMatch;
     });
   }, [units, unitFilters]);
 
   const handleDepartmentChange = (value) => {
-    setUnitFilters(prevState => ({ ...prevState, department: value }));
+    setUnitFilters(prev => ({ ...prev, department: value }));
   };
 
   const handleCreateSession = async () => {
@@ -385,7 +353,7 @@ const AttendanceManagement = () => {
       return;
     }
     try {
-      setLoading(prevState => ({ ...prevState, session: true }));
+      setLoading(prev => ({ ...prev, session: true }));
       setLoadingSessionData(true);
       const startTime = new Date().toISOString();
       const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
@@ -406,7 +374,7 @@ const AttendanceManagement = () => {
         message.error(error.message || 'Failed to create session');
       }
     } finally {
-      setLoading(prevState => ({ ...prevState, session: false }));
+      setLoading(prev => ({ ...prev, session: false }));
       setLoadingSessionData(false);
     }
   };
@@ -417,7 +385,7 @@ const AttendanceManagement = () => {
       return;
     }
     try {
-      setLoading(prevState => ({ ...prevState, qr: true }));
+      setLoading(prev => ({ ...prev, qr: true }));
       const token = localStorage.getItem('token');
       const { data } = await axios.get(
         `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
@@ -437,7 +405,7 @@ const AttendanceManagement = () => {
         message.error(error.message || "Failed to generate QR code");
       }
     } finally {
-      setLoading(prevState => ({ ...prevState, qr: false }));
+      setLoading(prev => ({ ...prev, qr: false }));
     }
   };
 
@@ -447,7 +415,7 @@ const AttendanceManagement = () => {
       return;
     }
     try {
-      setLoading(prevState => ({ ...prevState, session: true }));
+      setLoading(prev => ({ ...prev, session: true }));
       const token = localStorage.getItem('token');
       Modal.confirm({
         title: 'End Current Session?',
@@ -489,14 +457,14 @@ const AttendanceManagement = () => {
               message.error(error.response?.data?.message || 'Failed to end session');
             }
           } finally {
-            setLoading(prevState => ({ ...prevState, session: false }));
+            setLoading(prev => ({ ...prev, session: false }));
           }
         }
       });
     } catch (error) {
       console.error('Unexpected error in handleEndSession:', error);
       message.error('An unexpected error occurred');
-      setLoading(prevState => ({ ...prevState, session: false }));
+      setLoading(prev => ({ ...prev, session: false }));
     }
   };
 
@@ -518,7 +486,7 @@ const AttendanceManagement = () => {
             { status: newStatus },
             { headers: { Authorization: `Bearer ${token}` } }
           );
-          setAttendance(prevState => prevState.map(a => a._id === recordId ? { ...a, status: newStatus } : a));
+          setAttendance(prev => prev.map(a => a._id === recordId ? { ...a, status: newStatus } : a));
           message.success(`Marked ${record.student.regNo} as ${newStatus}`);
         } catch (error) {
           console.error("Error updating status:", error);
@@ -566,7 +534,7 @@ const AttendanceManagement = () => {
       title: 'Scan Time', 
       dataIndex: 'attendedAt', 
       key: 'attendedAt', 
-      render: attendedAt => attendedAt ? <Tag color="purple">{new Date(attendedAt).toLocaleTimeString()}</Tag> : 'N/A', // Fixed typo
+      render: attendedAt => attendedAt ? <Tag color="purple">{new Date(attendedAt).toLocaleTimeString()}</Tag> : 'N/A',
       sorter: (a, b) => new Date(a.attendedAt || 0) - new Date(b.attendedAt || 0) 
     },
     { 
@@ -607,7 +575,7 @@ const AttendanceManagement = () => {
       dataIndex: 'status', 
       key: 'status', 
       render: status => <Tag color={status === 'Present' ? 'green' : 'volcano'}>{status.toUpperCase()}</Tag>, 
-      filters: [{ text: 'Present', value: 'Present' }, { text: 'Absent', value: 'Absent' }], 
+      filters: [{ text: 'Present', value: 'Present' }, { text: 'Absent', value: 'Absent' }],
       onFilter: (value, record) => record.status === value 
     }
   ];
@@ -648,9 +616,8 @@ const AttendanceManagement = () => {
   };
 
   const clearFilters = () => {
-    setUnitFilters({ department: null, course: null, year: null, semester: null });
-    setFilters({ search: '', year: null, semester: null, status: null });
-    setPastFilters({ unit: null, date: moment().format('YYYY-MM-DD'), sessionId: null, year: null, semester: null, course: null });
+    setUnitFilters({ department: null, year: null, semester: null });
+    setPastFilters({ unit: null, date: moment().format('YYYY-MM-DD'), sessionId: null, year: null, semester: null });
   };
 
   const SessionTimer = ({ end }) => {
@@ -748,17 +715,6 @@ const AttendanceManagement = () => {
               >
                 {departments.map(department => (
                   <Option key={department._id} value={department.name}>{department.name}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Course"
-                style={{ width: 180 }}
-                onChange={val => setUnitFilters(prev => ({ ...prev, course: val }))}
-                allowClear
-                value={unitFilters.course}
-              >
-                {filterOptions.courses.map(course => (
-                  <Option key={course} value={course}>{course}</Option>
                 ))}
               </Select>
               <Select
@@ -885,17 +841,6 @@ const AttendanceManagement = () => {
               >
                 {[1, 2, 3].map(sem => (
                   <Option key={sem} value={sem}>Sem {sem}</Option>
-                ))}
-              </Select>
-              <Select
-                placeholder="Select Course"
-                style={{ width: 180 }}
-                onChange={value => setPastFilters(prev => ({ ...prev, course: value, sessionId: null }))}
-                allowClear
-                value={pastFilters.course}
-              >
-                {courses.map(course => (
-                  <Option key={course._id} value={course._id}>{course.name}</Option>
                 ))}
               </Select>
             </Space>
