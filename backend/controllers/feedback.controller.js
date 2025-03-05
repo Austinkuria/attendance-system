@@ -149,8 +149,14 @@ exports.getFeedbackSummary = async (req, res) => {
       {
         $project: {
           sessionId: '$_id.sessionId',
-          unit: '$unit.name',
-          course: '$course.name',
+          unit: {
+            name: '$unit.name',
+            code: '$unit.code'
+          },
+          course: {
+            name: '$course.name',
+            code: '$course.code'
+          },
           averageRating: 1,
           averagePace: 1,
           averageInteractivity: 1,

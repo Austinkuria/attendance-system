@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Card, Table, Typography, Grid, Spin, Alert, Select, Input, DatePicker, Row, Col, Statistic } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
@@ -6,18 +6,15 @@ import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
 import { getFeedbackSummary } from '../../services/api';
 import { css } from '@emotion/css';
 
-// Register Chart.js components
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
-
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
 
-// Styled components
 const useStyles = () => ({
   container: css`
     padding: 24px;
-    max-width: 1400px;
+    max-width: 1600px;
     margin: 0 auto;
   `,
   filterBar: css`
@@ -31,7 +28,7 @@ const useStyles = () => ({
     margin-bottom: 24px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     .chart-container {
-      height: 400px;
+      height: 600px;
       position: relative;
     }
   `,
@@ -69,7 +66,6 @@ const AdminFeedbackView = () => {
   const screens = useBreakpoint();
   const styles = useStyles();
 
-  // Fetch feedback summary data
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -85,20 +81,16 @@ const AdminFeedbackView = () => {
     fetchData();
   }, []);
 
-  // Extract filter options from data
   const filterOptions = useMemo(() => ({
-    courses: [...new Set(summary.map(item => item.course || 'N/A'))],
-    units: [...new Set(summary.map(item => item.unit || 'N/A'))]
+    courses: [...new Set(summary.map(item => item.course?.code || 'N/A'))],
+    units: [...new Set(summary.map(item => item.unit?.code || 'N/A'))]
   }), [summary]);
 
-  // Filtered data calculation
   const filteredData = useMemo(() => 
     summary.filter(item => {
-      const matchesCourse = !filters.course || (item.course || 'N/A') === filters.course;
-      const matchesUnit = !filters.unit || (item.unit || 'N/A') === filters.unit;
+      const matchesCourse = !filters.course || (item.course?.code || 'N/A') === filters.course;
+      const matchesUnit = !filters.unit || (item.unit?.code || 'N/A') === filters.unit;
       const matchesSearch = item.sessionId.toLowerCase().includes(filters.search.toLowerCase());
-      
-      // Date filtering (assuming item has sessionDate)
       const sessionDate = new Date(item.sessionDate);
       const [start, end] = filters.dateRange || [null, null];
       const matchesDate = !start || !end || 
@@ -108,16 +100,14 @@ const AdminFeedbackView = () => {
     }),
   [summary, filters]);
 
-  // Key metrics calculation
   const metrics = useMemo(() => ({
     totalSessions: filteredData.length,
     avgRating: filteredData.reduce((sum, item) => sum + (item.averageRating || 0), 0) / filteredData.length || 0,
     totalFeedback: filteredData.reduce((sum, item) => sum + (item.totalFeedback || 0), 0)
   }), [filteredData]);
 
-  // Chart configuration
   const chartData = {
-    labels: filteredData.map(s => `${s.unit || 'N/A'} • ${s.course || 'N/A'}`),
+    labels: filteredData.map(s => [s.unit?.code || 'N/A', s.course?.code || 'N/A']),
     datasets: [
       {
         label: 'Rating',
@@ -136,30 +126,57 @@ const AdminFeedbackView = () => {
 
   const chartOptions = {
     responsive: true,
+    maintainAspectRatio: false,
     plugins: {
-      legend: { position: screens.xs ? 'bottom' : 'top' },
-      tooltip: { mode: 'index', intersect: false }
+      legend: {
+        position: screens.xs ? 'bottom' : 'top',
+        labels: { font: { size: 14 } }
+      },
+      tooltip: {
+        bodyFont: { size: 14 },
+        titleFont: { size: 16 },
+        mode: 'index',
+        intersect: false
+      }
     },
     scales: {
-      x: { stacked: true, ticks: { maxRotation: 45 } },
-      y: { stacked: true, beginAtZero: true }
+      x: {
+        stacked: true,
+        ticks: {
+          callback: function(value) {
+            return this.getLabelForValue(value);
+          },
+          font: { size: 12 },
+          color: '#666',
+          autoSkip: false,
+          maxRotation: 0
+        },
+        grid: { display: false }
+      },
+      y: {
+        stacked: true,
+        beginAtZero: true,
+        ticks: {
+          font: { size: 12 },
+          precision: 1
+        }
+      }
     }
   };
 
-  // Table columns
   const tableColumns = [
     { title: 'Session ID', dataIndex: 'sessionId', key: 'sessionId', fixed: 'left' },
     { 
-      title: 'Unit', 
+      title: 'Unit Code', 
       dataIndex: 'unit', 
       key: 'unit',
-      render: (unit) => unit || <span className="muted">N/A</span>
+      render: (unit) => unit?.code || <span className="muted">N/A</span>
     },
     { 
-      title: 'Course', 
+      title: 'Course Code', 
       dataIndex: 'course', 
       key: 'course',
-      render: (course) => course || <span className="muted">N/A</span>
+      render: (course) => course?.code || <span className="muted">N/A</span>
     },
     { 
       title: 'Avg Rating', 
@@ -211,12 +228,11 @@ const AdminFeedbackView = () => {
         <FilterOutlined /> Feedback Analytics Dashboard
       </Title>
 
-      {/* Filter Controls */}
       <Row gutter={[16, 16]} className={styles.filterBar}>
         <Col xs={24} sm={12} md={6}>
           <Select
             allowClear
-            placeholder="Filter by Course"
+            placeholder="Filter by Course Code"
             options={filterOptions.courses.map(c => ({ value: c, label: c }))}
             onChange={v => setFilters(p => ({ ...p, course: v }))}
           />
@@ -224,7 +240,7 @@ const AdminFeedbackView = () => {
         <Col xs={24} sm={12} md={6}>
           <Select
             allowClear
-            placeholder="Filter by Unit"
+            placeholder="Filter by Unit Code"
             options={filterOptions.units.map(u => ({ value: u, label: u }))}
             onChange={v => setFilters(p => ({ ...p, unit: v }))}
           />
@@ -244,7 +260,6 @@ const AdminFeedbackView = () => {
         </Col>
       </Row>
 
-      {/* Key Metrics */}
       <Row gutter={[16, 16]} className={styles.statsCard}>
         <Col xs={24} sm={8}>
           <Card>
@@ -275,14 +290,37 @@ const AdminFeedbackView = () => {
         </Col>
       </Row>
 
-      {/* Chart */}
       <Card className={styles.chartCard}>
         <div className="chart-container">
-          <Bar data={chartData} options={chartOptions} />
+          <Bar 
+            data={chartData} 
+            options={chartOptions}
+            plugins={[{
+              id: 'multiline-labels',
+              beforeDraw: (chart) => {
+                const ctx = chart.ctx;
+                ctx.save();
+                const xAxis = chart.scales.x;
+                xAxis.ticks.forEach((tick, index) => {
+                  const label = chart.data.labels[index];
+                  if (Array.isArray(label)) {
+                    const x = tick.labelX;
+                    const y = tick.labelY + 10;
+                    ctx.textAlign = 'center';
+                    ctx.fillStyle = '#666';
+                    ctx.font = '12px Arial';
+                    label.forEach((line, i) => {
+                      ctx.fillText(line, x, y + (i * 14));
+                    });
+                  }
+                });
+                ctx.restore();
+              }
+            }]}
+          />
         </div>
       </Card>
 
-      {/* Data Table */}
       <Spin spinning={loading} tip="Loading..." size="large">
         <Table
           columns={tableColumns}
