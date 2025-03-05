@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import { Button, Table, Modal, Select, Input, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, DatePicker } from 'antd';
-import { QrcodeOutlined, DownloadOutlined, SearchOutlined, FilterOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
+import { Button, Table, Modal, Select, Space, Card, Tag, Skeleton, message, Grid, Typography, Statistic, Row, Col, DatePicker } from 'antd';
+import { QrcodeOutlined, DownloadOutlined, CalendarOutlined, BookOutlined, TeamOutlined, PercentageOutlined, ScheduleOutlined, SyncOutlined, ClockCircleOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import axios from 'axios';
-import { getSessionAttendance, downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
+import { downloadAttendanceReport, getLecturerUnits, getDepartments, detectCurrentSession, createSession } from '../services/api';
 import moment from 'moment';
 
 const { Option } = Select;
@@ -128,6 +128,7 @@ const AttendanceManagement = () => {
       }, 60000);
       return () => clearInterval(intervalId);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentSession]);
 
   useEffect(() => {
@@ -316,7 +317,7 @@ const AttendanceManagement = () => {
 
   useEffect(() => {
     if (lecturerId) fetchPastSessions();
-  }, [lecturerId, pastFilters]);
+  }, [lecturerId, pastFilters, fetchPastSessions]);
 
   const filterOptions = useMemo(() => {
     const departments = new Set();
