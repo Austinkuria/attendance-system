@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import  { useState, useEffect, useMemo } from 'react';
 import { Card, Table, Typography, Grid, Spin, Alert, Select, Input, DatePicker, Row, Col, Statistic } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
@@ -13,33 +13,48 @@ const { useBreakpoint } = Grid;
 
 const useStyles = () => ({
   container: css`
-    padding: 24px;
+    padding: 16px;
     max-width: 1600px;
     margin: 0 auto;
+    @media (max-width: 768px) {
+      padding: 8px;
+    }
   `,
   filterBar: css`
-    margin-bottom: 24px;
-    gap: 12px;
+    margin-bottom: 16px;
+    gap: 8px;
     .ant-select, .ant-picker, .ant-input {
       width: 100%;
     }
+    @media (max-width: 768px) {
+      margin-bottom: 8px;
+    }
   `,
   chartCard: css`
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
     .chart-container {
-      height: 600px;
+      height: 400px;
       position: relative;
+      @media (max-width: 768px) {
+        height: 300px;
+      }
     }
   `,
   statsCard: css`
-    margin-bottom: 24px;
+    margin-bottom: 16px;
     .ant-statistic {
       &-title {
         font-size: 14px;
+        @media (max-width: 768px) {
+          font-size: 12px;
+        }
       }
       &-content {
         font-size: 20px;
+        @media (max-width: 768px) {
+          font-size: 16px;
+        }
       }
     }
   `,
@@ -47,9 +62,25 @@ const useStyles = () => ({
     .muted {
       color: #999;
     }
+    @media (max-width: 768px) {
+      .ant-table {
+        font-size: 12px;
+      }
+    }
   `,
   errorAlert: css`
-    margin: 24px;
+    margin: 16px;
+    @media (max-width: 768px) {
+      margin: 8px;
+    }
+  `,
+  title: css`
+    margin-bottom: 16px;
+    font-size: 24px;
+    @media (max-width: 768px) {
+      font-size: 20px;
+      margin-bottom: 8px;
+    }
   `,
 });
 
@@ -130,11 +161,11 @@ const AdminFeedbackView = () => {
     plugins: {
       legend: {
         position: screens.xs ? 'bottom' : 'top',
-        labels: { font: { size: 14 } }
+        labels: { font: { size: screens.xs ? 12 : 14 } }
       },
       tooltip: {
-        bodyFont: { size: 14 },
-        titleFont: { size: 16 },
+        bodyFont: { size: screens.xs ? 12 : 14 },
+        titleFont: { size: screens.xs ? 14 : 16 },
         mode: 'index',
         intersect: false
       }
@@ -146,10 +177,10 @@ const AdminFeedbackView = () => {
           callback: function(value) {
             return this.getLabelForValue(value);
           },
-          font: { size: 12 },
+          font: { size: screens.xs ? 10 : 12 },
           color: '#666',
           autoSkip: false,
-          maxRotation: 0
+          maxRotation: screens.xs ? 45 : 0
         },
         grid: { display: false }
       },
@@ -157,7 +188,7 @@ const AdminFeedbackView = () => {
         stacked: true,
         beginAtZero: true,
         ticks: {
-          font: { size: 12 },
+          font: { size: screens.xs ? 10 : 12 },
           precision: 1
         }
       }
@@ -224,7 +255,7 @@ const AdminFeedbackView = () => {
 
   return (
     <div className={styles.container}>
-      <Title level={3} style={{ marginBottom: 24 }}>
+      <Title level={3} className={styles.title}>
         <FilterOutlined /> Feedback Analytics Dashboard
       </Title>
 
@@ -308,7 +339,7 @@ const AdminFeedbackView = () => {
                     const y = tick.labelY + 10;
                     ctx.textAlign = 'center';
                     ctx.fillStyle = '#666';
-                    ctx.font = '12px Arial';
+                    ctx.font = screens.xs ? '10px Arial' : '12px Arial';
                     label.forEach((line, i) => {
                       ctx.fillText(line, x, y + (i * 14));
                     });
