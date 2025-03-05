@@ -69,6 +69,11 @@ api.interceptors.response.use(
   }
 );
 
+// Helper function to get the authorization header
+// const getAuthHeader = () => {
+//   const token = localStorage.getItem('token');
+//   return { headers: { Authorization: `Bearer ${token}` } };
+// };
 
 // get userprofile
 export const getUserProfile = async () => {
