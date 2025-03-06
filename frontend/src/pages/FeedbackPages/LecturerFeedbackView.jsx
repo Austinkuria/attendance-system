@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Card, List, Typography, Rate, Select, Row, Col, Spin, Alert, Tag } from 'antd';
+import { Card, List, Typography, Rate, Select, Row, Col, Spin, Alert, Tag, Button } from 'antd';
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
 import { getFeedbackForLecturer } from '../../services/api';
@@ -20,8 +20,25 @@ const useStyles = () => ({
   `,
   filterBar: css`
     margin-bottom: 24px;
+    gap: 12px;
     .ant-select {
       width: 100%;
+    }
+  `,
+  resetButton: css`
+    margin-left: 12px;
+  `,
+  feedbackCard: css`
+    margin-bottom: 16px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    opacity: 1;
+    transform: translateY(0);
+    &.filtered-out {
+      opacity: 0;
+      transform: translateY(-10px);
+      pointer-events: none;
     }
   `,
   chartCard: css`
@@ -31,31 +48,6 @@ const useStyles = () => ({
       height: 400px;
       position: relative;
     }
-  `,
-  feedbackCard: css`
-    margin-bottom: 16px;
-    border-radius: 8px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-    transition: box-shadow 0.3s ease;
-    &:hover {
-      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    }
-  `,
-  feedbackHeader: css`
-    margin-bottom: 12px;
-    .ant-typography {
-      margin-bottom: 0;
-    }
-  `,
-  feedbackSection: css`
-    margin-bottom: 12px;
-    .ant-typography {
-      margin-bottom: 4px;
-    }
-  `,
-  ratingTag: css`
-    margin-left: 8px;
-    font-size: 12px;
   `,
   emptyText: css`
     text-align: center;
@@ -105,6 +97,15 @@ const LecturerFeedbackView = () => {
     const units = feedback.map((item) => item.unit?.code).filter(Boolean);
     return [...new Set(units)];
   }, [feedback]);
+
+  // Reset all filters
+  const resetFilters = () => {
+    setFilters({
+      unit: null,
+      rating: null,
+      clarity: null,
+    });
+  };
 
   // Chart 1: Average Ratings by Unit
   const unitRatingsData = useMemo(() => {
@@ -195,6 +196,7 @@ const LecturerFeedbackView = () => {
           <Select
             allowClear
             placeholder="Filter by Unit"
+            value={filters.unit}
             onChange={(value) => setFilters((prev) => ({ ...prev, unit: value }))}
           >
             {unitOptions.map((unit) => (
@@ -208,6 +210,7 @@ const LecturerFeedbackView = () => {
           <Select
             allowClear
             placeholder="Filter by Rating"
+            value={filters.rating}
             onChange={(value) => setFilters((prev) => ({ ...prev, rating: value }))}
           >
             {[1, 2, 3, 4, 5].map((rating) => (
@@ -221,72 +224,84 @@ const LecturerFeedbackView = () => {
           <Select
             allowClear
             placeholder="Filter by Clarity"
+            value={filters.clarity}
             onChange={(value) => setFilters((prev) => ({ ...prev, clarity: value }))}
           >
             <Option value={true}>Clear</Option>
             <Option value={false}>Unclear</Option>
           </Select>
         </Col>
+        <Col xs={24} sm={12} md={6}>
+          <Button
+            type="default"
+            onClick={resetFilters}
+            className={styles.resetButton}
+          >
+            Reset Filters
+          </Button>
+        </Col>
       </Row>
 
       {/* Feedback List */}
       <Spin spinning={loading} tip="Loading feedback..." size="large">
         <List
-          dataSource={filteredFeedback}
+          dataSource={filteredFeedback} // Only render filtered feedback
           renderItem={(item) => (
-            <Card className={styles.feedbackCard}>
-              <div className={styles.feedbackHeader}>
-                <Text strong>{item.unit?.name || 'Unnamed Unit'}</Text>
-                <Tag color="blue" className={styles.ratingTag}>
-                  {item.unit?.code || 'N/A'}
-                </Tag>
-              </div>
+            <div className={styles.feedbackCard}>
+              <Card>
+                <div className={styles.feedbackHeader}>
+                  <Text strong>{item.unit?.name || 'Unnamed Unit'}</Text>
+                  <Tag color="blue" className={styles.ratingTag}>
+                    {item.unit?.code || 'N/A'}
+                  </Tag>
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Course: </Text>
-                {item.course?.name || 'N/A'}
-              </div>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Course: </Text>
+                  {item.course?.name || 'N/A'}
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Student: </Text>
-                {item.studentId?.name || 'Anonymous'}
-              </div>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Student: </Text>
+                  {item.studentId?.name || 'Anonymous'}
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Rating: </Text>
-                <Rate disabled value={item.rating || 0} />
-                <Text type="secondary" className={styles.ratingTag}>
-                  ({item.rating || 0} Stars)
-                </Text>
-              </div>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Rating: </Text>
+                  <Rate disabled value={item.rating || 0} />
+                  <Text type="secondary" className={styles.ratingTag}>
+                    ({item.rating || 0} Stars)
+                  </Text>
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Comments: </Text>
-                {item.feedbackText || 'No comments provided.'}
-              </div>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Comments: </Text>
+                  {item.feedbackText || 'No comments provided.'}
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Pace: </Text>
-                {item.pace || 'N/A'}
-              </div>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Pace: </Text>
+                  {item.pace || 'N/A'}
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Interactivity: </Text>
-                <Rate disabled value={item.interactivity || 0} />
-              </div>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Interactivity: </Text>
+                  <Rate disabled value={item.interactivity || 0} />
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Clarity: </Text>
-                <Tag color={item.clarity ? 'green' : 'red'}>
-                  {item.clarity ? 'Clear' : 'Unclear'}
-                </Tag>
-              </div>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Clarity: </Text>
+                  <Tag color={item.clarity ? 'green' : 'red'}>
+                    {item.clarity ? 'Clear' : 'Unclear'}
+                  </Tag>
+                </div>
 
-              <div className={styles.feedbackSection}>
-                <Text strong>Resources: </Text>
-                {item.resources || 'None'}
-              </div>
-            </Card>
+                <div className={styles.feedbackSection}>
+                  <Text strong>Resources: </Text>
+                  {item.resources || 'None'}
+                </div>
+              </Card>
+            </div>
           )}
           locale={{ emptyText: <div className={styles.emptyText}>No feedback available</div> }}
         />
