@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Card, List, Typography, Rate, Select, Row, Col, Spin, Alert, Tag, Button } from 'antd';
+import { Card, Typography, Rate, Select, Row, Col, Spin, Alert, Tag, Button, Pagination } from 'antd';
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
 import { getFeedbackForLecturer } from '../../services/api';
@@ -35,11 +35,6 @@ const useStyles = () => ({
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 1;
     transform: translateY(0);
-    &.filtered-out {
-      opacity: 0;
-      transform: translateY(-10px);
-      pointer-events: none;
-    }
   `,
   chartCard: css`
     margin-bottom: 24px;
@@ -54,6 +49,16 @@ const useStyles = () => ({
     padding: 24px;
     color: #999;
   `,
+  gridContainer: css`
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 16px;
+    margin-bottom: 24px;
+  `,
+  pagination: css`
+    text-align: center;
+    margin-top: 24px;
+  `,
 });
 
 const LecturerFeedbackView = () => {
@@ -65,6 +70,8 @@ const LecturerFeedbackView = () => {
     rating: null,
     clarity: null,
   });
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(6); // Cards per page
   const styles = useStyles();
 
   useEffect(() => {
@@ -105,7 +112,15 @@ const LecturerFeedbackView = () => {
       rating: null,
       clarity: null,
     });
+    setCurrentPage(1); // Reset to the first page
   };
+
+  // Paginated feedback
+  const paginatedFeedback = useMemo(() => {
+    const startIndex = (currentPage - 1) * pageSize;
+    const endIndex = startIndex + pageSize;
+    return filteredFeedback.slice(startIndex, endIndex);
+  }, [filteredFeedback, currentPage, pageSize]);
 
   // Chart 1: Average Ratings by Unit
   const unitRatingsData = useMemo(() => {
@@ -242,69 +257,86 @@ const LecturerFeedbackView = () => {
         </Col>
       </Row>
 
-      {/* Feedback List */}
+      {/* Feedback Grid */}
       <Spin spinning={loading} tip="Loading feedback..." size="large">
-        <List
-          dataSource={filteredFeedback} // Only render filtered feedback
-          renderItem={(item) => (
-            <div className={styles.feedbackCard}>
-              <Card>
-                <div className={styles.feedbackHeader}>
-                  <Text strong>{item.unit?.name || 'Unnamed Unit'}</Text>
-                  <Tag color="blue" className={styles.ratingTag}>
-                    {item.unit?.code || 'N/A'}
-                  </Tag>
-                </div>
+        {filteredFeedback.length > 0 ? (
+          <>
+            <div className={styles.gridContainer}>
+              {paginatedFeedback.map((item) => (
+                <Card key={item._id} className={styles.feedbackCard}>
+                  <div className={styles.feedbackHeader}>
+                    <Text strong>{item.unit?.name || 'Unnamed Unit'}</Text>
+                    <Tag color="blue" className={styles.ratingTag}>
+                      {item.unit?.code || 'N/A'}
+                    </Tag>
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Course: </Text>
-                  {item.course?.name || 'N/A'}
-                </div>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Course: </Text>
+                    {item.course?.name || 'N/A'}
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Student: </Text>
-                  {item.studentId?.name || 'Anonymous'}
-                </div>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Student: </Text>
+                    {item.studentId?.name || 'Anonymous'}
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Rating: </Text>
-                  <Rate disabled value={item.rating || 0} />
-                  <Text type="secondary" className={styles.ratingTag}>
-                    ({item.rating || 0} Stars)
-                  </Text>
-                </div>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Rating: </Text>
+                    <Rate disabled value={item.rating || 0} />
+                    <Text type="secondary" className={styles.ratingTag}>
+                      ({item.rating || 0} Stars)
+                    </Text>
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Comments: </Text>
-                  {item.feedbackText || 'No comments provided.'}
-                </div>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Comments: </Text>
+                    {item.feedbackText || 'No comments provided.'}
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Pace: </Text>
-                  {item.pace || 'N/A'}
-                </div>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Pace: </Text>
+                    {item.pace || 'N/A'}
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Interactivity: </Text>
-                  <Rate disabled value={item.interactivity || 0} />
-                </div>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Interactivity: </Text>
+                    <Rate disabled value={item.interactivity || 0} />
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Clarity: </Text>
-                  <Tag color={item.clarity ? 'green' : 'red'}>
-                    {item.clarity ? 'Clear' : 'Unclear'}
-                  </Tag>
-                </div>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Clarity: </Text>
+                    <Tag color={item.clarity ? 'green' : 'red'}>
+                      {item.clarity ? 'Clear' : 'Unclear'}
+                    </Tag>
+                  </div>
 
-                <div className={styles.feedbackSection}>
-                  <Text strong>Resources: </Text>
-                  {item.resources || 'None'}
-                </div>
-              </Card>
+                  <div className={styles.feedbackSection}>
+                    <Text strong>Resources: </Text>
+                    {item.resources || 'None'}
+                  </div>
+                </Card>
+              ))}
             </div>
-          )}
-          locale={{ emptyText: <div className={styles.emptyText}>No feedback available</div> }}
-        />
+
+            {/* Pagination */}
+            <div className={styles.pagination}>
+              <Pagination
+                current={currentPage}
+                pageSize={pageSize}
+                total={filteredFeedback.length}
+                onChange={(page, size) => {
+                  setCurrentPage(page);
+                  setPageSize(size);
+                }}
+                showSizeChanger
+                pageSizeOptions={['6', '12', '24', '48']}
+              />
+            </div>
+          </>
+        ) : (
+          <div className={styles.emptyText}>No feedback available</div>
+        )}
       </Spin>
     </div>
   );
