@@ -1,7 +1,12 @@
-import { useState, useEffect, useMemo } from 'react'; // Add useMemo here
+import { useState, useEffect, useMemo } from 'react';
 import { Card, List, Typography, Rate, Select, Row, Col, Spin, Alert, Tag } from 'antd';
+import { Bar, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
 import { getFeedbackForLecturer } from '../../services/api';
 import { css } from '@emotion/css';
+
+// Register Chart.js components
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -10,13 +15,21 @@ const { Option } = Select;
 const useStyles = () => ({
   container: css`
     padding: 24px;
-    max-width: 1200px;
+    max-width: 1400px;
     margin: 0 auto;
   `,
   filterBar: css`
     margin-bottom: 24px;
     .ant-select {
       width: 100%;
+    }
+  `,
+  chartCard: css`
+    margin-bottom: 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    .chart-container {
+      height: 400px;
+      position: relative;
     }
   `,
   feedbackCard: css`
@@ -93,6 +106,46 @@ const LecturerFeedbackView = () => {
     return [...new Set(units)];
   }, [feedback]);
 
+  // Chart 1: Average Ratings by Unit
+  const unitRatingsData = useMemo(() => {
+    const units = [...new Set(feedback.map(item => item.unit?.code))].filter(Boolean);
+    
+    return {
+      labels: units,
+      datasets: [{
+        label: 'Average Rating',
+        data: units.map(unitCode => {
+          const unitFeedbacks = feedback.filter(f => f.unit?.code === unitCode);
+          return unitFeedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / unitFeedbacks.length;
+        }),
+        backgroundColor: 'rgba(54, 162, 235, 0.6)'
+      }]
+    };
+  }, [feedback]);
+
+  // Chart 2: Clarity Distribution
+  const clarityData = useMemo(() => {
+    const clearCount = feedback.filter(f => f.clarity).length;
+    const unclearCount = feedback.length - clearCount;
+    
+    return {
+      labels: ['Clear', 'Unclear'],
+      datasets: [{
+        data: [clearCount, unclearCount],
+        backgroundColor: ['#4CAF50', '#F44336']
+      }]
+    };
+  }, [feedback]);
+
+  // Chart options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: 'top' }
+    }
+  };
+
   if (error) {
     return (
       <Alert
@@ -107,7 +160,34 @@ const LecturerFeedbackView = () => {
 
   return (
     <div className={styles.container}>
-      <Title level={2}>Session Feedback</Title>
+      <Title level={2}>Session Feedback Analytics</Title>
+
+      {/* Charts Section */}
+      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+        <Col xs={24} md={12}>
+          <Card className={styles.chartCard}>
+            <Title level={4} style={{ marginBottom: 16 }}>Average Ratings by Unit</Title>
+            <div className="chart-container">
+              <Bar
+                data={unitRatingsData}
+                options={chartOptions}
+              />
+            </div>
+          </Card>
+        </Col>
+
+        <Col xs={24} md={12}>
+          <Card className={styles.chartCard}>
+            <Title level={4} style={{ marginBottom: 16 }}>Clarity Distribution</Title>
+            <div className="chart-container">
+              <Pie
+                data={clarityData}
+                options={chartOptions}
+              />
+            </div>
+          </Card>
+        </Col>
+      </Row>
 
       {/* Filter Bar */}
       <Row gutter={[16, 16]} className={styles.filterBar}>
