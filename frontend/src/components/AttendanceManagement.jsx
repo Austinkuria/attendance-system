@@ -49,7 +49,6 @@ const AttendanceManagement = () => {
   const [attendance, setAttendance] = useState([]);
   const [units, setUnits] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(() => {
-    // Initialize from localStorage if available, otherwise null
     return localStorage.getItem("selectedUnit") || null;
   });
   const [isQRModalOpen, setIsQRModalOpen] = useState(false);
@@ -127,11 +126,11 @@ const AttendanceManagement = () => {
         setDepartments(data);
       } catch (error) {
         const status = error.response?.status;
-        message.error(
-          status === 429
-            ? "Too many requests to fetch departments. Please try again later."
-            : "Failed to fetch departments"
-        );
+        if (status !== 429) {
+          message.error("Failed to fetch departments");
+        } else {
+          message.error("Too many requests to fetch departments. Please try again later.");
+        }
       }
     };
     if (!departments.length) fetchDepartments();
@@ -153,7 +152,7 @@ const AttendanceManagement = () => {
         }
         setCurrentSession({ ...data, startSession: startTime, endSession: endTime });
         setQrData(data.qrCode);
-        setSelectedUnit(data.unit?._id || data.unit); // Ensure selectedUnit matches session unit
+        setSelectedUnit(data.unit?._id || data.unit);
       } else {
         setCurrentSession(null);
         setQrData("");
@@ -161,14 +160,17 @@ const AttendanceManagement = () => {
       }
     } catch (error) {
       console.error("Error checking current session:", error);
-      setCurrentSession(null);
-      setQrData("");
-      localStorage.removeItem("currentSession");
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests to check session. Please try again later."
-          : error.message || "Failed to detect current session"
-      );
+      const status = error.response?.status;
+      if (status === 404 || status === 400) {
+        // Silently handle "no session" cases
+        setCurrentSession(null);
+        setQrData("");
+        localStorage.removeItem("currentSession");
+      } else if (status === 429) {
+        message.error("Too many requests to check session. Please try again later.");
+      } else {
+        message.error(error.message || "Failed to detect current session");
+      }
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
       setLoadingSessionData(false);
@@ -206,19 +208,20 @@ const AttendanceManagement = () => {
         if (unitsData?.length) {
           const storedUnit = localStorage.getItem("selectedUnit");
           if (currentSession && storedUnit && unitsData.some((u) => u._id === storedUnit)) {
-            setSelectedUnit(storedUnit); // Restore from localStorage if session exists
+            setSelectedUnit(storedUnit);
           } else if (!selectedUnit && !currentSession) {
-            setSelectedUnit(unitsData[0]._id); // Default to first unit only if no session or stored unit
+            setSelectedUnit(unitsData[0]._id);
           }
         } else if (!unitsData?.length) {
           message.info("No units assigned to your account");
         }
       } catch (error) {
-        message.error(
-          error.response?.status === 429
-            ? "Too many requests to fetch units. Please try again later."
-            : error.message || "Failed to load unit data"
-        );
+        const status = error.response?.status;
+        if (status !== 429) {
+          message.error(error.message || "Failed to load unit data");
+        } else {
+          message.error("Too many requests to fetch units. Please try again later.");
+        }
       } finally {
         setLoading((prev) => ({ ...prev, units: false }));
       }
@@ -290,15 +293,16 @@ const AttendanceManagement = () => {
         }
       } catch (error) {
         console.error("Error fetching session:", error);
-        message.error(
-          error.response?.status === 429
-            ? "Too many requests to fetch session. Please try again later."
-            : error.response?.status === 400
-            ? "Invalid unit ID provided."
-            : error.response?.data?.message || "Failed to fetch session."
-        );
-        setCurrentSession(null);
-        setQrData("");
+        const status = error.response?.status;
+        if (status === 404 || status === 400) {
+          // Silently handle "no session" cases
+          setCurrentSession(null);
+          setQrData("");
+        } else if (status === 429) {
+          message.error("Too many requests to fetch session. Please try again later.");
+        } else {
+          message.error(error.response?.data?.message || "Failed to fetch session.");
+        }
       } finally {
         setLoadingSessionData(false);
       }
@@ -318,11 +322,12 @@ const AttendanceManagement = () => {
       setAttendance(response.data);
     } catch (error) {
       console.error("Error fetching real-time attendance:", error);
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests to fetch attendance data. Please try again later."
-          : error.message || "Failed to fetch attendance data"
-      );
+      const status = error.response?.status;
+      if (status !== 429) {
+        message.error(error.message || "Failed to fetch attendance data");
+      } else {
+        message.error("Too many requests to fetch attendance data. Please try again later.");
+      }
       setAttendance([]);
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
@@ -442,15 +447,16 @@ const AttendanceManagement = () => {
       const data = await createSession({ unitId: selectedUnit, lecturerId });
       setCurrentSession(data);
       setQrData(data.qrCode);
-      setSelectedUnit(selectedUnit); // Ensure selectedUnit persists
+      setSelectedUnit(selectedUnit);
       message.success("Session created successfully");
     } catch (error) {
       console.error("Error creating session:", error);
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests. Please try creating the session again later."
-          : error.message || "Failed to create session"
-      );
+      const status = error.response?.status;
+      if (status === 429) {
+        message.error("Too many requests. Please try creating the session again later.");
+      } else {
+        message.error(error.message || "Failed to create session");
+      }
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
       setLoadingSessionData(false);
@@ -476,11 +482,12 @@ const AttendanceManagement = () => {
       setIsQRModalOpen(true);
     } catch (error) {
       console.error("Error generating QR code:", error);
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests. Please try generating the QR code again later."
-          : error.message || "Failed to generate QR code"
-      );
+      const status = error.response?.status;
+      if (status === 429) {
+        message.error("Too many requests. Please try generating the QR code again later.");
+      } else {
+        message.error(error.message || "Failed to generate QR code");
+      }
     } finally {
       setLoading((prev) => ({ ...prev, qr: false }));
     }
@@ -512,24 +519,22 @@ const AttendanceManagement = () => {
             setQrData("");
             setAttendance([]);
             localStorage.removeItem("currentSession");
-            setSelectedUnit(null); // Clear selectedUnit when session ends
+            setSelectedUnit(null);
             await checkCurrentSession();
           } else {
             throw new Error("Session not marked as ended");
           }
         } catch (error) {
           console.error("Error ending session:", error);
-          message.error(
-            error.response?.status === 429
-              ? "Too many requests. Please try again later."
-              : error.response?.status === 400
-              ? "Invalid request. Session may already be ended."
-              : error.response?.data?.message || "Failed to end session"
-          );
-          if (error.response?.status === 400) {
+          const status = error.response?.status;
+          if (status === 429) {
+            message.error("Too many requests. Please try again later.");
+          } else if (status === 400) {
             setCurrentSession(null);
             setQrData("");
             localStorage.removeItem("currentSession");
+          } else {
+            message.error(error.response?.data?.message || "Failed to end session");
           }
         } finally {
           setLoading((prev) => ({ ...prev, session: false }));
@@ -562,11 +567,12 @@ const AttendanceManagement = () => {
           message.success(`Marked ${record.student.regNo} as ${newStatus}`);
         } catch (error) {
           console.error("Error updating status:", error);
-          message.error(
-            error.response?.status === 429
-              ? "Too many requests. Please try again later."
-              : "Failed to update attendance status"
-          );
+          const status = error.response?.status;
+          if (status === 429) {
+            message.error("Too many requests. Please try again later.");
+          } else {
+            message.error("Failed to update attendance status");
+          }
         }
       },
     });
