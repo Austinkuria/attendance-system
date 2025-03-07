@@ -176,8 +176,7 @@ const AttendanceManagement = () => {
       }, 60000);
       return () => clearInterval(intervalId);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentSession]);
+  }, [currentSession]); 
 
   useEffect(() => {
     const fetchData = async () => {
@@ -290,7 +289,7 @@ const AttendanceManagement = () => {
       }
     };
     fetchCurrentSession();
-  }, [selectedUnit, units, currentSession?.ended]);
+  }, [selectedUnit, units, currentSession?.ended]); // eslint-disable-next-line react-hooks/exhaustive-deps
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -732,24 +731,6 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: "linear-gradient(135deg, #fff7e6, #ffd8bf)",
-            borderLeft: "4px solid #fa8c16",
-          }}
-          hoverable
-        >
-          <Statistic
-            title={<Text style={{ color: textColor }}>Total Enrolled Students</Text>}
-            value={enrolledStudents}
-            prefix={<ScheduleOutlined style={{ color: "#fa8c16" }} />}
-            loading={loading.units}
-            valueStyle={{ color: textColor }}
-          />
-        </Card>
-      </Col>
-      <Col xs={24} sm={12} md={6}>
-        <Card
-          style={{
-            ...cardStyle,
             background: "linear-gradient(135deg, #e6fffb, #b5f5ec)",
             borderLeft: `4px solid ${secondaryColor}`,
           }}
@@ -917,6 +898,27 @@ const AttendanceManagement = () => {
         hoverable
       >
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
+        <Col xs={24} sm={12} md={6}>
+        <Card
+          style={{
+            ...cardStyle,
+            background: "linear-gradient(135deg, #fff7e6, #ffd8bf)",
+            borderLeft: "4px solid #fa8c16",
+          }}
+          hoverable
+        >
+          <Statistic
+            title={<Text style={{ color: textColor }}>Total Enrolled Students</Text>}
+            value={enrolledStudents}
+            prefix={<ScheduleOutlined style={{ color: "#fa8c16" }} />}
+            loading={loading.units}
+            valueStyle={{ color: textColor }}
+          />
+          
+        </Card>
+        
+      </Col>
+      {summaryCards}
           <Card
             title={<Text strong style={{ color: primaryColor }}>Real-time Unit Attendance</Text>}
             size="small"
@@ -965,8 +967,6 @@ const AttendanceManagement = () => {
               />
             </Skeleton>
           </Card>
-
-          {summaryCards}
 
           <Card
             title={<Space><Text strong style={{ color: primaryColor }}>Attendance Records for Past Sessions</Text></Space>}
