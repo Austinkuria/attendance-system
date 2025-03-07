@@ -176,7 +176,7 @@ const AttendanceManagement = () => {
       }, 60000);
       return () => clearInterval(intervalId);
     }
-  }, [currentSession]); 
+  }, [currentSession]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -289,7 +289,7 @@ const AttendanceManagement = () => {
       }
     };
     fetchCurrentSession();
-  }, [selectedUnit, units, currentSession?.ended]); // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUnit, units, currentSession?.ended]);
 
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
@@ -689,13 +689,14 @@ const AttendanceManagement = () => {
   }, [attendance, enrolledStudents]);
 
   const summaryCards = (
-    <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-      <Col xs={24} sm={12} md={6}>
+    <Row gutter={[16, 16]} justify="space-between" style={{ marginBottom: 24 }}>
+      <Col xs={24} sm={12} md={6} lg={6}>
         <Card
           style={{
             ...cardStyle,
             background: "linear-gradient(135deg, #e6f7ff, #bae7ff)",
             borderLeft: `4px solid ${primaryColor}`,
+            height: "100%",
           }}
           hoverable
         >
@@ -708,12 +709,13 @@ const AttendanceManagement = () => {
           />
         </Card>
       </Col>
-      <Col xs={24} sm={12} md={6}>
+      <Col xs={24} sm={12} md={6} lg={6}>
         <Card
           style={{
             ...cardStyle,
             background: "linear-gradient(135deg, #f6ffed, #d9f7be)",
             borderLeft: "4px solid #52c41a",
+            height: "100%",
           }}
           hoverable
         >
@@ -727,12 +729,13 @@ const AttendanceManagement = () => {
           />
         </Card>
       </Col>
-      <Col xs={24} sm={12} md={6}>
+      <Col xs={24} sm={12} md={6} lg={6}>
         <Card
           style={{
             ...cardStyle,
             background: "linear-gradient(135deg, #e6fffb, #b5f5ec)",
             borderLeft: `4px solid ${secondaryColor}`,
+            height: "100%",
           }}
           hoverable
         >
@@ -741,6 +744,25 @@ const AttendanceManagement = () => {
             value={totalScans}
             prefix={<ScheduleOutlined style={{ color: secondaryColor }} />}
             loading={loading.realTimeAttendance}
+            valueStyle={{ color: textColor }}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={12} md={6} lg={6}>
+        <Card
+          style={{
+            ...cardStyle,
+            background: "linear-gradient(135deg, #fff7e6, #ffd8bf)",
+            borderLeft: "4px solid #fa8c16",
+            height: "100%",
+          }}
+          hoverable
+        >
+          <Statistic
+            title={<Text style={{ color: textColor }}>Total Enrolled Students</Text>}
+            value={enrolledStudents}
+            prefix={<ScheduleOutlined style={{ color: "#fa8c16" }} />}
+            loading={loading.units}
             valueStyle={{ color: textColor }}
           />
         </Card>
@@ -857,22 +879,22 @@ const AttendanceManagement = () => {
         extra={
           <Space wrap>
             <Select
-                placeholder="Select Unit"
-                style={{ width: 300 }}
-                onChange={setSelectedUnit}
-                value={selectedUnit}
-                loading={loading.units}
-              >
-                {units.map((unit) => (
-                  <Option key={unit._id} value={unit._id}>
-                    <Space>
-                      <BookOutlined style={{ color: primaryColor }} />
-                      {unit.name}
-                      <Tag color={secondaryColor}>{unit.code}</Tag>
-                    </Space>
-                  </Option>
-                ))}
-              </Select>
+              placeholder="Select Unit"
+              style={{ width: 300 }}
+              onChange={setSelectedUnit}
+              value={selectedUnit}
+              loading={loading.units}
+            >
+              {units.map((unit) => (
+                <Option key={unit._id} value={unit._id}>
+                  <Space>
+                    <BookOutlined style={{ color: primaryColor }} />
+                    {unit.name}
+                    <Tag color={secondaryColor}>{unit.code}</Tag>
+                  </Space>
+                </Option>
+              ))}
+            </Select>
             <Button
               type="primary"
               icon={<QrcodeOutlined />}
@@ -898,27 +920,7 @@ const AttendanceManagement = () => {
         hoverable
       >
         <Space direction="vertical" style={{ width: "100%" }} size="middle">
-        <Col xs={24} sm={12} md={6}>
-        <Card
-          style={{
-            ...cardStyle,
-            background: "linear-gradient(135deg, #fff7e6, #ffd8bf)",
-            borderLeft: "4px solid #fa8c16",
-          }}
-          hoverable
-        >
-          <Statistic
-            title={<Text style={{ color: textColor }}>Total Enrolled Students</Text>}
-            value={enrolledStudents}
-            prefix={<ScheduleOutlined style={{ color: "#fa8c16" }} />}
-            loading={loading.units}
-            valueStyle={{ color: textColor }}
-          />
-          
-        </Card>
-        
-      </Col>
-      {summaryCards}
+          {summaryCards}
           <Card
             title={<Text strong style={{ color: primaryColor }}>Real-time Unit Attendance</Text>}
             size="small"
@@ -935,9 +937,7 @@ const AttendanceManagement = () => {
             style={{ ...cardStyle, borderTop: `3px solid ${primaryColor}` }}
             hoverable
           >
-           
             <Space wrap style={{ marginTop: 16 }}>
-              
               <Button
                 onClick={handleViewAttendance}
                 loading={loading.realTimeAttendance}
@@ -973,7 +973,7 @@ const AttendanceManagement = () => {
             size="small"
             style={{ ...cardStyle, borderTop: `3px solid ${primaryColor}` }}
             hoverable
-            >
+          >
             <Button
               icon={<DownloadOutlined />}
               onClick={() => downloadAttendanceReport(selectedUnit)}
@@ -1019,9 +1019,7 @@ const AttendanceManagement = () => {
                       {`${session.unitName} - ${moment(session.startTime).format("hh:mm A")} - ${moment(session.endTime).format("hh:mm A")} (${moment(session.startTime).format("DD/MM/YYYY")})`}
                     </Option>
                   ))}
-                
               </Select>
-              
             </Space>
             <Skeleton active loading={loading.pastAttendance}>
               <Table
@@ -1107,7 +1105,7 @@ const AttendanceManagement = () => {
         </div>
       </Modal>
 
-      <style >{`
+      <style>{`
         .ant-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
