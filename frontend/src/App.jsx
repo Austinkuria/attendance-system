@@ -16,7 +16,7 @@ import ManageLecturers from "./pages/Management/ManageLecturers";
 import StudentProfile from "./pages/profiles/StudentProfile";
 import 'bootstrap/dist/css/bootstrap.min.css';
 import BackToTop from "./components/BackToTop";
-import AttendanceManagement from "./components/AttendanceManagement";
+// import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/dashboards/Analytics";
 // import QuizPage from "./pages/dashboards/QuizPage";
 import ProtectedRoute from "./components/ProtectedRoute";
@@ -38,6 +38,7 @@ import InstallButton from './components/InstallButton';
 import AttendanceTrends from './pages/dashboards/AttendanceTrends';
 import AdminFeedbackView from "./pages/FeedbackPages/AdminFeedbackView";
 import LecturerFeedbackView from "./pages/FeedbackPages/LecturerFeedbackView";
+import PastAttendance from "./components/pastAttendance";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -144,8 +145,9 @@ function App() {
           <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
-          <Route path="/lecturer/attendance" element={<ProtectedRoute><AttendanceManagement /></ProtectedRoute>} />
+          <Route path="/lecturer/past-attendance" element={<ProtectedRoute><PastAttendance/></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+
           {/* <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} /> */}
           <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>

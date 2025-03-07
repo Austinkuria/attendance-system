@@ -170,12 +170,12 @@ const LecturerDashboard = () => {
               {
                 key: "2",
                 icon: <UserOutlined />,
-                label: <Link to="/attendance">Attendance</Link>,
+                label: <Link to="/lecturer/past-attendance">Attendance</Link>,
               },
               {
                 key: "3",
                 icon: <LineChartOutlined />,
-                label: <Link to="/analytics">Analytics</Link>,
+                label: <Link to="/lecturer/analytics">Analytics</Link>,
               },
               // {
               //   key: "4",

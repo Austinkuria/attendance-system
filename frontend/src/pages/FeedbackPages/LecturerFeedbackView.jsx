@@ -1,12 +1,13 @@
-import { useState, useEffect, useMemo } from 'react';
-import { Card, Typography, Rate, Select, Row, Col, Spin, Alert, Tag, Button, Pagination } from 'antd';
-import { Bar, Pie } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Card, Typography, Rate, Select, Row, Col, Spin, Alert, Tag, Button, Pagination, Statistic } from 'antd';
+import { Bar, Pie, Radar } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, RadialLinearScale } from 'chart.js';
 import { getFeedbackForLecturer } from '../../services/api';
 import { css } from '@emotion/css';
+import { Link } from 'react-router-dom'; // For the back button
 
 // Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, RadialLinearScale);
 
 const { Title, Text } = Typography;
 const { Option } = Select;
@@ -58,6 +59,20 @@ const useStyles = () => ({
   pagination: css`
     text-align: center;
     margin-top: 24px;
+  `,
+  summaryCard: css`
+    margin-bottom: 24px;
+    .ant-statistic {
+      &-title {
+        font-size: 14px;
+      }
+      &-content {
+        font-size: 20px;
+      }
+    }
+  `,
+  backButton: css`
+    margin-bottom: 24px;
   `,
 });
 
@@ -122,44 +137,60 @@ const LecturerFeedbackView = () => {
     return filteredFeedback.slice(startIndex, endIndex);
   }, [filteredFeedback, currentPage, pageSize]);
 
-  // Chart 1: Average Ratings by Unit
-  const unitRatingsData = useMemo(() => {
-    const units = [...new Set(feedback.map(item => item.unit?.code))].filter(Boolean);
-    
-    return {
-      labels: units,
-      datasets: [{
-        label: 'Average Rating',
-        data: units.map(unitCode => {
-          const unitFeedbacks = feedback.filter(f => f.unit?.code === unitCode);
-          return unitFeedbacks.reduce((sum, f) => sum + (f.rating || 0), 0) / unitFeedbacks.length;
-        }),
-        backgroundColor: 'rgba(54, 162, 235, 0.6)'
-      }]
-    };
-  }, [feedback]);
+  // Summary metrics
+  const summaryMetrics = useMemo(() => {
+    const totalFeedback = filteredFeedback.length;
+    const averageRating =
+      filteredFeedback.reduce((sum, item) => sum + (item.rating || 0), 0) / totalFeedback || 0;
+    const clarityYes = filteredFeedback.filter((item) => item.clarity).length;
+    const clarityNo = totalFeedback - clarityYes;
+    const averagePace =
+      filteredFeedback.reduce((sum, item) => sum + (item.pace || 0), 0) / totalFeedback || 0;
+    const averageInteractivity =
+      filteredFeedback.reduce((sum, item) => sum + (item.interactivity || 0), 0) / totalFeedback || 0;
 
-  // Chart 2: Clarity Distribution
-  const clarityData = useMemo(() => {
-    const clearCount = feedback.filter(f => f.clarity).length;
-    const unclearCount = feedback.length - clearCount;
-    
     return {
-      labels: ['Clear', 'Unclear'],
-      datasets: [{
-        data: [clearCount, unclearCount],
-        backgroundColor: ['#4CAF50', '#F44336']
-      }]
+      totalFeedback,
+      averageRating,
+      clarityYes,
+      clarityNo,
+      averagePace,
+      averageInteractivity,
     };
-  }, [feedback]);
+  }, [filteredFeedback]);
+
+  // Comprehensive chart data
+  const comprehensiveChartData = {
+    labels: ['Average Rating', 'Average Pace', 'Average Interactivity', 'Clarity (Yes)', 'Clarity (No)'],
+    datasets: [
+      {
+        label: 'Feedback Metrics',
+        data: [
+          summaryMetrics.averageRating,
+          summaryMetrics.averagePace,
+          summaryMetrics.averageInteractivity,
+          summaryMetrics.clarityYes,
+          summaryMetrics.clarityNo,
+        ],
+        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        borderColor: 'rgba(54, 162, 235, 1)',
+        borderWidth: 1,
+      },
+    ],
+  };
 
   // Chart options
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top' }
-    }
+      legend: { position: 'top' },
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+      },
+    },
   };
 
   if (error) {
@@ -176,7 +207,74 @@ const LecturerFeedbackView = () => {
 
   return (
     <div className={styles.container}>
+      {/* Back to Lecturer Dashboard Button */}
+      <Link to="/lecturer-dashboard">
+        <Button type="primary" className={styles.backButton}>
+          Back to Lecturer Dashboard
+        </Button>
+      </Link>
+
       <Title level={2}>Session Feedback Analytics</Title>
+
+      {/* Summary Cards */}
+      <Row gutter={[16, 16]} className={styles.summaryCard}>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Total Feedback"
+              value={summaryMetrics.totalFeedback}
+              precision={0}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Average Rating"
+              value={summaryMetrics.averageRating}
+              precision={1}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Clarity (Yes)"
+              value={summaryMetrics.clarityYes}
+              precision={0}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Average Pace"
+              value={summaryMetrics.averagePace}
+              precision={1}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} sm={8}>
+          <Card>
+            <Statistic
+              title="Average Interactivity"
+              value={summaryMetrics.averageInteractivity}
+              precision={1}
+            />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Comprehensive Chart */}
+      <Card className={styles.chartCard}>
+        <Title level={4} style={{ marginBottom: 16 }}>Feedback Summary Metrics</Title>
+        <div className="chart-container">
+          <Bar
+            data={comprehensiveChartData}
+            options={chartOptions}
+          />
+        </div>
+      </Card>
 
       {/* Charts Section */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
