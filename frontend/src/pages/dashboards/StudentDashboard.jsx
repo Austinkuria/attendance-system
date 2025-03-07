@@ -89,6 +89,7 @@ const StudentDashboard = () => {
   const [viewMode, setViewMode] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(moment());
   const [pendingFeedbacks, setPendingFeedbacks] = useState([]);
+  const [unitSessionStatus, setUnitSessionStatus] = useState({}); // New state for session status
   const [eventPage, setEventPage] = useState(1);
   const [notificationPage, setNotificationPage] = useState(1);
   const [pageSize] = useState(5);
@@ -106,7 +107,7 @@ const StudentDashboard = () => {
       const [profileRes, unitsRes, feedbackRes] = await Promise.all([
         getUserProfile(token),
         getStudentUnits(token),
-        getPendingFeedbackAttendance()
+        getPendingFeedbackAttendance(),
       ]);
 
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
@@ -116,6 +117,25 @@ const StudentDashboard = () => {
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
         setAttendanceData(attendanceRes);
+
+        // Check session status for each unit
+        const sessionStatusPromises = sanitizedUnits.map(async (unit) => {
+          const unitAttendance = attendanceRes.attendanceRecords
+            .filter((data) => data.session.unit._id.toString() === unit._id.toString())
+            .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
+          const latestSession = unitAttendance[0];
+          if (!latestSession) return { unitId: unit._id, isExpired: true, feedbackSubmitted: false };
+
+          const { isExpired } = await fetchSessionStatus(unit._id, latestSession.session._id);
+          return {
+            unitId: unit._id,
+            isExpired,
+            feedbackSubmitted: latestSession.feedbackSubmitted || false,
+          };
+        });
+
+        const sessionStatuses = await Promise.all(sessionStatusPromises);
+        setUnitSessionStatus(Object.fromEntries(sessionStatuses.map(status => [status.unitId, status])));
       }
 
       const newPendingFeedbacks = feedbackRes.pendingFeedbackRecords.map((record) => ({
@@ -127,7 +147,6 @@ const StudentDashboard = () => {
         timestamp: record.session.endTime || new Date(),
       }));
 
-      // Filter out expired sessions on load
       const filteredFeedbacks = await Promise.all(
         newPendingFeedbacks.map(async (feedback) => {
           try {
@@ -139,7 +158,7 @@ const StudentDashboard = () => {
             return feedback;
           } catch (error) {
             console.error(`Error checking session ${feedback.sessionId}:`, error);
-            return feedback; // Keep it if there's an error fetching status
+            return feedback;
           }
         })
       );
@@ -617,31 +636,16 @@ const StudentDashboard = () => {
       return;
     }
 
-    try {
-      const session = await fetchSessionStatus(unitId, latestSession.session._id);
-      if (session.isExpired) {
-        message.warning('You cannot provide feedback for this session since it is expired.');
-        return;
-      }
-      if (!session.latestSession.ended) {
-        message.info('Feedback is only available after the latest session ends.');
-        return;
-      }
-      if (latestSession.status !== 'Present') {
-        message.info('You must mark attendance for the latest session to provide feedback.');
-        return;
-      }
-      const feedbackSubmitted = await checkFeedbackStatus(latestSession.session._id);
-      if (feedbackSubmitted) {
-        message.info('Feedback already submitted for the latest session.');
-        return;
-      }
-      setActiveSessionId(latestSession.session._id);
-      setFeedbackModalVisible(true);
-    } catch (error) {
-      console.error('Error fetching session status:', error);
-      message.error('Failed to fetch session status.');
+    if (!latestSession.session.ended) {
+      message.info('Feedback is only available after the latest session ends.');
+      return;
     }
+    if (latestSession.status !== 'Present') {
+      message.info('You must mark attendance for the latest session to provide feedback.');
+      return;
+    }
+    setActiveSessionId(latestSession.session._id);
+    setFeedbackModalVisible(true);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -677,7 +681,6 @@ const StudentDashboard = () => {
           rec.session._id === activeSessionId ? { ...rec, feedbackSubmitted: true } : rec
         ),
       }));
-      // Auto-dismiss the notification after successful submission
       setPendingFeedbacks((prev) => {
         const updatedFeedbacks = prev.filter((pf) => pf.sessionId !== activeSessionId);
         if (prev.length > updatedFeedbacks.length) {
@@ -881,7 +884,16 @@ const StudentDashboard = () => {
                           <Button
                             block
                             onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
-                            disabled={attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString() && rec.feedbackSubmitted)}
+                            disabled={
+                              unitSessionStatus[unit._id]?.isExpired ||
+                              unitSessionStatus[unit._id]?.feedbackSubmitted ||
+                              !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString())
+                            }
+                            title={
+                              unitSessionStatus[unit._id]?.isExpired ? 'Session expired' :
+                              unitSessionStatus[unit._id]?.feedbackSubmitted ? 'Feedback already submitted' :
+                              'No sessions available'
+                            }
                           >
                             Feedback
                           </Button>
