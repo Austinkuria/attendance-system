@@ -94,7 +94,7 @@ function App() {
             position: "fixed",
             top: 0,
             width: "100%",
-            zIndex: 1000,
+            zIndex: 10000,
             fontWeight: "bold",
             boxSizing: "border-box",
           }}
