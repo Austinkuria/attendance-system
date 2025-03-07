@@ -94,9 +94,9 @@ const AttendanceManagement = () => {
   const textColor = "#1d3557"; // Dark blue-gray for text
   const disabledTextColor = "#8c8c8c"; // Gray for disabled states
   const backgroundColor = "#f0f2f5"; // Light gray background
-  const tableHeaderColor = "linear-gradient(135deg, #d6eaff, #b3d1ff)"; // Gradient for table headers
-  const tableRowLight = "#f7f9fc"; // Softer light blue-gray for even rows
-  const tableRowDark = "#ffffff"; // White for odd rows
+  const tableHeaderColor = primaryColor; // Solid deep blue for table headers
+  const tableRowLight = "#eef7ff"; // Pastel blue for even rows
+  const tableRowDark = "#f9fbfc"; // Very light gray-blue for odd rows
   const tableHoverColor = "#e6f7ff"; // Light blue on hover
 
   useEffect(() => {
@@ -612,7 +612,7 @@ const AttendanceManagement = () => {
       key: "status",
       render: (status) => (
         <Tag
-          color={status === "Present" ? primaryColor : secondaryColor}
+          color={status === "Present" ? "#389e0d" : "#cf1322"}
           style={{ borderRadius: "12px", color: "#fff" }}
         >
           {status.toUpperCase()}
@@ -680,7 +680,7 @@ const AttendanceManagement = () => {
       key: "status",
       render: (status) => (
         <Tag
-          color={status === "Present" ? primaryColor : secondaryColor}
+          color={status === "Present" ? "#389e0d" : "#cf1322"}
           style={{ borderRadius: "12px", color: "#fff" }}
         >
           {status.toUpperCase()}
@@ -1138,7 +1138,7 @@ const AttendanceManagement = () => {
         }
         .ant-table-thead > tr > th {
           background: ${tableHeaderColor};
-          color: ${textColor};
+          color: #fff;
           font-weight: 600;
           border-bottom: 2px solid ${primaryColor};
         }
