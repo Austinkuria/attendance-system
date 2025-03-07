@@ -38,7 +38,7 @@ import InstallButton from './components/InstallButton';
 import AttendanceTrends from './pages/dashboards/AttendanceTrends';
 import AdminFeedbackView from "./pages/FeedbackPages/AdminFeedbackView";
 import LecturerFeedbackView from "./pages/FeedbackPages/LecturerFeedbackView";
-import PastAttendance from "./components/pastAttendance";
+import PastAttendance from "./pages/dashboards/PastAttendance";
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -145,7 +145,7 @@ function App() {
           <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
           <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
           <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
-          <Route path="/lecturer/past-attendance" element={<ProtectedRoute><PastAttendance/></ProtectedRoute>} />
+          <Route path="/lecturer/past-attendance" element={<ProtectedRoute><PastAttendance /></ProtectedRoute>} />
           <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
 
           {/* <Route path="/lecturer/quizzes" element={<ProtectedRoute><QuizPage /></ProtectedRoute>} /> */}
