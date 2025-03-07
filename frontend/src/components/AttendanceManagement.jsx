@@ -94,6 +94,10 @@ const AttendanceManagement = () => {
   const textColor = "#1d3557"; // Dark blue-gray for text
   const disabledTextColor = "#8c8c8c"; // Gray for disabled states
   const backgroundColor = "#f0f2f5"; // Light gray background
+  const tableHeaderColor = "linear-gradient(135deg, #d6eaff, #b3d1ff)"; // Gradient for table headers
+  const tableRowLight = "#f7f9fc"; // Softer light blue-gray for even rows
+  const tableRowDark = "#ffffff"; // White for odd rows
+  const tableHoverColor = "#e6f7ff"; // Light blue on hover
 
   useEffect(() => {
     if (currentSession) {
@@ -594,9 +598,11 @@ const AttendanceManagement = () => {
       key: "attendedAt",
       render: (attendedAt) =>
         attendedAt ? (
-          <Tag color={secondaryColor}>{new Date(attendedAt).toLocaleTimeString()}</Tag>
+          <Tag color={secondaryColor} style={{ borderRadius: "12px" }}>
+            {new Date(attendedAt).toLocaleTimeString()}
+          </Tag>
         ) : (
-          "N/A"
+          <Tag color={disabledTextColor} style={{ borderRadius: "12px" }}>N/A</Tag>
         ),
       sorter: (a, b) => new Date(a.attendedAt || 0) - new Date(b.attendedAt || 0),
     },
@@ -605,7 +611,12 @@ const AttendanceManagement = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => (
-        <Tag color={status === "Present" ? "#52c41a" : "#f5222d"}>{status.toUpperCase()}</Tag>
+        <Tag
+          color={status === "Present" ? primaryColor : secondaryColor}
+          style={{ borderRadius: "12px", color: "#fff" }}
+        >
+          {status.toUpperCase()}
+        </Tag>
       ),
       filters: [
         { text: "Present", value: "Present" },
@@ -655,9 +666,11 @@ const AttendanceManagement = () => {
       key: "attendedAt",
       render: (attendedAt) =>
         attendedAt ? (
-          <Tag color={secondaryColor}>{new Date(attendedAt).toLocaleTimeString()}</Tag>
+          <Tag color={secondaryColor} style={{ borderRadius: "12px" }}>
+            {new Date(attendedAt).toLocaleTimeString()}
+          </Tag>
         ) : (
-          "N/A"
+          <Tag color={disabledTextColor} style={{ borderRadius: "12px" }}>N/A</Tag>
         ),
       sorter: (a, b) => new Date(a.attendedAt || 0) - new Date(b.attendedAt || 0),
     },
@@ -666,7 +679,12 @@ const AttendanceManagement = () => {
       dataIndex: "status",
       key: "status",
       render: (status) => (
-        <Tag color={status === "Present" ? "#52c41a" : "#f5222d"}>{status.toUpperCase()}</Tag>
+        <Tag
+          color={status === "Present" ? primaryColor : secondaryColor}
+          style={{ borderRadius: "12px", color: "#fff" }}
+        >
+          {status.toUpperCase()}
+        </Tag>
       ),
       filters: [
         { text: "Present", value: "Present" },
@@ -962,6 +980,7 @@ const AttendanceManagement = () => {
                 }}
                 locale={{ emptyText: "No active session attendance records found" }}
                 bordered
+                borderColor={primaryColor}
                 size="middle"
                 rowClassName={(record, index) => (index % 2 === 0 ? "table-row-light" : "table-row-dark")}
               />
@@ -1035,6 +1054,7 @@ const AttendanceManagement = () => {
                 }}
                 locale={{ emptyText: "No past attendance records found" }}
                 bordered
+                borderColor={primaryColor}
                 size="middle"
                 rowClassName={(record, index) => (index % 2 === 0 ? "table-row-light" : "table-row-dark")}
               />
@@ -1111,15 +1131,26 @@ const AttendanceManagement = () => {
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
         .table-row-light {
-          background: #fafafa;
+          background: ${tableRowLight};
         }
         .table-row-dark {
-          background: #fff;
+          background: ${tableRowDark};
         }
         .ant-table-thead > tr > th {
-          background: #e6f7ff;
+          background: ${tableHeaderColor};
           color: ${textColor};
           font-weight: 600;
+          border-bottom: 2px solid ${primaryColor};
+        }
+        .ant-table-tbody > tr:hover:not(.ant-table-expanded-row) > td {
+          background: ${tableHoverColor};
+        }
+        .ant-table {
+          border: 1px solid ${primaryColor};
+          border-radius: 8px;
+        }
+        .ant-table-tbody > tr > td {
+          border-bottom: 1px solid #e8ecef;
         }
         .ant-btn-primary {
           background: ${primaryColor};
