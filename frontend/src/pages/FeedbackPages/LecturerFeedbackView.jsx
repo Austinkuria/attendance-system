@@ -159,6 +159,60 @@ const LecturerFeedbackView = () => {
     };
   }, [filteredFeedback]);
 
+  // Calculate average ratings by unit
+  const unitRatingsData = useMemo(() => {
+    const unitRatings = {};
+
+    feedback.forEach((item) => {
+      const unitCode = item.unit?.code;
+      if (unitCode) {
+        if (!unitRatings[unitCode]) {
+          unitRatings[unitCode] = { total: 0, count: 0 };
+        }
+        unitRatings[unitCode].total += item.rating || 0;
+        unitRatings[unitCode].count += 1;
+      }
+    });
+
+    const labels = Object.keys(unitRatings);
+    const data = labels.map((unitCode) => {
+      const averageRating = unitRatings[unitCode].total / unitRatings[unitCode].count;
+      return averageRating.toFixed(2); // Round to 2 decimal places
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Average Rating',
+          data,
+          backgroundColor: 'rgba(75, 192, 192, 0.6)',
+          borderColor: 'rgba(75, 192, 192, 1)',
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [feedback]);
+
+  // Clarity distribution data
+  const clarityData = useMemo(() => {
+    const clarityYes = filteredFeedback.filter((item) => item.clarity).length;
+    const clarityNo = filteredFeedback.length - clarityYes;
+
+    return {
+      labels: ['Clear', 'Unclear'],
+      datasets: [
+        {
+          label: 'Clarity Distribution',
+          data: [clarityYes, clarityNo],
+          backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)'],
+          borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)'],
+          borderWidth: 1,
+        },
+      ],
+    };
+  }, [filteredFeedback]);
+
   // Comprehensive chart data
   const comprehensiveChartData = {
     labels: ['Average Rating', 'Average Pace', 'Average Interactivity', 'Clarity (Yes)', 'Clarity (No)'],
