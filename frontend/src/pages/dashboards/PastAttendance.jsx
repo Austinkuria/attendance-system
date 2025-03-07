@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import axios from 'axios';
 import moment from 'moment';
-import { getDepartments, getLecturerUnits } from '../services/api';
+import { getDepartments, getLecturerUnits } from '../../services/api';
 
 const { Option } = Select;
 const { Text } = Typography;
