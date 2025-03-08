@@ -1,4 +1,4 @@
-import { toast } from "react-toastify"; // Import toast for notifications
+
 
 export function register(config) {
   const isProduction = import.meta.env.MODE === 'production';
@@ -9,7 +9,7 @@ export function register(config) {
         navigator.serviceWorker.ready.then((registration) => config.onSuccess(registration));
       }
       if (config && config.onUpdate) {
-        toast.info("A new update is available!", { autoClose: 3000 });
+
         navigator.serviceWorker.getRegistration().then((registration) => {
           if (registration) registration.onupdatefound = () => config.onUpdate(registration);
         });
