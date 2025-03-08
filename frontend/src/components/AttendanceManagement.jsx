@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useContext } from "react";
 import {
   Button,
   Table,
@@ -35,14 +35,16 @@ import {
   getDepartments,
   detectCurrentSession,
   createSession,
-} from "../services/api"; // Ensure this path is correct
+} from "../services/api"; // Adjust path as needed
 import moment from "moment";
+import { ThemeContext } from "../pages/dashboards/LecturerDashboard"; 
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { Text } = Typography;
 
 const AttendanceManagement = () => {
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const screens = useBreakpoint();
   const [attendance, setAttendance] = useState([]);
   const [units, setUnits] = useState([]);
@@ -79,31 +81,16 @@ const AttendanceManagement = () => {
     semester: null,
   });
 
-  // Base card style with responsive margins
   const cardStyle = {
-    borderRadius: "12px",
-    boxShadow: "0 4px 12px rgba(0, 0, 0, 0.1)",
-    marginBottom: screens.xs ? 0 : 8, // No margin on small screens
-    background: "#fff",
+    borderRadius: "16px",
+    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.05)",
+    background: themeColors.cardBg,
     overflow: "hidden",
     transition: "transform 0.3s ease, box-shadow 0.3s ease",
     width: "100%",
-    margin: 0, // No horizontal margins
-    border: "1px dashed cyan", // Debugger: Cyan dashed border for cards
+    margin: 0,
   };
 
-  // Color constants
-  const primaryColor = "#1d39c4";
-  const secondaryColor = "#13c2c2";
-  const textColor = "#1d3557";
-  const disabledTextColor = "#8c8c8c";
-  const backgroundColor = "#f0f2f5";
-  const tableHeaderColor = primaryColor;
-  const tableRowLight = "#eef7ff";
-  const tableRowDark = "#f9fbfc";
-  const tableHoverColor = "#e6f7ff";
-
-  // Persist current session to localStorage
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem("currentSession", JSON.stringify(currentSession));
@@ -112,44 +99,28 @@ const AttendanceManagement = () => {
     }
   }, [currentSession]);
 
-  // Fetch departments if not already loaded
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
         const data = await getDepartments();
         setDepartments(data);
-      } catch (error) {
-        message.error(
-          error.response?.status === 429
-            ? "Too many requests. Please try again later."
-            : "Failed to fetch departments"
-        );
+      } catch (/* eslint-disable no-unused-vars */ _) {
+        message.error("Failed to fetch departments");
       }
     };
     if (departments.length === 0) fetchDepartments();
   }, [departments]);
 
-  // Check for an active session
   const checkCurrentSession = useCallback(async () => {
     try {
       setLoading((prev) => ({ ...prev, session: true }));
       setLoadingSessionData(true);
       const { data } = await detectCurrentSession(lecturerId);
       if (data && !data.ended && new Date(data.endTime) > new Date()) {
-        const validStartTime = new Date(data.startTime);
-        const validEndTime = new Date(data.endTime);
-        if (
-          !validStartTime ||
-          !validEndTime ||
-          isNaN(validStartTime.getTime()) ||
-          isNaN(validEndTime.getTime())
-        ) {
-          throw new Error("Invalid session times detected");
-        }
         setCurrentSession({
           ...data,
-          startSession: validStartTime,
-          endSession: validEndTime,
+          startSession: new Date(data.startTime),
+          endSession: new Date(data.endTime),
         });
         setQrData(data.qrCode);
         setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
@@ -158,16 +129,11 @@ const AttendanceManagement = () => {
         setQrData("");
         localStorage.removeItem("currentSession");
       }
-    } catch (error) {
-      console.error("Error checking current session:", error);
+    } catch (/* eslint-disable no-unused-vars */ _) {
       setCurrentSession(null);
       setQrData("");
       localStorage.removeItem("currentSession");
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests. Please try again later."
-          : error.message || "Failed to detect current session"
-      );
+      message.error("Failed to detect current session");
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
       setLoadingSessionData(false);
@@ -178,7 +144,6 @@ const AttendanceManagement = () => {
     checkCurrentSession();
   }, [checkCurrentSession]);
 
-  // Auto-end session if time expires
   useEffect(() => {
     let intervalId;
     if (
@@ -195,12 +160,11 @@ const AttendanceManagement = () => {
           localStorage.removeItem("currentSession");
           clearInterval(intervalId);
         }
-      }, 60000); // Check every minute
+      }, 60000);
     }
     return () => clearInterval(intervalId);
   }, [currentSession]);
 
-  // Fetch lecturer units
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -216,12 +180,8 @@ const AttendanceManagement = () => {
         } else {
           message.info("No units assigned to your account");
         }
-      } catch (error) {
-        message.error(
-          error.response?.status === 429
-            ? "Too many requests. Please try again later."
-            : "Failed to load unit data"
-        );
+      } catch (/* eslint-disable no-unused-vars */ _) {
+        message.error("Failed to load unit data");
       } finally {
         setLoading((prev) => ({ ...prev, units: false }));
       }
@@ -229,7 +189,6 @@ const AttendanceManagement = () => {
     if (lecturerId && units.length === 0) fetchData();
   }, [lecturerId, selectedUnit, currentSession, units]);
 
-  // Fetch current session for selected unit
   useEffect(() => {
     if (!selectedUnit || currentSession?.ended) {
       setLoadingSessionData(false);
@@ -242,70 +201,30 @@ const AttendanceManagement = () => {
 
     const fetchCurrentSession = async () => {
       const token = localStorage.getItem("token");
-      if (!token) {
-        message.error("Authentication token missing. Please log in again.");
-        setLoadingSessionData(false);
-        return;
-      }
-
-      if (!selectedUnit || selectedUnit === "undefined") {
-        message.error("Please select a unit before fetching the session.");
-        setLoadingSessionData(false);
-        return;
-      }
-
+      if (!token || !selectedUnit) return;
       try {
         setLoadingSessionData(true);
         const response = await axios.get(
           `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
-          {
-            headers: { Authorization: `Bearer ${token}` },
-            validateStatus: (status) => status >= 200 && status < 300,
-          }
+          { headers: { Authorization: `Bearer ${token}` } }
         );
         if (response.data && response.data._id && !response.data.ended) {
-          const validStartTime = response.data.startTime
-            ? new Date(response.data.startTime)
-            : null;
-          const validEndTime = response.data.endTime
-            ? new Date(response.data.endTime)
-            : null;
-          if (
-            !validStartTime ||
-            !validEndTime ||
-            isNaN(validStartTime.getTime()) ||
-            isNaN(validEndTime.getTime())
-          ) {
-            message.warning("Invalid session times received.");
-            setCurrentSession(null);
-            setQrData("");
-          } else {
-            const unitFromResponse = response.data.unit || {};
-            const unitName =
-              unitFromResponse.name ||
-              units.find((u) => u._id === response.data.unit)?.name ||
-              "Unknown Unit";
-            setCurrentSession({
-              ...response.data,
-              unit: { name: unitName },
-              startSession: validStartTime,
-              endSession: validEndTime,
-            });
-            setQrData(response.data.qrCode);
-          }
+          const unitName =
+            response.data.unit?.name ||
+            units.find((u) => u._id === response.data.unit)?.name ||
+            "Unknown Unit";
+          setCurrentSession({
+            ...response.data,
+            unit: { name: unitName },
+            startSession: new Date(response.data.startTime),
+            endSession: new Date(response.data.endTime),
+          });
+          setQrData(response.data.qrCode);
         } else {
           setCurrentSession(null);
           setQrData("");
         }
-      } catch (error) {
-        console.error("Error fetching session:", error);
-        message.error(
-          error.response?.status === 429
-            ? "Too many requests. Please try again later."
-            : error.response?.status === 400
-            ? "Invalid unit ID provided."
-            : error.response?.data?.message || "Failed to fetch session"
-        );
+      } catch (/* eslint-disable no-unused-vars */ _) {
         setCurrentSession(null);
         setQrData("");
       } finally {
@@ -315,7 +234,6 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, [selectedUnit, units, currentSession?.ended]);
 
-  // Fetch real-time attendance
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
@@ -325,13 +243,7 @@ const AttendanceManagement = () => {
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       setAttendance(response.data);
-    } catch (error) {
-      console.error("Error fetching real-time attendance:", error);
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests. Please try again later."
-          : error.message || "Failed to fetch attendance data"
-      );
+    } catch (/* eslint-disable no-unused-vars */ _) {
       setAttendance([]);
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
@@ -342,12 +254,11 @@ const AttendanceManagement = () => {
     let intervalId;
     if (currentSession && selectedUnit && !currentSession.ended) {
       handleViewAttendance();
-      intervalId = setInterval(handleViewAttendance, 10000); // Refresh every 10 seconds
+      intervalId = setInterval(handleViewAttendance, 10000);
     }
     return () => clearInterval(intervalId);
   }, [currentSession, selectedUnit, handleViewAttendance]);
 
-  // Fetch past sessions
   const fetchPastSessions = useCallback(async () => {
     try {
       setLoading((prev) => ({ ...prev, pastAttendance: true }));
@@ -402,8 +313,7 @@ const AttendanceManagement = () => {
       } else {
         setPastAttendance([]);
       }
-    } catch (error) {
-      console.error("Error fetching past sessions:", error);
+    } catch (/* eslint-disable no-unused-vars */ _) {
       message.error("Failed to fetch past sessions");
     } finally {
       setLoading((prev) => ({ ...prev, pastAttendance: false }));
@@ -414,7 +324,6 @@ const AttendanceManagement = () => {
     if (lecturerId) fetchPastSessions();
   }, [lecturerId, pastFilters, fetchPastSessions]);
 
-  // Create a new attendance session
   const handleCreateSession = async () => {
     if (!selectedUnit) {
       message.error("Please select a unit first");
@@ -426,37 +335,22 @@ const AttendanceManagement = () => {
       const startTime = new Date().toISOString();
       const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       const data = await createSession({ unitId: selectedUnit, lecturerId, startTime, endTime });
-      const validStartTime = data.startTime
-        ? new Date(data.startTime)
-        : new Date();
-      const validEndTime = data.endTime
-        ? new Date(data.endTime)
-        : new Date(Date.now() + 60 * 60 * 1000);
-      if (isNaN(validStartTime.getTime()) || isNaN(validEndTime.getTime())) {
-        throw new Error("Invalid session times received from API");
-      }
       message.success("Session created successfully");
       setCurrentSession({
         ...data,
-        startSession: validStartTime,
-        endSession: validEndTime,
+        startSession: new Date(data.startTime),
+        endSession: new Date(data.endTime),
         ended: false,
       });
       setQrData(data.qrCode);
-    } catch (error) {
-      console.error("Error creating session:", error);
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests. Please try again later."
-          : error.message || "Failed to create session"
-      );
+    } catch (/* eslint-disable no-unused-vars */ _) {
+      message.error("Failed to create session");
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
       setLoadingSessionData(false);
     }
   };
 
-  // Generate QR code for the session
   const handleGenerateQR = async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) {
       message.error("Please select a unit and ensure an active session exists");
@@ -474,19 +368,13 @@ const AttendanceManagement = () => {
       }
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
-    } catch (error) {
-      console.error("Error generating QR code:", error);
-      message.error(
-        error.response?.status === 429
-          ? "Too many requests. Please try again later."
-          : error.message || "Failed to generate QR code"
-      );
+    } catch (/* eslint-disable no-unused-vars */ _) {
+      message.error("Failed to generate QR code");
     } finally {
       setLoading((prev) => ({ ...prev, qr: false }));
     }
   };
 
-  // End the current session
   const handleEndSession = async () => {
     if (!currentSession) {
       message.warning("No active session to end");
@@ -517,36 +405,20 @@ const AttendanceManagement = () => {
               localStorage.removeItem("currentSession");
               setSelectedUnit(null);
               await checkCurrentSession();
-            } else {
-              throw new Error("Session not marked as ended");
             }
-          } catch (error) {
-            console.error("Error ending session:", error);
-            message.error(
-              error.response?.status === 429
-                ? "Too many requests. Please try again later."
-                : error.response?.status === 400
-                ? "Invalid request. Session may already be ended."
-                : error.response?.data?.message || "Failed to end session"
-            );
-            if (error.response?.status === 400) {
-              setCurrentSession(null);
-              setQrData("");
-              localStorage.removeItem("currentSession");
-            }
+          } catch (/* eslint-disable no-unused-vars */ _) {
+            message.error("Failed to end session");
           } finally {
             setLoading((prev) => ({ ...prev, session: false }));
           }
         },
       });
-    } catch (error) {
-      console.error("Unexpected error in handleEndSession:", error);
+    } catch (/* eslint-disable no-unused-vars */ _) {
       message.error("An unexpected error occurred");
       setLoading((prev) => ({ ...prev, session: false }));
     }
   };
 
-  // Toggle attendance status
   const handleToggleStatus = (recordId) => {
     const record = attendance.find((r) => r._id === recordId);
     if (!record) return;
@@ -569,19 +441,13 @@ const AttendanceManagement = () => {
             prev.map((a) => (a._id === recordId ? { ...a, status: newStatus } : a))
           );
           message.success(`Marked ${record.student.regNo} as ${newStatus}`);
-        } catch (error) {
-          console.error("Error updating status:", error);
-          message.error(
-            error.response?.status === 429
-              ? "Too many requests. Please try again later."
-              : "Failed to update attendance status"
-          );
+        } catch (/* eslint-disable no-unused-vars */ _) {
+          message.error("Failed to update attendance status");
         }
       },
     });
   };
 
-  // Fetch absent students
   const fetchAbsentStudents = async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
@@ -605,15 +471,13 @@ const AttendanceManagement = () => {
       );
       setAttendance(absentRecords);
       message.success("Showing absent students");
-    } catch (error) {
-      console.error("Error fetching absent students:", error);
+    } catch (/* eslint-disable no-unused-vars */ _) {
       message.error("Failed to fetch absent students");
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
     }
   };
 
-  // Real-time attendance table columns
   const realTimeColumns = [
     {
       title: "Reg Number",
@@ -642,11 +506,11 @@ const AttendanceManagement = () => {
       key: "attendedAt",
       render: (attendedAt) =>
         attendedAt ? (
-          <Tag color={secondaryColor} style={{ borderRadius: "12px" }}>
+          <Tag color={themeColors.secondary} style={{ borderRadius: "12px" }}>
             {new Date(attendedAt).toLocaleTimeString()}
           </Tag>
         ) : (
-          <Tag color={disabledTextColor} style={{ borderRadius: "12px" }}>
+          <Tag color={`${themeColors.text}80`} style={{ borderRadius: "12px" }}>
             N/A
           </Tag>
         ),
@@ -659,7 +523,7 @@ const AttendanceManagement = () => {
       key: "status",
       render: (status) => (
         <Tag
-          color={status === "Present" ? "#389e0d" : "#cf1322"}
+          color={status === "Present" ? themeColors.secondary : themeColors.accent}
           style={{ borderRadius: "12px", color: "#fff" }}
         >
           {status.toUpperCase()}
@@ -682,7 +546,7 @@ const AttendanceManagement = () => {
           onClick={() => handleToggleStatus(record._id)}
           icon={<SyncOutlined />}
           disabled={currentSession?.ended}
-          style={{ color: primaryColor, padding: 0 }}
+          style={{ color: themeColors.primary, padding: 0 }}
         >
           {screens.xs ? "" : "Toggle Status"}
         </Button>
@@ -691,7 +555,6 @@ const AttendanceManagement = () => {
     },
   ];
 
-  // Past attendance table columns
   const pastColumns = [
     {
       title: "Reg Number",
@@ -720,11 +583,11 @@ const AttendanceManagement = () => {
       key: "attendedAt",
       render: (attendedAt) =>
         attendedAt ? (
-          <Tag color={secondaryColor} style={{ borderRadius: "12px" }}>
+          <Tag color={themeColors.secondary} style={{ borderRadius: "12px" }}>
             {new Date(attendedAt).toLocaleTimeString()}
           </Tag>
         ) : (
-          <Tag color={disabledTextColor} style={{ borderRadius: "12px" }}>
+          <Tag color={`${themeColors.text}80`} style={{ borderRadius: "12px" }}>
             N/A
           </Tag>
         ),
@@ -737,7 +600,7 @@ const AttendanceManagement = () => {
       key: "status",
       render: (status) => (
         <Tag
-          color={status === "Present" ? "#389e0d" : "#cf1322"}
+          color={status === "Present" ? themeColors.secondary : themeColors.accent}
           style={{ borderRadius: "12px", color: "#fff" }}
         >
           {status.toUpperCase()}
@@ -752,7 +615,6 @@ const AttendanceManagement = () => {
     },
   ];
 
-  // Memoized statistics
   const totalAssignedUnits = useMemo(() => units.length, [units]);
   const enrolledStudents = useMemo(() => {
     if (!selectedUnit) return 0;
@@ -767,33 +629,27 @@ const AttendanceManagement = () => {
       : 0;
   }, [attendance, enrolledStudents]);
 
-  // Summary cards section
   const summaryCards = (
-    <Row
-      gutter={[screens.xs ? 0 : 8, screens.xs ? 0 : 8]}
-      justify="space-between"
-      style={{ margin: 0, border: "1px dashed magenta" }} // Debugger: Magenta dashed border
-    >
+    <Row gutter={[screens.xs ? 0 : 8, screens.xs ? 0 : 8]} justify="space-between" style={{ margin: 0 }}>
       <Col xs={12} sm={12} md={6} lg={6}>
         <Card
           style={{
             ...cardStyle,
-            background: "linear-gradient(135deg, #e6f7ff, #bae7ff)",
-            borderLeft: `4px solid ${primaryColor}`,
+            background: themeColors.cardGradient1,
+            borderLeft: `4px solid ${themeColors.primary}`,
             height: "100%",
+            color: '#fff',
           }}
           hoverable
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           <Statistic
-            title={
-              <Text style={{ color: textColor, fontSize: screens.xs ? 12 : 14 }}>
-                Assigned Units
-              </Text>
-            }
+            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Assigned Units</Text>}
             value={totalAssignedUnits}
-            prefix={<TeamOutlined style={{ color: primaryColor }} />}
+            prefix={<TeamOutlined />}
             loading={loading.units}
-            valueStyle={{ color: textColor, fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
@@ -801,23 +657,22 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: "linear-gradient(135deg, #f6ffed, #d9f7be)",
-            borderLeft: "4px solid #52c41a",
+            background: themeColors.cardGradient2,
+            borderLeft: `4px solid ${themeColors.secondary}`,
             height: "100%",
+            color: '#fff',
           }}
           hoverable
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           <Statistic
-            title={
-              <Text style={{ color: textColor, fontSize: screens.xs ? 12 : 14 }}>
-                Attendance Rate
-              </Text>
-            }
+            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Attendance Rate</Text>}
             value={attendanceRate}
             suffix="%"
-            prefix={<PercentageOutlined style={{ color: "#52c41a" }} />}
+            prefix={<PercentageOutlined />}
             loading={loading.realTimeAttendance}
-            valueStyle={{ color: textColor, fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
@@ -825,22 +680,21 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: "linear-gradient(135deg, #e6fffb, #b5f5ec)",
-            borderLeft: `4px solid ${secondaryColor}`,
+            background: themeColors.cardGradient1,
+            borderLeft: `4px solid ${themeColors.primary}`,
             height: "100%",
+            color: '#fff',
           }}
           hoverable
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           <Statistic
-            title={
-              <Text style={{ color: textColor, fontSize: screens.xs ? 12 : 14 }}>
-                Total Scans
-              </Text>
-            }
+            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Total Scans</Text>}
             value={totalScans}
-            prefix={<ScheduleOutlined style={{ color: secondaryColor }} />}
+            prefix={<ScheduleOutlined />}
             loading={loading.realTimeAttendance}
-            valueStyle={{ color: textColor, fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
@@ -848,46 +702,40 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: "linear-gradient(135deg, #fff7e6, #ffd8bf)",
-            borderLeft: "4px solid #fa8c16",
+            background: themeColors.cardGradient2,
+            borderLeft: `4px solid ${themeColors.secondary}`,
             height: "100%",
+            color: '#fff',
           }}
           hoverable
+          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
         >
           <Statistic
-            title={
-              <Text style={{ color: textColor, fontSize: screens.xs ? 12 : 14 }}>
-                Total Enrolled
-              </Text>
-            }
+            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Total Enrolled</Text>}
             value={enrolledStudents}
-            prefix={<ScheduleOutlined style={{ color: "#fa8c16" }} />}
+            prefix={<ScheduleOutlined />}
             loading={loading.units}
-            valueStyle={{ color: textColor, fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
     </Row>
   );
 
-  // Format session time for display
   const formatSessionTime = (session) => {
     if (!session || !session.startSession || !session.endSession)
       return "No session time available";
     try {
       const startTime = new Date(session.startSession);
       const endTime = new Date(session.endSession);
-      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime()))
-        return "Invalid session time";
       const options = { hour: "numeric", minute: "2-digit", hour12: true };
       return `${startTime.toLocaleTimeString([], options)} - ${endTime.toLocaleTimeString([], options)}`;
-    } catch (error) {
-      console.error("Error formatting session time:", error);
+    } catch (/* eslint-disable no-unused-vars */ _) {
       return "Error formatting time";
     }
   };
 
-  // Clear all filters
   const clearFilters = () => {
     setUnitFilters({ department: null, year: null, semester: null });
     setPastFilters({
@@ -899,7 +747,6 @@ const AttendanceManagement = () => {
     });
   };
 
-  // Session timer component
   const SessionTimer = ({ end }) => {
     const [timeLeft, setTimeLeft] = useState(() => {
       const endTime = new Date(end).getTime();
@@ -927,7 +774,7 @@ const AttendanceManagement = () => {
 
     return (
       <div style={{ marginTop: screens.xs ? 4 : 8 }}>
-        <Tag icon={<ClockCircleOutlined />} color={primaryColor}>
+        <Tag icon={<ClockCircleOutlined />} color={themeColors.primary}>
           Time Remaining: {formatTime(timeLeft)}
         </Tag>
       </div>
@@ -942,44 +789,33 @@ const AttendanceManagement = () => {
     ]).isRequired,
   };
 
-  // Main render
   return (
-    <div
-      style={{
-        padding: screens.xs ? 0 : 4, // No padding on small screens
-        margin: 0,
-        background: backgroundColor,
-        width: "100%",
-        border: "2px solid brown", // Debugger: Brown border for root div
-      }}
-    >
+    <div style={{ padding: screens.xs ? 0 : 4, margin: 0, background: themeColors.background, width: "100%" }}>
       {loadingSessionData ? (
         <Card style={cardStyle} loading>
           <Skeleton active />
         </Card>
-      ) : currentSession &&
-        currentSession.startSession &&
-        currentSession.endSession &&
-        !currentSession.ended ? (
+      ) : currentSession && !currentSession.ended ? (
         <Card
           title={
             <Space>
-              <ClockCircleOutlined style={{ color: primaryColor }} />
-              <Text strong style={{ color: textColor }}>
+              <ClockCircleOutlined style={{ color: themeColors.primary }} />
+              <Text strong style={{ color: themeColors.text }}>
                 Active Session: {currentSession.unit?.name || "Unknown Unit"}
               </Text>
             </Space>
           }
           style={{
             ...cardStyle,
-            background: "linear-gradient(135deg, #e6f7ff, #bae7ff)",
-            borderLeft: `4px solid ${primaryColor}`,
+            background: themeColors.cardGradient1,
+            borderLeft: `4px solid ${themeColors.primary}`,
+            color: '#fff',
           }}
           hoverable
         >
           <Row gutter={[8, 8]}>
             <Col span={24}>
-              <Text strong style={{ color: textColor }}>
+              <Text strong style={{ color: '#fff' }}>
                 Time:{" "}
               </Text>
               {formatSessionTime(currentSession)}
@@ -993,10 +829,11 @@ const AttendanceManagement = () => {
                 onClick={handleEndSession}
                 loading={loading.session}
                 style={{
-                  background: "#ff4d4f",
-                  borderColor: "#ff4d4f",
-                  color: "#fff",
+                  background: themeColors.accent,
+                  borderColor: themeColors.accent,
+                  color: '#fff',
                   width: screens.xs ? "100%" : "auto",
+                  borderRadius: 8,
                 }}
               >
                 End Session Early
@@ -1019,9 +856,9 @@ const AttendanceManagement = () => {
               {units.map((unit) => (
                 <Option key={unit._id} value={unit._id}>
                   <Space>
-                    <BookOutlined style={{ color: primaryColor }} />
+                    <BookOutlined style={{ color: themeColors.primary }} />
                     {unit.name}
-                    <Tag color={secondaryColor}>{unit.code}</Tag>
+                    <Tag color={themeColors.secondary}>{unit.code}</Tag>
                   </Space>
                 </Option>
               ))}
@@ -1033,9 +870,10 @@ const AttendanceManagement = () => {
               disabled={!selectedUnit || !currentSession || currentSession?.ended}
               loading={loading.qr}
               style={{
-                background: primaryColor,
-                borderColor: primaryColor,
+                background: themeColors.primary,
+                borderColor: themeColors.primary,
                 width: screens.xs ? "100%" : "auto",
+                borderRadius: 8,
               }}
             >
               {screens.md ? "Generate QR Code" : "QR Code"}
@@ -1046,9 +884,10 @@ const AttendanceManagement = () => {
               onClick={handleCreateSession}
               disabled={loading.session || (currentSession && !currentSession.ended)}
               style={{
-                background: primaryColor,
-                borderColor: primaryColor,
+                background: themeColors.primary,
+                borderColor: themeColors.primary,
                 width: screens.xs ? "100%" : "auto",
+                borderRadius: 8,
               }}
             >
               {loading.session ? "Creating..." : "Create Attendance Session"}
@@ -1058,29 +897,22 @@ const AttendanceManagement = () => {
         style={cardStyle}
         hoverable
       >
-        <Space
-          direction="vertical"
-          style={{
-            width: "100%",
-            margin: 0,
-            border: "1px dashed teal", // Debugger: Teal dashed border
-          }}
-        >
+        <Space direction="vertical" style={{ width: "100%", margin: 0 }}>
           {summaryCards}
           <Card
-            title={<Text strong style={{ color: primaryColor }}>Real-time Unit Attendance</Text>}
+            title={<Text strong style={{ color: themeColors.primary }}>Real-time Unit Attendance</Text>}
             size="small"
             extra={
               <Button
                 type="link"
                 onClick={clearFilters}
                 disabled={!Object.values(unitFilters).some(Boolean)}
-                style={{ color: secondaryColor }}
+                style={{ color: themeColors.secondary }}
               >
                 Clear Filters
               </Button>
             }
-            style={{ ...cardStyle, borderTop: `3px solid ${primaryColor}` }}
+            style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
             hoverable
           >
             <Space wrap style={{ marginTop: screens.xs ? 0 : 8 }}>
@@ -1090,9 +922,10 @@ const AttendanceManagement = () => {
                 disabled={!selectedUnit || !currentSession || currentSession?.ended}
                 type="primary"
                 style={{
-                  background: primaryColor,
-                  borderColor: primaryColor,
+                  background: themeColors.primary,
+                  borderColor: themeColors.primary,
                   width: screens.xs ? "100%" : "auto",
+                  borderRadius: 8,
                 }}
               >
                 Refresh Attendance Data
@@ -1112,7 +945,7 @@ const AttendanceManagement = () => {
                 }}
                 locale={{ emptyText: "No active session attendance records found" }}
                 bordered
-                borderColor={primaryColor}
+                borderColor={themeColors.primary}
                 size={screens.xs ? "small" : "middle"}
                 rowClassName={(record, index) =>
                   index % 2 === 0 ? "table-row-light" : "table-row-dark"
@@ -1124,13 +957,13 @@ const AttendanceManagement = () => {
           <Card
             title={
               <Space>
-                <Text strong style={{ color: primaryColor }}>
+                <Text strong style={{ color: themeColors.primary }}>
                   Attendance Records for Past Sessions
                 </Text>
               </Space>
             }
             size="small"
-            style={{ ...cardStyle, borderTop: `3px solid ${primaryColor}` }}
+            style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
             hoverable
           >
             <Button
@@ -1138,10 +971,11 @@ const AttendanceManagement = () => {
               onClick={() => downloadAttendanceReport(selectedUnit)}
               disabled={!selectedUnit}
               style={{
-                color: primaryColor,
-                borderColor: primaryColor,
+                color: themeColors.primary,
+                borderColor: themeColors.primary,
                 width: screens.xs ? "100%" : "auto",
                 marginBottom: screens.xs ? 0 : 4,
+                borderRadius: 8,
               }}
             >
               {screens.md ? "Download Report" : "Export"}
@@ -1219,7 +1053,7 @@ const AttendanceManagement = () => {
                 }}
                 locale={{ emptyText: "No past attendance records found" }}
                 bordered
-                borderColor={primaryColor}
+                borderColor={themeColors.primary}
                 size={screens.xs ? "small" : "middle"}
                 rowClassName={(record, index) =>
                   index % 2 === 0 ? "table-row-light" : "table-row-dark"
@@ -1231,7 +1065,7 @@ const AttendanceManagement = () => {
       </Card>
 
       <Modal
-        title={<Text strong style={{ color: primaryColor }}>Class QR Code</Text>}
+        title={<Text strong style={{ color: themeColors.primary }}>Class QR Code</Text>}
         open={isQRModalOpen}
         centered
         onCancel={() =>
@@ -1256,9 +1090,10 @@ const AttendanceManagement = () => {
               })
             }
             style={{
-              color: primaryColor,
-              borderColor: primaryColor,
+              color: themeColors.primary,
+              borderColor: themeColors.primary,
               width: screens.xs ? "100%" : "auto",
+              borderRadius: 8,
             }}
           >
             Close
@@ -1267,15 +1102,8 @@ const AttendanceManagement = () => {
         destroyOnClose
         maskClosable={false}
         width={screens.xs ? "100%" : 520}
-        style={{ border: "2px solid lime" }} // Debugger: Lime border
       >
-        <div
-          style={{
-            textAlign: "center",
-            padding: screens.xs ? 8 : 24,
-            border: "1px dashed violet", // Debugger: Violet dashed border
-          }}
-        >
+        <div style={{ textAlign: "center", padding: screens.xs ? 8 : 24 }}>
           {qrData ? (
             <>
               <img
@@ -1295,7 +1123,7 @@ const AttendanceManagement = () => {
               )}
               <Typography.Text
                 type="secondary"
-                style={{ marginTop: 8, display: "block", fontSize: screens.xs ? 12 : 16 }}
+                style={{ marginTop: 8, display: "block", fontSize: screens.xs ? 12 : 16, color: themeColors.text }}
               >
                 Scan this QR code to mark attendance.
               </Typography.Text>
@@ -1311,58 +1139,58 @@ const AttendanceManagement = () => {
         </div>
       </Modal>
 
-      {/* Inline styles */}
       <style>{`
         .ant-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
         .table-row-light {
-          background: ${tableRowLight};
+          background: ${themeColors.cardBg};
         }
         .table-row-dark {
-          background: ${tableRowDark};
+          background: ${themeColors.background};
         }
         .ant-table-thead > tr > th {
-          background: ${tableHeaderColor};
+          background: ${themeColors.primary};
           color: #fff;
           font-weight: 600;
-          border-bottom: 2px solid ${primaryColor};
+          border-bottom: 2px solid ${themeColors.primary};
           padding: ${screens.xs ? "4px 2px" : "16px 8px"};
           font-size: ${screens.xs ? "11px" : "14px"};
         }
         .ant-table-tbody > tr > td {
-          border-bottom: 1px solid #e8ecef;
+          border-bottom: 1px solid ${themeColors.text}20;
           padding: ${screens.xs ? "2px" : "8px"};
           font-size: ${screens.xs ? "11px" : "14px"};
+          color: ${themeColors.text};
         }
         .ant-table-tbody > tr:hover:not(.ant-table-expanded-row) > td {
-          background: ${tableHoverColor};
+          background: ${themeColors.text}10;
         }
         .ant-table {
-          border: 1px solid ${primaryColor};
-          border-radius: 8px;
+          border: 1px solid ${themeColors.primary};
+          borderRadius: 8px;
           width: 100%;
         }
         .ant-btn-primary {
-          background: ${primaryColor};
-          border-color: ${primaryColor};
+          background: ${themeColors.primary};
+          border-color: ${themeColors.primary};
           color: #fff;
         }
         .ant-btn-primary:hover, .ant-btn-primary:focus {
-          background: #102a9a;
-          border-color: #102a9a;
+          background: ${isDarkMode ? '#8E86E5' : '#5A4FCF'};
+          border-color: ${isDarkMode ? '#8E86E5' : '#5A4FCF'};
           color: #fff;
         }
         .ant-btn-danger:hover, .ant-btn-danger:focus {
-          background: #d9363e;
-          border-color: #d9363e;
+          background: ${isDarkMode ? '#E09B86' : '#E65F5C'};
+          border-color: ${isDarkMode ? '#E09B86' : '#E65F5C'};
           color: #fff;
         }
         .ant-btn[disabled], .ant-btn[disabled]:hover {
-          background: #f5f5f5;
-          border-color: #d9d9d9;
-          color: ${disabledTextColor};
+          background: ${themeColors.text}20;
+          border-color: ${themeColors.text}40;
+          color: ${themeColors.text}80;
         }
       `}</style>
     </div>
