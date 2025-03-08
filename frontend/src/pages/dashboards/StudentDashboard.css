@@ -1,52 +1,5 @@
 body {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
-  background: #f0f2f5;
-}
-
-.ant-card {
-  border-radius: 10px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 1px 2px rgba(0, 0, 0, 0.24);
-}
-
-.ant-card-head {
-  background: #fafafa;
-  border-bottom: none;
-  padding: 8px 16px !important;
-}
-
-.ant-card-head-title {
-  font-size: clamp(14px, 4vw, 16px);
-  white-space: normal;
-  word-wrap: break-word;
-}
-
-h3 {
-  margin: 0;
-  font-size: clamp(14px, 4vw, 16px);
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(24px, 6vw, 32px);
-}
-
-/* Center "Student Dashboard" on large screens */
-.header-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
-.title-col {
-  display: flex;
-  justify-content: flex-start;
-  flex-grow: 1;
-}
-
-@media (min-width: 992px) {
-  .title-col {
-    justify-content: center;
-  }
 }
 
 @media (max-width: 576px) {
@@ -59,28 +12,6 @@ h1 {
     margin-top: 64px;
   }
 
-  .ant-card-head {
-    padding: 8px 12px !important;
-  }
-
-  .ant-card-body {
-    padding: 12px !important;
-  }
-
-  .ant-list-item-action {
-    margin-left: 8px;
-  }
-
-  .ant-btn {
-    padding: 4px 8px;
-  }
-
-  .title-col {
-    flex-grow: 1;
-    margin-right: 0;
-  }
-
-  /* Fix overlap in Attendance Events controls */
   .event-controls {
     width: 100%;
     display: flex;
@@ -89,7 +20,7 @@ h1 {
   }
 
   .event-controls > * {
-    margin-bottom: 8px; /* Add spacing between wrapped items */
+    margin-bottom: 8px;
   }
 }
 
@@ -105,12 +36,4 @@ h1 {
     flex: 0 0 25%;
     max-width: 25%;
   }
-
-  .ant-card.summary-card {
-    height: 200px !important;
-  }
-}
-
-.summary-card {
-  height: 170px;
 }
