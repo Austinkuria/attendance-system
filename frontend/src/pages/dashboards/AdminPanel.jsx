@@ -1,4 +1,4 @@
-import { useState, useEffect, createContext, useContext } from 'react';
+import { useState, useEffect, createContext } from 'react';
 import {
   UserOutlined,
   BookOutlined,
@@ -29,7 +29,7 @@ import {
 } from 'antd';
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
-import { motion } from 'framer-motion'; // Import Framer Motion
+import { motion } from 'framer-motion';
 import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
@@ -676,7 +676,6 @@ const AdminPanel = () => {
 
             {showBackToTop && (
               <Button
-                type="primary"
                 shape="circle"
                 icon={<ArrowUpOutlined />}
                 onClick={scrollToTop}
