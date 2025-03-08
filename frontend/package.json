@@ -19,7 +19,7 @@
     "@vercel/analytics": "^1.5.0",
     "@vercel/speed-insights": "^1.2.0",
     "antd": "^5.24.2",
-    "axios": "^1.7.9",
+    "axios": "^1.8.2",
     "axios-retry": "^4.5.0",
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.8",
