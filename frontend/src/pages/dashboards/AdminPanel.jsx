@@ -22,7 +22,6 @@ import {
   Col,
   Dropdown,
   Space,
-  theme,
   message,
   Typography,
   Spin,
@@ -30,6 +29,7 @@ import {
 } from 'antd';
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
+import { motion } from 'framer-motion'; // Import Framer Motion
 import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
@@ -37,12 +37,10 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
 
-// Dark Mode Context
+// Theme Context
 const ThemeContext = createContext();
-const useTheme = () => useContext(ThemeContext);
 
 const AdminPanel = () => {
-  const { token: { colorBgContainer } } = theme.useToken();
   const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [students, setStudents] = useState([]);
   const [lecturers, setLecturers] = useState([]);
@@ -233,7 +231,7 @@ const AdminPanel = () => {
             })
           : [0],
         borderColor: themeColors.primary,
-        backgroundColor: `${themeColors.primary}33`, // 20% opacity
+        backgroundColor: `${themeColors.primary}33`,
         fill: false,
         tension: 0.3,
         pointRadius: 5,
@@ -340,19 +338,14 @@ const AdminPanel = () => {
     }
   ];
 
+  // Framer Motion animation variants
+  const cardVariants = {
+    hidden: { opacity: 0, y: 20 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+  };
+
   return (
     <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, themeColors }}>
-      <style>
-        {`
-          @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-          }
-          .fade-in-card {
-            animation: fadeIn 0.5s ease-out forwards;
-          }
-        `}
-      </style>
       <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
         <Header
           style={{
@@ -471,96 +464,15 @@ const AdminPanel = () => {
             <Spin spinning={studentsLoading || lecturersLoading || coursesLoading} tip="Loading dashboard data...">
               <Row gutter={[24, 24]} justify="center">
                 <Col xs={24} sm={12} md={8} lg={6}>
-                  <Card
-                    hoverable
-                    className="fade-in-card"
-                    style={{
-                      background: themeColors.cardGradient1,
-                      color: 'white',
-                      borderRadius: 16,
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                      height: '200px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      transition: 'transform 0.3s, box-shadow 0.3s',
-                      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                    }}
-                    onClick={() => window.location.href = '/admin/manage-students'}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={cardVariants}
                   >
-                    <Space direction="vertical">
-                      <TeamOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Students</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
-                    </Space>
-                  </Card>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={6}>
-                  <Card
-                    hoverable
-                    className="fade-in-card"
-                    style={{
-                      background: themeColors.cardGradient2,
-                      color: 'white',
-                      borderRadius: 16,
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                      height: '200px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      transition: 'transform 0.3s, box-shadow 0.3s',
-                      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                    }}
-                    onClick={() => window.location.href = '/admin/manage-courses'}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                  >
-                    <Space direction="vertical">
-                      <BookOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Courses</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
-                    </Space>
-                  </Card>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={6}>
-                  <Card
-                    hoverable
-                    className="fade-in-card"
-                    style={{
-                      background: themeColors.cardGradient3,
-                      color: 'white',
-                      borderRadius: 16,
-                      textAlign: 'center',
-                      cursor: 'pointer',
-                      height: '200px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'center',
-                      transition: 'transform 0.3s, box-shadow 0.3s',
-                      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                    }}
-                    onClick={() => window.location.href = '/admin/manage-lecturers'}
-                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                    onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                  >
-                    <Space direction="vertical">
-                      <UserOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Lecturers</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
-                    </Space>
-                  </Card>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={6}>
-                  <Spin spinning={attendanceLoading} tip="Loading attendance data...">
                     <Card
                       hoverable
-                      className="fade-in-card"
                       style={{
-                        background: themeColors.cardGradient4,
+                        background: themeColors.cardGradient1,
                         color: 'white',
                         borderRadius: 16,
                         textAlign: 'center',
@@ -572,16 +484,117 @@ const AdminPanel = () => {
                         transition: 'transform 0.3s, box-shadow 0.3s',
                         boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
                       }}
-                      onClick={() => window.location.href = '/admin/analytics'}
+                      onClick={() => window.location.href = '/admin/manage-students'}
                       onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
                       onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                     >
                       <Space direction="vertical">
-                        <CheckCircleOutlined style={{ fontSize: 28 }} />
-                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
-                        <h1 style={{ fontSize: 32, margin: 0 }}>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
+                        <TeamOutlined style={{ fontSize: 28 }} />
+                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Students</h3>
+                        <h1 style={{ fontSize: 32, margin: 0 }}>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
                       </Space>
                     </Card>
+                  </motion.div>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={cardVariants}
+                  >
+                    <Card
+                      hoverable
+                      style={{
+                        background: themeColors.cardGradient2,
+                        color: 'white',
+                        borderRadius: 16,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        height: '200px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        transition: 'transform 0.3s, box-shadow 0.3s',
+                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+                      }}
+                      onClick={() => window.location.href = '/admin/manage-courses'}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      <Space direction="vertical">
+                        <BookOutlined style={{ fontSize: 28 }} />
+                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Courses</h3>
+                        <h1 style={{ fontSize: 32, margin: 0 }}>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
+                      </Space>
+                    </Card>
+                  </motion.div>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <motion.div
+                    initial="hidden"
+                    animate="visible"
+                    variants={cardVariants}
+                  >
+                    <Card
+                      hoverable
+                      style={{
+                        background: themeColors.cardGradient3,
+                        color: 'white',
+                        borderRadius: 16,
+                        textAlign: 'center',
+                        cursor: 'pointer',
+                        height: '200px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        justifyContent: 'center',
+                        transition: 'transform 0.3s, box-shadow 0.3s',
+                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+                      }}
+                      onClick={() => window.location.href = '/admin/manage-lecturers'}
+                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                    >
+                      <Space direction="vertical">
+                        <UserOutlined style={{ fontSize: 28 }} />
+                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Lecturers</h3>
+                        <h1 style={{ fontSize: 32, margin: 0 }}>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
+                      </Space>
+                    </Card>
+                  </motion.div>
+                </Col>
+                <Col xs={24} sm={12} md={8} lg={6}>
+                  <Spin spinning={attendanceLoading} tip="Loading attendance data...">
+                    <motion.div
+                      initial="hidden"
+                      animate="visible"
+                      variants={cardVariants}
+                    >
+                      <Card
+                        hoverable
+                        style={{
+                          background: themeColors.cardGradient4,
+                          color: 'white',
+                          borderRadius: 16,
+                          textAlign: 'center',
+                          cursor: 'pointer',
+                          height: '200px',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          justifyContent: 'center',
+                          transition: 'transform 0.3s, box-shadow 0.3s',
+                          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+                        }}
+                        onClick={() => window.location.href = '/admin/analytics'}
+                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
+                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                      >
+                        <Space direction="vertical">
+                          <CheckCircleOutlined style={{ fontSize: 28 }} />
+                          <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
+                          <h1 style={{ fontSize: 32, margin: 0 }}>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
+                        </Space>
+                      </Card>
+                    </motion.div>
                   </Spin>
                 </Col>
               </Row>
