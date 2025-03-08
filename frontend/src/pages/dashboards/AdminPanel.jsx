@@ -203,6 +203,7 @@ const AdminPanel = () => {
       cardGradient2: 'linear-gradient(135deg, #00CEC9, #81ECEC)',
       cardGradient3: 'linear-gradient(135deg, #FF7675, #FAB1A0)',
       cardGradient4: 'linear-gradient(135deg, #0984E3, #74B9FF)',
+      cardBg: '#FFFFFF',
     },
     dark: {
       primary: '#A29BFE',
@@ -214,6 +215,7 @@ const AdminPanel = () => {
       cardGradient2: 'linear-gradient(135deg, #00B7B3, #6CDADA)',
       cardGradient3: 'linear-gradient(135deg, #E65F5C, #E09B86)',
       cardGradient4: 'linear-gradient(135deg, #0773C4, #5DA8FF)',
+      cardBg: '#3A4042',
     }
   };
 
@@ -350,7 +352,7 @@ const AdminPanel = () => {
         <Header
           style={{
             padding: '0 16px',
-            background: isDarkMode ? 'rgba(45, 52, 54, 0.95)' : 'rgba(255, 255, 255, 0.95)',
+            background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.95)',
             boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
             position: 'fixed',
             width: '100%',
@@ -432,7 +434,7 @@ const AdminPanel = () => {
             breakpoint="lg"
             collapsedWidth={80}
             style={{
-              background: isDarkMode ? 'rgba(45, 52, 54, 0.9)' : 'rgba(255, 255, 255, 0.1)',
+              background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.1)',
               backdropFilter: 'blur(10px)',
               marginTop: 64,
               position: 'fixed',
@@ -618,7 +620,7 @@ const AdminPanel = () => {
                 borderRadius: 16,
                 boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
                 overflow: 'hidden',
-                background: isDarkMode ? '#3A4042' : '#fff',
+                background: themeColors.cardBg,
               }}
             >
               <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
@@ -664,7 +666,7 @@ const AdminPanel = () => {
                 borderRadius: 16,
                 boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
                 overflow: 'hidden',
-                background: isDarkMode ? '#3A4042' : '#fff',
+                background: themeColors.cardBg,
               }}
             >
               <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
@@ -697,6 +699,13 @@ const AdminPanel = () => {
             )}
           </Content>
         </Layout>
+        <style>
+  {`
+    .ant-btn.ant-btn-primary.ant-btn-circle[style*="bottom: 20px"][style*="right: 20px"] {
+      display: none !important;
+    }
+  `}
+</style>
       </Layout>
     </ThemeContext.Provider>
   );
