@@ -425,7 +425,7 @@ const AdminPanel = () => {
           </Space>
         </Header>
 
-        <Layout>
+        <Layout style={{ background: themeColors.background }}>
           <Sider
             collapsible
             collapsed={collapsed}
@@ -455,7 +455,7 @@ const AdminPanel = () => {
 
           <Content
             style={{
-              margin: collapsed ? '64px 16px 16px 80px' : '64px 16px 16px 250px',
+              margin: collapsed ? '64px 8px 8px 88px' : '64px 8px 8px 258px', // Reduced margins
               padding: 24,
               background: themeColors.background,
               minHeight: 'calc(100vh - 64px)',
@@ -624,7 +624,7 @@ const AdminPanel = () => {
               }}
             >
               <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
-                <div style={{ height: '600px', padding: 16 }}>
+                <div style={{ height: '500px', padding: 16 }}>
                   <Line data={overviewChartData} options={overviewChartOptions} />
                 </div>
                 <Button
@@ -700,12 +700,23 @@ const AdminPanel = () => {
           </Content>
         </Layout>
         <style>
-  {`
-    .ant-btn.ant-btn-primary.ant-btn-circle[style*="bottom: 20px"][style*="right: 20px"] {
-      display: none !important;
-    }
-  `}
-</style>
+          {`
+            .ant-btn.ant-btn-primary.ant-btn-circle[style*="bottom: 20px"][style*="right: 20px"] {
+              display: none !important;
+            }
+            /* Override Ant Design default background */
+            .ant-layout {
+              background: ${themeColors.background} !important;
+            }
+            .ant-layout-content {
+              background: ${themeColors.background} !important;
+            }
+            /* Ensure body matches theme */
+            body {
+              background: ${themeColors.background} !important;
+            }
+          `}
+        </style>
       </Layout>
     </ThemeContext.Provider>
   );
