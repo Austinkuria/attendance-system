@@ -20,7 +20,12 @@ export default defineConfig({
           { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
         ],
         screenshots: [
-          { src: '/screenshot1.png', sizes: '1080x1920', type: 'image/png', form_factor: 'wide' },
+          {
+            src: '/screenshot1.png',
+            sizes: '1080x1920',
+            type: 'image/png',
+            form_factor: 'wide',
+          },
           { src: '/screenshot2.png', sizes: '1080x1920', type: 'image/png' },
         ],
       },
@@ -55,10 +60,6 @@ export default defineConfig({
               networkTimeoutSeconds: 10,
             },
           },
-        ],
-        // Ensure OneSignal worker is included
-        additionalManifestEntries: [
-          { url: '/OneSignalSDKWorker.js', revision: null }
         ],
       },
       registerType: 'autoUpdate',

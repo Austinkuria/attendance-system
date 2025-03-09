@@ -3,6 +3,8 @@ import { createRoot } from 'react-dom/client';
 import './styles.css';
 import App from './App.jsx';
 import { register } from './serviceWorkerRegistration';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
@@ -15,19 +17,16 @@ register({
   onUpdate: (registration) => {
     const waitingWorker = registration.waiting;
     if (waitingWorker) {
-      // Notify user of new version
-      import('react-toastify').then(({ toast }) => {
-        toast.info('A new version is available! Click here to update.', {
-          onClick: async () => {
-            waitingWorker.postMessage({ action: 'skipWaiting' });
-            // Clear caches and reload the page
-            await clearCaches();
-            window.location.reload();
-          },
-          autoClose: false,
-          closeOnClick: false,
-        });
-      }).catch((error) => console.error("Failed to load react-toastify:", error));
+      toast.info('A new version is available! Click here to update.', {
+        onClick: async () => {
+          waitingWorker.postMessage({ action: 'skipWaiting' });
+          // Clear caches and reload the page
+          await clearCaches();
+          window.location.reload();
+        },
+        autoClose: false,
+        closeOnClick: false,
+      });
     }
   },
   onSuccess: () => {
@@ -38,7 +37,7 @@ register({
 // Function to clear all caches
 async function clearCaches() {
   const cacheNames = await caches.keys();
-  await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+  await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
 }
 
 // Function to inject analytics (avoids top-level await issue)

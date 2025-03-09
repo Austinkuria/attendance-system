@@ -1,4 +1,4 @@
-import { BrowserRouter as BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { IoCloseCircleOutline } from "react-icons/io5";
@@ -76,9 +76,8 @@ function App() {
   const handleCloseBanner = () => setShowBanner(false);
 
   return (
-    // <Router>
     <ThemeProvider>
-      <BrowserRouter>
+      <Router>
       <ToastContainer />
       {/* <BackToTop /> */}
       <InstallButton />
@@ -155,8 +154,7 @@ function App() {
           <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>
       </div>
-    {/* </Router> */}
-    </BrowserRouter>
+    </Router>
     </ThemeProvider>
   );
 }

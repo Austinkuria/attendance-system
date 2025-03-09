@@ -5,14 +5,14 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, T
 import { getFeedbackForLecturer } from '../../services/api';
 import { css } from '@emotion/css';
 import { Link } from 'react-router-dom';
-import { ThemeContext } from "../../context/ThemeContext";
-// Register Chart.js components (removed Radar since it's not used)
+import { ThemeContext } from '../../context/ThemeContext';
+import ThemeToggle from '../../components/ThemeToggle';
+
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
-// Styled components
 const useStyles = (themeColors) => ({
   container: css`
     padding: 24px;
@@ -94,7 +94,7 @@ const LecturerFeedbackView = () => {
     clarity: null,
   });
   const [currentPage, setCurrentPage] = useState(1);
-  const [pageSize, setPageSize] = useState(6); // Cards per page
+  const [pageSize, setPageSize] = useState(6);
   const styles = useStyles(themeColors);
 
   useEffect(() => {
@@ -112,7 +112,6 @@ const LecturerFeedbackView = () => {
     fetchFeedback();
   }, []);
 
-  // Filtered feedback based on selected filters
   const filteredFeedback = useMemo(() => {
     return feedback.filter((item) => {
       const matchesUnit = !filters.unit || (item.unit?.code === filters.unit);
@@ -122,30 +121,26 @@ const LecturerFeedbackView = () => {
     });
   }, [feedback, filters]);
 
-  // Extract unique units for filter dropdown
   const unitOptions = useMemo(() => {
     const units = feedback.map((item) => item.unit?.code).filter(Boolean);
     return [...new Set(units)];
   }, [feedback]);
 
-  // Reset all filters
   const resetFilters = () => {
     setFilters({
       unit: null,
       rating: null,
       clarity: null,
     });
-    setCurrentPage(1); // Reset to the first page
+    setCurrentPage(1);
   };
 
-  // Paginated feedback
   const paginatedFeedback = useMemo(() => {
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
     return filteredFeedback.slice(startIndex, endIndex);
   }, [filteredFeedback, currentPage, pageSize]);
 
-  // Summary metrics
   const summaryMetrics = useMemo(() => {
     const totalFeedback = filteredFeedback.length;
     const averageRating =
@@ -167,7 +162,6 @@ const LecturerFeedbackView = () => {
     };
   }, [filteredFeedback]);
 
-  // Define unique gradients for summary cards
   const summaryCardGradients = {
     totalFeedback: isDarkMode
       ? 'linear-gradient(135deg, #5A4FCF, #A29BFE)'
@@ -186,58 +180,36 @@ const LecturerFeedbackView = () => {
       : 'linear-gradient(135deg, #F4A261, #FF9F1C)',
   };
 
-  // Summary Cards JSX
   const summaryCards = (
     <Row gutter={[16, 16]} className={styles.summaryCard}>
       <Col xs={24} sm={8}>
         <Card style={{ background: summaryCardGradients.totalFeedback }}>
-          <Statistic
-            title="Total Feedback"
-            value={summaryMetrics.totalFeedback}
-            precision={0}
-          />
+          <Statistic title="Total Feedback" value={summaryMetrics.totalFeedback} precision={0} />
         </Card>
       </Col>
       <Col xs={24} sm={8}>
         <Card style={{ background: summaryCardGradients.averageRating }}>
-          <Statistic
-            title="Average Rating"
-            value={summaryMetrics.averageRating}
-            precision={1}
-          />
+          <Statistic title="Average Rating" value={summaryMetrics.averageRating} precision={1} />
         </Card>
       </Col>
       <Col xs={24} sm={8}>
         <Card style={{ background: summaryCardGradients.clarityYes }}>
-          <Statistic
-            title="Clarity (Yes)"
-            value={summaryMetrics.clarityYes}
-            precision={0}
-          />
+          <Statistic title="Clarity (Yes)" value={summaryMetrics.clarityYes} precision={0} />
         </Card>
       </Col>
       <Col xs={24} sm={8}>
         <Card style={{ background: summaryCardGradients.clarityNo }}>
-          <Statistic
-            title="Clarity (No)"
-            value={summaryMetrics.clarityNo}
-            precision={0}
-          />
+          <Statistic title="Clarity (No)" value={summaryMetrics.clarityNo} precision={0} />
         </Card>
       </Col>
       <Col xs={24} sm={8}>
         <Card style={{ background: summaryCardGradients.averagePace }}>
-          <Statistic
-            title="Average Pace"
-            value={summaryMetrics.averagePace}
-            precision={1}
-          />
+          <Statistic title="Average Pace" value={summaryMetrics.averagePace} precision={1} />
         </Card>
       </Col>
     </Row>
   );
 
-  // Calculate average ratings by unit
   const unitRatingsData = useMemo(() => {
     const unitRatings = {};
     feedback.forEach((item) => {
@@ -271,7 +243,6 @@ const LecturerFeedbackView = () => {
     };
   }, [feedback, themeColors]);
 
-  // Clarity distribution data
   const clarityData = useMemo(() => {
     const clarityYes = filteredFeedback.filter((item) => item.clarity).length;
     const clarityNo = filteredFeedback.length - clarityYes;
@@ -290,7 +261,6 @@ const LecturerFeedbackView = () => {
     };
   }, [filteredFeedback, themeColors]);
 
-  // Chart options
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
@@ -325,23 +295,27 @@ const LecturerFeedbackView = () => {
 
   return (
     <div className={styles.container}>
-      {/* Back to Lecturer Dashboard Button */}
-      <Link to="/lecturer-dashboard">
-        <Button
-          type="primary"
-          className={styles.backButton}
-          style={{ background: themeColors.primary, borderColor: themeColors.primary }}
-        >
-          Back to Lecturer Dashboard
-        </Button>
-      </Link>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 24 }}>
+        <Col>
+          <Link to="/lecturer-dashboard">
+            <Button
+              type="primary"
+              className={styles.backButton}
+              style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+            >
+              Back to Lecturer Dashboard
+            </Button>
+          </Link>
+        </Col>
+        <Col>
+          <ThemeToggle />
+        </Col>
+      </Row>
 
       <Title level={2} style={{ color: themeColors.text }}>Session Feedback Analytics</Title>
 
-      {/* Summary Cards */}
       {summaryCards}
 
-      {/* Charts Section */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={12}>
           <Card className={styles.chartCard}>
@@ -361,7 +335,6 @@ const LecturerFeedbackView = () => {
         </Col>
       </Row>
 
-      {/* Filter Bar */}
       <Row gutter={[16, 16]} className={styles.filterBar}>
         <Col xs={24} sm={12} md={6}>
           <Select
@@ -412,7 +385,6 @@ const LecturerFeedbackView = () => {
         </Col>
       </Row>
 
-      {/* Feedback Grid */}
       <Spin spinning={loading} tip="Loading feedback..." size="large">
         {filteredFeedback.length > 0 ? (
           <>
@@ -465,8 +437,6 @@ const LecturerFeedbackView = () => {
                 </Card>
               ))}
             </div>
-
-            {/* Pagination */}
             <div className={styles.pagination}>
               <Pagination
                 current={currentPage}

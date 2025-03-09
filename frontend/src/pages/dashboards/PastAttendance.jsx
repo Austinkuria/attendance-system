@@ -5,24 +5,15 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import moment from 'moment';
 import { getDepartments, getLecturerUnits } from '../../services/api';
-import { ThemeContext } from '../../context/ThemeContext';
+import { ThemeContext } from '../../context/ThemeContext'; // Updated path
+import ThemeToggle from '../../components/ThemeToggle';
 
 const { Option } = Select;
 const { Text } = Typography;
 
 const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) => {
   const navigate = useNavigate();
-  const { themeColors, isDarkMode } = useContext(ThemeContext) || {
-    themeColors: {
-      background: '#F7F7F7',
-      cardBg: '#FFFFFF',
-      text: '#333333',
-      primary: '#5A4FCF',
-      secondary: '#00CEC9',
-      accent: '#FF7675',
-    },
-    isDarkMode: false,
-  };
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const [pastSessions, setPastSessions] = useState([]);
   const [pastAttendance, setPastAttendance] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -239,19 +230,26 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
   return (
     <div style={{ padding: 24, background: themeColors.background }}>
       <Card
-        title={<Space><Text strong style={{ color: themeColors.primary }}>Attendance Records for Past Sessions</Text></Space>}
+        title={
+          <Space>
+            <Text strong style={{ color: themeColors.primary }}>Attendance Records for Past Sessions</Text>
+          </Space>
+        }
         size="small"
         style={cardStyle}
         hoverable
         extra={
-          <Button
-            type="link"
-            onClick={clearFilters}
-            disabled={!Object.values(pastFilters).some(Boolean)}
-            style={{ color: themeColors.secondary }}
-          >
-            Clear Filters
-          </Button>
+          <Space>
+            <Button
+              type="link"
+              onClick={clearFilters}
+              disabled={!Object.values(pastFilters).some(Boolean)}
+              style={{ color: themeColors.secondary }}
+            >
+              Clear Filters
+            </Button>
+            <ThemeToggle />
+          </Space>
         }
       >
         <Space wrap style={{ width: '100%', marginBottom: 16 }}>
@@ -437,5 +435,4 @@ PastAttendance.defaultProps = {
   units: [],
   lecturerId: null,
 };
-
 export default PastAttendance;

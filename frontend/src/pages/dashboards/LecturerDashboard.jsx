@@ -242,12 +242,12 @@ const LecturerDashboard = () => {
         </Sider>
 
         <Content
+          className="lecturer-content"
           style={{
             marginTop: '64px',
             marginRight: '8px',
             marginBottom: '8px',
-            marginLeft: collapsed ? '88px' : '258px',
-            padding: '0 16px',
+            marginLeft: collapsed ? '80px' : '250px', // Match exact sidebar width
             background: themeColors.background,
             minHeight: 'calc(100vh - 64px)',
             overflow: 'auto',
@@ -299,6 +299,28 @@ const LecturerDashboard = () => {
           }
           body {
             background: ${themeColors.background} !important;
+          }
+          .lecturer-content {
+            padding: 0 16px;
+          }
+          @media (max-width: 768px) {
+            .lecturer-content {
+              padding: 0 12px;
+            }
+          }
+          @media (max-width: 576px) {
+            .lecturer-content {
+              padding: 0 8px;
+              margin-right: 4px;
+              margin-bottom: 4px;
+            }
+          }
+          @media (max-width: 400px) {
+            .lecturer-content {
+              padding: 0 4px;
+              margin-right: 0;
+              margin-bottom: 0;
+            }
           }
         `}
       </style>
