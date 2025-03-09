@@ -1,5 +1,4 @@
-// src/pages/dashboards/AdminAnalytics.jsx
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { Layout, Button, Card, Row, Col, Select, Space, Modal, Table, Typography, Spin, DatePicker } from 'antd';
 import { LeftOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title } from 'chart.js';
@@ -7,8 +6,9 @@ import { Chart } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { useNavigate } from 'react-router-dom';
 import { getCourses, getUnitsByCourse, getCourseAttendanceRate } from '../../services/api';
-import moment from 'moment'; // eslint-disable-line no-unused-vars
-import '../../styles.css';
+import moment from 'moment';
+import { ThemeContext } from '../../context/ThemeContext'; // Adjust path as needed
+import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title, zoomPlugin);
 
@@ -18,16 +18,17 @@ const { Title: AntTitle } = Typography;
 
 const AdminAnalytics = () => {
   const navigate = useNavigate();
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const [courses, setCourses] = useState([]);
   const [attendanceRates, setAttendanceRates] = useState({});
   const [loading, setLoading] = useState(true);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseUnits, setCourseUnits] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
-  const [viewMode, setViewMode] = useState('weekly'); // 'weekly' or 'daily'
-  const [selectedDate, setSelectedDate] = useState(null); // Moment object for selected week or day
-  const [modalVisible, setModalVisible] = useState(false); // Added for modal visibility
-  const [modalData, setModalData] = useState([]); // Added for modal data
+  const [viewMode, setViewMode] = useState('weekly');
+  const [selectedDate, setSelectedDate] = useState(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [modalData, setModalData] = useState([]);
 
   const fetchData = useCallback(async () => {
     try {
@@ -36,11 +37,7 @@ const AdminAnalytics = () => {
       const enrichedCourses = await Promise.all(coursesRes.map(async (course) => {
         const units = await getUnitsByCourse(course._id);
         const firstUnit = units[0] || {};
-        return {
-          ...course,
-          year: firstUnit.year || 'N/A',
-          semester: firstUnit.semester || 'N/A'
-        };
+        return { ...course, year: firstUnit.year || 'N/A', semester: firstUnit.semester || 'N/A' };
       }));
       setCourses(enrichedCourses);
     } catch {
@@ -103,9 +100,9 @@ const AdminAnalytics = () => {
   const chartData = {
     labels: trends.length ? trends.map(t => viewMode === 'weekly' ? t.week : t.date) : ['No Data'],
     datasets: [
-      { type: 'bar', label: 'Present', data: trends.length ? trends.map(t => t.present) : [0], backgroundColor: 'rgba(75, 192, 192, 0.8)', borderColor: 'rgba(75, 192, 192, 1)', borderWidth: 1, yAxisID: 'y-count' },
-      { type: 'bar', label: 'Absent', data: trends.length ? trends.map(t => t.absent) : [0], backgroundColor: 'rgba(255, 99, 132, 0.8)', borderColor: 'rgba(255, 99, 132, 1)', borderWidth: 1, yAxisID: 'y-count' },
-      { type: 'line', label: 'Attendance Rate (%)', data: trends.length ? trends.map(t => t.rate) : [0], borderColor: '#1890ff', backgroundColor: 'rgba(24, 144, 255, 0.2)', fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y-rate' },
+      { type: 'bar', label: 'Present', data: trends.length ? trends.map(t => t.present) : [0], backgroundColor: themeColors.secondary, borderColor: themeColors.secondary, borderWidth: 1, yAxisID: 'y-count' },
+      { type: 'bar', label: 'Absent', data: trends.length ? trends.map(t => t.absent) : [0], backgroundColor: themeColors.accent, borderColor: themeColors.accent, borderWidth: 1, yAxisID: 'y-count' },
+      { type: 'line', label: 'Attendance Rate (%)', data: trends.length ? trends.map(t => t.rate) : [0], borderColor: themeColors.primary, backgroundColor: `${themeColors.primary}33`, fill: false, tension: 0.3, pointRadius: 4, pointHoverRadius: 6, yAxisID: 'y-rate' },
     ],
   };
 
@@ -113,11 +110,14 @@ const AdminAnalytics = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top', labels: { font: { size: 12 }, padding: 10 } },
-      title: { display: true, text: `Overall Attendance: ${overallRate}% (Present: ${totalPresent}/${totalPossible})`, font: { size: 14 }, padding: { top: 10, bottom: 20 } },
+      legend: { position: 'top', labels: { font: { size: 12 }, padding: 10, color: themeColors.text } },
+      title: { display: true, text: `Overall Attendance: ${overallRate}% (Present: ${totalPresent}/${totalPossible})`, font: { size: 14 }, padding: { top: 10, bottom: 20 }, color: themeColors.text },
       tooltip: {
         mode: 'index',
         intersect: false,
+        backgroundColor: `${themeColors.text}CC`,
+        titleColor: '#fff',
+        bodyColor: '#fff',
         callbacks: {
           label: context => `${context.dataset.label}: ${context.dataset.type === 'line' ? `${context.raw}%` : `${context.raw} students`}`,
           footer: tooltipItems => `Sessions: ${trends[tooltipItems[0].dataIndex]?.sessionCount || 0}, Total Possible: ${trends[tooltipItems[0].dataIndex]?.present + trends[tooltipItems[0].dataIndex]?.absent || 0}`,
@@ -129,9 +129,9 @@ const AdminAnalytics = () => {
       },
     },
     scales: {
-      x: { stacked: true, title: { display: true, text: viewMode === 'weekly' ? 'Week' : 'Date' }, grid: { display: false } },
-      'y-count': { stacked: true, position: 'left', beginAtZero: true, title: { display: true, text: 'Student Attendances' }, suggestedMax: totalPossible > 0 ? totalPossible + Math.ceil(totalPossible * 0.2) : 5 },
-      'y-rate': { position: 'right', min: 0, max: 100, title: { display: true, text: 'Attendance Rate (%)' }, ticks: { callback: value => `${value}%` }, grid: { drawOnChartArea: false } },
+      x: { stacked: true, title: { display: true, text: viewMode === 'weekly' ? 'Week' : 'Date', color: themeColors.text }, grid: { display: false }, ticks: { color: themeColors.text } },
+      'y-count': { stacked: true, position: 'left', beginAtZero: true, title: { display: true, text: 'Student Attendances', color: themeColors.text }, suggestedMax: totalPossible > 0 ? totalPossible + Math.ceil(totalPossible * 0.2) : 5, ticks: { color: themeColors.text }, grid: { color: `${themeColors.text}20` } },
+      'y-rate': { position: 'right', min: 0, max: 100, title: { display: true, text: 'Attendance Rate (%)', color: themeColors.text }, ticks: { callback: value => `${value}%`, color: themeColors.text }, grid: { drawOnChartArea: false } },
     },
     onClick: (event, elements) => {
       if (elements.length) {
@@ -154,19 +154,22 @@ const AdminAnalytics = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={{ padding: '0 16px', background: '#fff', position: 'fixed', width: '100%', zIndex: 10 }}>
+    <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
+      <Header style={{ padding: '0 16px', background: themeColors.cardBg, position: 'fixed', width: '100%', zIndex: 10 }}>
         <Row align="middle">
           <Col flex="auto">
-            <Button type="text" icon={<LeftOutlined />} onClick={() => navigate('/admin')} style={{ fontSize: 16 }} />
-            <AntTitle level={3} style={{ display: 'inline', margin: '0 16px' }}>Analytics</AntTitle>
+            <Button type="text" icon={<LeftOutlined />} onClick={() => navigate('/admin')} style={{ fontSize: 16, color: themeColors.text }} />
+            <AntTitle level={3} style={{ display: 'inline', margin: '0 16px', color: themeColors.text }}>Analytics</AntTitle>
+          </Col>
+          <Col>
+            <ThemeToggle />
           </Col>
         </Row>
       </Header>
 
-      <Content style={{ marginTop: 64, padding: 24, background: '#f0f2f5' }}>
+      <Content style={{ marginTop: 64, padding: 24, background: themeColors.background }}>
         <Spin spinning={loading} tip="Loading data...">
-          <Card style={{ marginBottom: 24, borderRadius: 10 }}>
+          <Card style={{ marginBottom: 24, borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}>
             <Space direction="horizontal" style={{ width: '100%', justifyContent: 'space-between' }}>
               <Space>
                 <Select
@@ -217,7 +220,8 @@ const AdminAnalytics = () => {
               <Col span={24}>
                 <Card
                   title={`${courses.find(c => c._id === selectedCourse)?.name || 'Selected Course'} (Year ${courses.find(c => c._id === selectedCourse)?.year || 'N/A'}, Sem ${courses.find(c => c._id === selectedCourse)?.semester || 'N/A'})`}
-                  style={{ borderRadius: 10 }}
+                  style={{ borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}
+                  headStyle={{ color: themeColors.text }}
                 >
                   <div style={{ height: 400 }}>
                     <Chart type="bar" data={chartData} options={options} />
@@ -229,15 +233,63 @@ const AdminAnalytics = () => {
 
           <Modal
             title="Session Details"
-            open={modalVisible} // Changed from 'visible' to 'open' for Ant Design v5 compatibility (if applicable)
+            open={modalVisible}
             onCancel={() => setModalVisible(false)}
             footer={null}
             width={800}
+            style={{ background: themeColors.cardBg }}
+            bodyStyle={{ background: themeColors.cardBg, color: themeColors.text }}
           >
-            <Table dataSource={modalData} columns={modalColumns} rowKey="sessionId" pagination={false} />
+            <Table
+              dataSource={modalData}
+              columns={modalColumns}
+              rowKey="sessionId"
+              pagination={false}
+              style={{ background: themeColors.cardBg }}
+              rowClassName={(_, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
+            />
           </Modal>
         </Spin>
       </Content>
+
+      <style>{`
+        .ant-select-selector, .ant-picker {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-select-dropdown, .ant-picker-dropdown {
+          background: ${themeColors.cardBg} !important;
+        }
+        .ant-select-item-option-content {
+          color: ${themeColors.text} !important;
+        }
+        .ant-table {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        .ant-table-thead > tr > th {
+          background: ${themeColors.primary} !important;
+          color: #fff !important;
+        }
+        .ant-table-tbody > tr > td {
+          border-bottom: 1px solid ${themeColors.text}20 !important;
+          color: ${themeColors.text} !important;
+        }
+        .table-row-light {
+          background: ${themeColors.cardBg} !important;
+        }
+        .table-row-dark {
+          background: ${themeColors.background} !important;
+        }
+        .ant-modal-header {
+          background: ${themeColors.cardBg} !important;
+          border-bottom: 1px solid ${themeColors.text}20 !important;
+        }
+        .ant-modal-title {
+          color: ${themeColors.text} !important;
+        }
+      `}</style>
     </Layout>
   );
 };

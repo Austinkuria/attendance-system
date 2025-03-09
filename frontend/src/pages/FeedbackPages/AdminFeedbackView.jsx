@@ -1,21 +1,26 @@
-import  { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useContext } from 'react';
 import { Card, Table, Typography, Grid, Spin, Alert, Select, Input, DatePicker, Row, Col, Statistic } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
 import { getFeedbackSummary } from '../../services/api';
 import { css } from '@emotion/css';
+import { ThemeContext } from '../../context/ThemeContext'; // Adjust path as needed
+import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
+
 const { Title } = Typography;
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
 
-const useStyles = () => ({
+const useStyles = (themeColors) => ({
   container: css`
     padding: 16px;
     max-width: 1600px;
     margin: 0 auto;
+    background: ${themeColors.background};
+    min-height: 100vh;
     @media (max-width: 768px) {
       padding: 8px;
     }
@@ -33,6 +38,7 @@ const useStyles = () => ({
   chartCard: css`
     margin-bottom: 16px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+    background: ${themeColors.cardBg};
     .chart-container {
       height: 400px;
       position: relative;
@@ -46,12 +52,14 @@ const useStyles = () => ({
     .ant-statistic {
       &-title {
         font-size: 14px;
+        color: ${themeColors.text};
         @media (max-width: 768px) {
           font-size: 12px;
         }
       }
       &-content {
         font-size: 20px;
+        color: ${themeColors.text};
         @media (max-width: 768px) {
           font-size: 16px;
         }
@@ -60,7 +68,7 @@ const useStyles = () => ({
   `,
   dataTable: css`
     .muted {
-      color: #999;
+      color: ${themeColors.text}80;
     }
     @media (max-width: 768px) {
       .ant-table {
@@ -77,6 +85,7 @@ const useStyles = () => ({
   title: css`
     margin-bottom: 16px;
     font-size: 24px;
+    color: ${themeColors.text};
     @media (max-width: 768px) {
       font-size: 20px;
       margin-bottom: 8px;
@@ -85,6 +94,7 @@ const useStyles = () => ({
 });
 
 const AdminFeedbackView = () => {
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -95,7 +105,7 @@ const AdminFeedbackView = () => {
     search: ''
   });
   const screens = useBreakpoint();
-  const styles = useStyles();
+  const styles = useStyles(themeColors);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -117,19 +127,19 @@ const AdminFeedbackView = () => {
     units: [...new Set(summary.map(item => item.unit?.code || 'N/A'))]
   }), [summary]);
 
-  const filteredData = useMemo(() => 
+  const filteredData = useMemo(() =>
     summary.filter(item => {
       const matchesCourse = !filters.course || (item.course?.code || 'N/A') === filters.course;
       const matchesUnit = !filters.unit || (item.unit?.code || 'N/A') === filters.unit;
       const matchesSearch = item.sessionId.toLowerCase().includes(filters.search.toLowerCase());
       const sessionDate = new Date(item.sessionDate);
       const [start, end] = filters.dateRange || [null, null];
-      const matchesDate = !start || !end || 
+      const matchesDate = !start || !end ||
         (sessionDate >= start.startOf('day') && sessionDate <= end.endOf('day'));
-      
+
       return matchesCourse && matchesUnit && matchesSearch && matchesDate;
     }),
-  [summary, filters]);
+    [summary, filters]);
 
   const metrics = useMemo(() => ({
     totalSessions: filteredData.length,
@@ -143,13 +153,13 @@ const AdminFeedbackView = () => {
       {
         label: 'Rating',
         data: filteredData.map(s => s.averageRating || 0),
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
+        backgroundColor: themeColors.primary,
         stack: 'metrics'
       },
       {
         label: 'Interactivity',
         data: filteredData.map(s => s.averageInteractivity || 0),
-        backgroundColor: 'rgba(255, 159, 64, 0.6)',
+        backgroundColor: themeColors.secondary,
         stack: 'metrics'
       }
     ]
@@ -161,24 +171,27 @@ const AdminFeedbackView = () => {
     plugins: {
       legend: {
         position: screens.xs ? 'bottom' : 'top',
-        labels: { font: { size: screens.xs ? 12 : 14 } }
+        labels: { font: { size: screens.xs ? 12 : 14 }, color: themeColors.text }
       },
       tooltip: {
         bodyFont: { size: screens.xs ? 12 : 14 },
         titleFont: { size: screens.xs ? 14 : 16 },
         mode: 'index',
-        intersect: false
+        intersect: false,
+        backgroundColor: `${themeColors.text}CC`,
+        titleColor: '#fff',
+        bodyColor: '#fff'
       }
     },
     scales: {
       x: {
         stacked: true,
         ticks: {
-          callback: function(value) {
+          callback: function (value) {
             return this.getLabelForValue(value);
           },
           font: { size: screens.xs ? 10 : 12 },
-          color: '#666',
+          color: themeColors.text,
           autoSkip: false,
           maxRotation: screens.xs ? 45 : 0
         },
@@ -189,53 +202,55 @@ const AdminFeedbackView = () => {
         beginAtZero: true,
         ticks: {
           font: { size: screens.xs ? 10 : 12 },
+          color: themeColors.text,
           precision: 1
-        }
+        },
+        grid: { color: `${themeColors.text}20` }
       }
     }
   };
 
   const tableColumns = [
     { title: 'Session ID', dataIndex: 'sessionId', key: 'sessionId', fixed: 'left' },
-    { 
-      title: 'Unit Code', 
-      dataIndex: 'unit', 
+    {
+      title: 'Unit Code',
+      dataIndex: 'unit',
       key: 'unit',
       render: (unit) => unit?.code || <span className="muted">N/A</span>
     },
-    { 
-      title: 'Course Code', 
-      dataIndex: 'course', 
+    {
+      title: 'Course Code',
+      dataIndex: 'course',
       key: 'course',
       render: (course) => course?.code || <span className="muted">N/A</span>
     },
-    { 
-      title: 'Avg Rating', 
-      dataIndex: 'averageRating', 
+    {
+      title: 'Avg Rating',
+      dataIndex: 'averageRating',
       key: 'averageRating',
       render: (value) => value?.toFixed(2) || <span className="muted">N/A</span>
     },
-    { 
-      title: 'Avg Pace', 
-      dataIndex: 'averagePace', 
+    {
+      title: 'Avg Pace',
+      dataIndex: 'averagePace',
       key: 'averagePace',
       render: (value) => value?.toFixed(2) || <span className="muted">N/A</span>
     },
-    { 
-      title: 'Avg Interactivity', 
-      dataIndex: 'averageInteractivity', 
+    {
+      title: 'Avg Interactivity',
+      dataIndex: 'averageInteractivity',
       key: 'averageInteractivity',
       render: (value) => value?.toFixed(2) || <span className="muted">N/A</span>
     },
-    { 
-      title: 'Clarity (Yes)', 
-      dataIndex: 'clarityYes', 
+    {
+      title: 'Clarity (Yes)',
+      dataIndex: 'clarityYes',
       key: 'clarityYes',
       sorter: (a, b) => a.clarityYes - b.clarityYes
     },
-    { 
-      title: 'Total Feedback', 
-      dataIndex: 'totalFeedback', 
+    {
+      title: 'Total Feedback',
+      dataIndex: 'totalFeedback',
       key: 'totalFeedback',
       sorter: (a, b) => a.totalFeedback - b.totalFeedback
     },
@@ -249,15 +264,23 @@ const AdminFeedbackView = () => {
         description={error}
         showIcon
         className={styles.errorAlert}
+        style={{ background: themeColors.cardBg, color: themeColors.text, borderColor: themeColors.accent }}
       />
     );
   }
 
   return (
     <div className={styles.container}>
-      <Title level={3} className={styles.title}>
-        <FilterOutlined /> Feedback Analytics Dashboard
-      </Title>
+      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
+        <Col>
+          <Title level={3} className={styles.title}>
+            <FilterOutlined /> Feedback Analytics Dashboard
+          </Title>
+        </Col>
+        <Col>
+          <ThemeToggle />
+        </Col>
+      </Row>
 
       <Row gutter={[16, 16]} className={styles.filterBar}>
         <Col xs={24} sm={12} md={6}>
@@ -293,38 +316,26 @@ const AdminFeedbackView = () => {
 
       <Row gutter={[16, 16]} className={styles.statsCard}>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Total Sessions"
-              value={metrics.totalSessions}
-              precision={0}
-            />
+          <Card style={{ background: themeColors.cardBg, borderColor: themeColors.primary }}>
+            <Statistic title="Total Sessions" value={metrics.totalSessions} precision={0} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Avg Rating"
-              value={metrics.avgRating}
-              precision={1}
-            />
+          <Card style={{ background: themeColors.cardBg, borderColor: themeColors.primary }}>
+            <Statistic title="Avg Rating" value={metrics.avgRating} precision={1} />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Total Feedback"
-              value={metrics.totalFeedback}
-              precision={0}
-            />
+          <Card style={{ background: themeColors.cardBg, borderColor: themeColors.primary }}>
+            <Statistic title="Total Feedback" value={metrics.totalFeedback} precision={0} />
           </Card>
         </Col>
       </Row>
 
-      <Card className={styles.chartCard}>
+      <Card className={styles.chartCard} style={{ borderColor: themeColors.primary }}>
         <div className="chart-container">
-          <Bar 
-            data={chartData} 
+          <Bar
+            data={chartData}
             options={chartOptions}
             plugins={[{
               id: 'multiline-labels',
@@ -338,7 +349,7 @@ const AdminFeedbackView = () => {
                     const x = tick.labelX;
                     const y = tick.labelY + 10;
                     ctx.textAlign = 'center';
-                    ctx.fillStyle = '#666';
+                    ctx.fillStyle = themeColors.text;
                     ctx.font = screens.xs ? '10px Arial' : '12px Arial';
                     label.forEach((line, i) => {
                       ctx.fillText(line, x, y + (i * 14));
@@ -365,8 +376,79 @@ const AdminFeedbackView = () => {
           }}
           className={styles.dataTable}
           bordered
+          rowClassName={(_, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
         />
       </Spin>
+
+      <style>{`
+        .ant-select-selector, .ant-picker, .ant-input {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-select-dropdown, .ant-picker-dropdown {
+          background: ${themeColors.cardBg} !important;
+        }
+        .ant-select-item-option-content {
+          color: ${themeColors.text} !important;
+        }
+        .ant-table {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        .ant-table-thead > tr > th {
+          background: ${themeColors.primary} !important;
+          color: #fff !important;
+        }
+        .ant-table-tbody > tr > td {
+          border-bottom: 1px solid ${themeColors.text}20 !important;
+          color: ${themeColors.text} !important;
+        }
+        /* Ensure hover text remains visible */
+        .ant-table-tbody > tr:hover > td {
+          background: ${themeColors.hoverBg ? themeColors.hoverBg : themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        /* Fix Session ID column: set background and text color explicitly */
+        .ant-table-tbody > tr > td:first-child {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        .table-row-light {
+          background: ${themeColors.cardBg} !important;
+        }
+        .table-row-dark {
+          background: ${themeColors.background} !important;
+        }
+        /* Improve placeholder visibility in dark mode */
+        ::placeholder {
+          color: ${themeColors.text}80 !important;
+          opacity: 1 !important;
+        }
+        .ant-select-selection-placeholder,
+        .ant-picker-input input::placeholder,
+        .ant-input::placeholder {
+          color: ${themeColors.text}80 !important;
+        }
+        /* New modifications for dark mode header and icon visibility */
+        .anticon, .ant-typography {
+          color: ${themeColors.text} !important;
+        }
+        /* Pagination styling: fix total text and navigation buttons */
+        .ant-pagination-total-text,
+        .ant-pagination-item,
+        .ant-pagination-item-active,
+        .ant-pagination-prev,
+        .ant-pagination-next {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        /* Ensure search input wrapper uses dark mode background */
+        .ant-input-affix-wrapper {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+      `}</style>
     </div>
   );
 };
