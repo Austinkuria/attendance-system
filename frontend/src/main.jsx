@@ -20,8 +20,8 @@ register({
         toast.info('A new version is available! Click here to update.', {
           onClick: async () => {
             waitingWorker.postMessage({ action: 'skipWaiting' });
-            // Small delay for a smoother update experience
-            await new Promise((resolve) => setTimeout(resolve, 1000));
+            // Clear caches and reload the page
+            await clearCaches();
             window.location.reload();
           },
           autoClose: false,
@@ -34,6 +34,12 @@ register({
     console.log('Service Worker successfully initialized and content cached.');
   },
 });
+
+// Function to clear all caches
+async function clearCaches() {
+  const cacheNames = await caches.keys();
+  await Promise.all(cacheNames.map(cacheName => caches.delete(cacheName)));
+}
 
 // Function to inject analytics (avoids top-level await issue)
 async function loadAnalytics() {
