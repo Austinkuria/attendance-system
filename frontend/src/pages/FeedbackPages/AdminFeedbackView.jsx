@@ -274,7 +274,11 @@ const AdminFeedbackView = () => {
         description={error}
         showIcon
         className={styles.errorAlert}
-        style={{ background: themeColors.cardBg, color: themeColors.text, borderColor: themeColors.accent }}
+        style={{
+          background: isDarkMode ? '#8B0000' : '#ffcccc',  // dark red for dark mode, light red for light mode
+          color: '#fff',                                     // white text for both modes
+          borderColor: isDarkMode ? '#ff4500' : '#ff0000'     // contrasting border colors
+        }}
       />
     );
   }
