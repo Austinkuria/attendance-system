@@ -580,8 +580,8 @@ exports.getCourseAttendanceRate = async (req, res) => {
     res.status(200).json({
       totalPresent,
       totalPossible,
-      weeklyTrends: weeklyTrends.sort((a, b) => a.week.localeCompare(b.week)),
-      dailyTrends: dailyTrends.sort((a, b) => a.date.localeCompare(b.date))
+      weeklyTrends: weeklyTrends.sort((a, b) => (a.week || "").localeCompare(b.week || "")),
+      dailyTrends: dailyTrends.sort((a, b) => (a.date || "").localeCompare(b.date || ""))
     });
   } catch (error) {
     console.error("Error fetching course attendance rate:", error);
@@ -606,9 +606,9 @@ exports.getPendingFeedbackAttendance = async (req, res) => {
         path: 'session',
         select: '_id unit ended feedbackEnabled endTime',
         match: { ended: true, feedbackEnabled: true },
-        populate: { 
-          path: 'unit', 
-          select: 'name' 
+        populate: {
+          path: 'unit',
+          select: 'name'
         }
       })
       .select('status feedbackSubmitted');
