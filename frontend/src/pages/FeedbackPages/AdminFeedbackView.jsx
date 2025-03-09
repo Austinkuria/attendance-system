@@ -1,12 +1,13 @@
 import { useState, useEffect, useMemo, useContext } from 'react';
-import { Card, Table, Typography, Grid, Spin, Alert, Select, Input, DatePicker, Row, Col, Statistic } from 'antd';
+import { Card, Table, Typography, Grid, Spin, Alert, Select, Input, DatePicker, Row, Col, Statistic, Button } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
-import { FilterOutlined, SearchOutlined } from '@ant-design/icons';
+import { FilterOutlined, SearchOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import { getFeedbackSummary } from '../../services/api';
 import { css } from '@emotion/css';
 import { ThemeContext } from '../../context/ThemeContext'; // Adjust path as needed
 import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
+import { useNavigate } from 'react-router-dom'; // replaced useHistory with useNavigate
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -95,6 +96,7 @@ const useStyles = (themeColors) => ({
 
 const AdminFeedbackView = () => {
   const { themeColors, isDarkMode } = useContext(ThemeContext);
+  const navigate = useNavigate(); // replaced useHistory()
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -106,6 +108,13 @@ const AdminFeedbackView = () => {
   });
   const screens = useBreakpoint();
   const styles = useStyles(themeColors);
+
+  // Add local summary card colors mapping with fallbacks
+  const summaryCardColors = {
+    totalSessions: themeColors.summaryTotalSessions || themeColors.primary,
+    avgRating: themeColors.summaryAvgRating || themeColors.accent,
+    totalFeedback: themeColors.summaryTotalFeedback || themeColors.secondary,
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -178,7 +187,7 @@ const AdminFeedbackView = () => {
         titleFont: { size: screens.xs ? 14 : 16 },
         mode: 'index',
         intersect: false,
-        backgroundColor: `${themeColors.text}CC`,
+        backgroundColor: isDarkMode ? '#333' : `${themeColors.text}CC`, // improved visibility in dark mode
         titleColor: '#fff',
         bodyColor: '#fff'
       }
@@ -192,8 +201,9 @@ const AdminFeedbackView = () => {
           },
           font: { size: screens.xs ? 10 : 12 },
           color: themeColors.text,
-          autoSkip: false,
-          maxRotation: screens.xs ? 45 : 0
+          autoSkip: true,  //  autoSkip to not show all labels
+          maxRotation: screens.xs ? 45 : 0,
+          minRotation: screens.xs ? 45 : 0      // set minimum rotation to avoid overlapping
         },
         grid: { display: false }
       },
@@ -273,9 +283,20 @@ const AdminFeedbackView = () => {
     <div className={styles.container}>
       <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
         <Col>
-          <Title level={3} className={styles.title}>
-            <FilterOutlined /> Feedback Analytics Dashboard
-          </Title>
+          {/* Back to Admin button and title */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <Button
+              type="link"
+              icon={<ArrowLeftOutlined />}
+              onClick={() => navigate('/admin')} // using navigate instead of history.push
+              style={{ color: themeColors.text }}
+            >
+              Back to Admin
+            </Button>
+            <Title level={3} className={styles.title}>
+              <FilterOutlined /> Feedback Analytics Dashboard
+            </Title>
+          </div>
         </Col>
         <Col>
           <ThemeToggle />
@@ -316,18 +337,36 @@ const AdminFeedbackView = () => {
 
       <Row gutter={[16, 16]} className={styles.statsCard}>
         <Col xs={24} sm={8}>
-          <Card style={{ background: themeColors.cardBg, borderColor: themeColors.primary }}>
-            <Statistic title="Total Sessions" value={metrics.totalSessions} precision={0} />
+          <Card style={{ background: summaryCardColors.totalSessions, borderColor: summaryCardColors.totalSessions }}>
+            <Statistic
+              title="Total Sessions"
+              value={metrics.totalSessions}
+              precision={0}
+              valueStyle={{ color: '#fff' }}
+              titleStyle={{ color: '#fff' }}
+            />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card style={{ background: themeColors.cardBg, borderColor: themeColors.primary }}>
-            <Statistic title="Avg Rating" value={metrics.avgRating} precision={1} />
+          <Card style={{ background: summaryCardColors.avgRating, borderColor: summaryCardColors.avgRating }}>
+            <Statistic
+              title="Avg Rating"
+              value={metrics.avgRating}
+              precision={1}
+              valueStyle={{ color: '#fff' }}
+              titleStyle={{ color: '#fff' }}
+            />
           </Card>
         </Col>
         <Col xs={24} sm={8}>
-          <Card style={{ background: themeColors.cardBg, borderColor: themeColors.primary }}>
-            <Statistic title="Total Feedback" value={metrics.totalFeedback} precision={0} />
+          <Card style={{ background: summaryCardColors.totalFeedback, borderColor: summaryCardColors.totalFeedback }}>
+            <Statistic
+              title="Total Feedback"
+              value={metrics.totalFeedback}
+              precision={0}
+              valueStyle={{ color: '#fff' }}
+              titleStyle={{ color: '#fff' }}
+            />
           </Card>
         </Col>
       </Row>
