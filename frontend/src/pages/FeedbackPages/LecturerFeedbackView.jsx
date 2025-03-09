@@ -1,23 +1,24 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useContext } from 'react';
 import { Card, Typography, Rate, Select, Row, Col, Spin, Alert, Tag, Button, Pagination, Statistic } from 'antd';
-import { Bar, Pie, Radar } from 'react-chartjs-2';
-import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, RadialLinearScale } from 'chart.js';
+import { Bar, Pie } from 'react-chartjs-2';
+import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
 import { getFeedbackForLecturer } from '../../services/api';
 import { css } from '@emotion/css';
-import { Link } from 'react-router-dom'; // For the back button
-
-// Register Chart.js components
-ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend, RadialLinearScale);
+import { Link } from 'react-router-dom';
+import { ThemeContext } from "../../context/ThemeContext";
+// Register Chart.js components (removed Radar since it's not used)
+ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend);
 
 const { Title, Text } = Typography;
 const { Option } = Select;
 
 // Styled components
-const useStyles = () => ({
+const useStyles = (themeColors) => ({
   container: css`
     padding: 24px;
     max-width: 1400px;
     margin: 0 auto;
+    background: ${themeColors.background};
   `,
   filterBar: css`
     margin-bottom: 24px;
@@ -36,10 +37,12 @@ const useStyles = () => ({
     transition: opacity 0.3s ease, transform 0.3s ease;
     opacity: 1;
     transform: translateY(0);
+    background: ${themeColors.cardBg};
   `,
   chartCard: css`
     margin-bottom: 24px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    background: ${themeColors.cardBg};
     .chart-container {
       height: 400px;
       position: relative;
@@ -48,7 +51,7 @@ const useStyles = () => ({
   emptyText: css`
     text-align: center;
     padding: 24px;
-    color: #999;
+    color: ${themeColors.text}80;
   `,
   gridContainer: css`
     display: grid;
@@ -62,12 +65,16 @@ const useStyles = () => ({
   `,
   summaryCard: css`
     margin-bottom: 24px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     .ant-statistic {
       &-title {
         font-size: 14px;
+        color: #fff;
       }
       &-content {
         font-size: 20px;
+        color: #fff;
       }
     }
   `,
@@ -77,6 +84,7 @@ const useStyles = () => ({
 });
 
 const LecturerFeedbackView = () => {
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const [feedback, setFeedback] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -87,7 +95,7 @@ const LecturerFeedbackView = () => {
   });
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(6); // Cards per page
-  const styles = useStyles();
+  const styles = useStyles(themeColors);
 
   useEffect(() => {
     const fetchFeedback = async () => {
@@ -159,10 +167,79 @@ const LecturerFeedbackView = () => {
     };
   }, [filteredFeedback]);
 
+  // Define unique gradients for summary cards
+  const summaryCardGradients = {
+    totalFeedback: isDarkMode
+      ? 'linear-gradient(135deg, #5A4FCF, #A29BFE)'
+      : 'linear-gradient(135deg, #6C5CE7, #A29BFE)',
+    averageRating: isDarkMode
+      ? 'linear-gradient(135deg, #00A8B5, #81ECEC)'
+      : 'linear-gradient(135deg, #00CEC9, #81ECEC)',
+    clarityYes: isDarkMode
+      ? 'linear-gradient(135deg, #D81E5B, #FAB1A0)'
+      : 'linear-gradient(135deg, #FF7675, #FFB6C1)',
+    clarityNo: isDarkMode
+      ? 'linear-gradient(135deg, #2A9D8F, #56C596)'
+      : 'linear-gradient(135deg, #34C759, #8EE4AF)',
+    averagePace: isDarkMode
+      ? 'linear-gradient(135deg, #F4A261, #E76F51)'
+      : 'linear-gradient(135deg, #F4A261, #FF9F1C)',
+  };
+
+  // Summary Cards JSX
+  const summaryCards = (
+    <Row gutter={[16, 16]} className={styles.summaryCard}>
+      <Col xs={24} sm={8}>
+        <Card style={{ background: summaryCardGradients.totalFeedback }}>
+          <Statistic
+            title="Total Feedback"
+            value={summaryMetrics.totalFeedback}
+            precision={0}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={8}>
+        <Card style={{ background: summaryCardGradients.averageRating }}>
+          <Statistic
+            title="Average Rating"
+            value={summaryMetrics.averageRating}
+            precision={1}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={8}>
+        <Card style={{ background: summaryCardGradients.clarityYes }}>
+          <Statistic
+            title="Clarity (Yes)"
+            value={summaryMetrics.clarityYes}
+            precision={0}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={8}>
+        <Card style={{ background: summaryCardGradients.clarityNo }}>
+          <Statistic
+            title="Clarity (No)"
+            value={summaryMetrics.clarityNo}
+            precision={0}
+          />
+        </Card>
+      </Col>
+      <Col xs={24} sm={8}>
+        <Card style={{ background: summaryCardGradients.averagePace }}>
+          <Statistic
+            title="Average Pace"
+            value={summaryMetrics.averagePace}
+            precision={1}
+          />
+        </Card>
+      </Col>
+    </Row>
+  );
+
   // Calculate average ratings by unit
   const unitRatingsData = useMemo(() => {
     const unitRatings = {};
-
     feedback.forEach((item) => {
       const unitCode = item.unit?.code;
       if (unitCode) {
@@ -177,7 +254,7 @@ const LecturerFeedbackView = () => {
     const labels = Object.keys(unitRatings);
     const data = labels.map((unitCode) => {
       const averageRating = unitRatings[unitCode].total / unitRatings[unitCode].count;
-      return averageRating.toFixed(2); // Round to 2 decimal places
+      return averageRating.toFixed(2);
     });
 
     return {
@@ -186,13 +263,13 @@ const LecturerFeedbackView = () => {
         {
           label: 'Average Rating',
           data,
-          backgroundColor: 'rgba(75, 192, 192, 0.6)',
-          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: themeColors.secondary,
+          borderColor: themeColors.secondary,
           borderWidth: 1,
         },
       ],
     };
-  }, [feedback]);
+  }, [feedback, themeColors]);
 
   // Clarity distribution data
   const clarityData = useMemo(() => {
@@ -205,44 +282,31 @@ const LecturerFeedbackView = () => {
         {
           label: 'Clarity Distribution',
           data: [clarityYes, clarityNo],
-          backgroundColor: ['rgba(75, 192, 192, 0.6)', 'rgba(255, 99, 132, 0.6)'],
-          borderColor: ['rgba(75, 192, 192, 1)', 'rgba(255, 99, 132, 1)'],
+          backgroundColor: [themeColors.secondary, themeColors.accent],
+          borderColor: [themeColors.secondary, themeColors.accent],
           borderWidth: 1,
         },
       ],
     };
-  }, [filteredFeedback]);
-
-  // Comprehensive chart data
-  const comprehensiveChartData = {
-    labels: ['Average Rating', 'Average Pace', 'Average Interactivity', 'Clarity (Yes)', 'Clarity (No)'],
-    datasets: [
-      {
-        label: 'Feedback Metrics',
-        data: [
-          summaryMetrics.averageRating,
-          summaryMetrics.averagePace,
-          summaryMetrics.averageInteractivity,
-          summaryMetrics.clarityYes,
-          summaryMetrics.clarityNo,
-        ],
-        backgroundColor: 'rgba(54, 162, 235, 0.6)',
-        borderColor: 'rgba(54, 162, 235, 1)',
-        borderWidth: 1,
-      },
-    ],
-  };
+  }, [filteredFeedback, themeColors]);
 
   // Chart options
   const chartOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top' },
+      legend: { position: 'top', labels: { color: themeColors.text } },
+      tooltip: { backgroundColor: `${themeColors.text}CC`, titleColor: '#fff', bodyColor: '#fff' },
     },
     scales: {
       y: {
         beginAtZero: true,
+        ticks: { color: themeColors.text },
+        grid: { color: `${themeColors.text}20` },
+      },
+      x: {
+        ticks: { color: themeColors.text },
+        grid: { display: false },
       },
     },
   };
@@ -263,95 +327,35 @@ const LecturerFeedbackView = () => {
     <div className={styles.container}>
       {/* Back to Lecturer Dashboard Button */}
       <Link to="/lecturer-dashboard">
-        <Button type="primary" className={styles.backButton}>
+        <Button
+          type="primary"
+          className={styles.backButton}
+          style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+        >
           Back to Lecturer Dashboard
         </Button>
       </Link>
 
-      <Title level={2}>Session Feedback Analytics</Title>
+      <Title level={2} style={{ color: themeColors.text }}>Session Feedback Analytics</Title>
 
       {/* Summary Cards */}
-      <Row gutter={[16, 16]} className={styles.summaryCard}>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Total Feedback"
-              value={summaryMetrics.totalFeedback}
-              precision={0}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Average Rating"
-              value={summaryMetrics.averageRating}
-              precision={1}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Clarity (Yes)"
-              value={summaryMetrics.clarityYes}
-              precision={0}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Average Pace"
-              value={summaryMetrics.averagePace}
-              precision={1}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} sm={8}>
-          <Card>
-            <Statistic
-              title="Average Interactivity"
-              value={summaryMetrics.averageInteractivity}
-              precision={1}
-            />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Comprehensive Chart */}
-      <Card className={styles.chartCard}>
-        <Title level={4} style={{ marginBottom: 16 }}>Feedback Summary Metrics</Title>
-        <div className="chart-container">
-          <Bar
-            data={comprehensiveChartData}
-            options={chartOptions}
-          />
-        </div>
-      </Card>
+      {summaryCards}
 
       {/* Charts Section */}
       <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
         <Col xs={24} md={12}>
           <Card className={styles.chartCard}>
-            <Title level={4} style={{ marginBottom: 16 }}>Average Ratings by Unit</Title>
+            <Title level={4} style={{ marginBottom: 16, color: themeColors.text }}>Average Ratings by Unit</Title>
             <div className="chart-container">
-              <Bar
-                data={unitRatingsData}
-                options={chartOptions}
-              />
+              <Bar data={unitRatingsData} options={chartOptions} />
             </div>
           </Card>
         </Col>
-
         <Col xs={24} md={12}>
           <Card className={styles.chartCard}>
-            <Title level={4} style={{ marginBottom: 16 }}>Clarity Distribution</Title>
+            <Title level={4} style={{ marginBottom: 16, color: themeColors.text }}>Clarity Distribution</Title>
             <div className="chart-container">
-              <Pie
-                data={clarityData}
-                options={chartOptions}
-              />
+              <Pie data={clarityData} options={chartOptions} />
             </div>
           </Card>
         </Col>
@@ -367,9 +371,7 @@ const LecturerFeedbackView = () => {
             onChange={(value) => setFilters((prev) => ({ ...prev, unit: value }))}
           >
             {unitOptions.map((unit) => (
-              <Option key={unit} value={unit}>
-                {unit}
-              </Option>
+              <Option key={unit} value={unit}>{unit}</Option>
             ))}
           </Select>
         </Col>
@@ -403,6 +405,7 @@ const LecturerFeedbackView = () => {
             type="default"
             onClick={resetFilters}
             className={styles.resetButton}
+            style={{ color: themeColors.primary, borderColor: themeColors.primary }}
           >
             Reset Filters
           </Button>
@@ -417,55 +420,47 @@ const LecturerFeedbackView = () => {
               {paginatedFeedback.map((item) => (
                 <Card key={item._id} className={styles.feedbackCard}>
                   <div className={styles.feedbackHeader}>
-                    <Text strong>{item.unit?.name || 'Unnamed Unit'}</Text>
-                    <Tag color="blue" className={styles.ratingTag}>
+                    <Text strong style={{ color: themeColors.text }}>{item.unit?.name || 'Unnamed Unit'}</Text>
+                    <Tag color={themeColors.primary} className={styles.ratingTag}>
                       {item.unit?.code || 'N/A'}
                     </Tag>
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Course: </Text>
-                    {item.course?.name || 'N/A'}
+                    <Text strong style={{ color: themeColors.text }}>Course: </Text>
+                    <Text style={{ color: themeColors.text }}>{item.course?.name || 'N/A'}</Text>
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Student: </Text>
-                    {item.studentId?.name || 'Anonymous'}
+                    <Text strong style={{ color: themeColors.text }}>Student: </Text>
+                    <Text style={{ color: themeColors.text }}>{item.studentId?.name || 'Anonymous'}</Text>
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Rating: </Text>
+                    <Text strong style={{ color: themeColors.text }}>Rating: </Text>
                     <Rate disabled value={item.rating || 0} />
-                    <Text type="secondary" className={styles.ratingTag}>
+                    <Text type="secondary" style={{ color: themeColors.text, marginLeft: 8 }}>
                       ({item.rating || 0} Stars)
                     </Text>
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Comments: </Text>
-                    {item.feedbackText || 'No comments provided.'}
+                    <Text strong style={{ color: themeColors.text }}>Comments: </Text>
+                    <Text style={{ color: themeColors.text }}>{item.feedbackText || 'No comments provided.'}</Text>
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Pace: </Text>
-                    {item.pace || 'N/A'}
+                    <Text strong style={{ color: themeColors.text }}>Pace: </Text>
+                    <Text style={{ color: themeColors.text }}>{item.pace || 'N/A'}</Text>
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Interactivity: </Text>
+                    <Text strong style={{ color: themeColors.text }}>Interactivity: </Text>
                     <Rate disabled value={item.interactivity || 0} />
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Clarity: </Text>
-                    <Tag color={item.clarity ? 'green' : 'red'}>
+                    <Text strong style={{ color: themeColors.text }}>Clarity: </Text>
+                    <Tag color={item.clarity ? themeColors.secondary : themeColors.accent}>
                       {item.clarity ? 'Clear' : 'Unclear'}
                     </Tag>
                   </div>
-
                   <div className={styles.feedbackSection}>
-                    <Text strong>Resources: </Text>
-                    {item.resources || 'None'}
+                    <Text strong style={{ color: themeColors.text }}>Resources: </Text>
+                    <Text style={{ color: themeColors.text }}>{item.resources || 'None'}</Text>
                   </div>
                 </Card>
               ))}
@@ -483,6 +478,7 @@ const LecturerFeedbackView = () => {
                 }}
                 showSizeChanger
                 pageSizeOptions={['6', '12', '24', '48']}
+                style={{ color: themeColors.text }}
               />
             </div>
           </>
@@ -490,6 +486,40 @@ const LecturerFeedbackView = () => {
           <div className={styles.emptyText}>No feedback available</div>
         )}
       </Spin>
+
+      <style>{`
+        .ant-select-selector {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-select-dropdown {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        .ant-select-item-option-content {
+          color: ${themeColors.text} !important;
+        }
+        .ant-btn-primary:hover, .ant-btn-primary:focus {
+          background: ${isDarkMode ? '#8E86E5' : '#5A4FCF'} !important;
+          border-color: ${isDarkMode ? '#8E86E5' : '#5A4FCF'} !important;
+        }
+        .ant-btn-default:hover, .ant-btn-default:focus {
+          color: ${themeColors.primary} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-pagination-item, .ant-pagination-prev, .ant-pagination-next {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        .ant-pagination-item-active {
+          background: ${themeColors.primary} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-pagination-item-active a {
+          color: #fff !important;
+        }
+      `}</style>
     </div>
   );
 };

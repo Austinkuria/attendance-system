@@ -35,9 +35,9 @@ import {
   getDepartments,
   detectCurrentSession,
   createSession,
-} from "../services/api"; // Adjust path as needed
+} from "../services/api"; 
 import moment from "moment";
-import { ThemeContext } from "../pages/dashboards/LecturerDashboard"; 
+import { ThemeContext } from '../context/ThemeContext';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -91,6 +91,21 @@ const AttendanceManagement = () => {
     margin: 0,
   };
 
+  const summaryCardGradients = {
+    assignedUnits: isDarkMode
+      ? 'linear-gradient(135deg, #5A4FCF, #A29BFE)'
+      : 'linear-gradient(135deg, #6C5CE7, #A29BFE)',
+    attendanceRate: isDarkMode
+      ? 'linear-gradient(135deg, #00A8B5, #81ECEC)'
+      : 'linear-gradient(135deg, #00CEC9, #81ECEC)',
+    totalScans: isDarkMode
+      ? 'linear-gradient(135deg, #D81E5B, #FAB1A0)'
+      : 'linear-gradient(135deg, #FF7675, #FFB6C1)',
+    totalEnrolled: isDarkMode
+      ? 'linear-gradient(135deg, #2A9D8F, #56C596)'
+      : 'linear-gradient(135deg, #34C759, #8EE4AF)',
+  };
+
   useEffect(() => {
     if (currentSession) {
       localStorage.setItem("currentSession", JSON.stringify(currentSession));
@@ -104,7 +119,7 @@ const AttendanceManagement = () => {
       try {
         const data = await getDepartments();
         setDepartments(data);
-      } catch (/* eslint-disable no-unused-vars */ _) {
+      } catch (_) {
         message.error("Failed to fetch departments");
       }
     };
@@ -129,7 +144,7 @@ const AttendanceManagement = () => {
         setQrData("");
         localStorage.removeItem("currentSession");
       }
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       setCurrentSession(null);
       setQrData("");
       localStorage.removeItem("currentSession");
@@ -180,7 +195,7 @@ const AttendanceManagement = () => {
         } else {
           message.info("No units assigned to your account");
         }
-      } catch (/* eslint-disable no-unused-vars */ _) {
+      } catch (_) {
         message.error("Failed to load unit data");
       } finally {
         setLoading((prev) => ({ ...prev, units: false }));
@@ -224,7 +239,7 @@ const AttendanceManagement = () => {
           setCurrentSession(null);
           setQrData("");
         }
-      } catch (/* eslint-disable no-unused-vars */ _) {
+      } catch (_) {
         setCurrentSession(null);
         setQrData("");
       } finally {
@@ -243,7 +258,7 @@ const AttendanceManagement = () => {
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       setAttendance(response.data);
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       setAttendance([]);
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
@@ -313,7 +328,7 @@ const AttendanceManagement = () => {
       } else {
         setPastAttendance([]);
       }
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       message.error("Failed to fetch past sessions");
     } finally {
       setLoading((prev) => ({ ...prev, pastAttendance: false }));
@@ -343,7 +358,7 @@ const AttendanceManagement = () => {
         ended: false,
       });
       setQrData(data.qrCode);
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       message.error("Failed to create session");
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
@@ -368,7 +383,7 @@ const AttendanceManagement = () => {
       }
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       message.error("Failed to generate QR code");
     } finally {
       setLoading((prev) => ({ ...prev, qr: false }));
@@ -406,14 +421,14 @@ const AttendanceManagement = () => {
               setSelectedUnit(null);
               await checkCurrentSession();
             }
-          } catch (/* eslint-disable no-unused-vars */ _) {
+          } catch (_) {
             message.error("Failed to end session");
           } finally {
             setLoading((prev) => ({ ...prev, session: false }));
           }
         },
       });
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       message.error("An unexpected error occurred");
       setLoading((prev) => ({ ...prev, session: false }));
     }
@@ -441,7 +456,7 @@ const AttendanceManagement = () => {
             prev.map((a) => (a._id === recordId ? { ...a, status: newStatus } : a))
           );
           message.success(`Marked ${record.student.regNo} as ${newStatus}`);
-        } catch (/* eslint-disable no-unused-vars */ _) {
+        } catch (_) {
           message.error("Failed to update attendance status");
         }
       },
@@ -471,7 +486,7 @@ const AttendanceManagement = () => {
       );
       setAttendance(absentRecords);
       message.success("Showing absent students");
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       message.error("Failed to fetch absent students");
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
@@ -635,7 +650,7 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: themeColors.cardGradient1,
+            background: summaryCardGradients.assignedUnits,
             borderLeft: `4px solid ${themeColors.primary}`,
             height: "100%",
             color: '#fff',
@@ -657,7 +672,7 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: themeColors.cardGradient2,
+            background: summaryCardGradients.attendanceRate,
             borderLeft: `4px solid ${themeColors.secondary}`,
             height: "100%",
             color: '#fff',
@@ -680,8 +695,8 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: themeColors.cardGradient1,
-            borderLeft: `4px solid ${themeColors.primary}`,
+            background: summaryCardGradients.totalScans,
+            borderLeft: `4px solid ${themeColors.accent}`,
             height: "100%",
             color: '#fff',
           }}
@@ -702,8 +717,8 @@ const AttendanceManagement = () => {
         <Card
           style={{
             ...cardStyle,
-            background: themeColors.cardGradient2,
-            borderLeft: `4px solid ${themeColors.secondary}`,
+            background: summaryCardGradients.totalEnrolled,
+            borderLeft: `4px solid ${isDarkMode ? '#2A9D8F' : '#34C759'}`,
             height: "100%",
             color: '#fff',
           }}
@@ -731,7 +746,7 @@ const AttendanceManagement = () => {
       const endTime = new Date(session.endSession);
       const options = { hour: "numeric", minute: "2-digit", hour12: true };
       return `${startTime.toLocaleTimeString([], options)} - ${endTime.toLocaleTimeString([], options)}`;
-    } catch (/* eslint-disable no-unused-vars */ _) {
+    } catch (_) {
       return "Error formatting time";
     }
   };
@@ -800,7 +815,7 @@ const AttendanceManagement = () => {
           title={
             <Space>
               <ClockCircleOutlined style={{ color: themeColors.primary }} />
-              <Text strong style={{ color: themeColors.text }}>
+              <Text strong style={{ color: '#fff' }}>
                 Active Session: {currentSession.unit?.name || "Unknown Unit"}
               </Text>
             </Space>
@@ -945,7 +960,6 @@ const AttendanceManagement = () => {
                 }}
                 locale={{ emptyText: "No active session attendance records found" }}
                 bordered
-                borderColor={themeColors.primary}
                 size={screens.xs ? "small" : "middle"}
                 rowClassName={(record, index) =>
                   index % 2 === 0 ? "table-row-light" : "table-row-dark"
@@ -1053,7 +1067,6 @@ const AttendanceManagement = () => {
                 }}
                 locale={{ emptyText: "No past attendance records found" }}
                 bordered
-                borderColor={themeColors.primary}
                 size={screens.xs ? "small" : "middle"}
                 rowClassName={(record, index) =>
                   index % 2 === 0 ? "table-row-light" : "table-row-dark"
@@ -1169,7 +1182,7 @@ const AttendanceManagement = () => {
         }
         .ant-table {
           border: 1px solid ${themeColors.primary};
-          borderRadius: 8px;
+          border-radius: 8px;
           width: 100%;
         }
         .ant-btn-primary {
@@ -1191,6 +1204,23 @@ const AttendanceManagement = () => {
           background: ${themeColors.text}20;
           border-color: ${themeColors.text}40;
           color: ${themeColors.text}80;
+        }
+        .ant-select-selector {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-picker {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-select-dropdown, .ant-picker-dropdown {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        .ant-select-item-option-content {
+          color: ${themeColors.text} !important;
         }
       `}</style>
     </div>

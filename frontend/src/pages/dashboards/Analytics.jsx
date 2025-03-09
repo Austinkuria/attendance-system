@@ -1,10 +1,11 @@
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useContext } from "react";
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler } from 'chart.js';
 import { Chart } from "react-chartjs-2";
 import { Card, Select, Spin, Typography, Grid, Button, Space, Statistic, Row, Col, Badge, DatePicker } from "antd";
 import { ReloadOutlined, LineChartOutlined, TeamOutlined, PercentageOutlined } from '@ant-design/icons';
 import { getAttendanceTrends, getLecturerUnits } from "../../services/api";
 import moment from 'moment';
+import { ThemeContext } from "../../context/ThemeContext";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
@@ -13,6 +14,7 @@ const { useBreakpoint } = Grid;
 const { Text } = Typography;
 
 const Analytics = () => {
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const screens = useBreakpoint();
   const lecturerId = localStorage.getItem("userId");
   const [trends, setTrends] = useState({ labels: [], present: [], absent: [], rates: [] });
@@ -45,7 +47,6 @@ const Analytics = () => {
         setLoading(prev => ({ ...prev, units: true }));
         setError(null);
         const unitsData = await getLecturerUnits(lecturerId);
-        console.log("Fetched units:", unitsData);
         if (!Array.isArray(unitsData)) throw new Error("Invalid units data format");
         setUnits(unitsData);
         if (unitsData.length > 0) setSelectedUnit(unitsData[0]._id);
@@ -74,9 +75,7 @@ const Analytics = () => {
     try {
       setLoading(prev => ({ ...prev, trends: true }));
       setError(null);
-      console.log("Fetching trends with:", { unit: selectedUnit, startDate, endDate });
       const trendsRes = await getAttendanceTrends(selectedUnit, startDate, endDate);
-      console.log("Trends response:", trendsRes);
       if (!trendsRes || !Array.isArray(trendsRes.labels) || !Array.isArray(trendsRes.present) || !Array.isArray(trendsRes.absent) || !Array.isArray(trendsRes.rates)) {
         throw new Error("Invalid trends data structure");
       }
@@ -87,7 +86,6 @@ const Analytics = () => {
         rates: trendsRes.rates
       });
     } catch (err) {
-      console.error("Fetch trends error:", err);
       setError(err.message || "Failed to load trends");
       setTrends({ labels: [], present: [], absent: [], rates: [] });
     } finally {
@@ -109,7 +107,6 @@ const Analytics = () => {
   }, [trends]);
 
   const chartData = useMemo(() => {
-    // Ensure trends is defined and has the expected structure
     const safeTrends = trends || { labels: [], present: [], absent: [], rates: [] };
     return {
       labels: safeTrends.labels.length ? safeTrends.labels : ['No Data'],
@@ -118,47 +115,50 @@ const Analytics = () => {
           type: 'bar',
           label: 'Present',
           data: safeTrends.present.length ? safeTrends.present : [0],
-          backgroundColor: 'rgba(40, 167, 69, 0.7)',
-          borderColor: 'rgba(40, 167, 69, 1)',
-          borderWidth: 1,
+          backgroundColor: `${themeColors.secondary}80`, // 50% opacity
+          borderColor: themeColors.secondary,
+          borderWidth: 2,
           yAxisID: 'y-count',
           barThickness: screens.md ? 20 : 15,
+          order: 2,
         },
         {
           type: 'bar',
           label: 'Absent',
           data: safeTrends.absent.length ? safeTrends.absent : [0],
-          backgroundColor: 'rgba(220, 53, 69, 0.7)',
-          borderColor: 'rgba(220, 53, 69, 1)',
-          borderWidth: 1,
+          backgroundColor: `${themeColors.accent}80`, // 50% opacity
+          borderColor: themeColors.accent,
+          borderWidth: 2,
           yAxisID: 'y-count',
           barThickness: screens.md ? 20 : 15,
+          order: 1,
         },
         {
           type: 'line',
           label: 'Attendance Rate (%)',
           data: safeTrends.rates.length ? safeTrends.rates : [0],
-          borderColor: '#1890ff',
-          backgroundColor: 'rgba(24, 144, 255, 0.1)',
+          borderColor: themeColors.primary,
+          backgroundColor: `${themeColors.primary}20`,
           fill: true,
           tension: 0.4,
           pointRadius: 4,
           pointHoverRadius: 6,
           yAxisID: 'y-rate',
+          order: 0,
         },
       ],
     };
-  }, [trends, screens.md]);
+  }, [trends, screens.md, themeColors]);
 
   const chartOptions = {
     responsive: true,
     plugins: {
-      legend: { position: 'top', labels: { font: { size: screens.md ? 14 : 12 }, padding: 10, color: '#333' } },
-      title: { display: true, text: 'Attendance Trends', font: { size: screens.md ? 18 : 16, weight: 'bold' }, color: '#333', padding: { top: 10, bottom: 20 } },
+      legend: { position: 'top', labels: { font: { size: screens.md ? 14 : 12 }, padding: 10, color: themeColors.text } },
+      title: { display: true, text: 'Attendance Trends', font: { size: screens.md ? 18 : 16, weight: 'bold' }, color: themeColors.text, padding: { top: 10, bottom: 20 } },
       tooltip: {
         mode: 'index',
         intersect: false,
-        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        backgroundColor: `${themeColors.text}CC`,
         titleFont: { size: 14 },
         bodyFont: { size: 12 },
         padding: 10,
@@ -171,25 +171,25 @@ const Analytics = () => {
       'y-count': {
         type: 'linear',
         position: 'left',
-        title: { display: true, text: 'Students', font: { size: 14, weight: 'bold' }, color: '#666' },
+        title: { display: true, text: 'Students', font: { size: 14, weight: 'bold' }, color: themeColors.text },
         beginAtZero: true,
         suggestedMax: Math.max(...(trends.present || []).concat(trends.absent || [])) * 1.2 || 10,
-        grid: { color: 'rgba(0, 0, 0, 0.05)' },
-        ticks: { color: '#666' }
+        grid: { color: `${themeColors.text}20` },
+        ticks: { color: themeColors.text }
       },
       'y-rate': {
         type: 'linear',
         position: 'right',
         min: 0,
         max: 100,
-        title: { display: true, text: 'Rate (%)', font: { size: 14, weight: 'bold' }, color: '#666' },
+        title: { display: true, text: 'Rate (%)', font: { size: 14, weight: 'bold' }, color: themeColors.text },
         grid: { drawOnChartArea: false },
-        ticks: { callback: value => `${value}%`, color: '#666' }
+        ticks: { callback: value => `${value}%`, color: themeColors.text }
       },
       x: {
-        title: { display: true, text: 'Date', font: { size: 14, weight: 'bold' }, color: '#666' },
+        title: { display: true, text: 'Date', font: { size: 14, weight: 'bold' }, color: themeColors.text },
         grid: { display: false },
-        ticks: { maxRotation: screens.md ? 45 : 90, minRotation: 45, color: '#666' }
+        ticks: { maxRotation: screens.md ? 45 : 90, minRotation: 45, color: themeColors.text }
       },
     },
     maintainAspectRatio: false,
@@ -198,7 +198,7 @@ const Analytics = () => {
 
   return (
     <Card
-      title={<Space><LineChartOutlined style={{ fontSize: 24, color: '#1890ff' }} /><Typography.Title level={4} style={{ margin: 0, color: '#333' }}>Attendance Insights</Typography.Title></Space>}
+      title={<Space><LineChartOutlined style={{ fontSize: 24, color: themeColors.primary }} /><Typography.Title level={4} style={{ margin: 0, color: themeColors.text }}>Attendance Insights</Typography.Title></Space>}
       extra={
         <Space wrap>
           <Select value={filterType} onChange={setFilterType} style={{ width: 120 }}>
@@ -226,32 +226,56 @@ const Analytics = () => {
             onClick={fetchTrends}
             loading={loading.trends}
             disabled={loading.trends || !selectedUnit || ((filterType === 'Day' || filterType === 'Week') && !selectedDate)}
+            style={{
+              background: themeColors.primary,
+              borderColor: themeColors.primary,
+              color: '#fff',
+            }}
           >
             {screens.md ? 'Refresh Trends' : 'Refresh'}
           </Button>
         </Space>
       }
-      style={{ marginTop: 24, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden' }}
-      styles={{ body: { padding: screens.md ? 24 : 16 } }} // Updated from bodyStyle to styles.body
+      style={{ marginTop: 24, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden', background: themeColors.cardBg }}
+      styles={{ body: { padding: screens.md ? 24 : 16 } }}
     >
       <Spin spinning={loading.trends} tip="Loading trends...">
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-          <Col xs={24} sm={8}><Statistic title="Total Present" value={totalPresent} prefix={<TeamOutlined style={{ color: '#28a745' }} />} valueStyle={{ color: '#28a745' }} /></Col>
-          <Col xs={24} sm={8}><Statistic title="Total Absent" value={totalAbsent} prefix={<TeamOutlined style={{ color: '#dc3545' }} />} valueStyle={{ color: '#dc3545' }} /></Col>
-          <Col xs={24} sm={8}><Statistic title="Avg. Attendance Rate" value={avgAttendanceRate} suffix="%" prefix={<PercentageOutlined style={{ color: '#1890ff' }} />} valueStyle={{ color: '#1890ff' }} /></Col>
+          <Col xs={24} sm={8}><Statistic title="Total Present" value={totalPresent} prefix={<TeamOutlined style={{ color: themeColors.secondary }} />} valueStyle={{ color: themeColors.secondary }} /></Col>
+          <Col xs={24} sm={8}><Statistic title="Total Absent" value={totalAbsent} prefix={<TeamOutlined style={{ color: themeColors.accent }} />} valueStyle={{ color: themeColors.accent }} /></Col>
+          <Col xs={24} sm={8}><Statistic title="Avg. Attendance Rate" value={avgAttendanceRate} suffix="%" prefix={<PercentageOutlined style={{ color: themeColors.primary }} />} valueStyle={{ color: themeColors.primary }} /></Col>
         </Row>
         <div style={{ height: screens.md ? 400 : 300, position: 'relative' }}>
           {error ? (
-            <Text type="danger" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', fontSize: screens.md ? 16 : 14 }}>{error}</Text>
+            <Text type="danger" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', fontSize: screens.md ? 16 : 14, color: themeColors.accent }}>{error}</Text>
           ) : (filterType !== 'All' && !selectedDate) ? (
-            <Text type="secondary" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', fontSize: screens.md ? 16 : 14 }}>Please select a date</Text>
+            <Text type="secondary" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', fontSize: screens.md ? 16 : 14, color: themeColors.text }}>Please select a date</Text>
           ) : trends.labels.length === 0 && !loading.trends ? (
-            <Text type="secondary" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', fontSize: screens.md ? 16 : 14 }}>No attendance data available for the selected period</Text>
+            <Text type="secondary" style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', textAlign: 'center', fontSize: screens.md ? 16 : 14, color: themeColors.text }}>No attendance data available for the selected period</Text>
           ) : (
             <Chart data={chartData} options={chartOptions} />
           )}
         </div>
       </Spin>
+      <style>{`
+        .ant-select-selector {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-picker {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        .ant-select-dropdown, .ant-picker-dropdown {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+        }
+        .ant-select-item-option-content {
+          color: ${themeColors.text} !important;
+        }
+      `}</style>
     </Card>
   );
 };

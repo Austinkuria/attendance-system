@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import { BrowserRouter as BrowserRouter, Routes, Route } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { ToastContainer, toast } from "react-toastify";
 import { IoCloseCircleOutline } from "react-icons/io5";
@@ -15,7 +15,7 @@ import ManageCourses from "./pages/Management/ManageCourses";
 import ManageLecturers from "./pages/Management/ManageLecturers";
 import StudentProfile from "./pages/profiles/StudentProfile";
 import 'bootstrap/dist/css/bootstrap.min.css';
-import BackToTop from "./components/BackToTop";
+// import BackToTop from "./components/BackToTop";
 // import AttendanceManagement from "./components/AttendanceManagement";
 import Analytics from "./pages/dashboards/Analytics";
 // import QuizPage from "./pages/dashboards/QuizPage";
@@ -39,7 +39,7 @@ import AttendanceTrends from './pages/dashboards/AttendanceTrends';
 import AdminFeedbackView from "./pages/FeedbackPages/AdminFeedbackView";
 import LecturerFeedbackView from "./pages/FeedbackPages/LecturerFeedbackView";
 import PastAttendance from "./pages/dashboards/PastAttendance";
-
+import { ThemeProvider } from './context/ThemeContext';
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [showBanner, setShowBanner] = useState(false);
@@ -76,9 +76,11 @@ function App() {
   const handleCloseBanner = () => setShowBanner(false);
 
   return (
-    <Router>
+    // <Router>
+    <ThemeProvider>
+      <BrowserRouter>
       <ToastContainer />
-      <BackToTop />
+      {/* <BackToTop /> */}
       <InstallButton />
 
       {showBanner && (
@@ -117,6 +119,7 @@ function App() {
       )}
 
       <div style={{ paddingTop: showBanner ? "40px" : "0" }}>
+     
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/auth/login" element={<Login />} />
@@ -152,7 +155,9 @@ function App() {
           <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
         </Routes>
       </div>
-    </Router>
+    {/* </Router> */}
+    </BrowserRouter>
+    </ThemeProvider>
   );
 }
 
