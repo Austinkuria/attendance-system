@@ -198,6 +198,7 @@ const Analytics = () => {
 
   return (
     <Card
+      hoverable={false}
       title={<Space><LineChartOutlined style={{ fontSize: 24, color: themeColors.primary }} /><Typography.Title level={4} style={{ margin: 0, color: themeColors.text }}>Attendance Insights</Typography.Title></Space>}
       extra={
         <Space wrap>

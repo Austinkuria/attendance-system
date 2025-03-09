@@ -5,7 +5,7 @@ import PropTypes from 'prop-types';
 import axios from 'axios';
 import moment from 'moment';
 import { getDepartments, getLecturerUnits } from '../../services/api';
-import { ThemeContext } from '../../context/ThemeContext'; // Updated path
+import { ThemeContext } from '../../context/ThemeContext';
 import ThemeToggle from '../../components/ThemeToggle';
 
 const { Option } = Select;
@@ -210,7 +210,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
 
   if (!lecturerId) {
     return (
-      <div style={{ padding: 24, background: themeColors.background }}>
+      <div style={{ padding: 24, background: themeColors.background, minHeight: '100vh' }}>
         <Card style={cardStyle}>
           <Text type="danger" style={{ color: themeColors.accent }}>
             Please log in to view past attendance records.
@@ -228,7 +228,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
   }
 
   return (
-    <div style={{ padding: 24, background: themeColors.background }}>
+    <div style={{ padding: 24, background: themeColors.background, minHeight: '100vh' }}>
       <Card
         title={
           <Space>
@@ -297,28 +297,6 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
             ) : (
               <Option value={null} disabled>No sessions found</Option>
             )}
-          </Select>
-          <Select
-            placeholder="Select Year"
-            style={{ width: 120 }}
-            onChange={(value) => setPastFilters((prev) => ({ ...prev, year: value, sessionId: null }))}
-            allowClear
-            value={pastFilters.year}
-          >
-            {[1, 2, 3, 4].map((year) => (
-              <Option key={year} value={year}>Year {year}</Option>
-            ))}
-          </Select>
-          <Select
-            placeholder="Select Semester"
-            style={{ width: 140 }}
-            onChange={(value) => setPastFilters((prev) => ({ ...prev, semester: value, sessionId: null }))}
-            allowClear
-            value={pastFilters.semester}
-          >
-            {[1, 2, 3].map((sem) => (
-              <Option key={sem} value={sem}>Sem {sem}</Option>
-            ))}
           </Select>
         </Space>
         <Skeleton active loading={loading}>
@@ -435,4 +413,5 @@ PastAttendance.defaultProps = {
   units: [],
   lecturerId: null,
 };
+
 export default PastAttendance;

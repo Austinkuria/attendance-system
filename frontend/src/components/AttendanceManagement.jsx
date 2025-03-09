@@ -35,7 +35,7 @@ import {
   getDepartments,
   detectCurrentSession,
   createSession,
-} from "../services/api"; 
+} from "../services/api";
 import moment from "moment";
 import { ThemeContext } from '../context/ThemeContext';
 
@@ -284,8 +284,8 @@ const AttendanceManagement = () => {
           : null,
         endDate: pastFilters.date
           ? new Date(new Date(pastFilters.date).getTime() + 24 * 60 * 60 * 1000)
-              .toISOString()
-              .split("T")[0]
+            .toISOString()
+            .split("T")[0]
           : null,
         sessionId: pastFilters.sessionId,
         year: pastFilters.year,
@@ -500,6 +500,7 @@ const AttendanceManagement = () => {
       key: "regNo",
       sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo),
       width: screens.xs ? 90 : undefined,
+      render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
       title: "First Name",
@@ -507,6 +508,7 @@ const AttendanceManagement = () => {
       key: "firstName",
       sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName),
       width: screens.xs ? 70 : undefined,
+      render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
       title: "Last Name",
@@ -514,6 +516,7 @@ const AttendanceManagement = () => {
       key: "lastName",
       sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName),
       width: screens.xs ? 70 : undefined,
+      render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
       title: "Scan Time",
@@ -577,6 +580,7 @@ const AttendanceManagement = () => {
       key: "regNo",
       sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo),
       width: screens.xs ? 90 : undefined,
+      render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
       title: "First Name",
@@ -584,6 +588,7 @@ const AttendanceManagement = () => {
       key: "firstName",
       sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName),
       width: screens.xs ? 70 : undefined,
+      render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
       title: "Last Name",
@@ -591,6 +596,7 @@ const AttendanceManagement = () => {
       key: "lastName",
       sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName),
       width: screens.xs ? 70 : undefined,
+      render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
       title: "Scan Time",
@@ -914,8 +920,9 @@ const AttendanceManagement = () => {
       >
         <Space direction="vertical" style={{ width: "100%", margin: 0 }}>
           {summaryCards}
+          {/* Real-time Attendance Card */}
           <Card
-            title={<Text strong style={{ color: themeColors.primary }}>Real-time Unit Attendance</Text>}
+            title={<Text strong style={{ color: themeColors.text }}>Real-time Unit Attendance</Text>}
             size="small"
             extra={
               <Button
@@ -929,6 +936,7 @@ const AttendanceManagement = () => {
             }
             style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
             hoverable
+            className="no-hover" // added: disable hover movement
           >
             <Space wrap style={{ marginTop: screens.xs ? 0 : 8 }}>
               <Button
@@ -968,17 +976,13 @@ const AttendanceManagement = () => {
             </Skeleton>
           </Card>
 
+          {/* Report Attendance Card */}
           <Card
-            title={
-              <Space>
-                <Text strong style={{ color: themeColors.primary }}>
-                  Attendance Records for Past Sessions
-                </Text>
-              </Space>
-            }
+            title={<Text strong style={{ color: themeColors.text }}>Attendance Records for Past Sessions</Text>}
             size="small"
             style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
             hoverable
+            className="no-hover" // added: disable hover movement
           >
             <Button
               icon={<DownloadOutlined />}
@@ -1156,6 +1160,10 @@ const AttendanceManagement = () => {
         .ant-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+        }
+        .no-hover:hover {
+          transform: none !important;
+          box-shadow: none !important;
         }
         .table-row-light {
           background: ${themeColors.cardBg};
