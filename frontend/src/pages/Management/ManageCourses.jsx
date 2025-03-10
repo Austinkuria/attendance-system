@@ -343,6 +343,42 @@ const ManageCourses = () => {
         background-color: ${themeColors.cardBg} !important;
         color: ${themeColors.text} !important;
       }
+      .ant-table-tbody > tr.ant-table-row:hover > td {
+        background-color: ${themeColors.background} !important;
+      }
+      .ant-modal-content,
+      .ant-modal-header,
+      .ant-modal-body,
+      .ant-modal-footer {
+        background-color: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+      }
+      .ant-modal-title {
+        color: ${themeColors.text} !important;
+      }
+      .ant-select-dropdown,
+      .ant-select-dropdown-menu {
+        background-color: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+      }
+      .ant-select-selector {
+        background-color: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+      }
+      .ant-select-item-option-content {
+        color: ${themeColors.text} !important;
+      }
+      .ant-modal-content .ant-input,
+      .ant-modal-content .ant-select-selector {
+        background-color: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+      }
+      .ant-modal-content .ant-input::placeholder,
+      .ant-select:not(.ant-select-customize-input)
+      .ant-select-selector
+      .ant-select-selection-placeholder {
+        color: ${themeColors.text}80 !important;
+      }
     `,
   };
 
