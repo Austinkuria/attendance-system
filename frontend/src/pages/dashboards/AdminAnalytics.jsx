@@ -7,8 +7,8 @@ import zoomPlugin from 'chartjs-plugin-zoom';
 import { useNavigate } from 'react-router-dom';
 import { getCourses, getUnitsByCourse, getCourseAttendanceRate } from '../../services/api';
 import dayjs from 'dayjs'; // Use dayjs instead of moment
-import { ThemeContext } from '../../context/ThemeContext'; // Adjust path as needed
-import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
+import { ThemeContext } from '../../context/ThemeContext';
+import ThemeToggle from '../../components/ThemeToggle';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title, zoomPlugin);
 

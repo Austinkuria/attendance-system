@@ -393,6 +393,12 @@ const ManageCourses = () => {
       .ant-modal-content .ant-form .ant-select-selector {
         width: 100% !important;
       }
+      .ant-modal-content .ant-input:-webkit-autofill,
+      .ant-modal-content input:-webkit-autofill {
+        box-shadow: 0 0 0 30px ${themeColors.cardBg} inset !important;
+        -webkit-box-shadow: 0 0 0 30px ${themeColors.cardBg} inset !important;
+        -webkit-text-fill-color: ${themeColors.text} !important;
+      }
     `,
   };
 
@@ -752,7 +758,7 @@ const ManageCourses = () => {
           >
             <Spin spinning={loading} tip="Loading data...">
               <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
-                <Row gutter={[8, 8]} style={{ marginBottom: 16, width: '100%' }}>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16, width: '100%' }}>
                   <Col xs={24} sm={12} md={6}>
                     <Form.Item name="name" rules={[{ required: true, message: 'Please enter Unit Name' }]}>
                       <Input
@@ -773,29 +779,26 @@ const ManageCourses = () => {
                       />
                     </Form.Item>
                   </Col>
-                  <Col xs={12} sm={6} md={4}>
+                  <Col xs={24} sm={12} md={6}>
                     <Form.Item name="year" rules={[{ required: true, message: 'Year', type: 'number', min: 1, max: 4 }]}>
-                      <Input
-                        placeholder="Year"
-                        type="number"
-                        value={unitInput.year}
-                        onChange={(e) => setUnitInput({ ...unitInput, year: e.target.value })}
-                        size="large"
-                      />
+                      <Select placeholder="Select Year" size="large">
+                        <Option value="1">Year 1</Option>
+                        <Option value="2">Year 2</Option>
+                        <Option value="3">Year 3</Option>
+                        <Option value="4">Year 4</Option>
+                      </Select>
                     </Form.Item>
                   </Col>
-                  <Col xs={12} sm={6} md={4}>
+                  <Col xs={24} sm={12} md={6}>
                     <Form.Item name="semester" rules={[{ required: true, message: 'Semester', type: 'number', min: 1, max: 3 }]}>
-                      <Input
-                        placeholder="Semester"
-                        type="number"
-                        value={unitInput.semester}
-                        onChange={(e) => setUnitInput({ ...unitInput, semester: e.target.value })}
-                        size="large"
-                      />
+                      <Select placeholder="Select Semester" size="large">
+                        <Option value="1">Semester 1</Option>
+                        <Option value="2">Semester 2</Option>
+                        <Option value="3">Semester 3</Option>
+                      </Select>
                     </Form.Item>
                   </Col>
-                  <Col xs={24} sm={12} md={4}>
+                  <Col xs={24} sm={12} md={6}>
                     <Button
                       type="primary"
                       icon={<PlusOutlined />}
