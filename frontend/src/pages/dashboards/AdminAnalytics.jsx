@@ -154,7 +154,7 @@ const AdminAnalytics = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: themeColors.background, overflowX: 'hidden' }}>
+    <Layout style={{ minHeight: '100vh', background: themeColors.background, margin: 0, padding: 0, overflowX: 'hidden' }}>
       <Header style={{ padding: '0 16px', background: themeColors.cardBg, position: 'fixed', width: '100%', zIndex: 10 }}>
         <Row align="middle">
           <Col flex="auto">
@@ -167,52 +167,55 @@ const AdminAnalytics = () => {
         </Row>
       </Header>
 
-      <Content style={{ marginTop: 64, padding: 24, background: themeColors.background }}>
+      <Content style={{ marginTop: 64, padding: '24px 12px 24px 12px', background: themeColors.background }}>
         <Spin spinning={loading} tip="Loading data...">
           <Card style={{ marginBottom: 24, borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}>
-            <Space direction="horizontal" style={{ width: '100%', justifyContent: 'space-between' }}>
-              <Space>
-                <Select
-                  placeholder="Select Course"
-                  allowClear
-                  onChange={value => { setSelectedCourse(value); setSelectedUnit(null); setSelectedDate(null); }}
-                  style={{ width: 200 }}
-                >
-                  {courses.map(course => (
-                    <Option key={course._id} value={course._id}>{course.name}</Option>
-                  ))}
-                </Select>
-                <Select
-                  placeholder="Select Unit"
-                  allowClear
-                  onChange={setSelectedUnit}
-                  value={selectedUnit}
-                  style={{ width: 200 }}
-                >
-                  {courseUnits.map(unit => (
-                    <Option key={unit._id} value={unit._id}>{unit.name}</Option>
-                  ))}
-                </Select>
+            {/* Added wrapper for filters */}
+            <div className="filter-container">
+              <Space direction="horizontal" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                <Space>
+                  <Select
+                    placeholder="Select Course"
+                    allowClear
+                    onChange={value => { setSelectedCourse(value); setSelectedUnit(null); setSelectedDate(null); }}
+                    style={{ width: 200 }}
+                  >
+                    {courses.map(course => (
+                      <Option key={course._id} value={course._id}>{course.name}</Option>
+                    ))}
+                  </Select>
+                  <Select
+                    placeholder="Select Unit"
+                    allowClear
+                    onChange={setSelectedUnit}
+                    value={selectedUnit}
+                    style={{ width: 200 }}
+                  >
+                    {courseUnits.map(unit => (
+                      <Option key={unit._id} value={unit._id}>{unit.name}</Option>
+                    ))}
+                  </Select>
+                </Space>
+                <Space>
+                  <Select
+                    defaultValue="weekly"
+                    style={{ width: 120 }}
+                    onChange={value => { setViewMode(value); setSelectedDate(null); }}
+                  >
+                    <Option value="weekly">Weekly View</Option>
+                    <Option value="daily">Daily View</Option>
+                  </Select>
+                  <DatePicker
+                    picker={viewMode === 'weekly' ? 'week' : 'date'}
+                    onChange={handleDateChange}
+                    value={selectedDate}
+                    format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
+                    style={{ width: 200 }}
+                    placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
+                  />
+                </Space>
               </Space>
-              <Space>
-                <Select
-                  defaultValue="weekly"
-                  style={{ width: 120 }}
-                  onChange={value => { setViewMode(value); setSelectedDate(null); }}
-                >
-                  <Option value="weekly">Weekly View</Option>
-                  <Option value="daily">Daily View</Option>
-                </Select>
-                <DatePicker
-                  picker={viewMode === 'weekly' ? 'week' : 'date'}
-                  onChange={handleDateChange}
-                  value={selectedDate}
-                  format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
-                  style={{ width: 200 }}
-                  placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
-                />
-              </Space>
-            </Space>
+            </div>
           </Card>
 
           <Row gutter={[16, 16]}>
@@ -223,7 +226,7 @@ const AdminAnalytics = () => {
                   style={{ borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}
                   headStyle={{ color: themeColors.text }}
                 >
-                  <div style={{ height: 400 }}>
+                  <div style={{ height: 400 }} className="chart-container">
                     <Chart type="bar" data={chartData} options={options} />
                   </div>
                 </Card>
@@ -253,7 +256,7 @@ const AdminAnalytics = () => {
       </Content>
 
       <style>{`
-        /* Reset global margins */
+        /* Global resets and component styles */
         html, body {
           margin: 0;
           padding: 0;
@@ -299,12 +302,16 @@ const AdminAnalytics = () => {
         @media (max-width: 768px) {
           .ant-layout-content { padding: 12px !important; }
           .ant-card { margin-left: 0 !important; margin-right: 0 !important; }
+          .filter-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 12px;
+          }
         }
-        /* Debugging borders to visualize margins */
-        .ant-layout-content { 
-          border: 1px dashed red !important; 
-          margin: 0 !important;
-          padding: 0 !important;
+        /* Debug only the chart container */
+        .chart-container { 
+          border: 1px dashed red !important;
         }
         .ant-card { border: 1px dashed blue !important; }
       `}</style>
