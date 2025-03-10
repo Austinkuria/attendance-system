@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
-import { Layout, Button, Card, Row, Col, Select, Space, Modal, Table, Typography, Spin, DatePicker } from 'antd';
+import { Layout, Button, Card, Row, Col, Select, Space, Modal, Table, Typography, Spin, DatePicker, message } from 'antd';
 import { LeftOutlined } from '@ant-design/icons';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title } from 'chart.js';
 import { Chart } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { useNavigate } from 'react-router-dom';
 import { getCourses, getUnitsByCourse, getCourseAttendanceRate } from '../../services/api';
-import moment from 'moment';
+import dayjs from 'dayjs'; // Use dayjs instead of moment
 import { ThemeContext } from '../../context/ThemeContext'; // Adjust path as needed
 import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
 
@@ -41,7 +41,7 @@ const AdminAnalytics = () => {
       }));
       setCourses(enrichedCourses);
     } catch {
-      alert('Error loading data');
+      message.error('Error loading data');
     } finally {
       setLoading(false);
     }
@@ -60,7 +60,7 @@ const AdminAnalytics = () => {
       setAttendanceRates(rates);
       if (courses.length && !selectedCourse) setSelectedCourse(courses[0]._id);
     } catch {
-      alert('Error loading attendance data');
+      message.error('Error loading attendance data');
     } finally {
       setLoading(false);
     }
@@ -74,7 +74,7 @@ const AdminAnalytics = () => {
       setLoading(true);
       getUnitsByCourse(selectedCourse)
         .then(units => setCourseUnits(units.filter(u => u && u._id && u.name)))
-        .catch(() => alert('Failed to fetch course units'))
+        .catch(() => message.error('Failed to fetch course units'))
         .finally(() => setLoading(false));
     } else {
       setCourseUnits([]);
@@ -93,8 +93,8 @@ const AdminAnalytics = () => {
 
   const trends = selectedDate
     ? (viewMode === 'weekly'
-        ? weeklyTrends.filter(w => w.week === selectedDate.format('MMM D - MMM D, YYYY'))
-        : dailyTrends.filter(d => d.date === selectedDate.format('YYYY-MM-DD')))
+      ? weeklyTrends.filter(w => w.week === dayjs(selectedDate).format('MMM D - MMM D, YYYY'))
+      : dailyTrends.filter(d => d.date === dayjs(selectedDate).format('YYYY-MM-DD')))
     : (viewMode === 'weekly' ? weeklyTrends : dailyTrends);
 
   const chartData = {
@@ -154,7 +154,7 @@ const AdminAnalytics = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
+    <Layout style={{ minHeight: '100vh', background: themeColors.background, overflowX: 'hidden' }}>
       <Header style={{ padding: '0 16px', background: themeColors.cardBg, position: 'fixed', width: '100%', zIndex: 10 }}>
         <Row align="middle">
           <Col flex="auto">
@@ -253,6 +253,12 @@ const AdminAnalytics = () => {
       </Content>
 
       <style>{`
+        /* Reset global margins */
+        html, body {
+          margin: 0;
+          padding: 0;
+        }
+        body { overflow-x: hidden; }
         .ant-select-selector, .ant-picker {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
@@ -289,6 +295,18 @@ const AdminAnalytics = () => {
         .ant-modal-title {
           color: ${themeColors.text} !important;
         }
+        /* Media queries for small screens */
+        @media (max-width: 768px) {
+          .ant-layout-content { padding: 12px !important; }
+          .ant-card { margin-left: 0 !important; margin-right: 0 !important; }
+        }
+        /* Debugging borders to visualize margins */
+        .ant-layout-content { 
+          border: 1px dashed red !important; 
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .ant-card { border: 1px dashed blue !important; }
       `}</style>
     </Layout>
   );

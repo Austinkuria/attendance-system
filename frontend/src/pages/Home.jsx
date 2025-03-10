@@ -190,7 +190,7 @@ const Home = () => {
           <Carousel autoplay dots={{ className: 'custom-dots' }}>
             <div>
               <Card style={{ maxWidth: '600px', margin: '0 auto', background: themeColors.cardBg, borderColor: themeColors.primary }}>
-                <Text style={{ color: themeColors.text }}>"QRollCall’s instant scans cut our attendance time in half."</Text>
+                <Text style={{ color: themeColors.text }}>&quot;QRollCall’s instant scans cut our attendance time in half.&quot;</Text>
                 <Text strong block style={{ marginTop: '10px', color: themeColors.text }}>- Dr. Maya Patel, Horizon University</Text>
               </Card>
             </div>
