@@ -43,10 +43,8 @@ const useStyles = (themeColors) => ({
     margin: 0 auto;
     background: ${themeColors.background};
     min-height: 100vh;
-    padding-top: 64px; /* Add padding to account for fixed header */
     @media (max-width: 768px) {
       padding: 8px;
-      padding-top: 64px; /* Ensure padding is consistent on mobile */
     }
   `,
   filterBar: css`
@@ -306,7 +304,7 @@ const AdminFeedbackView = () => {
   }
 
   return (
-    <div style={{ borderBottom: `1px solid ${themeColors.primary}20` }}>
+    <div style={{ borderBottom: `1px solid ${themeColors.primary}20`, padding:'10' }}>
       <Header
         style={{
           padding: '0 16px',
@@ -374,8 +372,8 @@ const AdminFeedbackView = () => {
         </Space>
       </Header>
 
-      <Row gutter={[16, 16]} className={styles.filterBar}
-       >
+      {/* Add paddingTop to the filters row to avoid overlap with the fixed header */}
+      <Row gutter={[16, 16]} className={styles.filterBar} style={{ paddingTop: 75 }}>
         <Col xs={24} sm={12} md={6}>
           <Select
             allowClear
