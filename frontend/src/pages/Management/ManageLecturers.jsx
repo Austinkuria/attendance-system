@@ -14,6 +14,7 @@ import {
   Row,
   Col,
   Spin, // Added Spin
+  Switch, // added for dark mode toggle
 } from "antd";
 import {
   SearchOutlined,
@@ -43,178 +44,6 @@ import api from "../../services/api";
 const { Content } = Layout;
 const { Option } = Select;
 
-const styles = {
-  layout: {
-    minHeight: "100vh",
-    background: "#f0f2f5",
-    padding: 0,
-    margin: 0,
-    width: "100%",
-    overflowX: "hidden",
-    boxSizing: "border-box",
-  },
-  headerRow: {
-    marginBottom: "16px",
-    padding: "8px",
-    background: "#fafafa",
-    borderRadius: "8px 8px 0 0",
-    flexWrap: "wrap",
-    gap: "8px",
-    alignItems: "center",
-    width: "100%",
-    boxSizing: "border-box",
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-  },
-  headerTitle: {
-    color: "#1890ff",
-    margin: 0,
-    fontSize: "20px",
-  },
-  content: {
-    width: "100%",
-    maxWidth: "100%",
-    margin: 0,
-    padding: "8px",
-    background: "#fff",
-    borderRadius: 8,
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
-    boxSizing: "border-box",
-    overflowX: "hidden",
-  },
-  filtersContainer: {
-    background: "#fff",
-    padding: "8px",
-    borderRadius: 4,
-    boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
-    marginBottom: "16px",
-    width: "100%",
-    boxSizing: "border-box",
-  },
-  backToTopButton: {
-    position: "fixed",
-    bottom: "16px",
-    right: "16px",
-    zIndex: 1000,
-    background: "#1890ff",
-    borderColor: "#1890ff",
-  },
-  table: {
-    borderRadius: 8,
-    overflow: "hidden",
-    background: "#fff",
-    width: "100%",
-    margin: 0,
-    padding: 0,
-    boxSizing: "border-box",
-  },
-  actionsContainer: {
-    display: "flex",
-    gap: "8px",
-    flexWrap: "wrap",
-  },
-  unitTag: {
-    background: "#d9d9d9",
-    padding: "4px 8px",
-    marginRight: "4px",
-    borderRadius: "4px",
-    display: "inline-block",
-  },
-  modalHeader: {
-    padding: "12px 16px",
-    background: "#1890ff",
-    color: "#fff",
-    borderRadius: "8px 8px 0 0",
-  },
-  modalContent: {
-    padding: "16px",
-    boxSizing: "border-box",
-  },
-  responsiveOverrides: `
-    /* Reset browser defaults */
-    html, body, #root {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      overflow-x: hidden;
-    }
-
-    /* Reset Ant Design's Layout defaults */
-    .ant-layout, .ant-layout-content {
-      padding: 0 !important;
-      margin: 0 !important;
-    }
-
-    @media (max-width: 768px) {
-      .ant-layout-content { 
-        padding: 4px !important; 
-      }
-      .filters-container { 
-        padding: 4px !important; 
-      }
-      .header-row { 
-        padding: 4px !important; 
-      }
-      .ant-btn {
-        font-size: 12px;
-        padding: 4px 8px;
-      }
-      .ant-modal {
-        width: 90% !important;
-        margin: 0 auto;
-      }
-      .back-to-top-btn {
-        bottom: 40px;
-        right: 10px;
-      }
-    }
-    @media (max-width: 576px) {
-      .ant-layout-content { 
-        padding: 2px !important; 
-      }
-      .filters-container { 
-        padding: 2px !important; 
-        margin-bottom: 8px !important;
-      }
-      .header-row { 
-        padding: 2px !important; 
-        flex-direction: column;
-        align-items: flex-start;
-        gap: 4px;
-      }
-      .ant-row:not(.header-row) {
-        flex-direction: column;
-        margin: 0;
-      }
-      .ant-col {
-        width: 100%;
-        margin-bottom: 8px;
-        padding: 0;
-      }
-      .ant-table {
-        font-size: 12px;
-      }
-      .ant-modal {
-        width: 100% !important;
-        margin: 0 !important;
-        padding: 0 !important;
-      }
-      .ant-modal-content {
-        border-radius: 0;
-      }
-      .back-to-top-btn {
-        bottom: 30px;
-        right: 5px;
-        width: 32px;
-        height: 32px;
-        font-size: 14px;
-      }
-      .ant-alert {
-        margin-bottom: 8px !important;
-      }
-    }
-  `,
-};
-
 const ManageLecturers = () => {
   const navigate = useNavigate();
   const [lecturers, setLecturers] = useState([]);
@@ -243,6 +72,7 @@ const ManageLecturers = () => {
 
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [file, setFile] = useState(null);
+  const [isDarkMode, setIsDarkMode] = useState(false); // dark mode state added
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -495,6 +325,210 @@ const ManageLecturers = () => {
     }
   };
 
+  const styles = useMemo(() => ({
+    layout: {
+      minHeight: "100vh",
+      background: isDarkMode ? "#18191a" : "#f0f2f5",
+      padding: 0,
+      margin: 0,
+      width: "100%",
+      overflowX: "hidden",
+      boxSizing: "border-box",
+    },
+    headerRow: {
+      marginBottom: "16px",
+      padding: "8px",
+      background: isDarkMode ? "#3a3b3c" : "#fafafa",
+      borderRadius: "8px 8px 0 0",
+      flexWrap: "wrap",
+      gap: "8px",
+      alignItems: "center",
+      width: "100%",
+      boxSizing: "border-box",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+    },
+    headerTitle: {
+      color: isDarkMode ? "#fff" : "#1890ff",
+      margin: 0,
+      fontSize: "20px",
+    },
+    content: {
+      width: "100%",
+      maxWidth: "100%",
+      margin: 0,
+      padding: "8px",
+      background: isDarkMode ? "#242526" : "#fff",
+      borderRadius: 8,
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+      boxSizing: "border-box",
+      overflowX: "hidden",
+    },
+    filtersContainer: {
+      // Changed background for full dark appearance on filters
+      background: isDarkMode ? "#1f1f1f" : "#fff",
+      padding: "8px",
+      borderRadius: 4,
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+      marginBottom: "16px",
+      width: "100%",
+      boxSizing: "border-box",
+    },
+    backToTopButton: {
+      position: "fixed",
+      bottom: "16px",
+      right: "16px",
+      zIndex: 1000,
+      background: "#1890ff",
+      borderColor: "#1890ff",
+    },
+    table: {
+      borderRadius: 8,
+      overflow: "hidden",
+      background: isDarkMode ? "#242526" : "#fff",
+      width: "100%",
+      margin: 0,
+      padding: 0,
+      boxSizing: "border-box",
+    },
+    actionsContainer: {
+      display: "flex",
+      gap: "8px",
+      flexWrap: "wrap",
+    },
+    unitTag: {
+      background: "#d9d9d9",
+      padding: "4px 8px",
+      marginRight: "4px",
+      borderRadius: "4px",
+      display: "inline-block",
+    },
+    modalHeader: {
+      padding: "12px 16px",
+      background: "#1890ff",
+      color: "#fff",
+      borderRadius: "8px 8px 0 0",
+    },
+    modalContent: {
+      // Updated modal background for dark mode
+      padding: "16px",
+      boxSizing: "border-box",
+      background: isDarkMode ? "#1f1f1f" : "#fff",
+      color: isDarkMode ? "#fff" : "#000",
+    },
+    responsiveOverrides: `
+      /* Dark mode overrides for various components */
+      .ant-input::placeholder {
+        color: ${isDarkMode ? "#ccc" : "#999"};
+      }
+      .ant-select-selection-placeholder {
+        color: ${isDarkMode ? "#ccc" : "#999"} !important;
+      }
+      .ant-modal .ant-modal-content {
+        background: ${isDarkMode ? "#1f1f1f" : "#fff"} !important;
+      }
+      .ant-modal .ant-modal-body {
+        background: ${isDarkMode ? "#1f1f1f" : "#fff"} !important;
+        color: ${isDarkMode ? "#fff" : "#000"} !important;
+      }
+      .ant-btn:hover {
+        background: ${isDarkMode ? "#4a4b4c" : "#e6f7ff"};
+      }
+      .ant-form-item-label > label {
+        color: ${isDarkMode ? "#fff" : "#000"} !important;
+      }
+      .ant-input, .ant-select-selector {
+        background: ${isDarkMode ? "#3a3b3c" : "#fff"} !important;
+        color: ${isDarkMode ? "#fff" : "#000"} !important;
+      }
+      .ant-table-thead > tr > th {
+        background: ${isDarkMode ? "#3a3b3c" : "#fafafa"} !important;
+        color: ${isDarkMode ? "#fff" : "#000"} !important;
+      }
+      .ant-table-tbody > tr > td {
+        background: ${isDarkMode ? "#242526" : "#fff"} !important;
+        color: ${isDarkMode ? "#fff" : "#000"} !important;
+      }
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+      }
+      .ant-layout, .ant-layout-content {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      @media (max-width: 768px) {
+        .ant-layout-content { 
+          padding: 4px !important; 
+        }
+        .filters-container { 
+          padding: 4px !important; 
+        }
+        .header-row { 
+          padding: 4px !important; 
+        }
+        .ant-btn {
+          font-size: 12px;
+          padding: 4px 8px;
+        }
+        .ant-modal {
+          width: 90% !important;
+          margin: 0 auto;
+        }
+        .back-to-top-btn {
+          bottom: 40px;
+          right: 10px;
+        }
+      }
+      @media (max-width: 576px) {
+        .ant-layout-content { 
+          padding: 2px !important; 
+        }
+        .filters-container { 
+          padding: 2px !important; 
+          margin-bottom: 8px !important;
+        }
+        .header-row { 
+          padding: 2px !important; 
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .ant-row:not(.header-row) {
+          flex-direction: column;
+          margin: 0;
+        }
+        .ant-col {
+          width: 100%;
+          margin-bottom: 8px;
+          padding: 0;
+        }
+        .ant-table {
+          font-size: 12px;
+        }
+        .ant-modal {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .ant-modal-content {
+          border-radius: 0;
+        }
+        .back-to-top-btn {
+          bottom: 30px;
+          right: 5px;
+          width: 32px;
+          height: 32px;
+          font-size: 14px;
+        }
+        .ant-alert {
+          margin-bottom: 8px !important;
+        }
+      }
+    `,
+  }), [isDarkMode]);
+
   const columns = [
     {
       title: (
@@ -601,6 +635,13 @@ const ManageLecturers = () => {
               Back to Admin
             </Button>
             <h2 style={styles.headerTitle}>Lecturer Management</h2>
+            {/* Added dark/light mode toggle */}
+            <Switch
+              checked={isDarkMode}
+              onChange={(checked) => setIsDarkMode(checked)}
+              checkedChildren="Dark"
+              unCheckedChildren="Light"
+            />
             <Button
               type="primary"
               icon={<UserAddOutlined />}
@@ -915,7 +956,7 @@ const ManageLecturers = () => {
               </p>
               <div style={{ marginBottom: 16 }}>
                 {Array.isArray(selectedLecturerForUnits.assignedUnits) &&
-                selectedLecturerForUnits.assignedUnits.length > 0 ? (
+                  selectedLecturerForUnits.assignedUnits.length > 0 ? (
                   selectedLecturerForUnits.assignedUnits.map((unit) => (
                     <span key={unit._id} style={styles.unitTag}>
                       {unit.name || unit.code}

@@ -758,7 +758,7 @@ const ManageCourses = () => {
           >
             <Spin spinning={loading} tip="Loading data...">
               <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
-                <Row gutter={[16, 16]} style={{ marginBottom: 16, width: '100%' }}>
+                <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                   <Col xs={24} sm={12} md={6}>
                     <Form.Item name="name" rules={[{ required: true, message: 'Please enter Unit Name' }]}>
                       <Input

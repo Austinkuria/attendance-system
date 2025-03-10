@@ -1,17 +1,38 @@
 import { useState, useEffect, useMemo, useContext } from 'react';
-import { Card, Table, Typography, Grid, Spin, Alert, Select, Input, DatePicker, Row, Col, Statistic, Button } from 'antd';
+import { 
+  Layout,
+  Card,
+  Table,
+  Typography,
+  Grid,
+  Spin,
+  Alert,
+  Select,
+  Input,
+  DatePicker,
+  Row,
+  Col,
+  Statistic,
+  Button,
+  Switch,
+  Space // Added Space import
+} from 'antd';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
-import { FilterOutlined, SearchOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { 
+  FilterOutlined,
+  SearchOutlined,
+  ArrowLeftOutlined
+} from '@ant-design/icons';
 import { getFeedbackSummary } from '../../services/api';
 import { css } from '@emotion/css';
-import { ThemeContext } from '../../context/ThemeContext'; // Adjust path as needed
-import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
-import { useNavigate } from 'react-router-dom'; // replaced useHistory with useNavigate
+import { ThemeContext } from '../../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
-const { Title } = Typography;
+const { Header } = Layout;
+const { Title: AntTitle } = Typography;
 const { RangePicker } = DatePicker;
 const { useBreakpoint } = Grid;
 
@@ -22,8 +43,10 @@ const useStyles = (themeColors) => ({
     margin: 0 auto;
     background: ${themeColors.background};
     min-height: 100vh;
+    padding-top: 64px; /* Add padding to account for fixed header */
     @media (max-width: 768px) {
       padding: 8px;
+      padding-top: 64px; /* Ensure padding is consistent on mobile */
     }
   `,
   filterBar: css`
@@ -95,8 +118,8 @@ const useStyles = (themeColors) => ({
 });
 
 const AdminFeedbackView = () => {
-  const { themeColors, isDarkMode } = useContext(ThemeContext);
-  const navigate = useNavigate(); // replaced useHistory()
+  const { themeColors, isDarkMode, setIsDarkMode } = useContext(ThemeContext);
+  const navigate = useNavigate();
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -109,7 +132,6 @@ const AdminFeedbackView = () => {
   const screens = useBreakpoint();
   const styles = useStyles(themeColors);
 
-  // Add local summary card colors mapping with fallbacks
   const summaryCardColors = {
     totalSessions: themeColors.summaryTotalSessions || themeColors.primary,
     avgRating: themeColors.summaryAvgRating || themeColors.accent,
@@ -187,7 +209,7 @@ const AdminFeedbackView = () => {
         titleFont: { size: screens.xs ? 14 : 16 },
         mode: 'index',
         intersect: false,
-        backgroundColor: isDarkMode ? '#333' : `${themeColors.text}CC`, // improved visibility in dark mode
+        backgroundColor: isDarkMode ? '#333' : `${themeColors.text}CC`,
         titleColor: '#fff',
         bodyColor: '#fff'
       }
@@ -201,9 +223,9 @@ const AdminFeedbackView = () => {
           },
           font: { size: screens.xs ? 10 : 12 },
           color: themeColors.text,
-          autoSkip: true,  //  autoSkip to not show all labels
+          autoSkip: true,
           maxRotation: screens.xs ? 45 : 0,
-          minRotation: screens.xs ? 45 : 0      // set minimum rotation to avoid overlapping
+          minRotation: screens.xs ? 45 : 0
         },
         grid: { display: false }
       },
@@ -275,39 +297,85 @@ const AdminFeedbackView = () => {
         showIcon
         className={styles.errorAlert}
         style={{
-          background: isDarkMode ? '#8B0000' : '#ffcccc',  // dark red for dark mode, light red for light mode
-          color: '#fff',                                     // white text for both modes
-          borderColor: isDarkMode ? '#ff4500' : '#ff0000'     // contrasting border colors
+          background: isDarkMode ? '#8B0000' : '#ffcccc',
+          color: '#fff',
+          borderColor: isDarkMode ? '#ff4500' : '#ff0000'
         }}
       />
     );
   }
 
   return (
-    <div className={styles.container}>
-      <Row justify="space-between" align="middle" style={{ marginBottom: 16 }}>
-        <Col>
-          {/* Back to Admin button and title */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <Button
-              type="link"
-              icon={<ArrowLeftOutlined />}
-              onClick={() => navigate('/admin')} // using navigate instead of history.push
-              style={{ color: themeColors.text }}
-            >
-              Back to Admin
-            </Button>
-            <Title level={3} className={styles.title}>
-              <FilterOutlined /> Feedback Analytics Dashboard
-            </Title>
-          </div>
-        </Col>
-        <Col>
-          <ThemeToggle />
-        </Col>
-      </Row>
+    <div style={{ borderBottom: `1px solid ${themeColors.primary}20` }}>
+      <Header
+        style={{
+          padding: '0 16px',
+          background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.95)',
+          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+          position: 'fixed',
+          width: '100%',
+          zIndex: 10,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          borderBottom: `1px solid ${themeColors.primary}20`,
+        }}
+      >
+        <Space>
+          <Button
+            type="text"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate('/admin')}
+            style={{
+              fontSize: '18px',
+              width: 64,
+              height: 64,
+              color: themeColors.primary,
+              transition: 'all 0.3s',
+            }}
+            ghost
+          />
+        </Space>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            flex: 1,
+            textAlign: 'center',
+            color: themeColors.primary,
+            fontWeight: 600,
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: window.innerWidth < 992 ? 'none' : 'block',
+          }}
+        >
+          Feedback Analytics Dashboard
+        </AntTitle>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            color: themeColors.primary,
+            fontWeight: 600,
+            display: window.innerWidth >= 992 ? 'none' : 'inline',
+          }}
+        >
+          Feedback Analytics Dashboard
+        </AntTitle>
+        <Space>
+          <Switch
+            checked={isDarkMode}
+            onChange={() => setIsDarkMode(!isDarkMode)}
+            checkedChildren="Dark"
+            unCheckedChildren="Light"
+            style={{ marginRight: 16 }}
+          />
+        </Space>
+      </Header>
 
-      <Row gutter={[16, 16]} className={styles.filterBar}>
+      <Row gutter={[16, 16]} className={styles.filterBar}
+       >
         <Col xs={24} sm={12} md={6}>
           <Select
             allowClear
@@ -447,12 +515,10 @@ const AdminFeedbackView = () => {
           border-bottom: 1px solid ${themeColors.text}20 !important;
           color: ${themeColors.text} !important;
         }
-        /* Ensure hover text remains visible */
         .ant-table-tbody > tr:hover > td {
           background: ${themeColors.hoverBg ? themeColors.hoverBg : themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
         }
-        /* Fix Session ID column: set background and text color explicitly */
         .ant-table-tbody > tr > td:first-child {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
@@ -463,7 +529,6 @@ const AdminFeedbackView = () => {
         .table-row-dark {
           background: ${themeColors.background} !important;
         }
-        /* Improve placeholder visibility in dark mode */
         ::placeholder {
           color: ${themeColors.text}80 !important;
           opacity: 1 !important;
@@ -473,11 +538,9 @@ const AdminFeedbackView = () => {
         .ant-input::placeholder {
           color: ${themeColors.text}80 !important;
         }
-        /* New modifications for dark mode header and icon visibility */
         .anticon, .ant-typography {
           color: ${themeColors.text} !important;
         }
-        /* Pagination styling: fix total text and navigation buttons */
         .ant-pagination-total-text,
         .ant-pagination-item,
         .ant-pagination-item-active,
@@ -486,7 +549,6 @@ const AdminFeedbackView = () => {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
         }
-        /* Ensure search input wrapper uses dark mode background */
         .ant-input-affix-wrapper {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
