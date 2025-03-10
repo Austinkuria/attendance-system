@@ -46,7 +46,7 @@ const { Option } = Select;
 const { Title } = Typography;
 
 const ManageCourses = () => {
-  const { theme, toggleTheme } = useContext(ThemeContext); // Get theme and toggleTheme from context
+  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext); // Get theme and setIsDarkMode from context
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -224,7 +224,8 @@ const ManageCourses = () => {
   const styles = {
     layout: {
       minHeight: '100vh',
-      background: theme === 'dark' ? '#141414' : '#f0f2f5',
+      background: themeColors.background,
+      color: themeColors.text,
       padding: 0,
       margin: 0,
       width: '100%',
@@ -235,7 +236,8 @@ const ManageCourses = () => {
       width: '100%',
       margin: 0,
       padding: '8px',
-      background: theme === 'dark' ? '#1f1f1f' : '#fff',
+      background: themeColors.cardBg,
+      color: themeColors.text,
       borderRadius: 8,
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
       boxSizing: 'border-box',
@@ -244,7 +246,8 @@ const ManageCourses = () => {
     headerRow: {
       marginBottom: '16px',
       padding: '8px',
-      background: theme === 'dark' ? '#1f1f1f' : '#fafafa',
+      background: themeColors.cardBg,
+      color: themeColors.text,
       borderRadius: '8px 8px 0 0',
       flexWrap: 'wrap',
       gap: '8px',
@@ -274,7 +277,8 @@ const ManageCourses = () => {
     table: {
       borderRadius: 8,
       overflow: 'hidden',
-      background: theme === 'dark' ? '#1f1f1f' : '#fff',
+      background: themeColors.cardBg,
+      color: themeColors.text,
       width: '100%',
       margin: 0,
       padding: 0,
@@ -297,7 +301,8 @@ const ManageCourses = () => {
         padding: 0;
         width: 100%;
         overflow-x: hidden;
-        background: ${theme === 'dark' ? '#141414' : (theme === 'light' ? '#f0f2f5' : '#f0f2f5')};
+        background: ${themeColors.background};
+        color: ${themeColors.text};
       }
   
       /* Reset Ant Design's Layout defaults */
@@ -328,6 +333,15 @@ const ManageCourses = () => {
         .filter-row { 
           padding: 0 2px !important; 
         }
+      }
+      .ant-table {
+        background-color: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+      }
+      .ant-table-thead > tr > th,
+      .ant-table-tbody > tr > td {
+        background-color: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
       }
     `,
   };
@@ -503,8 +517,8 @@ const ManageCourses = () => {
               <BookOutlined style={{ marginRight: 8 }} />
               Course Management
               <Switch
-                checked={theme === 'dark'}
-                onChange={toggleTheme}
+                checked={isDarkMode}
+                onChange={(checked) => setIsDarkMode(checked)}
                 checkedChildren="Dark"
                 unCheckedChildren="Light"
                 style={{ marginLeft: 16 }}
@@ -523,6 +537,7 @@ const ManageCourses = () => {
             >
               Add Course
             </Button>
+
           </Row>
 
           <Row gutter={[8, 8]} style={styles.filterRow}>
