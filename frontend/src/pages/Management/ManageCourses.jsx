@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layout,
@@ -14,7 +14,8 @@ import {
   Tag,
   message,
   Typography,
-  Spin, // Added Spin
+  Spin,
+  Switch, // Added Switch import
 } from 'antd';
 import {
   ArrowUpOutlined,
@@ -38,121 +39,14 @@ import {
   getUnitsByCourse,
 } from '../../services/api';
 import 'antd/dist/reset.css';
+import { ThemeContext } from '../../context/ThemeContext'; // New import
 
 const { Content } = Layout;
 const { Option } = Select;
 const { Title } = Typography;
 
-const styles = {
-  layout: {
-    minHeight: '100vh',
-    background: '#f0f2f5',
-    padding: 0,
-    margin: 0,
-    width: '100%',
-    overflowX: 'hidden',
-  },
-  content: {
-    maxWidth: '100%',
-    width: '100%',
-    margin: 0,
-    padding: '8px',
-    background: '#fff',
-    borderRadius: 8,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-    boxSizing: 'border-box',
-    overflowX: 'hidden',
-  },
-  headerRow: {
-    marginBottom: '16px',
-    padding: '8px',
-    background: '#fafafa',
-    borderRadius: '8px 8px 0 0',
-    flexWrap: 'wrap',
-    gap: '8px',
-    alignItems: 'center',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  filterRow: {
-    marginBottom: '16px',
-    padding: '0 8px',
-    width: '100%',
-    boxSizing: 'border-box',
-  },
-  actionsContainer: {
-    display: 'flex',
-    gap: '8px',
-    flexWrap: 'wrap',
-  },
-  backToTopButton: {
-    position: 'fixed',
-    bottom: '16px',
-    right: '16px',
-    zIndex: 1000,
-    background: '#1890ff',
-    borderColor: '#1890ff',
-  },
-  table: {
-    borderRadius: 8,
-    overflow: 'hidden',
-    background: '#fff',
-    width: '100%',
-    margin: 0,
-    padding: 0,
-    boxSizing: 'border-box',
-  },
-  modalHeader: {
-    padding: '12px 16px',
-    background: '#1890ff',
-    color: '#fff',
-    borderRadius: '8px 8px 0 0',
-  },
-  modalContent: {
-    padding: '16px',
-    boxSizing: 'border-box',
-  },
-  responsiveOverrides: `
-    /* Reset browser defaults */
-    html, body, #root {
-      margin: 0;
-      padding: 0;
-      width: 100%;
-      overflow-x: hidden;
-    }
-
-    /* Reset Ant Design's Layout defaults */
-    .ant-layout, .ant-layout-content {
-      padding: 0 !important;
-      margin: 0 !important;
-    }
-
-    @media (max-width: 768px) {
-      .ant-layout-content { 
-        padding: 4px !important; 
-      }
-      .header-row { 
-        padding: 4px !important; 
-      }
-      .filter-row { 
-        padding: 0 4px !important; 
-      }
-    }
-    @media (max-width: 480px) {
-      .ant-layout-content { 
-        padding: 2px !important; 
-      }
-      .header-row { 
-        padding: 2px !important; 
-      }
-      .filter-row { 
-        padding: 0 2px !important; 
-      }
-    }
-  `,
-};
-
 const ManageCourses = () => {
+  const { theme, toggleTheme } = useContext(ThemeContext); // Get theme and toggleTheme from context
   const navigate = useNavigate();
   const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -326,6 +220,118 @@ const ManageCourses = () => {
     }
   };
 
+  // Move and compute styles dynamically based on the theme
+  const styles = {
+    layout: {
+      minHeight: '100vh',
+      background: theme === 'dark' ? '#141414' : '#f0f2f5',
+      padding: 0,
+      margin: 0,
+      width: '100%',
+      overflowX: 'hidden',
+    },
+    content: {
+      maxWidth: '100%',
+      width: '100%',
+      margin: 0,
+      padding: '8px',
+      background: theme === 'dark' ? '#1f1f1f' : '#fff',
+      borderRadius: 8,
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
+      boxSizing: 'border-box',
+      overflowX: 'hidden',
+    },
+    headerRow: {
+      marginBottom: '16px',
+      padding: '8px',
+      background: theme === 'dark' ? '#1f1f1f' : '#fafafa',
+      borderRadius: '8px 8px 0 0',
+      flexWrap: 'wrap',
+      gap: '8px',
+      alignItems: 'center',
+      width: '100%',
+      boxSizing: 'border-box',
+    },
+    filterRow: {
+      marginBottom: '16px',
+      padding: '0 8px',
+      width: '100%',
+      boxSizing: 'border-box',
+    },
+    actionsContainer: {
+      display: 'flex',
+      gap: '8px',
+      flexWrap: 'wrap',
+    },
+    backToTopButton: {
+      position: 'fixed',
+      bottom: '16px',
+      right: '16px',
+      zIndex: 1000,
+      background: '#1890ff',
+      borderColor: '#1890ff',
+    },
+    table: {
+      borderRadius: 8,
+      overflow: 'hidden',
+      background: theme === 'dark' ? '#1f1f1f' : '#fff',
+      width: '100%',
+      margin: 0,
+      padding: 0,
+      boxSizing: 'border-box',
+    },
+    modalHeader: {
+      padding: '12px 16px',
+      background: '#1890ff',
+      color: '#fff',
+      borderRadius: '8px 8px 0 0',
+    },
+    modalContent: {
+      padding: '16px',
+      boxSizing: 'border-box',
+    },
+    responsiveOverrides: `
+      /* Reset browser defaults */
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+        background: ${theme === 'dark' ? '#141414' : (theme === 'light' ? '#f0f2f5' : '#f0f2f5')};
+      }
+  
+      /* Reset Ant Design's Layout defaults */
+      .ant-layout, .ant-layout-content {
+        padding: 0 !important;
+        margin: 0 !important;
+        background: transparent;
+      }
+  
+      @media (max-width: 768px) {
+        .ant-layout-content { 
+          padding: 4px !important; 
+        }
+        .header-row { 
+          padding: 4px !important; 
+        }
+        .filter-row { 
+          padding: 0 4px !important; 
+        }
+      }
+      @media (max-width: 480px) {
+        .ant-layout-content { 
+          padding: 2px !important; 
+        }
+        .header-row { 
+          padding: 2px !important; 
+        }
+        .filter-row { 
+          padding: 0 2px !important; 
+        }
+      }
+    `,
+  };
+
   const columns = [
     {
       title: (
@@ -490,9 +496,19 @@ const ManageCourses = () => {
             <Button type="link" icon={<LeftOutlined />} onClick={() => navigate('/admin')}>
               Back to Admin
             </Button>
-            <Title level={3} style={{ margin: 0, color: '#1890ff' }}>
+            <Title
+              level={3}
+              style={{ margin: 0, color: '#1890ff', display: 'flex', alignItems: 'center' }} // Modified style to flex
+            >
               <BookOutlined style={{ marginRight: 8 }} />
               Course Management
+              <Switch
+                checked={theme === 'dark'}
+                onChange={toggleTheme}
+                checkedChildren="Dark"
+                unCheckedChildren="Light"
+                style={{ marginLeft: 16 }}
+              />
             </Title>
             <Button
               type="primary"

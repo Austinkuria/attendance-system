@@ -224,7 +224,7 @@ const AdminAnalytics = () => {
                 <Card
                   title={`${courses.find(c => c._id === selectedCourse)?.name || 'Selected Course'} (Year ${courses.find(c => c._id === selectedCourse)?.year || 'N/A'}, Sem ${courses.find(c => c._id === selectedCourse)?.semester || 'N/A'})`}
                   style={{ borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}
-                  headStyle={{ color: themeColors.text }}
+                  styles={{ header: { color: themeColors.text } }} // Updated headStyle to styles
                 >
                   <div style={{ height: 400 }} className="chart-container">
                     <Chart type="bar" data={chartData} options={options} />
@@ -241,7 +241,7 @@ const AdminAnalytics = () => {
             footer={null}
             width={800}
             style={{ background: themeColors.cardBg }}
-            bodyStyle={{ background: themeColors.cardBg, color: themeColors.text }}
+            styles={{ body: { background: themeColors.cardBg, color: themeColors.text } }} // Updated bodyStyle to styles
           >
             <Table
               dataSource={modalData}
