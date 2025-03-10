@@ -368,6 +368,9 @@ const ManageCourses = () => {
       .ant-select-item-option-content {
         color: ${themeColors.text} !important;
       }
+      .ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+        background-color: ${themeColors.background} !important;
+      }
       .ant-modal-content .ant-input,
       .ant-modal-content .ant-select-selector {
         background-color: ${themeColors.cardBg} !important;
@@ -378,6 +381,17 @@ const ManageCourses = () => {
       .ant-select-selector
       .ant-select-selection-placeholder {
         color: ${themeColors.text}80 !important;
+      }
+      .ant-modal-content .ant-form {
+        background-color: ${themeColors.cardBg} !important;
+      }
+      .ant-modal-content .ant-form .ant-form-item-label > label,
+      .ant-modal-content .ant-form .ant-form-item-control-input-content {
+        color: ${themeColors.text} !important;
+      }
+      .ant-modal-content .ant-form .ant-input,
+      .ant-modal-content .ant-form .ant-select-selector {
+        width: 100% !important;
       }
     `,
   };
@@ -670,7 +684,7 @@ const ManageCourses = () => {
                     size="large"
                   >
                     {departments.map(dept => (
-                      <Select.Option key={dept._id} value={dept._id}>{dept.name}</Select.Option>
+                      <Option key={dept._id} value={dept._id}>{dept.name}</Option>
                     ))}
                   </Select>
                 </Form.Item>
