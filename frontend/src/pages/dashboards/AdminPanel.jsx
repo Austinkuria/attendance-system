@@ -27,6 +27,7 @@ import {
   message,
   Typography,
   Spin,
+  Switch,
 } from 'antd';
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
@@ -69,7 +70,6 @@ const AdminPanel = () => {
     };
   }, []);
 
-  useEffect(() => {
   useEffect(() => {
     const handleResize = () => setCollapsed(window.innerWidth < 992);
     window.addEventListener('resize', handleResize);

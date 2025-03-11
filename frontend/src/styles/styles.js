@@ -106,6 +106,10 @@ export const useStyles = (isDarkMode, themeColors) =>
       height: 50,
       boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
     },
+    cardVariants: {
+      hidden: { opacity: 0, y: 20 },
+      visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
+    },
     globalStyles: `
       html, body, #root {
         margin: 0;
@@ -282,6 +286,47 @@ export const useStyles = (isDarkMode, themeColors) =>
       }
       .ant-dropdown-menu-item:hover {
         background: ${themeColors.hover} !important;
+      }
+      .ant-picker {
+        background: ${themeColors.inputBg} !important;
+        border-color: ${themeColors.inputBorder} !important;
+        color: ${themeColors.text} !important;
+        border-radius: 8px;
+        padding: 8px 12px;
+      }
+      .ant-picker:hover, .ant-picker-focused {
+        border-color: ${themeColors.primary} !important;
+        background: ${themeColors.inputHover} !important;
+      }
+      .ant-picker-input > input {
+        color: ${themeColors.text} !important;
+      }
+      .ant-picker-input > input::placeholder {
+        color: ${themeColors.placeholder} !important;
+      }
+      .ant-picker-panel-container {
+        background: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+        border-radius: 8px;
+      }
+      .ant-picker-header, .ant-picker-body, .ant-picker-content {
+        background: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+      }
+      .ant-picker-cell {
+        color: ${themeColors.text} !important;
+      }
+      .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled) .ant-picker-cell-inner {
+        background: ${themeColors.hover} !important;
+      }
+      .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner {
+        background: ${themeColors.primary} !important;
+      }
+      .ant-picker-header-view button, .ant-picker-header button {
+        color: ${themeColors.text} !important;
+      }
+      .ant-picker-header-view button:hover, .ant-picker-header button:hover {
+        color: ${themeColors.primary} !important;
       }
       @media (max-width: 992px) {
         .ant-layout-content { margin-left: 88px !important; }

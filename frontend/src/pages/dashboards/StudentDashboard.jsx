@@ -58,8 +58,8 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import 'antd/dist/reset.css';
 import './StudentDashboard.css';
-import { ThemeContext } from '../../context/ThemeContext'; // Import ThemeContext
-import { useStyles } from '../../styles/styles.js'; // Import useStyles
+import { ThemeContext } from '../../context/ThemeContext';
+import { useStyles } from '../../styles/styles.js';
 import { useContext } from 'react';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
@@ -70,8 +70,8 @@ const { Option } = Select;
 const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
 const StudentDashboard = () => {
-  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext); // Use ThemeContext
-  const styles = useStyles(isDarkMode, themeColors); // Use shared styles
+  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
+  const styles = useStyles(isDarkMode, themeColors);
   const navigate = useNavigate();
 
   const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
@@ -537,7 +537,7 @@ const StudentDashboard = () => {
     return (
       <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
         <Card
-          title={<><BellOutlined style={{ marginRight: 8,color:themeColors.text }} /> Notifications</>}
+          title={<span style={{ color: themeColors.text }}><BellOutlined style={{ marginRight: 8 }} /> Notifications</span>}
           style={styles.card}
           extra={
             totalNotifications > 0 && (
@@ -630,8 +630,8 @@ const StudentDashboard = () => {
       danger: true,
       onClick: () =>
         Modal.confirm({
-          title: 'Confirm Logout',
-          content: 'Are you sure you want to logout?',
+          title: <span style={{ color: themeColors.text }}>Confirm Logout</span>,
+          content: <span style={{ color: themeColors.text }}>Are you sure you want to logout?</span>,
           onOk: logout,
           centered: true,
           okButtonProps: { style: styles.button },
