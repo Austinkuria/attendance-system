@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Layout,
@@ -13,8 +13,7 @@ import {
   Skeleton,
   Row,
   Col,
-  Spin, // Added Spin
-  Switch, // added for dark mode toggle
+  Spin,
 } from "antd";
 import {
   SearchOutlined,
@@ -30,6 +29,8 @@ import {
   DownloadOutlined,
   ImportOutlined,
 } from "@ant-design/icons";
+import { ThemeContext } from '../../context/ThemeContext'; // Adjust path
+import ThemeToggle from '../../components/ThemeToggle'; // Adjust path
 import {
   getLecturers,
   deleteLecturer,
@@ -46,33 +47,28 @@ const { Option } = Select;
 
 const ManageLecturers = () => {
   const navigate = useNavigate();
+  const { isDarkMode, themeColors } = useContext(ThemeContext);
   const [lecturers, setLecturers] = useState([]);
   const [units, setUnits] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [globalError, setGlobalError] = useState("");
   const [globalSuccess, setGlobalSuccess] = useState("");
-
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDepartment, setFilterDepartment] = useState("");
   const [filterUnit, setFilterUnit] = useState("");
-
   const [isAddModalVisible, setIsAddModalVisible] = useState(false);
   const [isEditModalVisible, setIsEditModalVisible] = useState(false);
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isUnitsModalVisible, setIsUnitsModalVisible] = useState(false);
-
   const [selectedLecturer, setSelectedLecturer] = useState(null);
   const [lecturerToDelete, setLecturerToDelete] = useState(null);
   const [selectedLecturerForUnits, setSelectedLecturerForUnits] = useState(null);
-
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
   const [unitForm] = Form.useForm();
-
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [file, setFile] = useState(null);
-  const [isDarkMode, setIsDarkMode] = useState(false); // dark mode state added
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -91,7 +87,7 @@ const ManageLecturers = () => {
     let isMounted = true;
     const fetchData = async () => {
       try {
-        setLoading(true); // Trigger global spinner
+        setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) {
           navigate("/auth/login");
@@ -114,7 +110,7 @@ const ManageLecturers = () => {
           setLecturers([]);
         }
       } finally {
-        if (isMounted) setLoading(false); // Hide global spinner
+        if (isMounted) setLoading(false);
       }
     };
     fetchData();
@@ -153,7 +149,7 @@ const ManageLecturers = () => {
   const handleAddLecturer = async () => {
     try {
       const values = await addForm.validateFields();
-      setLoading(true); // Trigger modal spinner
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
@@ -169,21 +165,17 @@ const ManageLecturers = () => {
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to create lecturer";
-      if (errorMessage.includes("already exists")) {
-        message.warning("This lecturer already exists. Try using a different email.");
-      } else {
-        message.error(errorMessage);
-      }
+      message.error(errorMessage);
       setGlobalError(errorMessage);
     } finally {
-      setLoading(false); // Hide modal spinner
+      setLoading(false);
     }
   };
 
   const handleEditLecturer = async () => {
     try {
       const values = await editForm.validateFields();
-      setLoading(true); // Trigger modal spinner
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
@@ -201,20 +193,18 @@ const ManageLecturers = () => {
         editForm.resetFields();
         setIsEditModalVisible(false);
         message.success("Lecturer updated successfully");
-      } else {
-        message.error("Failed to update lecturer");
       }
     } catch (err) {
       const errorMessage = err.response?.data?.message || "Failed to update lecturer";
       message.error(errorMessage);
     } finally {
-      setLoading(false); // Hide modal spinner
+      setLoading(false);
     }
   };
 
   const handleConfirmDelete = async () => {
     try {
-      setLoading(true); // Trigger modal spinner
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
@@ -228,7 +218,7 @@ const ManageLecturers = () => {
       setGlobalError("Failed to delete lecturer. Please try again later.");
       message.error("Failed to delete lecturer");
     } finally {
-      setLoading(false); // Hide modal spinner
+      setLoading(false);
     }
   };
 
@@ -236,7 +226,7 @@ const ManageLecturers = () => {
     try {
       const { newUnit } = await unitForm.validateFields();
       if (!newUnit || !selectedLecturerForUnits) return;
-      setLoading(true); // Trigger modal spinner
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
@@ -269,7 +259,7 @@ const ManageLecturers = () => {
       setGlobalError(err.response?.data?.message || "Failed to assign unit");
       message.error("Failed to assign unit");
     } finally {
-      setLoading(false); // Hide modal spinner
+      setLoading(false);
     }
   };
 
@@ -291,7 +281,7 @@ const ManageLecturers = () => {
       return;
     }
     try {
-      setLoading(true); // Trigger global spinner
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) {
         navigate("/auth/login");
@@ -321,14 +311,14 @@ const ManageLecturers = () => {
       setGlobalError("CSV import failed. Please check file format and try again.");
       message.error("CSV import failed");
     } finally {
-      setLoading(false); // Hide global spinner
+      setLoading(false);
     }
   };
 
   const styles = useMemo(() => ({
     layout: {
       minHeight: "100vh",
-      background: isDarkMode ? "#18191a" : "#f0f2f5",
+      background: isDarkMode ? themeColors.background : "#f0f2f5",
       padding: 0,
       margin: 0,
       width: "100%",
@@ -338,7 +328,7 @@ const ManageLecturers = () => {
     headerRow: {
       marginBottom: "16px",
       padding: "8px",
-      background: isDarkMode ? "#3a3b3c" : "#fafafa",
+      background: isDarkMode ? themeColors.cardBg : "#fafafa",
       borderRadius: "8px 8px 0 0",
       flexWrap: "wrap",
       gap: "8px",
@@ -348,7 +338,7 @@ const ManageLecturers = () => {
       boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
     },
     headerTitle: {
-      color: isDarkMode ? "#fff" : "#1890ff",
+      color: isDarkMode ? themeColors.text : "#1890ff",
       margin: 0,
       fontSize: "20px",
     },
@@ -357,15 +347,14 @@ const ManageLecturers = () => {
       maxWidth: "100%",
       margin: 0,
       padding: "8px",
-      background: isDarkMode ? "#242526" : "#fff",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
       borderRadius: 8,
       boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
       boxSizing: "border-box",
       overflowX: "hidden",
     },
     filtersContainer: {
-      // Changed background for full dark appearance on filters
-      background: isDarkMode ? "#1f1f1f" : "#fff",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
       padding: "8px",
       borderRadius: 4,
       boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
@@ -378,13 +367,13 @@ const ManageLecturers = () => {
       bottom: "16px",
       right: "16px",
       zIndex: 1000,
-      background: "#1890ff",
-      borderColor: "#1890ff",
+      background: themeColors.primary,
+      borderColor: themeColors.primary,
     },
     table: {
       borderRadius: 8,
       overflow: "hidden",
-      background: isDarkMode ? "#242526" : "#fff",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
       width: "100%",
       margin: 0,
       padding: 0,
@@ -396,7 +385,8 @@ const ManageLecturers = () => {
       flexWrap: "wrap",
     },
     unitTag: {
-      background: "#d9d9d9",
+      background: isDarkMode ? themeColors.secondary : "#d9d9d9",
+      color: isDarkMode ? themeColors.text : "#000",
       padding: "4px 8px",
       marginRight: "4px",
       borderRadius: "4px",
@@ -404,49 +394,64 @@ const ManageLecturers = () => {
     },
     modalHeader: {
       padding: "12px 16px",
-      background: "#1890ff",
-      color: "#fff",
+      background: themeColors.primary,
+      color: themeColors.text,
       borderRadius: "8px 8px 0 0",
     },
     modalContent: {
-      // Updated modal background for dark mode
       padding: "16px",
       boxSizing: "border-box",
-      background: isDarkMode ? "#1f1f1f" : "#fff",
-      color: isDarkMode ? "#fff" : "#000",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      color: isDarkMode ? themeColors.text : "#000",
     },
     responsiveOverrides: `
-      /* Dark mode overrides for various components */
-      .ant-input::placeholder {
-        color: ${isDarkMode ? "#ccc" : "#999"};
+      .ant-input,
+      .ant-select-selector,
+      .ant-input-password {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        border-color: ${isDarkMode ? themeColors.secondary : "#d9d9d9"} !important;
       }
+      .ant-input::placeholder,
       .ant-select-selection-placeholder {
-        color: ${isDarkMode ? "#ccc" : "#999"} !important;
+        color: ${isDarkMode ? "#a0a0a0" : "#999"} !important;
       }
-      .ant-modal .ant-modal-content {
-        background: ${isDarkMode ? "#1f1f1f" : "#fff"} !important;
-      }
-      .ant-modal .ant-modal-body {
-        background: ${isDarkMode ? "#1f1f1f" : "#fff"} !important;
-        color: ${isDarkMode ? "#fff" : "#000"} !important;
-      }
-      .ant-btn:hover {
-        background: ${isDarkMode ? "#4a4b4c" : "#e6f7ff"};
+      .ant-form-item {
+        background: transparent !important;
       }
       .ant-form-item-label > label {
-        color: ${isDarkMode ? "#fff" : "#000"} !important;
-      }
-      .ant-input, .ant-select-selector {
-        background: ${isDarkMode ? "#3a3b3c" : "#fff"} !important;
-        color: ${isDarkMode ? "#fff" : "#000"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
       }
       .ant-table-thead > tr > th {
-        background: ${isDarkMode ? "#3a3b3c" : "#fafafa"} !important;
-        color: ${isDarkMode ? "#fff" : "#000"} !important;
+        background: ${isDarkMode ? themeColors.cardBg : "#fafafa"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
       }
       .ant-table-tbody > tr > td {
-        background: ${isDarkMode ? "#242526" : "#fff"} !important;
-        color: ${isDarkMode ? "#fff" : "#000"} !important;
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-content,
+      .ant-modal-body {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-select-dropdown {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+      }
+      .ant-select-item {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+      }
+      .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+        background: ${isDarkMode ? themeColors.secondary : "#e6f7ff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-select-selection-item {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-btn:hover {
+        background: ${isDarkMode ? themeColors.secondary : "#e6f7ff"} !important;
       }
       html, body, #root {
         margin: 0;
@@ -527,20 +532,20 @@ const ManageLecturers = () => {
         }
       }
     `,
-  }), [isDarkMode]);
+  }), [isDarkMode, themeColors]);
 
   const columns = [
     {
       title: (
         <>
-          <IdcardOutlined style={{ marginRight: 4, color: "#1890ff" }} />
+          <IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />
           Name
         </>
       ),
       dataIndex: "firstName",
       key: "name",
       render: (text, record) => (
-        <span style={{ fontWeight: 500, color: "#1890ff" }}>
+        <span style={{ fontWeight: 500, color: themeColors.primary }}>
           {record.firstName} {record.lastName}
         </span>
       ),
@@ -553,7 +558,7 @@ const ManageLecturers = () => {
     {
       title: (
         <>
-          <BookOutlined style={{ marginRight: 4, color: "#1890ff" }} />
+          <BookOutlined style={{ marginRight: 4, color: themeColors.accent }} />
           Department
         </>
       ),
@@ -584,7 +589,7 @@ const ManageLecturers = () => {
             type="primary"
             icon={<EditOutlined />}
             size="small"
-            style={{ background: "#1890ff", borderColor: "#1890ff" }}
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
             onClick={() => {
               setSelectedLecturer(record);
               editForm.setFieldsValue({
@@ -603,7 +608,7 @@ const ManageLecturers = () => {
             danger
             icon={<DeleteOutlined />}
             size="small"
-            style={{ background: "#f5222d", borderColor: "#f5222d" }}
+            style={{ background: themeColors.accent, borderColor: themeColors.accent }}
             onClick={() => {
               setLecturerToDelete(record._id);
               setIsDeleteModalVisible(true);
@@ -635,17 +640,11 @@ const ManageLecturers = () => {
               Back to Admin
             </Button>
             <h2 style={styles.headerTitle}>Lecturer Management</h2>
-            {/* Added dark/light mode toggle */}
-            <Switch
-              checked={isDarkMode}
-              onChange={(checked) => setIsDarkMode(checked)}
-              checkedChildren="Dark"
-              unCheckedChildren="Light"
-            />
+            <ThemeToggle />
             <Button
               type="primary"
               icon={<UserAddOutlined />}
-              style={{ background: "#1890ff", borderColor: "#1890ff" }}
+              style={{ background: themeColors.primary, borderColor: themeColors.primary }}
               onClick={() => {
                 addForm.resetFields();
                 setIsAddModalVisible(true);
@@ -700,6 +699,7 @@ const ManageLecturers = () => {
                   onChange={(value) => setFilterDepartment(value)}
                   style={{ width: "100%" }}
                   allowClear
+                  dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                 >
                   {departments.map((dept) => (
                     <Option key={dept._id} value={dept._id}>
@@ -715,6 +715,7 @@ const ManageLecturers = () => {
                   onChange={(value) => setFilterUnit(value)}
                   style={{ width: "100%" }}
                   allowClear
+                  dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                 >
                   {units.map((unit) => (
                     <Option key={unit.code} value={unit.code}>
@@ -735,7 +736,7 @@ const ManageLecturers = () => {
                       type="primary"
                       icon={<ImportOutlined />}
                       disabled={!file}
-                      style={{ background: "#1890ff", borderColor: "#1890ff" }}
+                      style={{ background: themeColors.primary, borderColor: themeColors.primary }}
                       onClick={handleImport}
                     >
                       {file ? `Import ${file.name}` : "CSV Import"}
@@ -748,7 +749,7 @@ const ManageLecturers = () => {
                   type="primary"
                   icon={<DownloadOutlined />}
                   block
-                  style={{ background: "#1890ff", borderColor: "#1890ff" }}
+                  style={{ background: themeColors.primary, borderColor: themeColors.primary }}
                   onClick={async () => {
                     try {
                       await downloadLecturers();
@@ -792,7 +793,7 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleAddLecturer}
             loading={loading}
-            style={{ background: "#1890ff", borderColor: "#1890ff" }}
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
           >
             Add Lecturer
           </Button>,
@@ -802,21 +803,21 @@ const ManageLecturers = () => {
         <Spin spinning={loading} tip="Loading data...">
           <Form form={addForm} layout="vertical">
             <Form.Item
-              label="First Name"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
               name="firstName"
               rules={[{ required: true, message: "First name is required" }]}
             >
               <Input placeholder="Enter first name" />
             </Form.Item>
             <Form.Item
-              label="Last Name"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Last Name</span>}
               name="lastName"
               rules={[{ required: true, message: "Last name is required" }]}
             >
               <Input placeholder="Enter last name" />
             </Form.Item>
             <Form.Item
-              label="Email"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Email</span>}
               name="email"
               rules={[
                 { required: true, message: "Email is required" },
@@ -826,18 +827,21 @@ const ManageLecturers = () => {
               <Input placeholder="Enter email" />
             </Form.Item>
             <Form.Item
-              label="Password"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Password</span>}
               name="password"
               rules={[{ required: true, message: "Password is required" }]}
             >
               <Input.Password placeholder="Enter password" />
             </Form.Item>
             <Form.Item
-              label="Department"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
               name="department"
               rules={[{ required: true, message: "Department is required" }]}
             >
-              <Select placeholder="Select Department">
+              <Select 
+                placeholder="Select Department"
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {departments.map((dept) => (
                   <Option key={dept._id} value={dept._id}>
                     {dept.name}
@@ -862,7 +866,7 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleEditLecturer}
             loading={loading}
-            style={{ background: "#1890ff", borderColor: "#1890ff" }}
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
           >
             Save Changes
           </Button>,
@@ -871,17 +875,33 @@ const ManageLecturers = () => {
       >
         <Spin spinning={loading} tip="Loading data...">
           <Form form={editForm} layout="vertical">
-            <Form.Item label="First Name" name="firstName">
+            <Form.Item
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
+              name="firstName"
+            >
               <Input placeholder="First name" />
             </Form.Item>
-            <Form.Item label="Last Name" name="lastName">
+            <Form.Item
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Last Name</span>}
+              name="lastName"
+            >
               <Input placeholder="Last name" />
             </Form.Item>
-            <Form.Item label="Email" name="email">
+            <Form.Item
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Email</span>}
+              name="email"
+            >
               <Input placeholder="Email" />
             </Form.Item>
-            <Form.Item label="Department" name="department">
-              <Select placeholder="Select Department">
+            <Form.Item
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
+              name="department"
+            >
+              <Select 
+                placeholder="Select Department"
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {departments.map((dept) => (
                   <Option key={dept._id} value={dept._id}>
                     {dept.name}
@@ -907,7 +927,7 @@ const ManageLecturers = () => {
             danger
             onClick={handleConfirmDelete}
             loading={loading}
-            style={{ background: "#f5222d", borderColor: "#f5222d" }}
+            style={{ background: themeColors.accent, borderColor: themeColors.accent }}
           >
             Delete Lecturer
           </Button>,
@@ -915,7 +935,7 @@ const ManageLecturers = () => {
         styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Loading data...">
-          <p style={{ color: "#f5222d" }}>
+          <p style={{ color: themeColors.accent }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
             Are you sure you want to delete this lecturer? This action cannot be undone.
           </p>
@@ -941,7 +961,7 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleAssignUnit}
             loading={loading}
-            style={{ background: "#1890ff", borderColor: "#1890ff" }}
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
           >
             Assign Unit
           </Button>,
@@ -951,7 +971,7 @@ const ManageLecturers = () => {
         <Spin spinning={loading} tip="Loading data...">
           {selectedLecturerForUnits && (
             <>
-              <p>
+              <p style={{ color: isDarkMode ? themeColors.text : "#000" }}>
                 <strong>Current Units:</strong>
               </p>
               <div style={{ marginBottom: 16 }}>
@@ -963,20 +983,27 @@ const ManageLecturers = () => {
                     </span>
                   ))
                 ) : (
-                  <span style={{ color: "#999" }}>No units assigned</span>
+                  <span style={{ color: isDarkMode ? "#a0a0a0" : "#999" }}>
+                    No units assigned
+                  </span>
                 )}
               </div>
               <Form form={unitForm} layout="vertical">
                 <Form.Item
                   name="newUnit"
                   label={
-                    <>
-                      <BookOutlined style={{ marginRight: 4, color: "#1890ff" }} /> Assign New Unit
-                    </>
+                    <span style={{ color: isDarkMode ? themeColors.text : "#000" }}>
+                      <BookOutlined style={{ marginRight: 4, color: themeColors.accent }} />
+                      Assign New Unit
+                    </span>
                   }
                   rules={[{ required: true, message: "Please select a unit" }]}
                 >
-                  <Select placeholder="Select a unit">
+                  <Select 
+                    placeholder="Select a unit"
+                    dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                    style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                  >
                     {units
                       .filter(
                         (unit) =>
