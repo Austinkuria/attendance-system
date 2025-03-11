@@ -1,9 +1,7 @@
-// styles.js
 import { useMemo } from 'react';
 
 export const useStyles = (isDarkMode, themeColors) =>
   useMemo(() => ({
-    // Layout
     layout: {
       minHeight: '100vh',
       background: themeColors.background,
@@ -38,8 +36,6 @@ export const useStyles = (isDarkMode, themeColors) =>
       overflow: 'auto',
       transition: 'margin-left 0.3s ease-in-out',
     },
-
-    // Cards
     card: {
       background: themeColors.cardBg,
       borderRadius: 16,
@@ -91,8 +87,6 @@ export const useStyles = (isDarkMode, themeColors) =>
       transition: 'transform 0.3s, box-shadow 0.3s',
       boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
     },
-
-    // Buttons
     button: {
       background: themeColors.primary,
       borderColor: themeColors.border,
@@ -112,8 +106,6 @@ export const useStyles = (isDarkMode, themeColors) =>
       height: 50,
       boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
     },
-
-    // Global Overrides
     globalStyles: `
       html, body, #root {
         margin: 0;
@@ -179,7 +171,6 @@ export const useStyles = (isDarkMode, themeColors) =>
         border-radius: 16px;
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
       }
-      /* Specific styles for summary cards */
       .ant-card.summary-card-1 {
         background: ${themeColors.cardGradient1} !important;
         color: ${themeColors.text} !important;
@@ -195,6 +186,12 @@ export const useStyles = (isDarkMode, themeColors) =>
       .ant-card.summary-card-4 {
         background: ${themeColors.cardGradient4} !important;
         color: ${themeColors.text} !important;
+      }
+      [data-theme="dark"] .ant-card.summary-card-1 {
+        background: linear-gradient(135deg, #5A4FCF, #8E86E5) !important;
+      }
+      [data-theme="light"] .ant-card.summary-card-1 {
+        background: linear-gradient(135deg, #6C5CE7, #A29BFE) !important;
       }
       .ant-card-hoverable:hover {
         box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;

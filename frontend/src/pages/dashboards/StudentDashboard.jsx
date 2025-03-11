@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, createContext } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   getStudentAttendance,
@@ -58,6 +58,9 @@ import axios from 'axios';
 import { motion } from 'framer-motion';
 import 'antd/dist/reset.css';
 import './StudentDashboard.css';
+import { ThemeContext } from '../../context/ThemeContext'; // Import ThemeContext
+import { useStyles } from '../../styles/styles.js'; // Import useStyles
+import { useContext } from 'react';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -66,10 +69,11 @@ const { Title: AntTitle } = Typography;
 const { Option } = Select;
 const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
-// Theme Context
-const ThemeContext = createContext();
-
 const StudentDashboard = () => {
+  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext); // Use ThemeContext
+  const styles = useStyles(isDarkMode, themeColors); // Use shared styles
+  const navigate = useNavigate();
+
   const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [units, setUnits] = useState([]);
   const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
@@ -97,38 +101,6 @@ const StudentDashboard = () => {
   const [pageSize] = useState(5);
   const [eventSortOrder, setEventSortOrder] = useState('mostRecent');
   const [notificationSortOrder, setNotificationSortOrder] = useState('mostRecent');
-  const [isDarkMode, setIsDarkMode] = useState(false);
-
-  const navigate = useNavigate();
-
-  const modernColors = {
-    light: {
-      primary: '#6C5CE7',
-      secondary: '#00CEC9',
-      accent: '#FF7675',
-      background: '#F7F9FC',
-      text: '#2D3436',
-      cardGradient1: 'linear-gradient(135deg, #6C5CE7, #A29BFE)',
-      cardGradient2: 'linear-gradient(135deg, #00CEC9, #81ECEC)',
-      cardGradient3: 'linear-gradient(135deg, #FF7675, #FAB1A0)',
-      cardGradient4: 'linear-gradient(135deg, #0984E3, #74B9FF)',
-      cardBg: '#FFFFFF',
-    },
-    dark: {
-      primary: '#A29BFE',
-      secondary: '#81ECEC',
-      accent: '#FAB1A0',
-      background: '#2D3436',
-      text: '#F7F9FC',
-      cardGradient1: 'linear-gradient(135deg, #5A4FCF, #8E86E5)',
-      cardGradient2: 'linear-gradient(135deg, #00B7B3, #6CDADA)',
-      cardGradient3: 'linear-gradient(135deg, #E65F5C, #E09B86)',
-      cardGradient4: 'linear-gradient(135deg, #0773C4, #5DA8FF)',
-      cardBg: '#3A4042',
-    },
-  };
-
-  const themeColors = isDarkMode ? modernColors.dark : modernColors.light;
 
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -385,17 +357,10 @@ const StudentDashboard = () => {
     const paginatedEvents = events.slice(startIndex, endIndex);
 
     return (
-      <motion.div initial="hidden" animate="visible" variants={cardVariants}>
-        <Card
-          style={{
-            borderRadius: 16,
-            boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-            background: themeColors.cardBg,
-            height: '100%',
-          }}
-        >
+      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+        <Card style={styles.card}>
           <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <AntTitle level={3} style={{ textAlign: 'center', color: themeColors.primary, fontWeight: 700 }}>
+            <AntTitle level={3} style={{ textAlign: 'center', color: themeColors.text }}>
               <CalendarOutlined style={{ marginRight: 8 }} /> Attendance Events
             </AntTitle>
             <Space direction="vertical" size={4} style={{ width: '100%' }}>
@@ -456,7 +421,7 @@ const StudentDashboard = () => {
                   total={totalEvents}
                   onChange={(page) => setEventPage(page)}
                   showSizeChanger={false}
-                  style={{ textAlign: 'center', marginTop: 16, color: themeColors.text }}
+                  style={{ textAlign: 'center', marginTop: 16 }}
                 />
               </>
             ) : (
@@ -570,10 +535,10 @@ const StudentDashboard = () => {
     };
 
     return (
-      <motion.div initial="hidden" animate="visible" variants={cardVariants}>
+      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
         <Card
-          title={<><BellOutlined style={{ marginRight: 8 }} /> Notifications</>}
-          style={{ borderRadius: 16, boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)', background: themeColors.cardBg, height: '100%' }}
+          title={<><BellOutlined style={{ marginRight: 8,color:themeColors.text }} /> Notifications</>}
+          style={styles.card}
           extra={
             totalNotifications > 0 && (
               <Button type="link" onClick={() => setPendingFeedbacks([])} style={{ color: themeColors.accent }}>
@@ -614,7 +579,7 @@ const StudentDashboard = () => {
                             size="small"
                             onClick={() => handleProvideFeedback(item.sessionId, item.unitId)}
                             disabled={isFeedbackSubmitted}
-                            style={{ background: themeColors.primary, border: 'none' }}
+                            style={styles.button}
                           >
                             Provide
                           </Button>,
@@ -642,7 +607,7 @@ const StudentDashboard = () => {
                   total={totalNotifications}
                   onChange={(page) => setNotificationPage(page)}
                   showSizeChanger={false}
-                  style={{ textAlign: 'center', marginTop: 16, color: themeColors.text }}
+                  style={{ textAlign: 'center', marginTop: 16 }}
                 />
               </>
             ) : (
@@ -669,7 +634,7 @@ const StudentDashboard = () => {
           content: 'Are you sure you want to logout?',
           onOk: logout,
           centered: true,
-          okButtonProps: { style: { background: themeColors.accent, border: 'none' } },
+          okButtonProps: { style: styles.button },
         }),
     },
   ];
@@ -772,416 +737,268 @@ const StudentDashboard = () => {
     }
   };
 
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
-  };
-
   return (
-    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, themeColors }}>
-      <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
-        <Header
+    <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
+      <style>{styles.globalStyles}</style>
+      <Header style={styles.header}>
+        <Space>
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            style={{ fontSize: 18, width: 64, height: 64 }}
+          />
+        </Space>
+        <AntTitle
+          level={3}
           style={{
-            padding: '0 16px',
-            background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.95)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            position: 'fixed',
-            width: '100%',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: `1px solid ${themeColors.primary}20`,
+            margin: 0,
+            flex: 1,
+            textAlign: 'center',
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: window.innerWidth < 992 ? 'none' : 'block',
+            color: themeColors.text,
           }}
         >
-          <Space>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{
-                fontSize: '18px',
-                width: 64,
-                height: 64,
-                color: themeColors.primary,
-                transition: 'all 0.3s',
-              }}
-              ghost
-            />
-          </Space>
-          <AntTitle
-            level={3}
-            style={{
-              margin: 0,
-              flex: 1,
-              textAlign: 'center',
-              color: themeColors.primary,
-              fontWeight: 600,
-              position: 'absolute',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: window.innerWidth < 992 ? 'none' : 'block',
-            }}
-          >
-            Student Dashboard
-          </AntTitle>
-          <AntTitle
-            level={3}
-            style={{
-              margin: 0,
-              color: themeColors.primary,
-              fontWeight: 600,
-              display: window.innerWidth >= 992 ? 'none' : 'inline',
-            }}
-          >
-            Student Dashboard
-          </AntTitle>
-          <Space>
-            <Switch
-              checked={isDarkMode}
-              onChange={() => setIsDarkMode(!isDarkMode)}
-              checkedChildren="Dark"
-              unCheckedChildren="Light"
-              style={{ marginRight: 16 }}
-            />
-            <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-              <Button
-                type="text"
-                icon={<UserOutlined style={{ fontSize: 24, color: themeColors.primary }} />}
-                style={{ marginRight: 24, transition: 'all 0.3s' }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              />
-            </Dropdown>
-          </Space>
-        </Header>
+          Student Dashboard
+        </AntTitle>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            display: window.innerWidth >= 992 ? 'none' : 'inline',
+            color: themeColors.text,
+          }}
+        >
+          Student Dashboard
+        </AntTitle>
+        <Space>
+          <Switch
+            checked={isDarkMode}
+            onChange={() => setIsDarkMode(!isDarkMode)}
+            checkedChildren="Dark"
+            unCheckedChildren="Light"
+          />
+          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} />
+          </Dropdown>
+        </Space>
+      </Header>
 
-        <Layout style={{ background: themeColors.background }}>
-          <Sider
-            collapsible
-            collapsed={collapsed}
-            onCollapse={setCollapsed}
-            width={250}
-            breakpoint="lg"
-            collapsedWidth={80}
-            style={{
-              background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              marginTop: 64,
-              position: 'fixed',
-              height: 'calc(100vh - 64px)',
-              overflow: 'auto',
-              zIndex: 11,
-              boxShadow: '2px 0 10px rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            <Menu
-              mode="inline"
-              defaultSelectedKeys={['1']}
-              items={[
-                { key: '1', icon: <BookOutlined />, label: 'My Units', onClick: () => scrollToSection('my-units') },
-                { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
-                { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
-              ]}
-              style={{ background: 'transparent', border: 'none', color: themeColors.text }}
-              theme={isDarkMode ? 'dark' : 'light'}
-            />
-          </Sider>
+      <Layout>
+        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={styles.sider}>
+          <Menu
+            mode="inline"
+            defaultSelectedKeys={['1']}
+            items={[
+              { key: '1', icon: <BookOutlined />, label: 'My Units', onClick: () => scrollToSection('my-units') },
+              { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
+              { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
+            ]}
+          />
+        </Sider>
 
-          <Content
-            style={{
-              margin: collapsed ? '64px 8px 8px 88px' : '64px 8px 8px 258px',
-              padding: 24,
-              background: themeColors.background,
-              minHeight: 'calc(100vh - 64px)',
-              overflow: 'auto',
-              transition: 'margin-left 0.3s ease-in-out',
-            }}
-          >
-            <Spin spinning={loading} tip="Loading data...">
-              <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                <Col xs={24} sm={12}>
-                  <motion.div initial="hidden" animate="visible" variants={cardVariants}>
+        <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
+          <Spin spinning={loading} tip="Loading data...">
+            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+              <Col xs={24} sm={12}>
+                <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+                  <Card hoverable className="summary-card-1" style={styles.summaryCard1}>
+                    <Space direction="vertical">
+                      <BookOutlined style={{ fontSize: 28 }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Units</h3>
+                      <h1 style={{ fontSize: 32, margin: 0 }}>{units.length}</h1>
+                    </Space>
+                  </Card>
+                </motion.div>
+              </Col>
+              <Col xs={24} sm={12}>
+                <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+                  <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
+                    <Space direction="vertical">
+                      <CheckCircleOutlined style={{ fontSize: 28 }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
+                      <h1 style={{ fontSize: 32, margin: 0 }}>
+                        {attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%
+                      </h1>
+                    </Space>
+                  </Card>
+                </motion.div>
+              </Col>
+            </Row>
+
+            <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+              My Units
+            </AntTitle>
+            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+              {units.map((unit) => unit._id ? (
+                <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
+                  <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
                     <Card
+                      title={<span style={{ color: themeColors.text, fontWeight: 600 }}>{unit.name || 'Untitled Unit'}</span>}
+                      extra={<span style={{ color: `${themeColors.text}80` }}>{unit.code || 'N/A'}</span>}
                       hoverable
-                      style={{
-                        background: themeColors.cardGradient1,
-                        color: 'white',
-                        borderRadius: 16,
-                        textAlign: 'center',
-                        height: '200px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        transition: 'transform 0.3s, box-shadow 0.3s',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                      style={styles.card}
+                      styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
+                      onClick={() => setSelectedUnit(unit)}
                     >
-                      <Space direction="vertical">
-                        <BookOutlined style={{ fontSize: 28 }} />
-                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Units</h3>
-                        <h1 style={{ fontSize: 32, margin: 0 }}>{units.length}</h1>
-                      </Space>
-                    </Card>
-                  </motion.div>
-                </Col>
-                <Col xs={24} sm={12}>
-                  <motion.div initial="hidden" animate="visible" variants={cardVariants}>
-                    <Card
-                      hoverable
-                      style={{
-                        background: themeColors.cardGradient2,
-                        color: 'white',
-                        borderRadius: 16,
-                        textAlign: 'center',
-                        height: '200px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        transition: 'transform 0.3s, box-shadow 0.3s',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                      }}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                    >
-                      <Space direction="vertical">
-                        <CheckCircleOutlined style={{ fontSize: 28 }} />
-                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
-                        <h1 style={{ fontSize: 32, margin: 0 }}>
-                          {attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%
-                        </h1>
-                      </Space>
-                    </Card>
-                  </motion.div>
-                </Col>
-              </Row>
-
-              <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.primary, fontWeight: 700 }}>
-                My Units
-              </AntTitle>
-              <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                {units.map((unit) => unit._id ? (
-                  <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
-                    <motion.div initial="hidden" animate="visible" variants={cardVariants}>
-                      <Card
-                        title={<span style={{ color: themeColors.text, fontWeight: 600 }}>{unit.name || 'Untitled Unit'}</span>}
-                        extra={<span style={{ color: `${themeColors.text}80` }}>{unit.code || 'N/A'}</span>}
-                        hoverable
-                        style={{
-                          borderRadius: 16,
-                          background: themeColors.cardBg,
-                          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-                          transition: 'transform 0.3s',
-                        }}
-                        styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
-                        onClick={() => setSelectedUnit(unit)}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                      >
-                        <Space direction="vertical" style={{ width: '100%' }} size={16}>
-                          {(() => {
-                            const rate = calculateAttendanceRate(unit._id);
-                            return rate === null ? (
-                              <div style={{ color: `${themeColors.text}80` }}>No sessions</div>
-                            ) : (
-                              <div style={{ background: `${themeColors.text}20`, borderRadius: 6, overflow: 'hidden', height: 20 }}>
-                                <div style={{
-                                  width: `${rate}%`,
-                                  minWidth: rate === '0.00' ? '20px' : '0',
-                                  background: getAttendanceColor(rate),
-                                  color: '#fff',
-                                  textAlign: 'center',
-                                  padding: '2px 0',
-                                  transition: 'width 0.5s ease',
-                                }}>
-                                  {rate}%
-                                </div>
+                      <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                        {(() => {
+                          const rate = calculateAttendanceRate(unit._id);
+                          return rate === null ? (
+                            <div style={{ color: `${themeColors.text}80` }}>No sessions</div>
+                          ) : (
+                            <div style={{ background: `${themeColors.text}20`, borderRadius: 6, overflow: 'hidden', height: 20 }}>
+                              <div style={{
+                                width: `${rate}%`,
+                                minWidth: rate === '0.00' ? '20px' : '0',
+                                background: getAttendanceColor(rate),
+                                color: '#fff',
+                                textAlign: 'center',
+                                padding: '2px 0',
+                                transition: 'width 0.5s ease',
+                              }}>
+                                {rate}%
                               </div>
-                            );
-                          })()}
-                          <Row gutter={[8, 8]} justify="space-between">
-                            <Col span={24}>
-                              <Button
-                                type="primary"
-                                icon={<QrcodeOutlined />}
-                                block
-                                onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
-                                style={{ background: themeColors.primary, border: 'none', borderRadius: 8 }}
-                              >
-                                Attend
-                              </Button>
-                            </Col>
-                            <Col span={24}>
-                              <Button
-                                block
-                                onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
-                                disabled={
-                                  unitSessionStatus[unit._id]?.isExpired ||
-                                  unitSessionStatus[unit._id]?.feedbackSubmitted ||
-                                  !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString())
-                                }
-                                style={{ borderRadius: 8 }}
-                                title={
-                                  unitSessionStatus[unit._id]?.isExpired ? 'Session expired' :
-                                  unitSessionStatus[unit._id]?.feedbackSubmitted ? 'Feedback already submitted' :
-                                  'No sessions available'
-                                }
-                              >
-                                Feedback
-                              </Button>
-                            </Col>
-                          </Row>
-                        </Space>
-                      </Card>
-                    </motion.div>
-                  </Col>
-                ) : null)}
-              </Row>
-
-              <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                <Col xs={24} md={12}>
-                  {renderNotifications()}
+                            </div>
+                          );
+                        })()}
+                        <Row gutter={[8, 8]} justify="space-between">
+                          <Col span={24}>
+                            <Button
+                              type="primary"
+                              icon={<QrcodeOutlined />}
+                              block
+                              onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
+                              style={styles.button}
+                            >
+                              Attend
+                            </Button>
+                          </Col>
+                          <Col span={24}>
+                            <Button
+                              block
+                              onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
+                              disabled={
+                                unitSessionStatus[unit._id]?.isExpired ||
+                                unitSessionStatus[unit._id]?.feedbackSubmitted ||
+                                !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString())
+                              }
+                            >
+                              Feedback
+                            </Button>
+                          </Col>
+                        </Row>
+                      </Space>
+                    </Card>
+                  </motion.div>
                 </Col>
-                <Col xs={24} md={12}>
-                  {renderCalendarEvents()}
-                </Col>
-              </Row>
+              ) : null)}
+            </Row>
 
-              <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.primary, fontWeight: 700 }}>
-                Attendance Overview
-              </AntTitle>
-              <Card
-                style={{
-                  borderRadius: 16,
-                  boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-                  background: themeColors.cardBg,
-                  marginBottom: 64,
-                }}
-              >
-                <div style={{ height: '400px' }}>
-                  <Bar data={chartData} options={chartOptions} />
-                </div>
-                <Button
-                  type="primary"
-                  style={{
-                    marginTop: 16,
-                    display: 'block',
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
-                    background: themeColors.primary,
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 24px',
-                    transition: 'all 0.3s',
-                  }}
-                  onClick={exportAttendanceData}
-                  onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#8E86E5' : '#5A4FCF'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = themeColors.primary}
-                >
-                  Export Data
-                </Button>
-              </Card>
+            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+              <Col xs={24} md={12}>
+                {renderNotifications()}
+              </Col>
+              <Col xs={24} md={12}>
+                {renderCalendarEvents()}
+              </Col>
+            </Row>
 
-              <Modal
-                open={!!selectedUnit}
-                title={<span style={{ color: themeColors.text }}>{selectedUnit?.name}</span>}
-                onCancel={() => setSelectedUnit(null)}
-                footer={<Button onClick={() => setSelectedUnit(null)} style={{ borderRadius: 8 }}>Close</Button>}
-                centered
-                width={Math.min(window.innerWidth * 0.9, 500)}
-                style={{ background: themeColors.cardBg }}
-              >
-                {selectedUnit && (
-                  <Space direction="vertical" style={{ color: themeColors.text }}>
-                    <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
-                    <p><strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}</p>
-                    <p><strong>Description:</strong> {selectedUnit.description || 'N/A'}</p>
-                  </Space>
-                )}
-              </Modal>
+            <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+              Attendance Overview
+            </AntTitle>
+            <Card style={styles.card}>
+              <div style={{ height: '400px' }}>
+                <Bar data={chartData} options={chartOptions} />
+              </div>
+              <Button type="primary" style={styles.button} onClick={exportAttendanceData}>
+                Export Data
+              </Button>
+            </Card>
 
-              <Modal
-                open={feedbackModalVisible}
-                title={<span style={{ color: themeColors.text }}>Session Feedback</span>}
-                onCancel={() => setFeedbackModalVisible(false)}
-                onOk={handleFeedbackSubmit}
-                centered
-                width={Math.min(window.innerWidth * 0.9, 600)}
-                okButtonProps={{ style: { background: themeColors.primary, border: 'none', borderRadius: 8 } }}
-                cancelButtonProps={{ style: { borderRadius: 8 } }}
-                style={{ background: themeColors.cardBg }}
-              >
-                <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
-                  <div>
-                    <p>Overall Satisfaction <span style={{ color: themeColors.accent }}>*</span></p>
-                    <Rate allowHalf value={feedbackData.rating} onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })} />
-                  </div>
-                  <div>
-                    <p>Pace of the Session (Slow to Fast) <span style={{ color: themeColors.accent }}>*</span></p>
-                    <Slider
-                      min={0}
-                      max={100}
-                      value={feedbackData.pace}
-                      onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
-                      marks={{ 0: 'Too Slow', 50: 'Just Right', 100: 'Too Fast' }}
-                    />
-                  </div>
-                  <div>
-                    <p>Interactivity Level <span style={{ color: themeColors.accent }}>*</span></p>
-                    <Rate value={feedbackData.interactivity} onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })} />
-                  </div>
-                  <div>
-                    <p>Was the content clear? <span style={{ color: themeColors.accent }}>*</span></p>
-                    <Switch
-                      checked={feedbackData.clarity}
-                      onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
-                      checkedChildren="Yes"
-                      unCheckedChildren="No"
-                    />
-                  </div>
-                  <Input.TextArea
-                    rows={4}
-                    placeholder="Share your thoughts (optional)"
-                    value={feedbackData.text}
-                    onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
-                    style={{ borderRadius: 8 }}
-                  />
-                  <Input.TextArea
-                    rows={3}
-                    placeholder="Suggestions for resources or improvements (optional)"
-                    value={feedbackData.resources}
-                    onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
-                    style={{ borderRadius: 8 }}
-                  />
-                  <Checkbox
-                    checked={feedbackData.anonymous}
-                    onChange={(e) => setFeedbackData({ ...feedbackData, anonymous: e.target.checked })}
-                    style={{ color: themeColors.text }}
-                  >
-                    Submit anonymously
-                  </Checkbox>
+            <Modal
+              open={!!selectedUnit}
+              title={<span style={{ color: themeColors.text }}>{selectedUnit?.name}</span>}
+              onCancel={() => setSelectedUnit(null)}
+              footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>}
+              centered
+              width={Math.min(window.innerWidth * 0.9, 500)}
+            >
+              {selectedUnit && (
+                <Space direction="vertical" style={{ color: themeColors.text }}>
+                  <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
+                  <p><strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}</p>
+                  <p><strong>Description:</strong> {selectedUnit.description || 'N/A'}</p>
                 </Space>
-              </Modal>
-            </Spin>
-          </Content>
-        </Layout>
-        <style>
-          {`
-            .ant-layout {
-              background: ${themeColors.background} !important;
-            }
-            .ant-layout-content {
-              background: ${themeColors.background} !important;
-            }
-            body {
-              background: ${themeColors.background} !important;
-            }
-          `}
-        </style>
+              )}
+            </Modal>
+
+            <Modal
+              open={feedbackModalVisible}
+              title={<span style={{ color: themeColors.text }}>Session Feedback</span>}
+              onCancel={() => setFeedbackModalVisible(false)}
+              onOk={handleFeedbackSubmit}
+              centered
+              width={Math.min(window.innerWidth * 0.9, 600)}
+              okButtonProps={{ style: styles.button }}
+              cancelButtonProps={{}}
+            >
+              <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
+                <div>
+                  <p>Overall Satisfaction <span style={{ color: themeColors.accent }}>*</span></p>
+                  <Rate allowHalf value={feedbackData.rating} onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })} />
+                </div>
+                <div>
+                  <p>Pace of the Session (Slow to Fast) <span style={{ color: themeColors.accent }}>*</span></p>
+                  <Slider
+                    min={0}
+                    max={100}
+                    value={feedbackData.pace}
+                    onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
+                    marks={{ 0: 'Too Slow', 50: 'Just Right', 100: 'Too Fast' }}
+                  />
+                </div>
+                <div>
+                  <p>Interactivity Level <span style={{ color: themeColors.accent }}>*</span></p>
+                  <Rate value={feedbackData.interactivity} onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })} />
+                </div>
+                <div>
+                  <p>Was the content clear? <span style={{ color: themeColors.accent }}>*</span></p>
+                  <Switch
+                    checked={feedbackData.clarity}
+                    onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
+                    checkedChildren="Yes"
+                    unCheckedChildren="No"
+                  />
+                </div>
+                <Input.TextArea
+                  rows={4}
+                  placeholder="Share your thoughts (optional)"
+                  value={feedbackData.text}
+                  onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
+                />
+                <Input.TextArea
+                  rows={3}
+                  placeholder="Suggestions for resources or improvements (optional)"
+                  value={feedbackData.resources}
+                  onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
+                />
+                <Checkbox
+                  checked={feedbackData.anonymous}
+                  onChange={(e) => setFeedbackData({ ...feedbackData, anonymous: e.target.checked })}
+                  style={{ color: themeColors.text }}
+                >
+                  Submit anonymously
+                </Checkbox>
+              </Space>
+            </Modal>
+          </Spin>
+        </Content>
       </Layout>
-    </ThemeContext.Provider>
+    </Layout>
   );
 };
 

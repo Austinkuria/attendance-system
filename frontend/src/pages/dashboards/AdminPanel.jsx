@@ -1,7 +1,6 @@
-// AdminPanel.jsx
 import { useState, useEffect, useContext } from 'react';
 import { ThemeContext } from '../../context/ThemeContext';
-import { useStyles } from '../../styles/styles.js'; // Adjust path as needed
+import { useStyles } from '../../styles/styles.js';
 import {
   UserOutlined,
   BookOutlined,
@@ -28,12 +27,11 @@ import {
   message,
   Typography,
   Spin,
-  Switch,
 } from 'antd';
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { motion } from 'framer-motion';
-import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api'; // Adjust path as needed
+import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
@@ -71,6 +69,7 @@ const AdminPanel = () => {
     };
   }, []);
 
+  useEffect(() => {
   useEffect(() => {
     const handleResize = () => setCollapsed(window.innerWidth < 992);
     window.addEventListener('resize', handleResize);
@@ -313,7 +312,7 @@ const AdminPanel = () => {
   };
 
   return (
-    <Layout style={styles.layout}>
+    <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
       <style>{styles.globalStyles}</style>
       <Header style={styles.header}>
         <Space>
@@ -334,11 +333,19 @@ const AdminPanel = () => {
             left: '50%',
             transform: 'translateX(-50%)',
             display: window.innerWidth < 992 ? 'none' : 'block',
+            color: themeColors.text,
           }}
         >
           Admin Dashboard
         </AntTitle>
-        <AntTitle level={3} style={{ margin: 0, display: window.innerWidth >= 992 ? 'none' : 'inline' }}>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            display: window.innerWidth >= 992 ? 'none' : 'inline',
+            color: themeColors.text,
+          }}
+        >
           Admin Dashboard
         </AntTitle>
         <Space>
@@ -405,7 +412,11 @@ const AdminPanel = () => {
               </Col>
             </Row>
 
-            <AntTitle level={2} style={{ margin: '32px 0 16px', textAlign: 'center' }} id="attendance-overview">
+            <AntTitle
+              level={2}
+              style={{ margin: '32px 0 16px', textAlign: 'center', color: themeColors.text }}
+              id="attendance-overview"
+            >
               Attendance Overview
             </AntTitle>
             <Card style={styles.card}>
@@ -419,7 +430,10 @@ const AdminPanel = () => {
               </Spin>
             </Card>
 
-            <AntTitle level={2} style={{ margin: '32px 0 16px', textAlign: 'center' }}>
+            <AntTitle
+              level={2}
+              style={{ margin: '32px 0 16px', textAlign: 'center', color: themeColors.text }}
+            >
               Quick Stats
             </AntTitle>
             <Card style={styles.card}>
