@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useContext } from 'react';
-import { 
+import {
   Layout,
   Card,
   Table,
@@ -19,8 +19,8 @@ import {
 } from 'antd';
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
-import { 
-  FilterOutlined,
+import {
+  // FilterOutlined,
   SearchOutlined,
   ArrowLeftOutlined
 } from '@ant-design/icons';
@@ -38,13 +38,13 @@ const { useBreakpoint } = Grid;
 
 const useStyles = (themeColors) => ({
   container: css`
-    padding: 16px;
+    padding: 0 24px; /* Added padding around the page */
     max-width: 1600px;
     margin: 0 auto;
     background: ${themeColors.background};
     min-height: 100vh;
     @media (max-width: 768px) {
-      padding: 8px;
+      padding: 0 24px; /* Adjusted padding for smaller screens */
     }
   `,
   filterBar: css`
@@ -304,7 +304,7 @@ const AdminFeedbackView = () => {
   }
 
   return (
-    <div style={{ borderBottom: `1px solid ${themeColors.primary}20`, padding:'10' }}>
+    <div className={styles.container} style={{ borderBottom: `1px solid ${themeColors.primary}20` }}>
       <Header
         style={{
           padding: '0 16px',
@@ -373,7 +373,7 @@ const AdminFeedbackView = () => {
       </Header>
 
       {/* Add paddingTop to the filters row to avoid overlap with the fixed header */}
-      <Row gutter={[16, 16]} className={styles.filterBar} style={{ paddingTop: 75 }}>
+      <Row gutter={[16, 16]} className={styles.filterBar} style={{ paddingTop: screens.xs ? 75 : 75, background: themeColors.background }}>
         <Col xs={24} sm={12} md={6}>
           <Select
             allowClear
@@ -405,7 +405,7 @@ const AdminFeedbackView = () => {
         </Col>
       </Row>
 
-      <Row gutter={[16, 16]} className={styles.statsCard}>
+      <Row gutter={[16, 16]} className={styles.statsCard} style={{ background: themeColors.background }}>
         <Col xs={24} sm={8}>
           <Card style={{ background: summaryCardColors.totalSessions, borderColor: summaryCardColors.totalSessions }}>
             <Statistic
@@ -477,7 +477,7 @@ const AdminFeedbackView = () => {
           columns={tableColumns}
           dataSource={filteredData}
           rowKey="sessionId"
-          scroll={{ x: true }}
+          scroll={{ x: screens.xs ? true : false }}
           pagination={{
             pageSize: 10,
             showTotal: (total) => `Showing ${total} entries`,
