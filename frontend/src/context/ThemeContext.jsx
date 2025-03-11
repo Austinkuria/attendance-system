@@ -1,10 +1,19 @@
-import { createContext, useState } from 'react';
+import { createContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
 export const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
-    const [isDarkMode, setIsDarkMode] = useState(false);
+    // Initialize dark mode state based on localStorage:
+    const [isDarkMode, setIsDarkMode] = useState(() => {
+        const stored = localStorage.getItem('isDarkMode');
+        return stored ? JSON.parse(stored) : false;
+    });
+
+    // Persist dark mode changes to localStorage:
+    useEffect(() => {
+        localStorage.setItem('isDarkMode', JSON.stringify(isDarkMode));
+    }, [isDarkMode]);
 
     const modernColors = {
         light: {

@@ -412,6 +412,21 @@ const ManageLecturers = () => {
         color: ${isDarkMode ? themeColors.text : "#000"} !important;
         border-color: ${isDarkMode ? themeColors.secondary : "#d9d9d9"} !important;
       }
+      .ant-input:focus,
+      .ant-input-focused,
+      .ant-input-password:focus,
+      .ant-input-password-focused {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        border-color: ${isDarkMode ? themeColors.primary : "#40a9ff"} !important;
+        box-shadow: 0 0 0 2px ${isDarkMode ? "rgba(24, 144, 255, 0.2)" : "rgba(24, 144, 255, 0.2)"} !important;
+      }
+      .ant-input:-webkit-autofill,
+      .ant-input-password:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 1000px ${isDarkMode ? themeColors.cardBg : "#fff"} inset !important;
+        -webkit-text-fill-color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        caret-color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
       .ant-input::placeholder,
       .ant-select-selection-placeholder {
         color: ${isDarkMode ? "#a0a0a0" : "#999"} !important;
@@ -433,6 +448,16 @@ const ManageLecturers = () => {
       .ant-modal-content,
       .ant-modal-body {
         background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-header {
+        background: ${isDarkMode ? themeColors.cardBg : "#fafafa"} !important;
+        border-bottom: ${isDarkMode ? `1px solid ${themeColors.secondary}` : "1px solid #f0f0f0"} !important;
+      }
+      .ant-modal-title {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-close-x {
         color: ${isDarkMode ? themeColors.text : "#000"} !important;
       }
       .ant-select-dropdown {
@@ -689,7 +714,8 @@ const ManageLecturers = () => {
                   placeholder="Search by name, email, or unit code..."
                   prefix={<SearchOutlined />}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}  style={{background: isDarkMode ? themeColors.cardBg : "#fff"}}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                 />
               </Col>
               <Col xs={24} md={8}>
@@ -725,7 +751,7 @@ const ManageLecturers = () => {
                 </Select>
               </Col>
             </Row>
-            <Row gutter={[16, 16]} style={{marginTop:2}}>
+            <Row gutter={[16, 16]} style={{ marginTop: 2 }}>
               <Col xs={24} md={8}>
                 <Row gutter={8} align="middle">
                   <Col flex="auto">
@@ -811,14 +837,20 @@ const ManageLecturers = () => {
               name="firstName"
               rules={[{ required: true, message: "First name is required" }]}
             >
-              <Input placeholder="Enter first name" />
+              <Input 
+                placeholder="Enter first name" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Last Name</span>}
               name="lastName"
               rules={[{ required: true, message: "Last name is required" }]}
             >
-              <Input placeholder="Enter last name" />
+              <Input 
+                placeholder="Enter last name" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Email</span>}
@@ -828,14 +860,22 @@ const ManageLecturers = () => {
                 { type: "email", message: "Invalid email format" },
               ]}
             >
-              <Input placeholder="Enter email" />
+              <Input 
+                autoComplete="new-email" // Prevent autofill
+                placeholder="Enter email" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Password</span>}
               name="password"
               rules={[{ required: true, message: "Password is required" }]}
             >
-              <Input.Password placeholder="Enter password" />
+              <Input.Password 
+                autoComplete="new-password" // Prevent autofill
+                placeholder="Enter password" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
@@ -845,6 +885,7 @@ const ManageLecturers = () => {
               <Select 
                 placeholder="Select Department"
                 dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               >
                 {departments.map((dept) => (
                   <Option key={dept._id} value={dept._id}>
@@ -887,19 +928,28 @@ const ManageLecturers = () => {
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
               name="firstName"
             >
-              <Input placeholder="First name" />
+              <Input 
+                placeholder="First name" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Last Name</span>}
               name="lastName"
             >
-              <Input placeholder="Last name" />
+              <Input 
+                placeholder="Last name" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Email</span>}
               name="email"
             >
-              <Input placeholder="Email" />
+              <Input 
+                placeholder="Email" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
