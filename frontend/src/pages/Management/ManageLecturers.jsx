@@ -801,7 +801,11 @@ const ManageLecturers = () => {
         styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Loading data...">
-          <Form form={addForm} layout="vertical">
+          <Form 
+            form={addForm} 
+            layout="vertical" 
+            style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+          >
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
               name="firstName"
@@ -874,7 +878,11 @@ const ManageLecturers = () => {
         styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Loading data...">
-          <Form form={editForm} layout="vertical">
+          <Form 
+            form={editForm} 
+            layout="vertical" 
+            style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+          >
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
               name="firstName"
@@ -988,7 +996,11 @@ const ManageLecturers = () => {
                   </span>
                 )}
               </div>
-              <Form form={unitForm} layout="vertical">
+              <Form 
+                form={unitForm} 
+                layout="vertical" 
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 <Form.Item
                   name="newUnit"
                   label={
