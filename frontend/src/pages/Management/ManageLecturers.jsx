@@ -689,7 +689,7 @@ const ManageLecturers = () => {
                   placeholder="Search by name, email, or unit code..."
                   prefix={<SearchOutlined />}
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => setSearchQuery(e.target.value)}  style={{background: isDarkMode ? themeColors.cardBg : "#fff"}}
                 />
               </Col>
               <Col xs={24} md={8}>
@@ -725,7 +725,7 @@ const ManageLecturers = () => {
                 </Select>
               </Col>
             </Row>
-            <Row gutter={[16, 16]}>
+            <Row gutter={[16, 16]} style={{marginTop:2}}>
               <Col xs={24} md={8}>
                 <Row gutter={8} align="middle">
                   <Col flex="auto">
