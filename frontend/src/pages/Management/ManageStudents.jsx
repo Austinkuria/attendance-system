@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useContext } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Layout,
@@ -30,15 +30,17 @@ import {
   BookOutlined,
   FilterOutlined,
 } from "@ant-design/icons";
+import { ThemeContext } from '../../context/ThemeContext'; // Adjust path
+import ThemeToggle from '../../components/ThemeToggle'; // Adjust path
 import { getStudents, deleteStudent, downloadStudents } from "../../services/api";
 import api from "../../services/api";
-import "../../styles.css";
 
 const { Content } = Layout;
 const { Option } = Select;
 
 const ManageStudents = () => {
   const navigate = useNavigate();
+  const { isDarkMode, themeColors } = useContext(ThemeContext);
   const [students, setStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState({
@@ -47,7 +49,7 @@ const ManageStudents = () => {
     course: "",
     semester: "",
   });
-  const [loading, setLoading] = useState(true); // Global loading state
+  const [loading, setLoading] = useState(true);
   const [globalError, setGlobalError] = useState("");
   const [globalSuccess, setGlobalSuccess] = useState("");
   const [file, setFile] = useState(null);
@@ -87,7 +89,7 @@ const ManageStudents = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        setLoading(true); // Start loading
+        setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) return navigate("/auth/login");
         const response = await api.get("/department", {
@@ -98,7 +100,7 @@ const ManageStudents = () => {
         console.error("Error fetching departments:", err);
         setGlobalError("Failed to fetch departments");
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
     fetchDepartments();
@@ -107,7 +109,7 @@ const ManageStudents = () => {
   useEffect(() => {
     const fetchCourses = async () => {
       try {
-        setLoading(true); // Start loading
+        setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) return navigate("/auth/login");
         const response = await api.get("/course", {
@@ -118,7 +120,7 @@ const ManageStudents = () => {
         console.error("Error fetching courses:", err);
         setGlobalError("Failed to fetch courses");
       } finally {
-        setLoading(false); // Stop loading
+        setLoading(false);
       }
     };
     fetchCourses();
@@ -128,7 +130,7 @@ const ManageStudents = () => {
     let isMounted = true;
     const fetchStudents = async () => {
       try {
-        setLoading(true); // Start loading
+        setLoading(true);
         const token = localStorage.getItem("token");
         if (!token) return navigate("/auth/login");
         const response = await getStudents();
@@ -154,7 +156,7 @@ const ManageStudents = () => {
           setStudents([]);
         }
       } finally {
-        if (isMounted) setLoading(false); // Stop loading
+        if (isMounted) setLoading(false);
       }
     };
     fetchStudents();
@@ -189,7 +191,7 @@ const ManageStudents = () => {
     if (!validateForm()) return;
 
     try {
-      setLoading(true); // Start loading
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return navigate("/auth/login");
 
@@ -229,13 +231,13 @@ const ManageStudents = () => {
       setGlobalError(err.response?.data?.message || err.message || "Failed to create student");
       message.error("Failed to create student");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
   const handleEditStudent = async () => {
     try {
-      setLoading(true); // Start loading
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return navigate("/auth/login");
 
@@ -267,7 +269,7 @@ const ManageStudents = () => {
       setGlobalError(err.response?.data?.message || "Failed to update student");
       message.error("Failed to update student");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
@@ -286,7 +288,7 @@ const ManageStudents = () => {
 
   const handleConfirmDelete = async () => {
     try {
-      setLoading(true); // Start loading
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return navigate("/auth/login");
       if (!studentToDelete) {
@@ -307,7 +309,7 @@ const ManageStudents = () => {
       setGlobalError(err.response?.data?.message || "Failed to delete student.");
       message.error("Failed to delete student");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
@@ -330,7 +332,7 @@ const ManageStudents = () => {
     }
 
     try {
-      setLoading(true); // Start loading
+      setLoading(true);
       const token = localStorage.getItem("token");
       if (!token) return navigate("/auth/login");
 
@@ -357,13 +359,13 @@ const ManageStudents = () => {
       setGlobalError("CSV import failed. Please check file format and try again.");
       message.error("CSV import failed");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
   const handleExport = async () => {
     try {
-      setLoading(true); // Start loading
+      setLoading(true);
       await downloadStudents();
       message.success("Students exported successfully");
     } catch (err) {
@@ -371,7 +373,7 @@ const ManageStudents = () => {
       setGlobalError("Failed to download students");
       message.error("Failed to download students");
     } finally {
-      setLoading(false); // Stop loading
+      setLoading(false);
     }
   };
 
@@ -391,109 +393,444 @@ const ManageStudents = () => {
     });
   }, [students, searchQuery, filter]);
 
+  const styles = useMemo(() => ({
+    layout: {
+      minHeight: "100vh",
+      background: isDarkMode ? themeColors.background : "#f0f2f5",
+      padding: 0,
+      margin: 0,
+      width: "100%",
+      overflowX: "hidden",
+      boxSizing: "border-box",
+    },
+    headerRow: {
+      marginBottom: "16px",
+      padding: "8px",
+      background: isDarkMode ? themeColors.cardBg : "#fafafa",
+      borderRadius: "8px 8px 0 0",
+      flexWrap: "wrap",
+      gap: "8px",
+      alignItems: "center",
+      width: "100%",
+      boxSizing: "border-box",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+    },
+    headerTitle: {
+      color: isDarkMode ? themeColors.text : "#1890ff",
+      margin: 0,
+      fontSize: "20px",
+    },
+    content: {
+      width: "100%",
+      maxWidth: "100%",
+      margin: 0,
+      padding: "8px",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      borderRadius: 8,
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+      boxSizing: "border-box",
+      overflowX: "hidden",
+    },
+    filtersContainer: {
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      padding: "8px",
+      borderRadius: 4,
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+      marginBottom: "16px",
+      width: "100%",
+      boxSizing: "border-box",
+    },
+    backToTopButton: {
+      position: "fixed",
+      bottom: "16px",
+      right: "16px",
+      zIndex: 1000,
+      background: themeColors.primary,
+      borderColor: themeColors.primary,
+    },
+    table: {
+      borderRadius: 8,
+      overflow: "hidden",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      width: "100%",
+      margin: 0,
+      padding: 0,
+      boxSizing: "border-box",
+    },
+    modalHeader: {
+      padding: "12px 16px",
+      background: themeColors.primary,
+      color: themeColors.text,
+      borderRadius: "8px 8px 0 0",
+    },
+    modalContent: {
+      padding: "16px",
+      boxSizing: "border-box",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      color: isDarkMode ? themeColors.text : "#000",
+    },
+    responsiveOverrides: `
+      .ant-input,
+      .ant-select-selector,
+      .ant-input-password {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        border-color: ${isDarkMode ? themeColors.secondary : "#d9d9d9"} !important;
+      }
+      .ant-input:focus,
+      .ant-input-focused,
+      .ant-input-password:focus,
+      .ant-input-password-focused {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        border-color: ${isDarkMode ? themeColors.primary : "#40a9ff"} !important;
+        box-shadow: 0 0 0 2px ${isDarkMode ? "rgba(24, 144, 255, 0.2)" : "rgba(24, 144, 255, 0.2)"} !important;
+      }
+      .ant-input:-webkit-autofill,
+      .ant-input-password:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 1000px ${isDarkMode ? themeColors.cardBg : "#fff"} inset !important;
+        -webkit-text-fill-color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        caret-color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-input::placeholder,
+      .ant-select-selection-placeholder {
+        color: ${isDarkMode ? "#a0a0a0" : "#999"} !important;
+      }
+      .ant-form-item {
+        background: transparent !important;
+      }
+      .ant-form-item-label > label {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-table-thead > tr > th {
+        background: ${isDarkMode ? themeColors.cardBg : "#fafafa"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-table-tbody > tr > td {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-content,
+      .ant-modal-body {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-header {
+        background: ${isDarkMode ? themeColors.cardBg : "#fafafa"} !important;
+        border-bottom: ${isDarkMode ? `1px solid ${themeColors.secondary}` : "1px solid #f0f0f0"} !important;
+      }
+      .ant-modal-title {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-close-x {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-select-dropdown {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+      }
+      .ant-select-item {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+      }
+      .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+        background: ${isDarkMode ? themeColors.secondary : "#e6f7ff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-select-selection-item {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-btn:hover {
+        background: ${isDarkMode ? themeColors.secondary : "#e6f7ff"} !important;
+      }
+      html, body, #root {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        overflow-x: hidden;
+      }
+      .ant-layout, .ant-layout-content {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+      @media (max-width: 768px) {
+        .ant-layout-content { 
+          padding: 4px !important; 
+        }
+        .filters-container { 
+          padding: 4px !important; 
+        }
+        .header-row { 
+          padding: 4px !important; 
+        }
+        .ant-btn {
+          font-size: 12px;
+          padding: 4px 8px;
+        }
+        .ant-modal {
+          width: 90% !important;
+          margin: 0 auto;
+        }
+        .back-to-top-btn {
+          bottom: 40px;
+          right: 10px;
+        }
+      }
+      @media (max-width: 576px) {
+        .ant-layout-content { 
+          padding: 2px !important; 
+        }
+        .filters-container { 
+          padding: 2px !important; 
+          margin-bottom: 8px !important;
+        }
+        .header-row { 
+          padding: 2px !important; 
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .ant-row:not(.header-row) {
+          flex-direction: column;
+          margin: 0;
+        }
+        .ant-col {
+          width: 100%;
+          margin-bottom: 8px;
+          padding: 0;
+        }
+        .ant-table {
+          font-size: 12px;
+        }
+        .ant-modal {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .ant-modal-content {
+          border-radius: 0;
+        }
+        .back-to-top-btn {
+          bottom: 30px;
+          right: 5px;
+          width: 32px;
+          height: 32px;
+          font-size: 14px;
+        }
+        .ant-alert {
+          margin-bottom: 8px !important;
+        }
+      }
+    `,
+  }), [isDarkMode, themeColors]);
+
   const columns = [
-    { title: (<><IdcardOutlined style={{ marginRight: 4 }} />Reg No</>), dataIndex: "regNo", key: "regNo", render: (text) => <span style={{ color: "#1890ff", fontWeight: 500 }}>{text}</span> },
-    { title: "Student Name", key: "name", render: (_, record) => `${record.firstName} ${record.lastName}` },
-    { title: (<><CalendarOutlined style={{ marginRight: 4 }} />Year</>), dataIndex: "year", key: "year", render: (year) => <span className="ant-tag ant-tag-blue">{year}</span> },
-    { title: (<><BookOutlined style={{ marginRight: 4 }} />Course</>), dataIndex: "courseName", key: "course", render: (course) => (<div style={{ display: "flex", alignItems: "center" }}><BookOutlined style={{ color: "#999", marginRight: 4 }} />{course}</div>) },
-    { title: (<><FilterOutlined style={{ marginRight: 4 }} />Semester</>), dataIndex: "semester", key: "semester", render: (semester) => <span className="ant-tag">{semester}</span> },
     {
-      title: "Actions", key: "actions", render: (_, record) => (
+      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Reg No</>),
+      dataIndex: "regNo",
+      key: "regNo",
+      render: (text) => <span style={{ color: themeColors.primary, fontWeight: 500 }}>{text}</span>,
+    },
+    {
+      title: "Student Name",
+      key: "name",
+      render: (_, record) => `${record.firstName} ${record.lastName}`,
+    },
+    {
+      title: (<><CalendarOutlined style={{ marginRight: 4, color: themeColors.accent }} />Year</>),
+      dataIndex: "year",
+      key: "year",
+      render: (year) => <span style={{ background: isDarkMode ? themeColors.secondary : "#e6f7ff", padding: "2px 8px", borderRadius: 4 }}>{year}</span>,
+    },
+    {
+      title: (<><BookOutlined style={{ marginRight: 4, color: themeColors.accent }} />Course</>),
+      dataIndex: "courseName",
+      key: "course",
+      render: (course) => (
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <BookOutlined style={{ color: isDarkMode ? "#a0a0a0" : "#999", marginRight: 4 }} />
+          {course}
+        </div>
+      ),
+    },
+    {
+      title: (<><FilterOutlined style={{ marginRight: 4, color: themeColors.accent }} />Semester</>),
+      dataIndex: "semester",
+      key: "semester",
+      render: (semester) => <span style={{ background: isDarkMode ? themeColors.secondary : "#f5f5f5", padding: "2px 8px", borderRadius: 4 }}>{semester}</span>,
+    },
+    {
+      title: "Actions",
+      key: "actions",
+      render: (_, record) => (
         <div style={{ display: "flex", gap: 8 }}>
-          <Button type="primary" icon={<EditOutlined />} size="small" onClick={() => {
-            setSelectedStudent({
-              ...record,
-              courseId: record.courseId,
-              departmentId: record.departmentId,
-            });
-            editForm.setFieldsValue({
-              firstName: record.firstName,
-              lastName: record.lastName,
-              email: record.email,
-              regNo: record.regNo,
-              course: record.courseId,
-              department: record.departmentId,
-              year: record.year,
-              semester: record.semester
-            });
-            setIsEditModalVisible(true);
-          }}>
+          <Button
+            type="primary"
+            icon={<EditOutlined />}
+            size="small"
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+            onClick={() => {
+              setSelectedStudent({
+                ...record,
+                courseId: record.courseId,
+                departmentId: record.departmentId,
+              });
+              editForm.setFieldsValue({
+                firstName: record.firstName,
+                lastName: record.lastName,
+                email: record.email,
+                regNo: record.regNo,
+                course: record.courseId,
+                department: record.departmentId,
+                year: record.year,
+                semester: record.semester,
+              });
+              setIsEditModalVisible(true);
+            }}
+          >
             Edit
           </Button>
-          <Button type="danger" icon={<DeleteOutlined />} size="small" onClick={() => {
-            setStudentToDelete(record._id);
-            setIsDeleteModalVisible(true);
-          }}>
+          <Button
+            type="primary"
+            danger
+            icon={<DeleteOutlined />}
+            size="small"
+            style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+            onClick={() => {
+              setStudentToDelete(record._id);
+              setIsDeleteModalVisible(true);
+            }}
+          >
             Delete
           </Button>
         </div>
-      )
-    }
+      ),
+    },
   ];
 
   return (
-    <Layout style={{ minHeight: "100vh" }}>
-      <Content style={{ padding: "20px" }}>
+    <Layout style={styles.layout}>
+      <Content style={styles.content} className="ant-layout-content">
+        <style>{styles.responsiveOverrides}</style>
         <Spin spinning={loading} tip="Loading...">
+          <Row
+            justify="space-between"
+            align="middle"
+            style={styles.headerRow}
+            className="header-row"
+          >
+            <Button
+              type="link"
+              icon={<LeftOutlined />}
+              onClick={() => navigate("/admin")}
+            >
+              Back to Admin
+            </Button>
+            <h2 style={styles.headerTitle}>
+              <TeamOutlined style={{ marginRight: 8 }} />
+              Student Management
+            </h2>
+            <ThemeToggle />
+            <Button
+              type="primary"
+              icon={<UserAddOutlined />}
+              style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+              onClick={() => {
+                addForm.resetFields();
+                setIsAddModalVisible(true);
+              }}
+            >
+              Add
+            </Button>
+          </Row>
+
           {showBackToTop && (
             <Button
               type="primary"
               shape="circle"
               icon={<ArrowUpOutlined />}
-              style={{ position: "fixed", bottom: 50, right: 30, zIndex: 1000 }}
+              style={styles.backToTopButton}
+              className="back-to-top-btn"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
             />
           )}
 
           {globalError && (
-            <Alert message={globalError} type="error" closable onClose={() => setGlobalError("")} style={{ marginBottom: 16 }} />
+            <Alert
+              message={globalError}
+              type="error"
+              closable
+              onClose={() => setGlobalError("")}
+              style={{ marginBottom: 16 }}
+            />
           )}
           {globalSuccess && (
-            <Alert message={globalSuccess} type="success" closable onClose={() => setGlobalSuccess("")} style={{ marginBottom: 16 }} />
+            <Alert
+              message={globalSuccess}
+              type="success"
+              closable
+              onClose={() => setGlobalSuccess("")}
+              style={{ marginBottom: 16 }}
+            />
           )}
 
-          <Row justify="space-between" align="middle" style={{ marginBottom: 20 }}>
-            <Button type="link" icon={<LeftOutlined />} onClick={() => navigate("/admin")}>
-              Back to Admin
-            </Button>
-            <h2 style={{ margin: 0 }}><TeamOutlined style={{ marginRight: 8 }} />Student Management</h2>
-            <Button type="primary" icon={<UserAddOutlined />} onClick={() => {
-              addForm.resetFields();
-              setIsAddModalVisible(true);
-            }}>
-              Add
-            </Button>
-          </Row>
-
-          <div style={{ marginBottom: 20, padding: 16, background: "#fff", borderRadius: 4, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+          <div style={styles.filtersContainer} className="filters-container">
             <Row gutter={[16, 16]} align="middle">
               <Col xs={24} md={8}>
-                <Input placeholder="Search students by name ..." prefix={<SearchOutlined />}
-                  value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+                <Input
+                  placeholder="Search students by name ..."
+                  prefix={<SearchOutlined />}
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                />
               </Col>
               <Col xs={12} md={4}>
-                <Input placeholder="Reg No" prefix={<IdcardOutlined />}
-                  value={filter.regNo} onChange={(e) => setFilter((prev) => ({ ...prev, regNo: e.target.value }))} />
+                <Input
+                  placeholder="Reg No"
+                  prefix={<IdcardOutlined />}
+                  value={filter.regNo}
+                  onChange={(e) => setFilter((prev) => ({ ...prev, regNo: e.target.value }))}
+                  style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                />
               </Col>
               <Col xs={12} md={4}>
-                <Select placeholder="All Years" style={{ width: "100%" }} value={filter.year || undefined}
-                  onChange={(value) => setFilter((prev) => ({ ...prev, year: value }))} allowClear>
+                <Select
+                  placeholder="All Years"
+                  style={{ width: "100%" }}
+                  value={filter.year || undefined}
+                  onChange={(value) => setFilter((prev) => ({ ...prev, year: value }))}
+                  allowClear
+                  dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                >
                   {["1", "2", "3", "4"].map((year) => (
                     <Option key={year} value={year}>Year {year}</Option>
                   ))}
                 </Select>
               </Col>
               <Col xs={12} md={4}>
-                <Select placeholder="All Courses" style={{ width: "100%" }} value={filter.course || undefined}
-                  onChange={(value) => setFilter((prev) => ({ ...prev, course: value }))} allowClear>
+                <Select
+                  placeholder="All Courses"
+                  style={{ width: "100%" }}
+                  value={filter.course || undefined}
+                  onChange={(value) => setFilter((prev) => ({ ...prev, course: value }))}
+                  allowClear
+                  dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                >
                   {availableCourses.map((course) => (
                     <Option key={course.id} value={course.name}>{course.name}</Option>
                   ))}
                 </Select>
               </Col>
               <Col xs={12} md={4}>
-                <Select placeholder="All Semesters" style={{ width: "100%" }} value={filter.semester || undefined}
-                  onChange={(value) => setFilter((prev) => ({ ...prev, semester: value }))} allowClear>
+                <Select
+                  placeholder="All Semesters"
+                  style={{ width: "100%" }}
+                  value={filter.semester || undefined}
+                  onChange={(value) => setFilter((prev) => ({ ...prev, semester: value }))}
+                  allowClear
+                  dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                >
                   {["1", "2", "3"].map((sem) => (
                     <Option key={sem} value={sem}>Semester {sem}</Option>
                   ))}
@@ -503,73 +840,180 @@ const ManageStudents = () => {
             <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
               <Col xs={24} md={8}>
                 <Row gutter={8} align="middle">
-                  <Col flex="auto"><Input type="file" accept=".csv" onChange={handleFileUpload} /></Col>
-                  <Col><Button type="primary" icon={<ImportOutlined />} disabled={!file} onClick={handleImport}>
-                    {file ? `Import ${file.name}` : "CSV Import"}
-                  </Button></Col>
+                  <Col flex="auto">
+                    <Input type="file" accept=".csv" onChange={handleFileUpload} />
+                  </Col>
+                  <Col>
+                    <Button
+                      type="primary"
+                      icon={<ImportOutlined />}
+                      disabled={!file}
+                      style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+                      onClick={handleImport}
+                    >
+                      {file ? `Import ${file.name}` : "CSV Import"}
+                    </Button>
+                  </Col>
                 </Row>
               </Col>
               <Col xs={12} md={8}>
-                <Button type="primary" icon={<DownloadOutlined />} block onClick={handleExport}>
+                <Button
+                  type="primary"
+                  icon={<DownloadOutlined />}
+                  block
+                  style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+                  onClick={handleExport}
+                >
                   Export
                 </Button>
               </Col>
             </Row>
           </div>
 
-          <Table dataSource={filteredStudents} columns={columns} rowKey="_id" scroll={{ x: "max-content", y: 400 }} />
+          <Table
+            dataSource={filteredStudents}
+            columns={columns}
+            rowKey="_id"
+            scroll={{ x: "max-content", y: 400 }}
+            style={styles.table}
+            className="ant-table-custom"
+          />
         </Spin>
       </Content>
 
       <Modal
-        title={<><UserAddOutlined style={{ marginRight: 8 }} />Add New Student</>}
+        title={<span style={styles.modalHeader}><UserAddOutlined style={{ marginRight: 8 }} />Add New Student</span>}
         open={isAddModalVisible}
         onCancel={() => setIsAddModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>Cancel</Button>,
-          <Button key="submit" type="primary" onClick={handleAddStudent} loading={loading}>Create Student</Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={handleAddStudent}
+            loading={loading}
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+          >
+            Create Student
+          </Button>,
         ]}
+        styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Adding student...">
-          <Form form={addForm} layout="vertical">
-            <Form.Item name="firstName" label="First Name" rules={[{ required: true, message: "First name is required" }]}>
-              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, firstName: e.target.value }))} />
+          <Form form={addForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
+            <Form.Item
+              name="firstName"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
+              rules={[{ required: true, message: "First name is required" }]}
+            >
+              <Input
+                autoComplete="new-firstName"
+                onChange={(e) => setNewStudent((prev) => ({ ...prev, firstName: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="lastName" label="Last Name" rules={[{ required: true, message: "Last name is required" }]}>
-              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, lastName: e.target.value }))} />
+            <Form.Item
+              name="lastName"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Last Name</span>}
+              rules={[{ required: true, message: "Last name is required" }]}
+            >
+              <Input
+                autoComplete="new-lastName"
+                onChange={(e) => setNewStudent((prev) => ({ ...prev, lastName: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="email" label="Email" rules={[{ required: true, message: "Email is required" }, { type: "email", message: "Invalid email format" }]}>
-              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, email: e.target.value }))} />
+            <Form.Item
+              name="email"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Email</span>}
+              rules={[{ required: true, message: "Email is required" }, { type: "email", message: "Invalid email format" }]}
+            >
+              <Input
+                autoComplete="new-email"
+                onChange={(e) => setNewStudent((prev) => ({ ...prev, email: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="password" label="Password" rules={[{ required: true, message: "Password is required" }]}>
-              <Input.Password onChange={(e) => setNewStudent((prev) => ({ ...prev, password: e.target.value }))} />
+            <Form.Item
+              name="password"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Password</span>}
+              rules={[{ required: true, message: "Password is required" }]}
+            >
+              <Input.Password
+                autoComplete="new-password"
+                onChange={(e) => setNewStudent((prev) => ({ ...prev, password: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="regNo" label="Registration Number" rules={[{ required: true, message: "Registration number is required" }]}>
-              <Input onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
+            <Form.Item
+              name="regNo"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Registration Number</span>}
+              rules={[{ required: true, message: "Registration number is required" }]}
+            >
+              <Input
+                onChange={(e) => setNewStudent((prev) => ({ ...prev, regNo: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="course" label="Course" rules={[{ required: true, message: "Course is required" }]}>
-              <Select placeholder="Select Course" onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))}>
+            <Form.Item
+              name="course"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Course</span>}
+              rules={[{ required: true, message: "Course is required" }]}
+            >
+              <Select
+                placeholder="Select Course"
+                onChange={(value) => setNewStudent((prev) => ({ ...prev, course: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {availableCourses.map((course) => (
                   <Option key={course.id} value={course.id}>{course.name}</Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item name="department" label="Department" rules={[{ required: true, message: "Department is required" }]}>
-              <Select placeholder="Select Department" onChange={(value) => setNewStudent((prev) => ({ ...prev, department: value }))}>
+            <Form.Item
+              name="department"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
+              rules={[{ required: true, message: "Department is required" }]}
+            >
+              <Select
+                placeholder="Select Department"
+                onChange={(value) => setNewStudent((prev) => ({ ...prev, department: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {departments.map((dept) => (
                   <Option key={dept._id} value={dept._id}>{dept.name}</Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item name="year" label="Year" rules={[{ required: true, message: "Year is required" }]}>
-              <Select placeholder="Select Year" onChange={(value) => setNewStudent((prev) => ({ ...prev, year: value }))}>
+            <Form.Item
+              name="year"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Year</span>}
+              rules={[{ required: true, message: "Year is required" }]}
+            >
+              <Select
+                placeholder="Select Year"
+                onChange={(value) => setNewStudent((prev) => ({ ...prev, year: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {["1", "2", "3", "4"].map((year) => (
                   <Option key={year} value={year}>Year {year}</Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item name="semester" label="Semester" rules={[{ required: true, message: "Semester is required" }]}>
-              <Select placeholder="Select Semester" onChange={(value) => setNewStudent((prev) => ({ ...prev, semester: value }))}>
+            <Form.Item
+              name="semester"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Semester</span>}
+              rules={[{ required: true, message: "Semester is required" }]}
+            >
+              <Select
+                placeholder="Select Semester"
+                onChange={(value) => setNewStudent((prev) => ({ ...prev, semester: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {["1", "2", "3"].map((sem) => (
                   <Option key={sem} value={sem}>Semester {sem}</Option>
                 ))}
@@ -580,51 +1024,116 @@ const ManageStudents = () => {
       </Modal>
 
       <Modal
-        title={<><EditOutlined style={{ marginRight: 8 }} />Edit Student</>}
+        title={<span style={styles.modalHeader}><EditOutlined style={{ marginRight: 8 }} />Edit Student</span>}
         open={isEditModalVisible}
         onCancel={() => setIsEditModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setIsEditModalVisible(false)}>Cancel</Button>,
-          <Button key="submit" type="primary" onClick={handleEditStudent} loading={loading}>Save Changes</Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={handleEditStudent}
+            loading={loading}
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+          >
+            Save Changes
+          </Button>,
         ]}
+        styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Updating student...">
-          <Form form={editForm} layout="vertical">
-            <Form.Item name="firstName" label="First Name">
-              <Input onChange={(e) => setSelectedStudent((prev) => ({ ...prev, firstName: e.target.value }))} />
+          <Form form={editForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
+            <Form.Item
+              name="firstName"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
+            >
+              <Input
+                onChange={(e) => setSelectedStudent((prev) => ({ ...prev, firstName: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="lastName" label="Last Name">
-              <Input onChange={(e) => setSelectedStudent((prev) => ({ ...prev, lastName: e.target.value }))} />
+            <Form.Item
+              name="lastName"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Last Name</span>}
+            >
+              <Input
+                onChange={(e) => setSelectedStudent((prev) => ({ ...prev, lastName: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="email" label="Email">
-              <Input onChange={(e) => setSelectedStudent((prev) => ({ ...prev, email: e.target.value }))} />
+            <Form.Item
+              name="email"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Email</span>}
+            >
+              <Input
+                onChange={(e) => setSelectedStudent((prev) => ({ ...prev, email: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="regNo" label="Registration Number">
-              <Input onChange={(e) => setSelectedStudent((prev) => ({ ...prev, regNo: e.target.value }))} />
+            <Form.Item
+              name="regNo"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Registration Number</span>}
+            >
+              <Input
+                onChange={(e) => setSelectedStudent((prev) => ({ ...prev, regNo: e.target.value }))}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              />
             </Form.Item>
-            <Form.Item name="course" label="Course">
-              <Select placeholder="Select Course" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, courseId: value }))}>
+            <Form.Item
+              name="course"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Course</span>}
+            >
+              <Select
+                placeholder="Select Course"
+                onChange={(value) => setSelectedStudent((prev) => ({ ...prev, courseId: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {availableCourses.map((course) => (
                   <Option key={course.id} value={course.id}>{course.name}</Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item name="department" label="Department">
-              <Select placeholder="Select Department" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, departmentId: value }))}>
+            <Form.Item
+              name="department"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
+            >
+              <Select
+                placeholder="Select Department"
+                onChange={(value) => setSelectedStudent((prev) => ({ ...prev, departmentId: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {departments.map((dept) => (
                   <Option key={dept._id} value={dept._id}>{dept.name}</Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item name="year" label="Year">
-              <Select placeholder="Select Year" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, year: value }))}>
+            <Form.Item
+              name="year"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Year</span>}
+            >
+              <Select
+                placeholder="Select Year"
+                onChange={(value) => setSelectedStudent((prev) => ({ ...prev, year: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {["1", "2", "3", "4"].map((year) => (
                   <Option key={year} value={year}>Year {year}</Option>
                 ))}
               </Select>
             </Form.Item>
-            <Form.Item name="semester" label="Semester">
-              <Select placeholder="Select Semester" onChange={(value) => setSelectedStudent((prev) => ({ ...prev, semester: value }))}>
+            <Form.Item
+              name="semester"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Semester</span>}
+            >
+              <Select
+                placeholder="Select Semester"
+                onChange={(value) => setSelectedStudent((prev) => ({ ...prev, semester: value }))}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 {["1", "2", "3"].map((sem) => (
                   <Option key={sem} value={sem}>Semester {sem}</Option>
                 ))}
@@ -635,17 +1144,30 @@ const ManageStudents = () => {
       </Modal>
 
       <Modal
-        title="Confirm Deletion"
+        title={<span style={styles.modalHeader}>Confirm Deletion</span>}
         open={isDeleteModalVisible}
         centered
         onCancel={() => setIsDeleteModalVisible(false)}
         footer={[
           <Button key="cancel" onClick={() => setIsDeleteModalVisible(false)}>Cancel</Button>,
-          <Button key="delete" type="primary" danger onClick={handleConfirmDelete} loading={loading}>Delete Student</Button>,
+          <Button
+            key="delete"
+            type="primary"
+            danger
+            onClick={handleConfirmDelete}
+            loading={loading}
+            style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+          >
+            Delete Student
+          </Button>,
         ]}
+        styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Deleting student...">
-          <p><ExclamationCircleOutlined style={{ marginRight: 8 }} />Are you sure you want to delete this student? This action cannot be undone.</p>
+          <p style={{ color: themeColors.accent }}>
+            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+            Are you sure you want to delete this student? This action cannot be undone.
+          </p>
         </Spin>
       </Modal>
     </Layout>

@@ -1,4 +1,4 @@
-import { useState, useEffect, useContext } from 'react';
+import { useState, useEffect, useMemo, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Layout,
@@ -15,7 +15,6 @@ import {
   message,
   Typography,
   Spin,
-  Switch, // Added Switch import
 } from 'antd';
 import {
   ArrowUpOutlined,
@@ -38,16 +37,16 @@ import {
   removeUnitFromCourse,
   getUnitsByCourse,
 } from '../../services/api';
-import 'antd/dist/reset.css';
-import { ThemeContext } from '../../context/ThemeContext'; // New import
+import { ThemeContext } from '../../context/ThemeContext';
+import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
 
 const { Content } = Layout;
 const { Option } = Select;
 const { Title } = Typography;
 
 const ManageCourses = () => {
-  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext); // Get theme and setIsDarkMode from context
   const navigate = useNavigate();
+  const { isDarkMode, themeColors } = useContext(ThemeContext);
   const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [showCourseModal, setShowCourseModal] = useState(false);
@@ -59,7 +58,7 @@ const ManageCourses = () => {
   const [formData, setFormData] = useState({ name: '', code: '', department: '' });
   const [unitInput, setUnitInput] = useState({ name: '', code: '', year: '', semester: '' });
   const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false); // Global loading state
+  const [loading, setLoading] = useState(false);
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [selectedCourseForUnits, setSelectedCourseForUnits] = useState(null);
   const [selectedUnitId, setSelectedUnitId] = useState(null);
@@ -78,7 +77,7 @@ const ManageCourses = () => {
     fetchData();
   }, []);
 
-  const courseCodes = [...new Set(courses.map(course => course.code))];
+  const courseCodes = useMemo(() => [...new Set(courses.map(course => course.code))], [courses]);
 
   const fetchData = async () => {
     try {
@@ -94,11 +93,13 @@ const ManageCourses = () => {
     }
   };
 
-  const filteredCourses = courses.filter(course => {
-    const matchesCode = selectedCode ? course.code === selectedCode : true;
-    const matchesDepartment = selectedDepartment ? course.department?._id === selectedDepartment : true;
-    return matchesCode && matchesDepartment;
-  });
+  const filteredCourses = useMemo(() => {
+    return courses.filter(course => {
+      const matchesCode = selectedCode ? course.code === selectedCode : true;
+      const matchesDepartment = selectedDepartment ? course.department?._id === selectedDepartment : true;
+      return matchesCode && matchesDepartment;
+    });
+  }, [courses, selectedCode, selectedDepartment]);
 
   const handleCourseSubmit = async () => {
     try {
@@ -220,219 +221,261 @@ const ManageCourses = () => {
     }
   };
 
-  // Move and compute styles dynamically based on the theme
-  const styles = {
+  const styles = useMemo(() => ({
     layout: {
-      minHeight: '100vh',
-      background: themeColors.background,
-      color: themeColors.text,
+      minHeight: "100vh",
+      background: isDarkMode ? themeColors.background : "#f0f2f5",
       padding: 0,
       margin: 0,
-      width: '100%',
-      overflowX: 'hidden',
-    },
-    content: {
-      maxWidth: '100%',
-      width: '100%',
-      margin: 0,
-      padding: '8px',
-      background: themeColors.cardBg,
-      color: themeColors.text,
-      borderRadius: 8,
-      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
-      boxSizing: 'border-box',
-      overflowX: 'hidden',
+      width: "100%",
+      overflowX: "hidden",
+      boxSizing: "border-box",
     },
     headerRow: {
-      marginBottom: '16px',
-      padding: '8px',
-      background: themeColors.cardBg,
-      color: themeColors.text,
-      borderRadius: '8px 8px 0 0',
-      flexWrap: 'wrap',
-      gap: '8px',
-      alignItems: 'center',
-      width: '100%',
-      boxSizing: 'border-box',
+      marginBottom: "16px",
+      padding: "8px",
+      background: isDarkMode ? themeColors.cardBg : "#fafafa",
+      borderRadius: "8px 8px 0 0",
+      flexWrap: "wrap",
+      gap: "8px",
+      alignItems: "center",
+      width: "100%",
+      boxSizing: "border-box",
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+    },
+    headerTitle: {
+      color: isDarkMode ? themeColors.text : "#1890ff",
+      margin: 0,
+      fontSize: "20px",
+      display: "flex",
+      alignItems: "center",
+    },
+    content: {
+      width: "100%",
+      maxWidth: "100%",
+      margin: 0,
+      padding: "8px",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      borderRadius: 8,
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.05)",
+      boxSizing: "border-box",
+      overflowX: "hidden",
     },
     filterRow: {
-      marginBottom: '16px',
-      padding: '0 8px',
-      width: '100%',
-      boxSizing: 'border-box',
+      marginBottom: "16px",
+      padding: "0 8px",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      borderRadius: 4,
+      boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)",
+      width: "100%",
+      boxSizing: "border-box",
     },
     actionsContainer: {
-      display: 'flex',
-      gap: '8px',
-      flexWrap: 'wrap',
+      display: "flex",
+      gap: "8px",
+      flexWrap: "wrap",
     },
     backToTopButton: {
-      position: 'fixed',
-      bottom: '16px',
-      right: '16px',
+      position: "fixed",
+      bottom: "16px",
+      right: "16px",
       zIndex: 1000,
-      background: '#1890ff',
-      borderColor: '#1890ff',
+      background: themeColors.primary,
+      borderColor: themeColors.primary,
     },
     table: {
       borderRadius: 8,
-      overflow: 'hidden',
-      background: themeColors.cardBg,
-      color: themeColors.text,
-      width: '100%',
+      overflow: "hidden",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      width: "100%",
       margin: 0,
       padding: 0,
-      boxSizing: 'border-box',
+      boxSizing: "border-box",
     },
     modalHeader: {
-      padding: '12px 16px',
-      background: '#1890ff',
-      color: '#fff',
-      borderRadius: '8px 8px 0 0',
+      padding: "12px 16px",
+      background: themeColors.primary,
+      color: themeColors.text,
+      borderRadius: "8px 8px 0 0",
     },
     modalContent: {
-      padding: '16px',
-      boxSizing: 'border-box',
+      padding: "16px",
+      boxSizing: "border-box",
+      background: isDarkMode ? themeColors.cardBg : "#fff",
+      color: isDarkMode ? themeColors.text : "#000",
     },
     responsiveOverrides: `
-      /* Reset browser defaults */
+      .ant-input,
+      .ant-select-selector {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        border-color: ${isDarkMode ? themeColors.secondary : "#d9d9d9"} !important;
+      }
+      .ant-input:focus,
+      .ant-input-focused,
+      .ant-select-selector:focus,
+      .ant-select-focused .ant-select-selector {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        border-color: ${isDarkMode ? themeColors.primary : "#40a9ff"} !important;
+        box-shadow: 0 0 0 2px ${isDarkMode ? "rgba(24, 144, 255, 0.2)" : "rgba(24, 144, 255, 0.2)"} !important;
+      }
+      .ant-input:-webkit-autofill {
+        -webkit-box-shadow: 0 0 0 1000px ${isDarkMode ? themeColors.cardBg : "#fff"} inset !important;
+        -webkit-text-fill-color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        caret-color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-input::placeholder,
+      .ant-select-selection-placeholder {
+        color: ${isDarkMode ? "#a0a0a0" : "#999"} !important;
+      }
+      .ant-form-item {
+        background: transparent !important;
+      }
+      .ant-form-item-label > label {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-table-thead > tr > th {
+        background: ${isDarkMode ? themeColors.cardBg : "#fafafa"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-table-tbody > tr > td {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-table-tbody > tr:hover > td {
+        background: ${isDarkMode ? themeColors.secondary : "#fafafa"} !important;
+      }
+      .ant-modal-content,
+      .ant-modal-body {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-header {
+        background: ${isDarkMode ? themeColors.cardBg : "#fafafa"} !important;
+        border-bottom: ${isDarkMode ? `1px solid ${themeColors.secondary}` : "1px solid #f0f0f0"} !important;
+      }
+      .ant-modal-title {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-modal-close-x {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-select-dropdown {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+      }
+      .ant-select-item {
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+      }
+      .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+        background: ${isDarkMode ? themeColors.secondary : "#e6f7ff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-select-selection-item {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${isDarkMode ? themeColors.text : "#000"} !important;
+      }
+      .ant-btn:hover {
+        background: ${isDarkMode ? themeColors.secondary : "#e6f7ff"} !important;
+      }
       html, body, #root {
         margin: 0;
         padding: 0;
         width: 100%;
-        overflow-x: hidden;
-        background: ${themeColors.background};
-        color: ${themeColors.text};
+        overflow-x: "hidden";
       }
-  
-      /* Reset Ant Design's Layout defaults */
       .ant-layout, .ant-layout-content {
         padding: 0 !important;
         margin: 0 !important;
-        background: transparent;
       }
-  
       @media (max-width: 768px) {
         .ant-layout-content { 
-          padding: 4px !important; 
-        }
-        .header-row { 
           padding: 4px !important; 
         }
         .filter-row { 
           padding: 0 4px !important; 
         }
-      }
-      @media (max-width: 480px) {
-        .ant-layout-content { 
-          padding: 2px !important; 
-        }
         .header-row { 
+          padding: 4px !important; 
+        }
+        .ant-btn {
+          font-size: 12px;
+          padding: 4px 8px;
+        }
+        .ant-modal {
+          width: 90% !important;
+          margin: 0 auto;
+        }
+        .back-to-top-btn {
+          bottom: 40px;
+          right: 10px;
+        }
+      }
+      @media (max-width: 576px) {
+        .ant-layout-content { 
           padding: 2px !important; 
         }
         .filter-row { 
           padding: 0 2px !important; 
+          margin-bottom: 8px !important;
+        }
+        .header-row { 
+          padding: 2px !important; 
+          flex-direction: column;
+          align-items: flex-start;
+          gap: 4px;
+        }
+        .ant-row:not(.header-row) {
+          flex-direction: column;
+          margin: 0;
+        }
+        .ant-col {
+          width: 100%;
+          margin-bottom: 8px;
+          padding: 0;
+        }
+        .ant-table {
+          font-size: 12px;
+        }
+        .ant-modal {
+          width: 100% !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+        .ant-modal-content {
+          border-radius: 0;
+        }
+        .back-to-top-btn {
+          bottom: 30px;
+          right: 5px;
+          width: 32px;
+          height: 32px;
+          font-size: 14px;
+        }
+        .ant-alert {
+          margin-bottom: 8px !important;
         }
       }
-      .ant-table {
-        background-color: ${themeColors.cardBg} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-table-thead > tr > th,
-      .ant-table-tbody > tr > td {
-        background-color: ${themeColors.cardBg} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-table-tbody > tr.ant-table-row:hover > td {
-        background-color: ${themeColors.background} !important;
-      }
-      .ant-modal-content,
-      .ant-modal-header,
-      .ant-modal-body,
-      .ant-modal-footer {
-        background-color: ${themeColors.cardBg} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-modal-title {
-        color: ${themeColors.text} !important;
-      }
-      .ant-select-dropdown,
-      .ant-select-dropdown-menu {
-        background-color: ${themeColors.cardBg} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-select-selector {
-        background-color: ${themeColors.cardBg} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-select-item-option-content {
-        color: ${themeColors.text} !important;
-      }
-      .ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
-        background-color: ${themeColors.background} !important;
-      }
-      .ant-modal-content .ant-input,
-      .ant-modal-content .ant-select-selector {
-        background-color: ${themeColors.cardBg} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-modal-content .ant-input::placeholder,
-      .ant-select:not(.ant-select-customize-input)
-      .ant-select-selector
-      .ant-select-selection-placeholder {
-        color: ${themeColors.text}80 !important;
-      }
-      .ant-modal-content .ant-form {
-        background-color: ${themeColors.cardBg} !important;
-      }
-      .ant-modal-content .ant-form .ant-form-item-label > label,
-      .ant-modal-content .ant-form .ant-form-item-control-input-content {
-        color: ${themeColors.text} !important;
-      }
-      .ant-modal-content .ant-form .ant-input,
-      .ant-modal-content .ant-form .ant-select-selector {
-        width: 100% !important;
-      }
-      .ant-modal-content .ant-input:-webkit-autofill,
-      .ant-modal-content input:-webkit-autofill {
-        box-shadow: 0 0 0 30px ${themeColors.cardBg} inset !important;
-        -webkit-box-shadow: 0 0 0 30px ${themeColors.cardBg} inset !important;
-        -webkit-text-fill-color: ${themeColors.text} !important;
-      }
     `,
-  };
+  }), [isDarkMode, themeColors]);
 
   const columns = [
     {
-      title: (
-        <>
-          <IdcardOutlined style={{ marginRight: 4, color: '#1890ff' }} />
-          Code
-        </>
-      ),
+      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Code</>),
       dataIndex: 'code',
       key: 'code',
-      render: text => <span style={{ color: '#1890ff', fontWeight: 500 }}>{text}</span>,
+      render: text => <span style={{ color: themeColors.primary, fontWeight: 500 }}>{text}</span>,
       width: 100,
     },
     {
-      title: (
-        <>
-          <BookOutlined style={{ marginRight: 4, color: '#1890ff' }} />
-          Name
-        </>
-      ),
+      title: (<><BookOutlined style={{ marginRight: 4, color: themeColors.accent }} />Name</>),
       dataIndex: 'name',
       key: 'name',
       width: 150,
     },
     {
-      title: (
-        <>
-          <ApartmentOutlined style={{ marginRight: 4, color: '#1890ff' }} />
-          Department
-        </>
-      ),
+      title: (<><ApartmentOutlined style={{ marginRight: 4, color: themeColors.accent }} />Department</>),
       dataIndex: ['department', 'name'],
       key: 'department',
       render: dept => dept || 'N/A',
@@ -440,14 +483,9 @@ const ManageCourses = () => {
       responsive: ['md'],
     },
     {
-      title: (
-        <>
-          <FilterOutlined style={{ marginRight: 4, color: '#1890ff' }} />
-          Units
-        </>
-      ),
+      title: (<><FilterOutlined style={{ marginRight: 4, color: themeColors.accent }} />Units</>),
       key: 'units',
-      render: (_, record) => <Tag color="#1890ff">{record.units ? record.units.length : 0}</Tag>,
+      render: (_, record) => <Tag color={themeColors.primary}>{record.units ? record.units.length : 0}</Tag>,
       width: 80,
       responsive: ['sm'],
     },
@@ -460,7 +498,7 @@ const ManageCourses = () => {
             type="primary"
             icon={<EditOutlined />}
             size="small"
-            style={{ background: '#1890ff', borderColor: '#1890ff' }}
+            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
             onClick={() => {
               setSelectedCourse(record);
               setFormData({ name: record.name, code: record.code, department: record.department?._id });
@@ -474,6 +512,7 @@ const ManageCourses = () => {
             type="default"
             icon={<UnorderedListOutlined />}
             size="small"
+            style={{ background: themeColors.cardBg, borderColor: themeColors.secondary, color: themeColors.text }}
             onClick={() => handleManageUnits(record)}
           >
             Units
@@ -483,7 +522,7 @@ const ManageCourses = () => {
             danger
             icon={<DeleteOutlined />}
             size="small"
-            style={{ background: '#f5222d', borderColor: '#f5222d' }}
+            style={{ background: themeColors.accent, borderColor: themeColors.accent }}
             onClick={() => handleDeleteConfirmation(record._id)}
           >
             Delete
@@ -496,12 +535,7 @@ const ManageCourses = () => {
 
   const unitColumns = [
     {
-      title: (
-        <>
-          <IdcardOutlined style={{ marginRight: 4, color: '#1890ff' }} />
-          Code
-        </>
-      ),
+      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Code</>),
       dataIndex: 'code',
       key: 'code',
       width: 100,
@@ -516,7 +550,7 @@ const ManageCourses = () => {
       title: 'Year',
       dataIndex: 'year',
       key: 'year',
-      render: year => <Tag color="#1890ff">{year}</Tag>,
+      render: year => <Tag color={themeColors.primary}>{year}</Tag>,
       width: 80,
       responsive: ['sm'],
     },
@@ -524,7 +558,7 @@ const ManageCourses = () => {
       title: 'Semester',
       dataIndex: 'semester',
       key: 'semester',
-      render: sem => <Tag color="#1890ff">{sem}</Tag>,
+      render: sem => <Tag color={themeColors.primary}>{sem}</Tag>,
       width: 80,
       responsive: ['sm'],
     },
@@ -537,7 +571,7 @@ const ManageCourses = () => {
           danger
           icon={<DeleteOutlined />}
           size="small"
-          style={{ background: '#f5222d', borderColor: '#f5222d' }}
+          style={{ background: themeColors.accent, borderColor: themeColors.accent }}
           onClick={() => promptRemoveUnit(record._id)}
         >
           Remove
@@ -558,6 +592,7 @@ const ManageCourses = () => {
               shape="circle"
               icon={<ArrowUpOutlined />}
               style={styles.backToTopButton}
+              className="back-to-top-btn"
               onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
             />
           )}
@@ -566,24 +601,15 @@ const ManageCourses = () => {
             <Button type="link" icon={<LeftOutlined />} onClick={() => navigate('/admin')}>
               Back to Admin
             </Button>
-            <Title
-              level={3}
-              style={{ margin: 0, color: '#1890ff', display: 'flex', alignItems: 'center' }} // Modified style to flex
-            >
+            <Title level={3} style={styles.headerTitle}>
               <BookOutlined style={{ marginRight: 8 }} />
               Course Management
-              <Switch
-                checked={isDarkMode}
-                onChange={(checked) => setIsDarkMode(checked)}
-                checkedChildren="Dark"
-                unCheckedChildren="Light"
-                style={{ marginLeft: 16 }}
-              />
             </Title>
+            <ThemeToggle />
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              style={{ background: '#1890ff', borderColor: '#1890ff' }}
+              style={{ background: themeColors.primary, borderColor: themeColors.primary }}
               onClick={() => {
                 setShowCourseModal(true);
                 setSelectedCourse(null);
@@ -593,7 +619,6 @@ const ManageCourses = () => {
             >
               Add Course
             </Button>
-
           </Row>
 
           <Row gutter={[8, 8]} style={styles.filterRow}>
@@ -605,6 +630,7 @@ const ManageCourses = () => {
                 onChange={value => setSelectedCode(value)}
                 allowClear
                 size="large"
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               >
                 {courseCodes.map(code => (
                   <Option key={code} value={code}>{code}</Option>
@@ -619,6 +645,7 @@ const ManageCourses = () => {
                 onChange={value => setSelectedDepartment(value)}
                 allowClear
                 size="large"
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               >
                 {departments.map(dept => (
                   <Option key={dept._id} value={dept._id}>{dept.name}</Option>
@@ -657,7 +684,13 @@ const ManageCourses = () => {
             }}
             footer={[
               <Button key="cancel" onClick={() => setShowCourseModal(false)}>Cancel</Button>,
-              <Button key="submit" type="primary" onClick={handleCourseSubmit} loading={loading} style={{ background: '#1890ff', borderColor: '#1890ff' }}>
+              <Button
+                key="submit"
+                type="primary"
+                onClick={handleCourseSubmit}
+                loading={loading}
+                style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+              >
                 Save Course
               </Button>,
             ]}
@@ -675,19 +708,34 @@ const ManageCourses = () => {
                   department: selectedCourse?.department?._id || '',
                 }}
                 onValuesChange={(_, allValues) => setFormData(allValues)}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               >
-                <Form.Item label="Course Code" name="code" rules={[{ required: true, message: 'Please input the course code' }]}>
-                  <Input size="large" />
+                <Form.Item
+                  label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Course Code</span>}
+                  name="code"
+                  rules={[{ required: true, message: 'Please input the course code' }]}
+                >
+                  <Input size="large" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }} />
                 </Form.Item>
-                <Form.Item label="Course Name" name="name" rules={[{ required: true, message: 'Please input the course name' }]}>
-                  <Input size="large" />
+                <Form.Item
+                  label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Course Name</span>}
+                  name="name"
+                  rules={[{ required: true, message: 'Please input the course name' }]}
+                >
+                  <Input size="large" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }} />
                 </Form.Item>
-                <Form.Item label="Department" name="department" rules={[{ required: true, message: 'Please select a department' }]}>
+                <Form.Item
+                  label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
+                  name="department"
+                  rules={[{ required: true, message: 'Please select a department' }]}
+                >
                   <Select
                     placeholder="Select Department"
                     value={formData.department}
                     onChange={(value) => setFormData({ ...formData, department: value })}
                     size="large"
+                    dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                    style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                   >
                     {departments.map(dept => (
                       <Option key={dept._id} value={dept._id}>{dept.name}</Option>
@@ -705,7 +753,14 @@ const ManageCourses = () => {
             onCancel={() => setShowDeleteModal(false)}
             footer={[
               <Button key="cancel" onClick={() => setShowDeleteModal(false)}>Cancel</Button>,
-              <Button key="delete" type="primary" danger onClick={handleDelete} loading={loading} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
+              <Button
+                key="delete"
+                type="primary"
+                danger
+                onClick={handleDelete}
+                loading={loading}
+                style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+              >
                 Delete Course
               </Button>,
             ]}
@@ -713,7 +768,7 @@ const ManageCourses = () => {
             styles={{ body: styles.modalContent }}
           >
             <Spin spinning={loading} tip="Loading data...">
-              <p style={{ color: '#f5222d' }}>
+              <p style={{ color: themeColors.accent }}>
                 <ExclamationCircleOutlined style={{ marginRight: 8 }} />
                 Are you sure you want to delete this course? This action cannot be undone.
               </p>
@@ -726,7 +781,14 @@ const ManageCourses = () => {
             onCancel={() => setShowUnitDeleteModal(false)}
             footer={[
               <Button key="cancel" onClick={() => setShowUnitDeleteModal(false)}>Cancel</Button>,
-              <Button key="remove" type="primary" danger onClick={confirmUnitDelete} loading={loading} style={{ background: '#f5222d', borderColor: '#f5222d' }}>
+              <Button
+                key="remove"
+                type="primary"
+                danger
+                onClick={confirmUnitDelete}
+                loading={loading}
+                style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+              >
                 Remove Unit
               </Button>,
             ]}
@@ -734,7 +796,7 @@ const ManageCourses = () => {
             styles={{ body: styles.modalContent }}
           >
             <Spin spinning={loading} tip="Loading data...">
-              <p style={{ color: '#f5222d' }}>
+              <p style={{ color: themeColors.accent }}>
                 <ExclamationCircleOutlined style={{ marginRight: 8 }} />
                 Are you sure you want to remove this unit? This action cannot be undone.
               </p>
@@ -757,31 +819,56 @@ const ManageCourses = () => {
             className="responsive-modal"
           >
             <Spin spinning={loading} tip="Loading data...">
-              <Form form={unitForm} layout="vertical" onFinish={handleAddUnit}>
+              <Form
+                form={unitForm}
+                layout="vertical"
+                onFinish={handleAddUnit}
+                style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
                 <Row gutter={[16, 16]} style={{ marginBottom: 16 }}>
                   <Col xs={24} sm={12} md={6}>
-                    <Form.Item name="name" rules={[{ required: true, message: 'Please enter Unit Name' }]}>
+                    <Form.Item
+                      name="name"
+                      label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Unit Name</span>}
+                      rules={[{ required: true, message: 'Please enter Unit Name' }]}
+                    >
                       <Input
                         placeholder="Unit Name"
                         value={unitInput.name}
                         onChange={(e) => setUnitInput({ ...unitInput, name: e.target.value })}
                         size="large"
+                        style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                       />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12} md={6}>
-                    <Form.Item name="code" rules={[{ required: true, message: 'Please enter Unit Code' }]}>
+                    <Form.Item
+                      name="code"
+                      label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Unit Code</span>}
+                      rules={[{ required: true, message: 'Please enter Unit Code' }]}
+                    >
                       <Input
                         placeholder="Unit Code"
                         value={unitInput.code}
                         onChange={(e) => setUnitInput({ ...unitInput, code: e.target.value })}
                         size="large"
+                        style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                       />
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12} md={6}>
-                    <Form.Item name="year" rules={[{ required: true, message: 'Year', type: 'number', min: 1, max: 4 }]}>
-                      <Select placeholder="Select Year" size="large">
+                    <Form.Item
+                      name="year"
+                      label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Year</span>}
+                      rules={[{ required: true, message: 'Year', type: 'number', min: 1, max: 4 }]}
+                    >
+                      <Select
+                        placeholder="Select Year"
+                        size="large"
+                        onChange={(value) => setUnitInput({ ...unitInput, year: value })}
+                        dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                        style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                      >
                         <Option value="1">Year 1</Option>
                         <Option value="2">Year 2</Option>
                         <Option value="3">Year 3</Option>
@@ -790,8 +877,18 @@ const ManageCourses = () => {
                     </Form.Item>
                   </Col>
                   <Col xs={24} sm={12} md={6}>
-                    <Form.Item name="semester" rules={[{ required: true, message: 'Semester', type: 'number', min: 1, max: 3 }]}>
-                      <Select placeholder="Select Semester" size="large">
+                    <Form.Item
+                      name="semester"
+                      label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Semester</span>}
+                      rules={[{ required: true, message: 'Semester', type: 'number', min: 1, max: 3 }]}
+                    >
+                      <Select
+                        placeholder="Select Semester"
+                        size="large"
+                        onChange={(value) => setUnitInput({ ...unitInput, semester: value })}
+                        dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                        style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+                      >
                         <Option value="1">Semester 1</Option>
                         <Option value="2">Semester 2</Option>
                         <Option value="3">Semester 3</Option>
@@ -805,7 +902,7 @@ const ManageCourses = () => {
                       htmlType="submit"
                       disabled={!unitInput.name.trim() || !unitInput.code.trim()}
                       block
-                      style={{ background: '#1890ff', borderColor: '#1890ff' }}
+                      style={{ background: themeColors.primary, borderColor: themeColors.primary }}
                     >
                       Add Unit
                     </Button>

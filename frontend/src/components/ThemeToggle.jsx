@@ -1,6 +1,7 @@
+// components/ThemeToggle.jsx
 import { useContext } from 'react';
 import { Switch } from 'antd';
-import { ThemeContext } from '../context/ThemeContext'; // Updated path
+import { ThemeContext } from '../context/ThemeContext';
 
 const ThemeToggle = () => {
   const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
@@ -13,7 +14,7 @@ const ThemeToggle = () => {
       unCheckedChildren="Light"
       style={{
         background: isDarkMode ? themeColors.primary : themeColors.secondary,
-        borderColor: themeColors.primary,
+        borderColor: themeColors.border,
       }}
     />
   );

@@ -1,4 +1,7 @@
-import { useState, useEffect, createContext } from 'react';
+// AdminPanel.jsx
+import { useState, useEffect, useContext } from 'react';
+import { ThemeContext } from '../../context/ThemeContext';
+import { useStyles } from '../../styles/styles.js'; // Adjust path as needed
 import {
   UserOutlined,
   BookOutlined,
@@ -10,7 +13,7 @@ import {
   TeamOutlined,
   LineChartOutlined,
   FormOutlined,
-  ArrowUpOutlined
+  ArrowUpOutlined,
 } from '@ant-design/icons';
 import {
   Layout,
@@ -25,22 +28,22 @@ import {
   message,
   Typography,
   Spin,
-  Switch
+  Switch,
 } from 'antd';
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { motion } from 'framer-motion';
-import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
+import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api'; // Adjust path as needed
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
 
-// Theme Context
-const ThemeContext = createContext();
-
 const AdminPanel = () => {
+  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
+  const styles = useStyles(isDarkMode, themeColors);
+
   const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [students, setStudents] = useState([]);
   const [lecturers, setLecturers] = useState([]);
@@ -51,7 +54,6 @@ const AdminPanel = () => {
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
   const [showBackToTop, setShowBackToTop] = useState(false);
-  const [isDarkMode, setIsDarkMode] = useState(false);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -70,24 +72,18 @@ const AdminPanel = () => {
   }, []);
 
   useEffect(() => {
-    const handleResize = () => {
-      setCollapsed(window.innerWidth < 992);
-    };
+    const handleResize = () => setCollapsed(window.innerWidth < 992);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
 
   useEffect(() => {
-    const handleScroll = () => {
-      setShowBackToTop(window.scrollY > 200);
-    };
+    const handleScroll = () => setShowBackToTop(window.scrollY > 200);
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const scrollToTop = () => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
-  };
+  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -104,7 +100,6 @@ const AdminPanel = () => {
       try {
         const studentsRes = await getStudents();
         setStudents(studentsRes || []);
-        console.log('Students fetched:', studentsRes);
       } catch (error) {
         console.error('Failed to fetch students:', error.message || 'Unknown error');
         message.error('Failed to load students');
@@ -121,7 +116,6 @@ const AdminPanel = () => {
       try {
         const lecturersRes = await getLecturers();
         setLecturers(lecturersRes || []);
-        console.log('Lecturers fetched:', lecturersRes);
       } catch (error) {
         console.error('Failed to fetch lecturers:', error.message || 'Unknown error');
         message.error('Failed to load lecturers');
@@ -138,7 +132,6 @@ const AdminPanel = () => {
       try {
         const coursesRes = await getCourses();
         setCourses(coursesRes || []);
-        console.log('Courses fetched:', coursesRes);
       } catch (error) {
         console.error('Failed to fetch courses:', error.message || 'Unknown error');
         message.error('Failed to load courses');
@@ -155,7 +148,6 @@ const AdminPanel = () => {
       const cachedRates = localStorage.getItem('attendanceRates');
       if (cachedRates) {
         setAttendanceRates(JSON.parse(cachedRates));
-        console.log('Loaded attendance rates from cache:', JSON.parse(cachedRates));
         return;
       }
       setAttendanceLoading(true);
@@ -175,7 +167,6 @@ const AdminPanel = () => {
         }, {});
         setAttendanceRates(rates);
         localStorage.setItem('attendanceRates', JSON.stringify(rates));
-        console.log('Attendance rates fetched:', rates);
       } catch (error) {
         console.error('Failed to fetch attendance rates:', error.message || 'Unknown error');
         message.error('Failed to load attendance data');
@@ -191,35 +182,6 @@ const AdminPanel = () => {
     const totalPossible = Object.values(attendanceRates).reduce((sum, rate) => sum + (rate.totalPossible || 0), 0);
     return totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
   };
-
-  const modernColors = {
-    light: {
-      primary: '#6C5CE7',
-      secondary: '#00CEC9',
-      accent: '#FF7675',
-      background: '#F7F9FC',
-      text: '#2D3436',
-      cardGradient1: 'linear-gradient(135deg, #6C5CE7, #A29BFE)',
-      cardGradient2: 'linear-gradient(135deg, #00CEC9, #81ECEC)',
-      cardGradient3: 'linear-gradient(135deg, #FF7675, #FAB1A0)',
-      cardGradient4: 'linear-gradient(135deg, #0984E3, #74B9FF)',
-      cardBg: '#FFFFFF',
-    },
-    dark: {
-      primary: '#A29BFE',
-      secondary: '#81ECEC',
-      accent: '#FAB1A0',
-      background: '#2D3436',
-      text: '#F7F9FC',
-      cardGradient1: 'linear-gradient(135deg, #5A4FCF, #8E86E5)',
-      cardGradient2: 'linear-gradient(135deg, #00B7B3, #6CDADA)',
-      cardGradient3: 'linear-gradient(135deg, #E65F5C, #E09B86)',
-      cardGradient4: 'linear-gradient(135deg, #0773C4, #5DA8FF)',
-      cardBg: '#3A4042',
-    }
-  };
-
-  const themeColors = isDarkMode ? modernColors.dark : modernColors.light;
 
   const overviewChartData = {
     labels: courses.length ? courses.map(course => course.code) : ['No Data'],
@@ -322,7 +284,7 @@ const AdminPanel = () => {
     { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => document.getElementById('attendance-overview').scrollIntoView({ behavior: 'smooth' }) },
     { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
     { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' },
-    { key: '6', icon: <FormOutlined />, label: 'Feedback', onClick: () => window.location.href = '/admin/feedback' }
+    { key: '6', icon: <FormOutlined />, label: 'Feedback', onClick: () => window.location.href = '/admin/feedback' },
   ];
 
   const profileItems = [
@@ -330,395 +292,151 @@ const AdminPanel = () => {
     { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => window.location.href = '/admin/settings' },
     { type: 'divider' },
     {
-      key: '3', label: 'Logout', icon: <LogoutOutlined />, danger: true, onClick: () => Modal.confirm({
-        title: 'Confirm Logout',
-        content: 'Are you sure you want to logout?',
-        onOk: logout,
-        centered: true,
-        okButtonProps: { style: { background: themeColors.accent, border: 'none' } },
-      })
-    }
+      key: '3',
+      label: 'Logout',
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: () =>
+        Modal.confirm({
+          title: 'Confirm Logout',
+          content: 'Are you sure you want to logout?',
+          onOk: logout,
+          centered: true,
+          okButtonProps: { style: styles.button },
+        }),
+    },
   ];
 
-  // Framer Motion animation variants
   const cardVariants = {
     hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } }
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
   };
 
   return (
-    <ThemeContext.Provider value={{ isDarkMode, setIsDarkMode, themeColors }}>
-      <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
-        <Header
+    <Layout style={styles.layout}>
+      <style>{styles.globalStyles}</style>
+      <Header style={styles.header}>
+        <Space>
+          <Button
+            type="text"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => setCollapsed(!collapsed)}
+            style={{ fontSize: 18, width: 64, height: 64 }}
+          />
+        </Space>
+        <AntTitle
+          level={3}
           style={{
-            padding: '0 16px',
-            background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.95)',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-            position: 'fixed',
-            width: '100%',
-            zIndex: 10,
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottom: `1px solid ${themeColors.primary}20`,
+            margin: 0,
+            flex: 1,
+            textAlign: 'center',
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: window.innerWidth < 992 ? 'none' : 'block',
           }}
         >
-          <Space>
-            <Button
-              type="text"
-              icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-              onClick={() => setCollapsed(!collapsed)}
-              style={{
-                fontSize: '18px',
-                width: 64,
-                height: 64,
-                color: themeColors.primary,
-                transition: 'all 0.3s',
-              }}
-              ghost
-            />
-          </Space>
-          <AntTitle
-            level={3}
-            style={{
-              margin: 0,
-              flex: 1,
-              textAlign: 'center',
-              color: themeColors.primary,
-              fontWeight: 600,
-              position: 'absolute',
-              left: '50%',
-              transform: 'translateX(-50%)',
-              display: window.innerWidth < 992 ? 'none' : 'block',
-            }}
-          >
-            Admin Dashboard
-          </AntTitle>
-          <AntTitle
-            level={3}
-            style={{
-              margin: 0,
-              color: themeColors.primary,
-              fontWeight: 600,
-              display: window.innerWidth >= 992 ? 'none' : 'inline',
-            }}
-          >
-            Admin Dashboard
-          </AntTitle>
-          <Space>
-            <Switch
-              checked={isDarkMode}
-              onChange={() => setIsDarkMode(!isDarkMode)}
-              checkedChildren="Dark"
-              unCheckedChildren="Light"
-              style={{ marginRight: 16 }}
-            />
-            <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-              <Button
-                type="text"
-                icon={<UserOutlined style={{ fontSize: 24, color: themeColors.primary }} />}
-                style={{ marginRight: 24, transition: 'all 0.3s' }}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
-              />
-            </Dropdown>
-          </Space>
-        </Header>
+          Admin Dashboard
+        </AntTitle>
+        <AntTitle level={3} style={{ margin: 0, display: window.innerWidth >= 992 ? 'none' : 'inline' }}>
+          Admin Dashboard
+        </AntTitle>
+        <Space>
+          <Switch checked={isDarkMode} onChange={() => setIsDarkMode(!isDarkMode)} checkedChildren="Dark" unCheckedChildren="Light" />
+          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} />
+          </Dropdown>
+        </Space>
+      </Header>
 
-        <Layout style={{ background: themeColors.background }}>
-          <Sider
-            collapsible
-            collapsed={collapsed}
-            onCollapse={setCollapsed}
-            width={250}
-            breakpoint="lg"
-            collapsedWidth={80}
-            style={{
-              background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.1)',
-              backdropFilter: 'blur(10px)',
-              marginTop: 64,
-              position: 'fixed',
-              height: 'calc(100vh - 64px)',
-              overflow: 'auto',
-              zIndex: 11,
-              boxShadow: '2px 0 10px rgba(0, 0, 0, 0.05)',
-            }}
-          >
-            <Menu
-              mode="inline"
-              defaultSelectedKeys={['1']}
-              items={menuItems}
-              style={{ background: 'transparent', border: 'none', color: themeColors.text }}
-              theme={isDarkMode ? 'dark' : 'light'}
-            />
-          </Sider>
+      <Layout>
+        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={styles.sider}>
+          <Menu mode="inline" defaultSelectedKeys={['1']} items={menuItems} />
+        </Sider>
 
-          <Content
-            style={{
-              margin: collapsed ? '64px 8px 8px 88px' : '64px 8px 8px 258px', // Reduced margins
-              padding: 24,
-              background: themeColors.background,
-              minHeight: 'calc(100vh - 64px)',
-              overflow: 'auto',
-              transition: 'margin-left 0.3s ease-in-out',
-            }}
-          >
-            <Spin spinning={studentsLoading || lecturersLoading || coursesLoading} tip="Loading dashboard data...">
-              <Row gutter={[24, 24]} justify="center">
-                <Col xs={24} sm={12} md={8} lg={6}>
-                  <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    variants={cardVariants}
-                  >
-                    <Card
-                      hoverable
-                      style={{
-                        background: themeColors.cardGradient1,
-                        color: 'white',
-                        borderRadius: 16,
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        height: '200px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        transition: 'transform 0.3s, box-shadow 0.3s',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                      }}
-                      onClick={() => window.location.href = '/admin/manage-students'}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                    >
+        <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
+          <Spin spinning={studentsLoading || lecturersLoading || coursesLoading} tip="Loading dashboard data...">
+            <Row gutter={[24, 24]} justify="center">
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <motion.div initial="hidden" animate="visible" variants={cardVariants}>
+                  <Card hoverable className="summary-card-1" style={styles.summaryCard1} onClick={() => window.location.href = '/admin/manage-students'}>
+                    <Space direction="vertical">
+                      <TeamOutlined style={{ fontSize: 28 }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Students</h3>
+                      <h1 style={{ fontSize: 32, margin: 0 }}>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
+                    </Space>
+                  </Card>
+                </motion.div>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <motion.div initial="hidden" animate="visible" variants={cardVariants}>
+                  <Card hoverable className="summary-card-2" style={styles.summaryCard2} onClick={() => window.location.href = '/admin/manage-courses'}>
+                    <Space direction="vertical">
+                      <BookOutlined style={{ fontSize: 28 }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Courses</h3>
+                      <h1 style={{ fontSize: 32, margin: 0 }}>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
+                    </Space>
+                  </Card>
+                </motion.div>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <motion.div initial="hidden" animate="visible" variants={cardVariants}>
+                  <Card hoverable className="summary-card-3" style={styles.summaryCard3} onClick={() => window.location.href = '/admin/manage-lecturers'}>
+                    <Space direction="vertical">
+                      <UserOutlined style={{ fontSize: 28 }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Lecturers</h3>
+                      <h1 style={{ fontSize: 32, margin: 0 }}>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
+                    </Space>
+                  </Card>
+                </motion.div>
+              </Col>
+              <Col xs={24} sm={12} md={8} lg={6}>
+                <Spin spinning={attendanceLoading} tip="Loading attendance data...">
+                  <motion.div initial="hidden" animate="visible" variants={cardVariants}>
+                    <Card hoverable className="summary-card-4" style={styles.summaryCard4} onClick={() => window.location.href = '/admin/analytics'}>
                       <Space direction="vertical">
-                        <TeamOutlined style={{ fontSize: 28 }} />
-                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Students</h3>
-                        <h1 style={{ fontSize: 32, margin: 0 }}>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
+                        <CheckCircleOutlined style={{ fontSize: 28 }} />
+                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
+                        <h1 style={{ fontSize: 32, margin: 0 }}>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
                       </Space>
                     </Card>
                   </motion.div>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={6}>
-                  <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    variants={cardVariants}
-                  >
-                    <Card
-                      hoverable
-                      style={{
-                        background: themeColors.cardGradient2,
-                        color: 'white',
-                        borderRadius: 16,
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        height: '200px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        transition: 'transform 0.3s, box-shadow 0.3s',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                      }}
-                      onClick={() => window.location.href = '/admin/manage-courses'}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                    >
-                      <Space direction="vertical">
-                        <BookOutlined style={{ fontSize: 28 }} />
-                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Courses</h3>
-                        <h1 style={{ fontSize: 32, margin: 0 }}>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
-                      </Space>
-                    </Card>
-                  </motion.div>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={6}>
-                  <motion.div
-                    initial="hidden"
-                    animate="visible"
-                    variants={cardVariants}
-                  >
-                    <Card
-                      hoverable
-                      style={{
-                        background: themeColors.cardGradient3,
-                        color: 'white',
-                        borderRadius: 16,
-                        textAlign: 'center',
-                        cursor: 'pointer',
-                        height: '200px',
-                        display: 'flex',
-                        flexDirection: 'column',
-                        justifyContent: 'center',
-                        transition: 'transform 0.3s, box-shadow 0.3s',
-                        boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                      }}
-                      onClick={() => window.location.href = '/admin/manage-lecturers'}
-                      onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                      onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                    >
-                      <Space direction="vertical">
-                        <UserOutlined style={{ fontSize: 28 }} />
-                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Lecturers</h3>
-                        <h1 style={{ fontSize: 32, margin: 0 }}>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
-                      </Space>
-                    </Card>
-                  </motion.div>
-                </Col>
-                <Col xs={24} sm={12} md={8} lg={6}>
-                  <Spin spinning={attendanceLoading} tip="Loading attendance data...">
-                    <motion.div
-                      initial="hidden"
-                      animate="visible"
-                      variants={cardVariants}
-                    >
-                      <Card
-                        hoverable
-                        style={{
-                          background: themeColors.cardGradient4,
-                          color: 'white',
-                          borderRadius: 16,
-                          textAlign: 'center',
-                          cursor: 'pointer',
-                          height: '200px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          justifyContent: 'center',
-                          transition: 'transform 0.3s, box-shadow 0.3s',
-                          boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
-                        }}
-                        onClick={() => window.location.href = '/admin/analytics'}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-5px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'translateY(0)'}
-                      >
-                        <Space direction="vertical">
-                          <CheckCircleOutlined style={{ fontSize: 28 }} />
-                          <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
-                          <h1 style={{ fontSize: 32, margin: 0 }}>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
-                        </Space>
-                      </Card>
-                    </motion.div>
-                  </Spin>
-                </Col>
-              </Row>
-            </Spin>
+                </Spin>
+              </Col>
+            </Row>
 
-            <AntTitle
-              level={2}
-              style={{
-                marginTop: 32,
-                textAlign: 'center',
-                color: themeColors.primary,
-                fontWeight: 700,
-              }}
-              id="attendance-overview"
-            >
+            <AntTitle level={2} style={{ margin: '32px 0 16px', textAlign: 'center' }} id="attendance-overview">
               Attendance Overview
             </AntTitle>
-            <Card
-              style={{
-                marginTop: 16,
-                borderRadius: 16,
-                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-                overflow: 'hidden',
-                background: themeColors.cardBg,
-              }}
-            >
+            <Card style={styles.card}>
               <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
-                <div style={{ height: '500px', padding: 16 }}>
+                <div style={{ height: 500, padding: 16 }}>
                   <Line data={overviewChartData} options={overviewChartOptions} />
                 </div>
-                <Button
-                  type="primary"
-                  style={{
-                    marginTop: 16,
-                    display: 'block',
-                    marginLeft: 'auto',
-                    marginRight: 'auto',
-                    background: themeColors.primary,
-                    border: 'none',
-                    borderRadius: 8,
-                    padding: '8px 24px',
-                    transition: 'all 0.3s',
-                  }}
-                  onClick={() => window.location.href = '/admin/analytics'}
-                  onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#8E86E5' : '#5A4FCF'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = themeColors.primary}
-                >
+                <Button type="primary" style={styles.button} onClick={() => window.location.href = '/admin/analytics'}>
                   View Detailed Analytics
                 </Button>
               </Spin>
             </Card>
 
-            <AntTitle
-              level={2}
-              style={{
-                marginTop: 32,
-                textAlign: 'center',
-                color: themeColors.primary,
-                fontWeight: 700,
-              }}
-            >
+            <AntTitle level={2} style={{ margin: '32px 0 16px', textAlign: 'center' }}>
               Quick Stats
             </AntTitle>
-            <Card
-              style={{
-                marginTop: 16,
-                borderRadius: 16,
-                boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
-                overflow: 'hidden',
-                background: themeColors.cardBg,
-              }}
-            >
+            <Card style={styles.card}>
               <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
-                <div style={{ height: '400px', padding: 16 }}>
+                <div style={{ height: 400, padding: 16 }}>
                   <Pie data={quickStatsChartData} options={quickStatsChartOptions} />
                 </div>
               </Spin>
             </Card>
 
             {showBackToTop && (
-              <Button
-                shape="circle"
-                icon={<ArrowUpOutlined />}
-                onClick={scrollToTop}
-                style={{
-                  position: 'fixed',
-                  bottom: 32,
-                  right: 32,
-                  zIndex: 1000,
-                  background: themeColors.primary,
-                  border: 'none',
-                  width: 50,
-                  height: 50,
-                  transition: 'all 0.3s',
-                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = isDarkMode ? '#8E86E5' : '#5A4FCF'}
-                onMouseLeave={(e) => e.currentTarget.style.background = themeColors.primary}
-              />
+              <Button shape="circle" icon={<ArrowUpOutlined />} onClick={scrollToTop} style={styles.backToTopButton} />
             )}
-          </Content>
-        </Layout>
-        <style>
-          {`
-            .ant-btn.ant-btn-primary.ant-btn-circle[style*="bottom: 20px"][style*="right: 20px"] {
-              display: none !important;
-            }
-            /* Override Ant Design default background */
-            .ant-layout {
-              background: ${themeColors.background} !important;
-            }
-            .ant-layout-content {
-              background: ${themeColors.background} !important;
-            }
-            /* Ensure body matches theme */
-            body {
-              background: ${themeColors.background} !important;
-            }
-          `}
-        </style>
+          </Spin>
+        </Content>
       </Layout>
-    </ThemeContext.Provider>
+    </Layout>
   );
 
   function weeklyTrendsAvg() {
