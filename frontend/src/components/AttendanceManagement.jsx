@@ -1236,3 +1236,15 @@ const AttendanceManagement = () => {
 };
 
 export default AttendanceManagement;
+
+useEffect(() => {
+  let intervalId;
+  if (isQRModalOpen) {
+    // Refresh QR code every 10 seconds (adjust as needed)
+    intervalId = setInterval(() => {
+      // Call your endpoint or function to fetch a new QR token/code
+      // Example: refreshQR();
+    }, 10000);
+  }
+  return () => clearInterval(intervalId);
+}, [isQRModalOpen]);

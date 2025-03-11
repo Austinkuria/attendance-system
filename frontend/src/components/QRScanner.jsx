@@ -106,6 +106,14 @@ const QRScanner = () => {
     fetchSession();
   }, [selectedUnit]);
 
+  useEffect(() => {
+    let refreshInterval = setInterval(() => {
+      // Call your refresh function to get a new QR code.
+      // Example: fetchNewQR();
+    }, 10000); // adjust refresh interval as needed
+    return () => clearInterval(refreshInterval);
+  }, []);
+
   const onScanSuccess = useCallback(async (result) => {
     if (!sessionId || sessionEnded) {
       message.error("Session has ended. Attendance cannot be marked.");
