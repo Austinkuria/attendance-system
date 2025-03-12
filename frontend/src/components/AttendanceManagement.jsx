@@ -37,7 +37,7 @@ import {
   createSession,
 } from "../services/api";
 import moment from "moment";
-import { ThemeContext } from '../context/ThemeContext';
+import { ThemeContext } from "../context/ThemeContext";
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -85,6 +85,7 @@ const AttendanceManagement = () => {
     borderRadius: "16px",
     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.05)",
     background: themeColors.cardBg,
+    border: `1px solid ${themeColors.border}`,
     overflow: "hidden",
     transition: "transform 0.3s ease, box-shadow 0.3s ease",
     width: "100%",
@@ -92,18 +93,10 @@ const AttendanceManagement = () => {
   };
 
   const summaryCardGradients = {
-    assignedUnits: isDarkMode
-      ? 'linear-gradient(135deg, #5A4FCF, #A29BFE)'
-      : 'linear-gradient(135deg, #6C5CE7, #A29BFE)',
-    attendanceRate: isDarkMode
-      ? 'linear-gradient(135deg, #00A8B5, #81ECEC)'
-      : 'linear-gradient(135deg, #00CEC9, #81ECEC)',
-    totalScans: isDarkMode
-      ? 'linear-gradient(135deg, #D81E5B, #FAB1A0)'
-      : 'linear-gradient(135deg, #FF7675, #FFB6C1)',
-    totalEnrolled: isDarkMode
-      ? 'linear-gradient(135deg, #2A9D8F, #56C596)'
-      : 'linear-gradient(135deg, #34C759, #8EE4AF)',
+    assignedUnits: themeColors.cardGradient1,
+    attendanceRate: themeColors.cardGradient2,
+    totalScans: themeColors.cardGradient3,
+    totalEnrolled: themeColors.cardGradient4,
   };
 
   useEffect(() => {
@@ -659,18 +652,18 @@ const AttendanceManagement = () => {
             background: summaryCardGradients.assignedUnits,
             borderLeft: `4px solid ${themeColors.primary}`,
             height: "100%",
-            color: '#fff',
+            color: "#fff",
           }}
           hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Assigned Units</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Assigned Units</Text>}
             value={totalAssignedUnits}
             prefix={<TeamOutlined />}
             loading={loading.units}
-            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
@@ -681,19 +674,19 @@ const AttendanceManagement = () => {
             background: summaryCardGradients.attendanceRate,
             borderLeft: `4px solid ${themeColors.secondary}`,
             height: "100%",
-            color: '#fff',
+            color: "#fff",
           }}
           hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Attendance Rate</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Attendance Rate</Text>}
             value={attendanceRate}
             suffix="%"
             prefix={<PercentageOutlined />}
             loading={loading.realTimeAttendance}
-            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
@@ -704,18 +697,18 @@ const AttendanceManagement = () => {
             background: summaryCardGradients.totalScans,
             borderLeft: `4px solid ${themeColors.accent}`,
             height: "100%",
-            color: '#fff',
+            color: "#fff",
           }}
           hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Total Scans</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Total Scans</Text>}
             value={totalScans}
             prefix={<ScheduleOutlined />}
             loading={loading.realTimeAttendance}
-            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
@@ -724,20 +717,20 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.totalEnrolled,
-            borderLeft: `4px solid ${isDarkMode ? '#2A9D8F' : '#34C759'}`,
+            borderLeft: `4px solid ${themeColors.primary}`,
             height: "100%",
-            color: '#fff',
+            color: "#fff",
           }}
           hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = 'translateY(-4px)')}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = 'translateY(0)')}
+          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
+          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: '#fff', fontSize: screens.xs ? 12 : 14 }}>Total Enrolled</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Total Enrolled</Text>}
             value={enrolledStudents}
             prefix={<ScheduleOutlined />}
             loading={loading.units}
-            valueStyle={{ color: '#fff', fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
           />
         </Card>
       </Col>
@@ -821,7 +814,7 @@ const AttendanceManagement = () => {
           title={
             <Space>
               <ClockCircleOutlined style={{ color: themeColors.primary }} />
-              <Text strong style={{ color: '#fff' }}>
+              <Text strong style={{ color: themeColors.text }}>
                 Active Session: {currentSession.unit?.name || "Unknown Unit"}
               </Text>
             </Space>
@@ -830,16 +823,15 @@ const AttendanceManagement = () => {
             ...cardStyle,
             background: themeColors.cardGradient1,
             borderLeft: `4px solid ${themeColors.primary}`,
-            color: '#fff',
           }}
           hoverable
         >
           <Row gutter={[8, 8]}>
             <Col span={24}>
-              <Text strong style={{ color: '#fff' }}>
+              <Text strong style={{ color: themeColors.text }}>
                 Time:{" "}
               </Text>
-              {formatSessionTime(currentSession)}
+              <span style={{ color: themeColors.text }}>{formatSessionTime(currentSession)}</span>
             </Col>
             <Col span={24}>
               <SessionTimer end={currentSession.endSession} />
@@ -852,9 +844,10 @@ const AttendanceManagement = () => {
                 style={{
                   background: themeColors.accent,
                   borderColor: themeColors.accent,
-                  color: '#fff',
+                  color: themeColors.text,
                   width: screens.xs ? "100%" : "auto",
                   borderRadius: 8,
+                  transition: "all 0.3s",
                 }}
               >
                 End Session Early
@@ -893,8 +886,10 @@ const AttendanceManagement = () => {
               style={{
                 background: themeColors.primary,
                 borderColor: themeColors.primary,
+                color: themeColors.text,
                 width: screens.xs ? "100%" : "auto",
                 borderRadius: 8,
+                transition: "all 0.3s",
               }}
             >
               {screens.md ? "Generate QR Code" : "QR Code"}
@@ -907,8 +902,10 @@ const AttendanceManagement = () => {
               style={{
                 background: themeColors.primary,
                 borderColor: themeColors.primary,
+                color: themeColors.text,
                 width: screens.xs ? "100%" : "auto",
                 borderRadius: 8,
+                transition: "all 0.3s",
               }}
             >
               {loading.session ? "Creating..." : "Create Attendance Session"}
@@ -936,7 +933,7 @@ const AttendanceManagement = () => {
             }
             style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
             hoverable
-            className="no-hover" // added: disable hover movement
+            className="no-hover"
           >
             <Space wrap style={{ marginTop: screens.xs ? 0 : 8 }}>
               <Button
@@ -947,8 +944,10 @@ const AttendanceManagement = () => {
                 style={{
                   background: themeColors.primary,
                   borderColor: themeColors.primary,
+                  color: themeColors.text,
                   width: screens.xs ? "100%" : "auto",
                   borderRadius: 8,
+                  transition: "all 0.3s",
                 }}
               >
                 Refresh Attendance Data
@@ -982,7 +981,7 @@ const AttendanceManagement = () => {
             size="small"
             style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
             hoverable
-            className="no-hover" // added: disable hover movement
+            className="no-hover"
           >
             <Button
               icon={<DownloadOutlined />}
@@ -994,6 +993,7 @@ const AttendanceManagement = () => {
                 width: screens.xs ? "100%" : "auto",
                 marginBottom: screens.xs ? 0 : 4,
                 borderRadius: 8,
+                transition: "all 0.3s",
               }}
             >
               {screens.md ? "Download Report" : "Export"}
@@ -1111,6 +1111,7 @@ const AttendanceManagement = () => {
               borderColor: themeColors.primary,
               width: screens.xs ? "100%" : "auto",
               borderRadius: 8,
+              transition: "all 0.3s",
             }}
           >
             Close
@@ -1147,7 +1148,9 @@ const AttendanceManagement = () => {
             </>
           ) : (
             <div style={{ textAlign: "center", padding: screens.xs ? 8 : 24 }}>
-              <Typography.Text type="danger">Failed to generate QR Code</Typography.Text>
+              <Typography.Text type="danger" style={{ color: themeColors.accent }}>
+                Failed to generate QR Code
+              </Typography.Text>
               <Skeleton.Image
                 style={{ width: screens.xs ? 200 : 300, height: screens.xs ? 200 : 300 }}
               />
@@ -1171,63 +1174,91 @@ const AttendanceManagement = () => {
         .table-row-dark {
           background: ${themeColors.background};
         }
+        .ant-table {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border: 1px solid ${themeColors.border} !important;
+          border-radius: 8px;
+          width: 100%;
+        }
         .ant-table-thead > tr > th {
-          background: ${themeColors.primary};
-          color: #fff;
+          background: ${themeColors.tableHeaderBg} !important;
+          color: ${themeColors.text} !important;
           font-weight: 600;
-          border-bottom: 2px solid ${themeColors.primary};
+          border-bottom: 2px solid ${themeColors.border} !important;
           padding: ${screens.xs ? "4px 2px" : "16px 8px"};
           font-size: ${screens.xs ? "11px" : "14px"};
         }
         .ant-table-tbody > tr > td {
-          border-bottom: 1px solid ${themeColors.text}20;
+          border-bottom: 1px solid ${themeColors.border} !important;
           padding: ${screens.xs ? "2px" : "8px"};
           font-size: ${screens.xs ? "11px" : "14px"};
-          color: ${themeColors.text};
+          color: ${themeColors.text} !important;
         }
         .ant-table-tbody > tr:hover:not(.ant-table-expanded-row) > td {
-          background: ${themeColors.text}10;
-        }
-        .ant-table {
-          border: 1px solid ${themeColors.primary};
-          border-radius: 8px;
-          width: 100%;
+          background: ${themeColors.tableRowHover} !important;
         }
         .ant-btn-primary {
-          background: ${themeColors.primary};
-          border-color: ${themeColors.primary};
-          color: #fff;
+          background: ${themeColors.primary} !important;
+          border-color: ${themeColors.primary} !important;
+          color: ${themeColors.text} !important;
         }
         .ant-btn-primary:hover, .ant-btn-primary:focus {
-          background: ${isDarkMode ? '#8E86E5' : '#5A4FCF'};
-          border-color: ${isDarkMode ? '#8E86E5' : '#5A4FCF'};
-          color: #fff;
+          background: ${themeColors.focus} !important;
+          border-color: ${themeColors.focus} !important;
+          color: ${themeColors.text} !important;
+        }
+        .ant-btn-danger {
+          background: ${themeColors.accent} !important;
+          border-color: ${themeColors.accent} !important;
+          color: ${themeColors.text} !important;
         }
         .ant-btn-danger:hover, .ant-btn-danger:focus {
-          background: ${isDarkMode ? '#E09B86' : '#E65F5C'};
-          border-color: ${isDarkMode ? '#E09B86' : '#E65F5C'};
-          color: #fff;
+          background: ${themeColors.accent}CC !important;
+          border-color: ${themeColors.accent}CC !important;
+          color: ${themeColors.text} !important;
         }
         .ant-btn[disabled], .ant-btn[disabled]:hover {
-          background: ${themeColors.text}20;
-          border-color: ${themeColors.text}40;
-          color: ${themeColors.text}80;
+          background: ${themeColors.disabled} !important;
+          border-color: ${themeColors.disabled} !important;
+          color: ${themeColors.text}80 !important;
         }
-        .ant-select-selector {
-          background: ${themeColors.cardBg} !important;
+        .ant-select-selector, .ant-picker {
+          background: ${themeColors.inputBg} !important;
+          border-color: ${themeColors.inputBorder} !important;
           color: ${themeColors.text} !important;
+          border-radius: 8px;
+        }
+        .ant-select-selector:hover, .ant-select-selector:focus,
+        .ant-picker:hover, .ant-picker-focused {
+          background: ${themeColors.inputHover} !important;
           border-color: ${themeColors.primary} !important;
         }
-        .ant-picker {
+        .ant-select-dropdown, .ant-picker-panel-container {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
-          border-color: ${themeColors.primary} !important;
-        }
-        .ant-select-dropdown, .ant-picker-dropdown {
-          background: ${themeColors.cardBg} !important;
-          color: ${themeColors.text} !important;
+          border-radius: 8px;
         }
         .ant-select-item-option-content {
+          color: ${themeColors.text} !important;
+        }
+        .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+          background: ${themeColors.hover} !important;
+        }
+        .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner {
+          background: ${themeColors.primary} !important;
+        }
+        .ant-modal-content, .ant-modal-body {
+          background: ${themeColors.modalBg} !important;
+          color: ${themeColors.text} !important;
+          border-radius: 16px;
+        }
+        .ant-modal-header {
+          background: ${themeColors.modalBg} !important;
+          border-bottom: 1px solid ${themeColors.border} !important;
+          border-radius: 16px 16px 0 0;
+        }
+        .ant-modal-title {
           color: ${themeColors.text} !important;
         }
       `}</style>
