@@ -3,66 +3,73 @@ import { useNavigate } from 'react-router-dom';
 import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, TeamOutlined, GlobalOutlined, MessageOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect, useContext } from 'react';
-import { ThemeContext } from '../context/ThemeContext'; // Adjust path as needed
-import ThemeToggle from '../components/ThemeToggle'; // Adjust path as needed
+import { ThemeContext } from "../context/ThemeContext";
+import ThemeToggle from '../components/ThemeToggle';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
 const { Panel } = Collapse;
-
-// Animated QR code component
-const AnimatedQR = animated(() => (
-  <QrcodeOutlined style={{ fontSize: '220px' }} />
-));
 
 const Home = () => {
   const navigate = useNavigate();
   const { themeColors } = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
   const [scanCount, setScanCount] = useState(0);
+
   const qrAnimation = useSpring({
-    from: { transform: 'scale(0)', opacity: 0 },
-    to: { transform: 'scale(1)', opacity: 1 },
-    config: { tension: 220, friction: 18 },
+    from: { transform: 'scale(0) rotate(0deg)', opacity: 0 },
+    to: { transform: 'scale(1) rotate(360deg)', opacity: 1 },
+    config: { tension: 200, friction: 20 },
+    reset: true,
+    loop: { reverse: true },
   });
   const taglineAnimation = useSpring({
-    from: { opacity: 0, transform: 'translateY(20px)' },
+    from: { opacity: 0, transform: 'translateY(30px)' },
     to: { opacity: 1, transform: 'translateY(0)' },
-    delay: 300,
+    delay: 400,
   });
 
   // Simulate live scan counter
   useEffect(() => {
     const interval = setInterval(() => {
       setScanCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
-    }, 4000);
+    }, 3000);
     return () => clearInterval(interval);
   }, []);
 
   // Simulate loading delay
   useEffect(() => {
-    setTimeout(() => setLoading(false), 1200);
+    setTimeout(() => setLoading(false), 1000);
   }, []);
 
   if (loading) {
     return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: themeColors.background }}>
-        <Spin size="large" tip="Loading QRollCall..." />
+      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: themeColors.background }}>
+        <Spin size="large" style={{ color: themeColors.primary }} />
+        <Text style={{ marginTop: 16, color: themeColors.text, fontSize: 18 }}>Loading QRollCall...</Text>
       </div>
     );
   }
 
+  const featureCardStyle = {
+    borderRadius: '12px',
+    border: 'none',
+    padding: '24px',
+    minHeight: '220px',
+    transition: 'transform 0.3s ease',
+  };
+
   return (
-    <Layout style={{ minHeight: '100vh', textAlign: 'center', background: themeColors.background }}>
+    <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
       {/* Header */}
-      <Header style={{ background: themeColors.cardBg, padding: '16px', position: 'fixed', width: '100%', zIndex: 10 }}>
+      <Header style={{ background: themeColors.cardBg, padding: '16px 24px', position: 'fixed', width: '100%', zIndex: 10, borderBottom: `1px solid ${themeColors.border}` }}>
         <Row justify="space-between" align="middle">
-          <Col>
-            <Title level={3} style={{ color: themeColors.text, margin: 0 }}>QRollCall</Title>
+          <Col xs={12} md={6}>
+            <Title level={3} style={{ color: themeColors.text, margin: 0, fontSize: '24px' }}>QRollCall</Title>
           </Col>
-          <Col>
-            <Space>
-              <Button ghost onClick={() => navigate('/auth/login')} style={{ color: themeColors.primary, borderColor: themeColors.primary }}>
+          <Col xs={12} md={6} style={{ textAlign: 'right' }}>
+            <Space size="middle">
+              <Button ghost onClick={() => navigate('/auth/login')} style={{ color: themeColors.primary, borderColor: themeColors.primary, borderRadius: '8px' }}>
                 Try Now
               </Button>
               <ThemeToggle />
@@ -71,96 +78,96 @@ const Home = () => {
         </Row>
       </Header>
 
-      <Content style={{ padding: '0 50px', marginTop: 64, background: themeColors.background }}>
+      <Content style={{ marginTop: 64, background: themeColors.background }}>
         {/* Hero Section */}
         <section style={{ 
-          padding: '120px 0', 
-          background: `linear-gradient(145deg, ${themeColors.background} 0%, ${themeColors.cardBg} 100%)`,
+          padding: '100px 24px', 
+          background: `linear-gradient(135deg, ${themeColors.cardGradient1} 0%, ${themeColors.cardGradient2} 100%)`,
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center', 
-          justifyContent: 'center' 
+          justifyContent: 'center',
+          minHeight: '80vh',
         }}>
-          <Title level={1} style={{ marginBottom: '20px', color: themeColors.text }}>
+          <Title level={1} style={{ marginBottom: '24px', color: '#fff', fontSize: '48px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
             Attendance, Redefined
           </Title>
           <animated.div style={taglineAnimation}>
-            <Text style={{ fontSize: '20px', color: themeColors.text, display: 'block', marginBottom: '40px', opacity: 0.85 }}>
-              Scan. Track. Engage. Attendance made simple and smart.
+            <Text style={{ fontSize: '22px', color: '#fff', display: 'block', marginBottom: '40px', opacity: 0.9, maxWidth: '600px', lineHeight: 1.5 }}>
+              Scan. Track. Engage. A smarter way to manage attendance.
             </Text>
           </animated.div>
-          <AnimatedQR style={{ ...qrAnimation, color: themeColors.secondary }} />
-          <Space size="large" style={{ marginTop: '40px' }}>
+          <animated.div
+            style={{ ...qrAnimation, fontSize: '200px', color: '#fff', marginBottom: '40px' }}
+          >
+            <QrcodeOutlined />
+          </animated.div>
+          <Space size="large" wrap>
             <Button
               type="primary"
               size="large"
               onClick={() => navigate('/auth/login')}
-              style={{ padding: '0 40px', height: '50px', background: themeColors.primary, borderColor: themeColors.primary }}
+              style={{ padding: '0 40px', height: '50px', background: themeColors.primary, borderColor: themeColors.primary, borderRadius: '8px', fontSize: '16px' }}
             >
               Start Free Trial
             </Button>
             <Button
               size="large"
               onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}
-              style={{ padding: '0 40px', height: '50px', color: themeColors.text, borderColor: themeColors.secondary, background: 'transparent' }}
+              style={{ padding: '0 40px', height: '50px', color: themeColors.text, borderColor: themeColors.secondary, background: 'transparent', borderRadius: '8px', fontSize: '16px' }}
             >
               Explore Features
             </Button>
           </Space>
-          <div style={{ marginTop: '40px' }}>
-            <Text strong style={{ fontSize: '16px', color: themeColors.text }}>
-              <GlobalOutlined /> Loved by educators in 20+ countries
-            </Text>
-          </div>
         </section>
 
         {/* Live Counter */}
-        <section style={{ padding: '40px 0', background: themeColors.cardBg, boxShadow: '0 2px 10px rgba(0,0,0,0.1)' }}>
-          <Title level={4} style={{ color: themeColors.secondary }}>
-            <ClockCircleOutlined /> Live Scans: {scanCount.toLocaleString()}
-          </Title>
+        <section style={{ padding: '20px 24px', background: themeColors.cardBg, textAlign: 'center' }}>
+          <Text strong style={{ fontSize: '18px', color: themeColors.secondary }}>
+            <ClockCircleOutlined style={{ marginRight: 8 }} /> Live Scans: {scanCount.toLocaleString()}
+          </Text>
         </section>
 
         {/* Features Grid */}
-        <section id="features" style={{ padding: '80px 0', background: themeColors.background }}>
-          <Title level={2} style={{ marginBottom: '60px', color: themeColors.text }}>Why QRollCall?</Title>
-          <Row gutter={[40, 40]} justify="center">
+        <section id="features" style={{ padding: '80px 24px', background: themeColors.background }}>
+          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: '36px' }}>Why QRollCall?</Title>
+          <Row gutter={[24, 24]} justify="center">
             <Col xs={24} sm={12} md={8}>
-              <Card hoverable style={{ borderRadius: '10px', background: themeColors.cardGradient1, border: 'none' }}>
-                <ClockCircleOutlined style={{ fontSize: '40px', color: themeColors.text }} />
-                <Title level={4} style={{ margin: '20px 0', color: themeColors.text }}>Instant Precision</Title>
-                <Text style={{ color: themeColors.text }}>Real-time QR scans deliver accurate attendance updates instantly.</Text>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}>
+                <ClockCircleOutlined style={{ fontSize: '40px', color: '#fff' }} />
+                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Instant Precision</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>Real-time QR scans for accurate attendance tracking.</Text>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>
-              <Card hoverable style={{ borderRadius: '10px', background: themeColors.cardGradient2, border: 'none' }}>
-                <SafetyOutlined style={{ fontSize: '40px', color: themeColors.text }} />
-                <Title level={4} style={{ margin: '20px 0', color: themeColors.text }}>Fraud-Proof</Title>
-                <Text style={{ color: themeColors.text }}>Device tracking and dynamic QR codes stop proxy attendance.</Text>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient2 }}>
+                <SafetyOutlined style={{ fontSize: '40px', color: '#fff' }} />
+                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Fraud-Proof</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>Dynamic QR codes and device tracking prevent proxies.</Text>
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>
-              <Card hoverable style={{ borderRadius: '10px', background: themeColors.cardGradient1, border: 'none' }}>
-                <MessageOutlined style={{ fontSize: '40px', color: themeColors.text }} />
-                <Title level={4} style={{ margin: '20px 0', color: themeColors.text }}>Engage Students</Title>
-                <Text style={{ color: themeColors.text }}>Post-session feedback boosts participation and insights.</Text>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient3 }}>
+                <MessageOutlined style={{ fontSize: '40px', color: '#fff' }} />
+                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Engage Students</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>Feedback after scans boosts student interaction.</Text>
               </Card>
             </Col>
           </Row>
         </section>
 
         {/* Video Demo Section */}
-        <section style={{ padding: '80px 0', background: themeColors.cardBg }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text }}>See QRollCall in Action</Title>
+        <section style={{ padding: '80px 24px', background: themeColors.cardBg }}>
+          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: '36px' }}>See It in Action</Title>
           <Row justify="center">
-            <Col xs={24} md={18}>
+            <Col xs={24} md={16}>
               <div style={{
                 position: 'relative',
                 paddingBottom: '56.25%',
                 height: 0,
                 overflow: 'hidden',
-                borderRadius: '10px',
-                boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                borderRadius: '12px',
+                border: `1px solid ${themeColors.border}`,
               }}>
                 <iframe
                   style={{
@@ -177,112 +184,100 @@ const Home = () => {
                   allowFullScreen
                 ></iframe>
               </div>
-              <Text style={{ display: 'block', marginTop: '20px', color: themeColors.text, opacity: 0.85 }}>
-                Watch how QRollCall simplifies attendance in 90 seconds!
+              <Text style={{ display: 'block', marginTop: '16px', color: themeColors.text, fontSize: '16px', opacity: 0.85 }}>
+                Discover QRollCall in just 90 seconds!
               </Text>
             </Col>
           </Row>
         </section>
 
         {/* Testimonials */}
-        <section style={{ padding: '80px 0', background: themeColors.background }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text }}>Voices of Educators</Title>
-          <Carousel autoplay dots={{ className: 'custom-dots' }}>
+        <section style={{ padding: '80px 24px', background: themeColors.background }}>
+          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: '36px' }}>What Educators Say</Title>
+          <Carousel autoplay dots={{ className: 'custom-dots' }} style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div>
-              <Card style={{ maxWidth: '600px', margin: '0 auto', background: themeColors.cardBg, borderColor: themeColors.primary }}>
-                <Text style={{ color: themeColors.text }}>&quot;QRollCall’s instant scans cut our attendance time in half.&quot;</Text>
-                <Text strong block style={{ marginTop: '10px', color: themeColors.text }}>- Dr. Maya Patel, Horizon University</Text>
+              <Card style={{ background: themeColors.cardGradient1, borderRadius: '12px', border: 'none', padding: '24px', margin: '0 16px' }}>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>"QRollCall halved our attendance time."</Text>
+                <Text strong block style={{ marginTop: '12px', color: '#fff', fontSize: '14px' }}>- Dr. Maya Patel, Horizon University</Text>
               </Card>
             </div>
             <div>
-              <Card style={{ maxWidth: '600px', margin: '0 auto', background: themeColors.cardBg, borderColor: themeColors.primary }}>
-                <Text style={{ color: themeColors.text }}>"No more proxy issues—device tracking is a game-changer."</Text>
-                <Text strong block style={{ marginTop: '10px', color: themeColors.text }}>- Prof. Liam Carter, Summit College</Text>
+              <Card style={{ background: themeColors.cardGradient2, borderRadius: '12px', border: 'none', padding: '24px', margin: '0 16px' }}>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>"Device tracking ended proxy attendance."</Text>
+                <Text strong block style={{ marginTop: '12px', color: '#fff', fontSize: '14px' }}>- Prof. Liam Carter, Summit College</Text>
               </Card>
             </div>
             <div>
-              <Card style={{ maxWidth: '600px', margin: '0 auto', background: themeColors.cardBg, borderColor: themeColors.primary }}>
-                <Text style={{ color: themeColors.text }}>"Students love the feedback feature—it’s sparked real dialogue."</Text>
-                <Text strong block style={{ marginTop: '10px', color: themeColors.text }}>- Ms. Elena Ortiz, Bright Academy</Text>
+              <Card style={{ background: themeColors.cardGradient3, borderRadius: '12px', border: 'none', padding: '24px', margin: '0 16px' }}>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>"Feedback feature sparked real dialogue."</Text>
+                <Text strong block style={{ marginTop: '12px', color: '#fff', fontSize: '14px' }}>- Ms. Elena Ortiz, Bright Academy</Text>
               </Card>
             </div>
           </Carousel>
         </section>
 
-        {/* Team & Training Section */}
-        <section style={{ padding: '80px 0', background: themeColors.cardBg }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text }}>Built for Teams</Title>
-          <Row gutter={[40, 40]} justify="center">
-            <Col xs={24} md={12}>
-              <TeamOutlined style={{ fontSize: '100px', color: themeColors.secondary }} />
-              <Title level={4} style={{ margin: '20px 0', color: themeColors.text }}>Team Sync</Title>
-              <Text style={{ color: themeColors.text }}>Real-time data sharing for instructors and admins.</Text>
-            </Col>
-            <Col xs={24} md={12}>
-              <TeamOutlined style={{ fontSize: '100px', color: themeColors.secondary }} />
-              <Title level={4} style={{ margin: '20px 0', color: themeColors.text }}>Fast Onboarding</Title>
-              <Text style={{ color: themeColors.text }}>Interactive tutorials and 24/7 support to get you started.</Text>
-            </Col>
-          </Row>
-        </section>
-
         {/* FAQ Section */}
-        <section style={{ padding: '80px 0', background: themeColors.background }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text }}>Got Questions?</Title>
-          <Collapse accordion bordered={false} style={{ background: themeColors.cardBg, borderRadius: '10px', borderColor: themeColors.primary }}>
-            <Panel header="How does QRollCall work?" key="1" style={{ color: themeColors.text }}>
-              <Text style={{ color: themeColors.text }}>Generate a QR code per class. Students scan it, and attendance logs instantly.</Text>
+        <section style={{ padding: '80px 24px', background: themeColors.cardBg }}>
+          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: '36px' }}>Frequently Asked Questions</Title>
+          <Collapse 
+            accordion 
+            bordered={false} 
+            style={{ background: themeColors.cardBg, borderRadius: '12px', border: `1px solid ${themeColors.border}`, maxWidth: '800px', margin: '0 auto' }}
+          >
+            <Panel header={<span style={{ color: themeColors.text, fontSize: '16px' }}>How does QRollCall work?</span>} key="1">
+              <Text style={{ color: themeColors.text, fontSize: '14px' }}>Generate a QR code per class. Students scan it, and attendance logs instantly.</Text>
             </Panel>
-            <Panel header="How does it stop proxy attendance?" key="2" style={{ color: themeColors.text }}>
-              <Text style={{ color: themeColors.text }}>Unique device IDs and expiring QR codes ensure only real attendees check in.</Text>
+            <Panel header={<span style={{ color: themeColors.text, fontSize: '16px' }}>How does it prevent proxy attendance?</span>} key="2">
+              <Text style={{ color: themeColors.text, fontSize: '14px' }}>Unique device IDs and expiring QR codes ensure authenticity.</Text>
             </Panel>
-            <Panel header="How does it engage students?" key="3" style={{ color: themeColors.text }}>
-              <Text style={{ color: themeColors.text }}>Post-scan feedback lets students share thoughts, connecting them to the class.</Text>
-            </Panel>
-            <Panel header="Can I analyze attendance data?" key="4" style={{ color: themeColors.text }}>
-              <Text style={{ color: themeColors.text }}>Yes, export detailed reports or view trends with one tap.</Text>
+            <Panel header={<span style={{ color: themeColors.text, fontSize: '16px' }}>How does it engage students?</span>} key="3">
+              <Text style={{ color: themeColors.text, fontSize: '14px' }}>Post-scan feedback fosters interaction and insights.</Text>
             </Panel>
           </Collapse>
         </section>
 
         {/* Roadmap */}
-        <section style={{ padding: '80px 0', background: themeColors.cardBg }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text }}>What’s Coming Next</Title>
-          <Row gutter={[40, 40]}>
-            <Col xs={24} md={8}>
-              <Card hoverable style={{ borderRadius: '10px', background: themeColors.cardGradient1, border: 'none' }}>
-                <Title level={4} style={{ color: themeColors.text }}>Q1 2026</Title>
-                <Text style={{ color: themeColors.text }}>Rich engagement dashboards for students</Text>
+        <section style={{ padding: '80px 24px', background: themeColors.background }}>
+          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: '36px' }}>What’s Next</Title>
+          <Row gutter={[24, 24]} justify="center">
+            <Col xs={24} sm={12} md={8}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}>
+                <Title level={4} style={{ color: '#fff', fontSize: '20px' }}>Q1 2026</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>Rich engagement dashboards</Text>
               </Card>
             </Col>
-            <Col xs={24} md={8}>
-              <Card hoverable style={{ borderRadius: '10px', background: themeColors.cardGradient2, border: 'none' }}>
-                <Title level={4} style={{ color: themeColors.text }}>Q2 2026</Title>
-                <Text style={{ color: themeColors.text }}>Facial recognition for extra security</Text>
+            <Col xs={24} sm={12} md={8}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient2 }}>
+                <Title level={4} style={{ color: '#fff', fontSize: '20px' }}>Q2 2026</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>Facial recognition security</Text>
               </Card>
             </Col>
-            <Col xs={24} md={8}>
-              <Card hoverable style={{ borderRadius: '10px', background: themeColors.cardGradient1, border: 'none' }}>
-                <Title level={4} style={{ color: themeColors.text }}>Q3 2026</Title>
-                <Text style={{ color: themeColors.text }}>Global language support rollout</Text>
+            <Col xs={24} sm={12} md={8}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient3 }}>
+                <Title level={4} style={{ color: '#fff', fontSize: '20px' }}>Q3 2026</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>Global language support</Text>
               </Card>
             </Col>
           </Row>
         </section>
 
         {/* CTA Section */}
-        <section style={{ padding: '100px 0', background: `linear-gradient(145deg, ${themeColors.background} 0%, ${themeColors.cardBg} 100%)` }}>
-          <Title level={2} style={{ marginBottom: '30px', color: themeColors.text }}>
-            Ready to Roll with QRollCall?
+        <section style={{ 
+          padding: '100px 24px', 
+          background: `linear-gradient(135deg, ${themeColors.cardGradient3} 0%, ${themeColors.cardGradient1} 100%)`,
+          textAlign: 'center',
+        }}>
+          <Title level={2} style={{ marginBottom: '24px', color: '#fff', fontSize: '36px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+            Ready to Transform Attendance?
           </Title>
-          <Text style={{ fontSize: '18px', marginBottom: '40px', display: 'block', color: themeColors.text, opacity: 0.85 }}>
-            Join thousands of educators simplifying attendance today.
+          <Text style={{ fontSize: '18px', marginBottom: '40px', display: 'block', color: '#fff', opacity: 0.9, maxWidth: '600px', margin: '0 auto 40px' }}>
+            Join educators worldwide in simplifying attendance with QRollCall.
           </Text>
           <Button
             type="primary"
             size="large"
             onClick={() => navigate('/auth/login')}
-            style={{ padding: '0 50px', height: '60px', fontSize: '18px', background: themeColors.primary, borderColor: themeColors.primary }}
+            style={{ padding: '0 50px', height: '60px', fontSize: '18px', background: themeColors.primary, borderColor: themeColors.primary, borderRadius: '8px' }}
           >
             Get Started Free
           </Button>
@@ -290,30 +285,30 @@ const Home = () => {
       </Content>
 
       {/* Footer */}
-      <Footer style={{ background: themeColors.cardBg, color: themeColors.text, padding: '40px 0', textAlign: 'center' }}>
-        <Row gutter={[40, 40]} justify="center">
+      <Footer style={{ background: themeColors.cardBg, color: themeColors.text, padding: '40px 24px', textAlign: 'center', borderTop: `1px solid ${themeColors.border}` }}>
+        <Row gutter={[24, 24]} justify="center">
           <Col xs={24} md={8}>
-            <Title level={4} style={{ color: themeColors.text }}>QRollCall</Title>
-            <Text style={{ color: themeColors.text }}>Smart attendance for smarter education.</Text>
+            <Title level={4} style={{ color: themeColors.text, fontSize: '20px' }}>QRollCall</Title>
+            <Text style={{ color: themeColors.text, fontSize: '14px' }}>Smart attendance for smarter education.</Text>
           </Col>
           <Col xs={24} md={8}>
-            <Title level={4} style={{ color: themeColors.text }}>Links</Title>
+            <Title level={4} style={{ color: themeColors.text, fontSize: '20px' }}>Links</Title>
             <Space direction="vertical">
-              <a href="#features" style={{ color: themeColors.text }}>Features</a>
-              <a href="#testimonials" style={{ color: themeColors.text }}>Testimonials</a>
-              <a href="#faq" style={{ color: themeColors.text }}>FAQ</a>
+              <a href="#features" style={{ color: themeColors.text, fontSize: '14px' }}>Features</a>
+              <a href="#testimonials" style={{ color: themeColors.text, fontSize: '14px' }}>Testimonials</a>
+              <a href="#faq" style={{ color: themeColors.text, fontSize: '14px' }}>FAQ</a>
             </Space>
           </Col>
           <Col xs={24} md={8}>
-            <Title level={4} style={{ color: themeColors.text }}>Contact</Title>
-            <Text style={{ color: themeColors.text }}>Email: hello@qrollcall.com</Text>
+            <Title level={4} style={{ color: themeColors.text, fontSize: '20px' }}>Contact</Title>
+            <Text style={{ color: themeColors.text, fontSize: '14px' }}>Email: hello@qrollcall.com</Text>
             <br />
-            <Text style={{ color: themeColors.text }}>Phone: +1 (555) 123-4567</Text>
+            <Text style={{ color: themeColors.text, fontSize: '14px' }}>Phone: +1 (555) 123-4567</Text>
           </Col>
         </Row>
-        <Row justify="center" style={{ marginTop: '40px' }}>
-          <Text style={{ color: themeColors.text }}>© {new Date().getFullYear()} QRollCall. All rights reserved.</Text>
-        </Row>
+        <Text style={{ color: themeColors.text, fontSize: '12px', display: 'block', marginTop: '24px' }}>
+          © {new Date().getFullYear()} QRollCall. All rights reserved.
+        </Text>
       </Footer>
 
       <style>{`
@@ -321,18 +316,47 @@ const Home = () => {
           color: ${themeColors.secondary} !important;
           border-color: ${themeColors.secondary} !important;
         }
+        .ant-btn-primary:hover, .ant-btn-primary:focus {
+          background: ${themeColors.focus} !important;
+          border-color: ${themeColors.focus} !important;
+          color: ${themeColors.text} !important;
+        }
         .ant-collapse-header {
           color: ${themeColors.text} !important;
+          font-size: 16px !important;
+          padding: 16px !important;
         }
         .ant-collapse-content {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
+          padding: 16px !important;
         }
         .ant-carousel .custom-dots li button {
-          background: ${themeColors.text} !important;
+          background: ${themeColors.text}80 !important;
+          width: 10px !important;
+          height: 10px !important;
+          border-radius: 50% !important;
         }
         .ant-carousel .custom-dots li.slick-active button {
           background: ${themeColors.primary} !important;
+          width: 12px !important;
+          height: 12px !important;
+        }
+        .ant-card.hoverable:hover {
+          transform: translateY(-6px);
+        }
+        @media (max-width: 576px) {
+          .ant-typography h1 {
+            font-size: 32px !important;
+          }
+          .ant-typography h2 {
+            font-size: 28px !important;
+          }
+          .ant-btn {
+            padding: 0 20px !important;
+            height: 40px !important;
+            font-size: 14px !important;
+          }
         }
       `}</style>
     </Layout>
