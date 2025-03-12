@@ -786,7 +786,7 @@ const Home = () => {
                   <strong>Email:</strong> hello@qrollcall.com
                 </p>
                 <p style={{ color: isDarkMode ? '#e0e0e0' : themeColors.text, opacity: 0.85 }}>
-                  <strong>Phone:</strong> +1 (555) 123-4567
+                  <strong>Phone:</strong> +2547 9756 1978
                 </p>
               </div>
             </Col>
