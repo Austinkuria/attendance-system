@@ -1,5 +1,4 @@
-import { Layout, Button, Typography, Row, Col, Card, Space, Carousel, Spin, Collapse, BackTop, Input, Divider, Form, notification } from 'antd';
-const { Panel } = Collapse;
+import { Layout, Button, Typography, Row, Col, Card, Space, Carousel, Spin, Collapse, Input, Divider, Form, notification, FloatButton } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined, ArrowRightOutlined, TeamOutlined, LineChartOutlined, FormOutlined, EyeOutlined, CalendarOutlined, DownloadOutlined, DownOutlined, UpOutlined, TwitterOutlined, FacebookOutlined, LinkedinOutlined, InstagramOutlined, GithubOutlined, SendOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
@@ -113,6 +112,30 @@ const Home = () => {
       });
     }, 1000);
   };
+
+  // FAQ Items configuration for modern Collapse usage
+  const faqItems = [
+    {
+      key: '1',
+      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>How does QRollCall work?</span>,
+      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>Lecturers generate a QR code per session. Students scan it via their dashboard, and attendance logs instantly with real-time updates.</Text>
+    },
+    {
+      key: '2',
+      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>How does it prevent proxy attendance?</span>,
+      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>Dynamic QR codes expire quickly, and unique device IDs paired with secure authentication ensure only the right student marks attendance.</Text>
+    },
+    {
+      key: '3',
+      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>How does it benefit lecturers?</span>,
+      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>Real-time tracking, flexible session controls, and exportable historical records simplify attendance management.</Text>
+    },
+    {
+      key: '4',
+      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>What&apos;s in it for administrators?</span>,
+      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>A centralized dashboard offers oversight of students, courses, and attendance, with analytics to optimize institutional performance.</Text>
+    }
+  ];
 
   if (loading) {
     return (
@@ -489,7 +512,7 @@ const Home = () => {
           </Row>
         </section>
 
-        {/* Testimonials */}
+        {/* Testimonials - Fixed block attribute warning */}
         <section id="testimonials" style={{ padding: '60px 16px', background: themeColors.cardBg, width: '100%', boxSizing: 'border-box' }}>
           <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
             What Educators Say
@@ -499,7 +522,10 @@ const Home = () => {
               <Card style={{ ...featureCardStyle, background: themeColors.cardGradient1 }} className="testimonial-card card-animate">
                 <div className="testimonial-content">
                   <Text className="testimonial-quote" style={{ color: '#fff', fontSize: 'clamp(18px, 3vw, 24px)', lineHeight: '1.5', textAlign: 'center', padding: '0 10px', fontStyle: 'italic' }}>&quot;QRollCall halved our attendance time.&quot;</Text>
-                  <Text strong block className="testimonial-author" style={{ marginTop: '24px', color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)', textAlign: 'center' }}>- Dr. Maya Patel, Horizon University</Text>
+                  {/* Fixed: Removed block prop and used div with styling instead */}
+                  <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                    <Text strong className="testimonial-author" style={{ color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)' }}>- Dr. Maya Patel, Horizon University</Text>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -507,7 +533,10 @@ const Home = () => {
               <Card style={{ ...featureCardStyle, background: themeColors.cardGradient2 }} className="testimonial-card card-animate">
                 <div className="testimonial-content">
                   <Text className="testimonial-quote" style={{ color: '#fff', fontSize: 'clamp(18px, 3vw, 24px)', lineHeight: '1.5', textAlign: 'center', padding: '0 10px', fontStyle: 'italic' }}>&quot;Device tracking ended proxy attendance.&quot;</Text>
-                  <Text strong block className="testimonial-author" style={{ marginTop: '24px', color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)', textAlign: 'center' }}>- Prof. Liam Carter, Summit College</Text>
+                  {/* Fixed: Removed block prop and used div with styling instead */}
+                  <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                    <Text strong className="testimonial-author" style={{ color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)' }}>- Prof. Liam Carter, Summit College</Text>
+                  </div>
                 </div>
               </Card>
             </div>
@@ -515,33 +544,28 @@ const Home = () => {
               <Card style={{ ...featureCardStyle, background: themeColors.cardGradient3 }} className="testimonial-card card-animate">
                 <div className="testimonial-content">
                   <Text className="testimonial-quote" style={{ color: '#fff', fontSize: 'clamp(18px, 3vw, 24px)', lineHeight: '1.5', textAlign: 'center', padding: '0 10px', fontStyle: 'italic' }}>&quot;Feedback feature sparked real dialogue.&quot;</Text>
-                  <Text strong block className="testimonial-author" style={{ marginTop: '24px', color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)', textAlign: 'center' }}>- Ms. Elena Ortiz, Bright Academy</Text>
+                  {/* Fixed: Removed block prop and used div with styling instead */}
+                  <div style={{ marginTop: '24px', textAlign: 'center' }}>
+                    <Text strong className="testimonial-author" style={{ color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)' }}>- Ms. Elena Ortiz, Bright Academy</Text>
+                  </div>
                 </div>
               </Card>
             </div>
           </Carousel>
         </section>
 
-        {/* FAQ Section */}
+        {/* FAQ Section - Using items prop instead of children */}
         <section style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
           <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
             Frequently Asked Questions
           </Title>
           <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <Collapse accordion bordered={false} style={{ background: themeColors.cardBg, borderRadius: '12px', border: `1px solid ${themeColors.border}` }}>
-              <Panel header={<span style={{ color: themeColors.text, fontSize: '16px' }}>How does QRollCall work?</span>} key="1">
-                <Text style={{ color: themeColors.text, fontSize: '14px' }}>Lecturers generate a QR code per session. Students scan it via their dashboard, and attendance logs instantly with real-time updates.</Text>
-              </Panel>
-              <Panel header={<span style={{ color: themeColors.text, fontSize: '16px' }}>How does it prevent proxy attendance?</span>} key="2">
-                <Text style={{ color: themeColors.text, fontSize: '14px' }}>Dynamic QR codes expire quickly, and unique device IDs paired with secure authentication ensure only the right student marks attendance.</Text>
-              </Panel>
-              <Panel header={<span style={{ color: themeColors.text, fontSize: '16px' }}>How does it benefit lecturers?</span>} key="3">
-                <Text style={{ color: themeColors.text, fontSize: '14px' }}>Real-time tracking, flexible session controls, and exportable historical records simplify attendance management.</Text>
-              </Panel>
-              <Panel header={<span style={{ color: themeColors.text, fontSize: '16px' }}>What’s in it for administrators?</span>} key="4">
-                <Text style={{ color: themeColors.text, fontSize: '14px' }}>A centralized dashboard offers oversight of students, courses, and attendance, with analytics to optimize institutional performance.</Text>
-              </Panel>
-            </Collapse>
+            <Collapse
+              accordion
+              bordered={false}
+              style={{ background: themeColors.cardBg, borderRadius: '12px', border: `1px solid ${themeColors.border}` }}
+              items={faqItems}
+            />
           </div>
         </section>
 
@@ -691,14 +715,14 @@ const Home = () => {
         </div>
       </Footer>
 
-      {/* Back to Top Button */}
-      <BackTop>
+      {/* Back to Top Button - Using FloatButton.BackTop instead of BackTop */}
+      <FloatButton.BackTop>
         <div className="back-to-top-btn">
           <span role="img" aria-label="to-top">
             <ArrowUpOutlined />
           </span>
         </div>
-      </BackTop>
+      </FloatButton.BackTop>
 
       <style>{`
         html, body {
