@@ -34,20 +34,42 @@ const Login = () => {
     setError(null);
 
     try {
+      // Create a cancellable request with timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+
       const response = await axios.post(
-        'https://attendance-system-w70n.onrender.com/api/auth/login', 
-        { email, password }
+        'https://attendance-system-w70n.onrender.com/api/auth/login',
+        { email, password },
+        {
+          signal: controller.signal,
+          headers: { 'Content-Type': 'application/json' }
+        }
       );
 
-      // Store token and user data in localStorage
-      const token = response.data.token;
-      localStorage.setItem('token', token);
-      localStorage.setItem('userId', response.data.user.id);
+      clearTimeout(timeoutId);
 
-      // Decode token to get user role
+      // Store token and user data efficiently
+      const { token } = response.data;  // Removed unused 'user' variable
+
+      // Store essential data only
+      localStorage.setItem('token', token);
+
+      // Pre-decode token to avoid duplicate work across components
       const decodedToken = jwtDecode(token);
       const role = decodedToken.role;
+      const userId = decodedToken.userId;
+
+      // Store minimal user data
+      const userData = JSON.stringify({
+        id: userId,
+        role: role,
+        lastLogin: new Date().toISOString()
+      });
+
+      localStorage.setItem('userData', userData);
       localStorage.setItem('role', role);
+      localStorage.setItem('userId', userId);
 
       // Redirect based on role
       switch (role) {
@@ -64,19 +86,23 @@ const Login = () => {
           navigate('/'); // Fallback
       }
     } catch (error) {
-      console.error("Login error:", error.response ? error.response.data : error.message);
-      setError(error.response?.data?.message || 'Invalid email or password. Please try again.');
+      if (error.name === 'AbortError') {
+        setError('Login request timed out. Please check your internet connection and try again.');
+      } else {
+        console.error("Login error:", error.response ? error.response.data : error.message);
+        setError(error.response?.data?.message || 'Invalid email or password. Please try again.');
+      }
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div style={{ 
+    <div style={{
       minHeight: '100vh',
       display: 'flex',
       alignItems: 'center',
-      background: themeToken.colorBgContainer 
+      background: themeToken.colorBgContainer
     }}>
       <StyledCard>
         <Title level={2} style={{ textAlign: 'center', marginBottom: 16, fontSize: '30px' }}>
@@ -87,9 +113,9 @@ const Login = () => {
         </Text>
 
         {error && (
-          <Alert 
+          <Alert
             message={error}
-            type="error" 
+            type="error"
             showIcon
             closable
             style={{ marginBottom: 32, fontSize: '20px' }}
@@ -107,9 +133,9 @@ const Login = () => {
             name="email"
             rules={[
               { required: true, message: 'Please enter your email!' },
-              { 
-                pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/, 
-                message: 'Enter a valid email format (e.g., user@example.com)!' 
+              {
+                pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                message: 'Enter a valid email format (e.g., user@example.com)!'
               }
             ]}
           >
@@ -135,18 +161,18 @@ const Login = () => {
               prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px' }} />} /* Increased icon size */
               placeholder="Password"
               size="large"
-              style={{ fontSize: '20px', padding: '12px' }} 
+              style={{ fontSize: '20px', padding: '12px' }}
             />
           </Form.Item>
 
-          <Form.Item style={{ marginTop: 20 }}> 
+          <Form.Item style={{ marginTop: 20 }}>
             <Button
               type="primary"
               htmlType="submit"
               size="large"
               block
               loading={loading}
-              icon={<ArrowRightOutlined style={{ fontSize: '20px' }} />} 
+              icon={<ArrowRightOutlined style={{ fontSize: '20px' }} />}
               style={{ height: '48px', fontSize: '20px' }}
             >
               Login
@@ -154,32 +180,32 @@ const Login = () => {
           </Form.Item>
         </Form>
 
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: 32, 
-          fontSize: '18px', 
+        <div style={{
+          textAlign: 'center',
+          marginTop: 32,
+          fontSize: '18px',
           color: themeToken.colorTextSecondary
         }}>
           Don&apos;t have an account?{' '}
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             onClick={() => navigate('/auth/signup')}
-            style={{ padding: 0, fontSize: '18px' }} 
+            style={{ padding: 0, fontSize: '18px' }}
           >
             Sign up here
           </Button>
         </div>
 
-        <div style={{ 
-          textAlign: 'center', 
-          marginTop: 24, 
+        <div style={{
+          textAlign: 'center',
+          marginTop: 24,
           fontSize: '18px',
           color: themeToken.colorTextSecondary
         }}>
-          <Button 
-            type="link" 
+          <Button
+            type="link"
             onClick={() => navigate('/auth/reset-password')}
-            style={{ padding: 0, fontSize: '18px' }} 
+            style={{ padding: 0, fontSize: '18px' }}
           >
             Forgot your password?
           </Button>

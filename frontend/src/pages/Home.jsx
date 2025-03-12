@@ -1,6 +1,6 @@
 import { Layout, Button, Typography, Row, Col, Card, Space, Collapse, Carousel, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, TeamOutlined, GlobalOutlined, MessageOutlined } from '@ant-design/icons';
+import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, GlobalOutlined, MessageOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect, useContext } from 'react';
 import { ThemeContext } from "../context/ThemeContext";
@@ -14,7 +14,6 @@ const Home = () => {
   const navigate = useNavigate();
   const { themeColors } = useContext(ThemeContext);
   const [loading, setLoading] = useState(true);
-  const [scanCount, setScanCount] = useState(0);
 
   const qrAnimation = useSpring({
     from: { transform: 'scale(0) rotate(0deg)', opacity: 0 },
@@ -26,16 +25,8 @@ const Home = () => {
   const taglineAnimation = useSpring({
     from: { opacity: 0, transform: 'translateY(30px)' },
     to: { opacity: 1, transform: 'translateY(0)' },
-    delay: 400,
+    delay: 800,
   });
-
-  // Simulate live scan counter
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setScanCount((prev) => prev + Math.floor(Math.random() * 3) + 1);
-    }, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   // Simulate loading delay
   useEffect(() => {
@@ -57,19 +48,49 @@ const Home = () => {
     padding: '24px',
     minHeight: '220px',
     transition: 'transform 0.3s ease',
+    background: 'inherit', // Ensure gradient is applied correctly
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
+    <Layout style={{ minHeight: '100vh', background: themeColors.background, margin: 0, padding: 0, overflowX: 'hidden' }}>
       {/* Header */}
-      <Header style={{ background: themeColors.cardBg, padding: '16px 24px', position: 'fixed', width: '100%', zIndex: 10, borderBottom: `1px solid ${themeColors.border}` }}>
-        <Row justify="space-between" align="middle">
-          <Col xs={12} md={6}>
-            <Title level={3} style={{ color: themeColors.text, margin: 0, fontSize: '24px' }}>QRollCall</Title>
+      <Header style={{ 
+        background: themeColors.cardBg, 
+        padding: '0 24px', // Reduced vertical padding for tighter fit
+        position: 'fixed', 
+        width: '100%', 
+        zIndex: 10, 
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+        height: 64, // Fixed height for consistency
+        lineHeight: '64px', // Align content vertically
+      }}>
+        <Row justify="space-between" align="middle" style={{ height: '100%' }}>
+          <Col xs={12} sm={8} md={6}>
+            <Space align="center" style={{ height: '100%' }}>
+              <img 
+                src="../assets/icon.svg" // Ensure this path matches your actual logo
+                alt="QRollCall Logo" 
+                style={{ width: 40, height: 40, verticalAlign: 'middle' }} 
+              />
+              <Title level={3} style={{ color: themeColors.text, margin: 0, fontSize: '24px', lineHeight: '64px' }}>
+                QRollCall
+              </Title>
+            </Space>
           </Col>
-          <Col xs={12} md={6} style={{ textAlign: 'right' }}>
-            <Space size="middle">
-              <Button ghost onClick={() => navigate('/auth/login')} style={{ color: themeColors.primary, borderColor: themeColors.primary, borderRadius: '8px' }}>
+          <Col xs={12} sm={8} md={6} style={{ textAlign: 'right' }}>
+            <Space size="middle" align="center" style={{ height: '100%' }}>
+              <Button 
+                ghost 
+                onClick={() => navigate('/auth/login')} 
+                style={{ 
+                  color: themeColors.primary, 
+                  borderColor: themeColors.primary, 
+                  borderRadius: '8px', 
+                  height: '40px', 
+                  lineHeight: '40px', 
+                  verticalAlign: 'middle' 
+                }}
+              >
                 Try Now
               </Button>
               <ThemeToggle />
@@ -78,29 +99,29 @@ const Home = () => {
         </Row>
       </Header>
 
-      <Content style={{ marginTop: 64, background: themeColors.background }}>
+      <Content style={{ margin: '64px 0 0 0', padding: '0', background: themeColors.background }}>
         {/* Hero Section */}
         <section style={{ 
-          padding: '100px 24px', 
+          padding: '80px 16px', 
           background: `linear-gradient(135deg, ${themeColors.cardGradient1} 0%, ${themeColors.cardGradient2} 100%)`,
           display: 'flex', 
           flexDirection: 'column', 
           alignItems: 'center', 
           justifyContent: 'center',
           minHeight: '80vh',
+          width: '100%',
+          boxSizing: 'border-box',
         }}>
-          <Title level={1} style={{ marginBottom: '24px', color: '#fff', fontSize: '48px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          <Title level={1} style={{ marginBottom: '24px', color: themeColors.text, fontSize: 'clamp(32px, 6vw, 48px)', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
             Attendance, Redefined
           </Title>
           <animated.div style={taglineAnimation}>
-            <Text style={{ fontSize: '22px', color: '#fff', display: 'block', marginBottom: '40px', opacity: 0.9, maxWidth: '600px', lineHeight: 1.5 }}>
+            <Text style={{ fontSize: 'clamp(18px, 3vw, 22px)', color: themeColors.text, display: 'block', marginBottom: '40px', opacity: 0.9, maxWidth: '600px', lineHeight: 1.5, textAlign: 'center' }}>
               Scan. Track. Engage. A smarter way to manage attendance.
             </Text>
           </animated.div>
-          <animated.div
-            style={{ ...qrAnimation, fontSize: '200px', color: '#fff', marginBottom: '40px' }}
-          >
-            <QrcodeOutlined />
+          <animated.div style={{ ...qrAnimation, marginBottom: '40px' }}>
+            <QrcodeOutlined style={{ fontSize: 'clamp(120px, 20vw, 200px)', color: themeColors.text }} />
           </animated.div>
           <Space size="large" wrap>
             <Button
@@ -121,17 +142,10 @@ const Home = () => {
           </Space>
         </section>
 
-        {/* Live Counter */}
-        <section style={{ padding: '20px 24px', background: themeColors.cardBg, textAlign: 'center' }}>
-          <Text strong style={{ fontSize: '18px', color: themeColors.secondary }}>
-            <ClockCircleOutlined style={{ marginRight: 8 }} /> Live Scans: {scanCount.toLocaleString()}
-          </Text>
-        </section>
-
         {/* Features Grid */}
-        <section id="features" style={{ padding: '80px 24px', background: themeColors.background }}>
-          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: '36px' }}>Why QRollCall?</Title>
-          <Row gutter={[24, 24]} justify="center">
+        <section id="features" style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
+          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>Why QRollCall?</Title>
+          <Row gutter={[16, 16]} justify="center">
             <Col xs={24} sm={12} md={8}>
               <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}>
                 <ClockCircleOutlined style={{ fontSize: '40px', color: '#fff' }} />
@@ -157,8 +171,8 @@ const Home = () => {
         </section>
 
         {/* Video Demo Section */}
-        <section style={{ padding: '80px 24px', background: themeColors.cardBg }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: '36px' }}>See It in Action</Title>
+        <section style={{ padding: '60px 16px', background: themeColors.cardBg, width: '100%', boxSizing: 'border-box' }}>
+          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>See It in Action</Title>
           <Row justify="center">
             <Col xs={24} md={16}>
               <div style={{
@@ -168,6 +182,7 @@ const Home = () => {
                 overflow: 'hidden',
                 borderRadius: '12px',
                 border: `1px solid ${themeColors.border}`,
+                maxWidth: '100%',
               }}>
                 <iframe
                   style={{
@@ -184,7 +199,7 @@ const Home = () => {
                   allowFullScreen
                 ></iframe>
               </div>
-              <Text style={{ display: 'block', marginTop: '16px', color: themeColors.text, fontSize: '16px', opacity: 0.85 }}>
+              <Text style={{ display: 'block', marginTop: '16px', color: themeColors.text, fontSize: '16px', opacity: 0.85, textAlign: 'center' }}>
                 Discover QRollCall in just 90 seconds!
               </Text>
             </Col>
@@ -192,23 +207,23 @@ const Home = () => {
         </section>
 
         {/* Testimonials */}
-        <section style={{ padding: '80px 24px', background: themeColors.background }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: '36px' }}>What Educators Say</Title>
+        <section style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
+          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>What Educators Say</Title>
           <Carousel autoplay dots={{ className: 'custom-dots' }} style={{ maxWidth: '800px', margin: '0 auto' }}>
             <div>
-              <Card style={{ background: themeColors.cardGradient1, borderRadius: '12px', border: 'none', padding: '24px', margin: '0 16px' }}>
+              <Card style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}>
                 <Text style={{ color: '#fff', fontSize: '16px' }}>"QRollCall halved our attendance time."</Text>
                 <Text strong block style={{ marginTop: '12px', color: '#fff', fontSize: '14px' }}>- Dr. Maya Patel, Horizon University</Text>
               </Card>
             </div>
             <div>
-              <Card style={{ background: themeColors.cardGradient2, borderRadius: '12px', border: 'none', padding: '24px', margin: '0 16px' }}>
+              <Card style={{ ...featureCardStyle, background: themeColors.cardGradient2 }}>
                 <Text style={{ color: '#fff', fontSize: '16px' }}>"Device tracking ended proxy attendance."</Text>
                 <Text strong block style={{ marginTop: '12px', color: '#fff', fontSize: '14px' }}>- Prof. Liam Carter, Summit College</Text>
               </Card>
             </div>
             <div>
-              <Card style={{ background: themeColors.cardGradient3, borderRadius: '12px', border: 'none', padding: '24px', margin: '0 16px' }}>
+              <Card style={{ ...featureCardStyle, background: themeColors.cardGradient3 }}>
                 <Text style={{ color: '#fff', fontSize: '16px' }}>"Feedback feature sparked real dialogue."</Text>
                 <Text strong block style={{ marginTop: '12px', color: '#fff', fontSize: '14px' }}>- Ms. Elena Ortiz, Bright Academy</Text>
               </Card>
@@ -217,8 +232,8 @@ const Home = () => {
         </section>
 
         {/* FAQ Section */}
-        <section style={{ padding: '80px 24px', background: themeColors.cardBg }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: '36px' }}>Frequently Asked Questions</Title>
+        <section style={{ padding: '60px 16px', background: themeColors.cardBg, width: '100%', boxSizing: 'border-box' }}>
+          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>Frequently Asked Questions</Title>
           <Collapse 
             accordion 
             bordered={false} 
@@ -237,9 +252,9 @@ const Home = () => {
         </section>
 
         {/* Roadmap */}
-        <section style={{ padding: '80px 24px', background: themeColors.background }}>
-          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: '36px' }}>What’s Next</Title>
-          <Row gutter={[24, 24]} justify="center">
+        <section style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
+          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>What’s Next</Title>
+          <Row gutter={[16, 16]} justify="center">
             <Col xs={24} sm={12} md={8}>
               <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}>
                 <Title level={4} style={{ color: '#fff', fontSize: '20px' }}>Q1 2026</Title>
@@ -263,14 +278,16 @@ const Home = () => {
 
         {/* CTA Section */}
         <section style={{ 
-          padding: '100px 24px', 
+          padding: '80px 16px', 
           background: `linear-gradient(135deg, ${themeColors.cardGradient3} 0%, ${themeColors.cardGradient1} 100%)`,
           textAlign: 'center',
+          width: '100%',
+          boxSizing: 'border-box',
         }}>
-          <Title level={2} style={{ marginBottom: '24px', color: '#fff', fontSize: '36px', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          <Title level={2} style={{ marginBottom: '24px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
             Ready to Transform Attendance?
           </Title>
-          <Text style={{ fontSize: '18px', marginBottom: '40px', display: 'block', color: '#fff', opacity: 0.9, maxWidth: '600px', margin: '0 auto 40px' }}>
+          <Text style={{ fontSize: 'clamp(16px, 2.5vw, 18px)', marginBottom: '40px', display: 'block', color: themeColors.text, opacity: 0.9, maxWidth: '600px', margin: '0 auto 40px', textAlign: 'center' }}>
             Join educators worldwide in simplifying attendance with QRollCall.
           </Text>
           <Button
@@ -285,8 +302,8 @@ const Home = () => {
       </Content>
 
       {/* Footer */}
-      <Footer style={{ background: themeColors.cardBg, color: themeColors.text, padding: '40px 24px', textAlign: 'center', borderTop: `1px solid ${themeColors.border}` }}>
-        <Row gutter={[24, 24]} justify="center">
+      <Footer style={{ background: themeColors.cardBg, color: themeColors.text, padding: '40px 16px', textAlign: 'center', borderTop: `1px solid ${themeColors.border}`, width: '100%', boxSizing: 'border-box' }}>
+        <Row gutter={[16, 16]} justify="center">
           <Col xs={24} md={8}>
             <Title level={4} style={{ color: themeColors.text, fontSize: '20px' }}>QRollCall</Title>
             <Text style={{ color: themeColors.text, fontSize: '14px' }}>Smart attendance for smarter education.</Text>
@@ -312,6 +329,17 @@ const Home = () => {
       </Footer>
 
       <style>{`
+        html, body {
+          margin: 0;
+          padding: 0;
+          overflow-x: hidden;
+        }
+        .ant-layout-header {
+          padding: 0 24px !important;
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+        }
         .ant-btn-ghost:hover {
           color: ${themeColors.secondary} !important;
           border-color: ${themeColors.secondary} !important;
@@ -345,6 +373,15 @@ const Home = () => {
         .ant-card.hoverable:hover {
           transform: translateY(-6px);
         }
+        @media (max-width: 768px) {
+          .ant-col {
+            display: flex;
+            align-items: center;
+          }
+          .ant-space {
+            height: auto !important;
+          }
+        }
         @media (max-width: 576px) {
           .ant-typography h1 {
             font-size: 32px !important;
@@ -356,6 +393,16 @@ const Home = () => {
             padding: 0 20px !important;
             height: 40px !important;
             font-size: 14px !important;
+          }
+          section {
+            padding: 40px 8px !important;
+          }
+          .ant-layout-header {
+            padding: 0 16px !important;
+          }
+          .ant-space {
+            flex-wrap: wrap;
+            justify-content: flex-end;
           }
         }
       `}</style>

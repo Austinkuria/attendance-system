@@ -37,18 +37,29 @@ const LecturerDashboard = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
+    // Single more efficient auth check
     const checkAuth = () => {
       const token = localStorage.getItem('token');
-      if (!token) window.location.href = '/auth/login';
+      if (!token) {
+        // Use replace instead of href to prevent back button issues
+        window.location.replace('/auth/login');
+        return false;
+      }
+      return true;
     };
-    checkAuth();
-    window.addEventListener('storage', checkAuth);
-    window.addEventListener('popstate', () => {
-      if (!localStorage.getItem('token')) window.location.href = '/auth/login';
-    });
+
+    if (!checkAuth()) return;
+
+    // Only listen for storage events (when user logs out in another tab)
+    const handleStorageChange = (e) => {
+      if (e.key === 'token' && !e.newValue) {
+        window.location.replace('/auth/login');
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
     return () => {
-      window.removeEventListener('storage', checkAuth);
-      window.removeEventListener('popstate', checkAuth);
+      window.removeEventListener('storage', handleStorageChange);
     };
   }, []);
 
@@ -73,10 +84,12 @@ const LecturerDashboard = () => {
   };
 
   const logout = () => {
-    ['token', 'userData'].forEach((item) => localStorage.removeItem(item));
+    // More efficient logout
+    localStorage.removeItem('token');
+    localStorage.removeItem('userData');
     sessionStorage.clear();
     message.success('Logged out successfully!');
-    setTimeout(() => (window.location.href = '/auth/login'), 500);
+    window.location.replace('/auth/login');
   };
 
   const profileItems = [

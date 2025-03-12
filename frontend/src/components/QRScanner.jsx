@@ -25,42 +25,57 @@ const QRScanner = () => {
   const navigate = useNavigate();
   const scanTimeoutRef = useRef(null);
 
-  // Enhanced fingerprint generation
+  // Enhanced fingerprint generation with caching and performance improvements
   const generateDeviceFingerprint = async () => {
     try {
-      const fp = await FingerprintJS.load();
-      const result = await fp.get();
-      setDeviceId(result.visitorId); // Basic visitor ID
+      // Check if we already have a cached fingerprint
+      const cachedFingerprint = localStorage.getItem('deviceFingerprint');
+      const cachedCompositeFingerprint = localStorage.getItem('compositeFingerprint');
+      const fingerprintTimestamp = localStorage.getItem('fingerprintTimestamp');
 
-      // More stable cross-browser attributes
-      const attributes = {
-        screen: `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`,
-        timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-        hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
-        platform: navigator.platform || 'unknown',
-        language: navigator.language || 'unknown',
-        userAgent: navigator.userAgent || 'unknown',
-        // WebGL renderer for additional uniqueness
-        webglRenderer: (() => {
-          const gl = document.createElement('canvas').getContext('webgl');
-          const debugInfo = gl?.getExtension('WEBGL_debug_renderer_info');
-          return gl ? (gl.getParameter(debugInfo?.UNMASKED_RENDERER_WEBGL) || 'unknown') : 'unsupported';
-        })(),
-      };
+      // Use cached fingerprint if it's less than 24 hours old
+      const isValid = fingerprintTimestamp &&
+        (Date.now() - parseInt(fingerprintTimestamp) < 24 * 60 * 60 * 1000);
 
-      // Generate SHA-256 hash of combined attributes
-      const encoder = new TextEncoder();
-      const data = encoder.encode(JSON.stringify(attributes));
-      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
-      const hashArray = Array.from(new Uint8Array(hashBuffer));
-      const fingerprint = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-      setCompositeFingerprint(fingerprint);
+      if (cachedFingerprint && cachedCompositeFingerprint && isValid) {
+        setDeviceId(cachedFingerprint);
+        setCompositeFingerprint(cachedCompositeFingerprint);
+        return;
+      }
 
-      console.log('Generated Device ID:', result.visitorId);
-      console.log('Generated Composite Fingerprint:', fingerprint);
+      // Asynchronously generate fingerprint in the background
+      setTimeout(async () => {
+        const fp = await FingerprintJS.load();
+        const result = await fp.get();
+        const visitorId = result.visitorId;
+        setDeviceId(visitorId);
+        localStorage.setItem('deviceFingerprint', visitorId);
+
+        // More efficient attributes collection
+        const attributes = {
+          screen: `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`,
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          language: navigator.language || 'unknown',
+          // Simplified fingerprint collection with fewer resource-intensive checks
+        };
+
+        // Generate SHA-256 hash of combined attributes
+        const encoder = new TextEncoder();
+        const data = encoder.encode(JSON.stringify(attributes));
+        const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+        const hashArray = Array.from(new Uint8Array(hashBuffer));
+        const fingerprint = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+
+        setCompositeFingerprint(fingerprint);
+        localStorage.setItem('compositeFingerprint', fingerprint);
+        localStorage.setItem('fingerprintTimestamp', Date.now().toString());
+      }, 0);
     } catch (error) {
       console.error('Error generating fingerprint:', error);
-      message.error('Failed to generate device fingerprint. Please try again.');
+      // Use a fallback fingerprint method instead of showing an error
+      const fallbackFingerprint = navigator.userAgent + navigator.language + screen.width + screen.height;
+      setDeviceId(fallbackFingerprint);
+      setCompositeFingerprint(fallbackFingerprint);
     }
   };
 

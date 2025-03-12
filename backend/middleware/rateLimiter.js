@@ -27,20 +27,33 @@ const authLimiter = rateLimit({
   headers: true
 });
 
-const attendanceMarkLimiter = rateLimit({
-  windowMs: 5 * 60 * 1000, // 5 minutes
-  max: 3, // Max 3 attempts per IP
+// Rate limiter for login attempts - prevent brute force attacks
+// This also improves performance by preventing excessive login requests
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 10, // Limit each IP to 10 login requests per window
+  standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   message: {
-    success: false,
-    code: "RATE_LIMIT_EXCEEDED",
-    message: "Too many attendance attempts. Please try again later."
-  },
-  skipFailedRequests: true
+    status: 429,
+    message: "Too many login attempts. Please try again after 15 minutes."
+  }
+});
+
+// Rate limiter for attendance marking
+const attendanceMarkLimiter = rateLimit({
+  windowMs: 60 * 1000, // 1 minute
+  max: 5, // 5 requests per minute
+  standardHeaders: true,
+  message: {
+    status: 429,
+    message: "Too many attendance marking attempts. Please try again in a minute."
+  }
 });
 
 module.exports = {
   apiLimiter,
   sensitiveLimiter,
   authLimiter,
+  loginLimiter,
   attendanceMarkLimiter
 };

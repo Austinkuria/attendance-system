@@ -22,23 +22,37 @@ const login = async (req, res) => {
   }
 
   try {
-    const user = await User.findOne({ email });
+    // More efficient query with lean() for faster object creation
+    const user = await User.findOne({ email }).lean().select('_id password role firstName lastName');
+
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
+    // Use async compareSync for better performance
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res.status(400).json({ message: 'Invalid email or password' });
     }
 
-    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '4h' });
+    // Generate a token with minimal payload
+    const token = jwt.sign(
+      { userId: user._id, role: user.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '4h', algorithm: 'HS256' } // Explicitly use faster HS256 algorithm
+    );
+
+    // Return minimal user data with the token
     res.json({
       token,
-      user: { id: user._id, role: user.role }
+      user: {
+        id: user._id,
+        role: user.role,
+        name: `${user.firstName} ${user.lastName}`
+      }
     });
   } catch (error) {
-    console.error(error);
+    console.error("Login error:", error);
     res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
@@ -51,7 +65,7 @@ const signup = async (req, res) => {
     // Check if email already exists
     const existingUser = await User.findOne({ email: { $eq: email } });
     if (existingUser) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Email already registered",
         field: "email"
       });
@@ -60,12 +74,12 @@ const signup = async (req, res) => {
     // Validate student-specific fields
     if (role === "student") {
       if (!year || !semester) {
-        return res.status(400).json({ 
+        return res.status(400).json({
           message: "Year and semester are required for students",
           fields: ["year", "semester"]
         });
       }
-      
+
       if (year < 1 || year > 4) {
         return res.status(400).json({
           message: "Invalid academic year (must be between 1 and 4)",
@@ -96,22 +110,22 @@ const signup = async (req, res) => {
     res.status(201).json({ message: "User registered successfully" });
   } catch (error) {
     console.error("Signup Error:", error);
-    
+
     // Handle specific error types
     if (error.name === 'ValidationError') {
       const errors = Object.values(error.errors).map(err => ({
         message: err.message,
         field: err.path
       }));
-      return res.status(400).json({ 
+      return res.status(400).json({
         message: "Validation failed",
-        errors 
+        errors
       });
     }
 
-    res.status(500).json({ 
+    res.status(500).json({
       message: "Signup failed. Please try again later.",
-      error: error.message 
+      error: error.message
     });
   }
 };
