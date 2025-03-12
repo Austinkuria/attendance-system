@@ -1,6 +1,6 @@
 import { Layout, Button, Typography, Row, Col, Card, Space, Collapse, Carousel, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined, ArrowLeftOutlined, ArrowRightOutlined, TeamOutlined, LineChartOutlined, FormOutlined } from '@ant-design/icons';
+import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined, ArrowLeftOutlined, ArrowRightOutlined, TeamOutlined, LineChartOutlined, FormOutlined, EyeOutlined, CalendarOutlined, DownloadOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect, useContext } from 'react';
 import { ThemeContext } from "../context/ThemeContext";
@@ -162,6 +162,7 @@ const Home = () => {
             Why QRollCall?
           </Title>
           <Row gutter={[16, 16]} justify="center">
+            {/* Row 1 */}
             <Col xs={24} sm={12} md={8}>
               <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}>
                 <ClockCircleOutlined style={{ fontSize: '40px', color: '#fff' }} />
@@ -189,8 +190,9 @@ const Home = () => {
                 </Text>
               </Card>
             </Col>
+            {/* Row 2 */}
             <Col xs={24} sm={12} md={8}>
-              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient4 || themeColors.cardGradient1 }}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient4 }}>
                 <TeamOutlined style={{ fontSize: '40px', color: '#fff' }} />
                 <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Comprehensive Oversight</Title>
                 <Text style={{ color: '#fff', fontSize: '16px' }}>
@@ -199,7 +201,7 @@ const Home = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>
-              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient5 || themeColors.cardGradient2 }}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}>
                 <LineChartOutlined style={{ fontSize: '40px', color: '#fff' }} />
                 <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Data-Driven Insights</Title>
                 <Text style={{ color: '#fff', fontSize: '16px' }}>
@@ -208,11 +210,39 @@ const Home = () => {
               </Card>
             </Col>
             <Col xs={24} sm={12} md={8}>
-              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient6 || themeColors.cardGradient3 }}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient2 }}>
                 <FormOutlined style={{ fontSize: '40px', color: '#fff' }} />
                 <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Streamlined Management</Title>
                 <Text style={{ color: '#fff', fontSize: '16px' }}>
                   Simplify attendance and session tracking with an intuitive interface.
+                </Text>
+              </Card>
+            </Col>
+            {/* Row 3 */}
+            <Col xs={24} sm={12} md={8}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient3}}>
+                <EyeOutlined style={{ fontSize: '40px', color: '#fff' }} />
+                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Real-Time Monitoring</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>
+                  Track attendance as it happens with live updates.
+                </Text>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient4}}>
+                <CalendarOutlined style={{ fontSize: '40px', color: '#fff' }} />
+                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Flexible Session Control</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>
+                  Start, end, and manage sessions with ease and precision.
+                </Text>
+              </Card>
+            </Col>
+            <Col xs={24} sm={12} md={8}>
+              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1}}>
+                <DownloadOutlined style={{ fontSize: '40px', color: '#fff' }} />
+                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>Historical Tracking</Title>
+                <Text style={{ color: '#fff', fontSize: '16px' }}>
+                  Review and export past attendance for complete records.
                 </Text>
               </Card>
             </Col>
