@@ -10,8 +10,8 @@ const validationResult = require('express-validator').validationResult;
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const transporter = require("../config/emailConfig");
-const path = require('path'); // Add path module
 
+// Login API
 const login = async (req, res) => {
   const { email, password } = req.body;
 
@@ -757,7 +757,7 @@ const sendResetLink = async (req, res) => {
         <div style="max-width: 600px; margin: 0 auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333;">
           <!-- Header Section -->
           <div style="padding: 20px; background-color: #f8f9fa; border-bottom: 3px solid #007bff;">
-            <img src="public/logo.jpg" alt="Company Logo" style="max-height: 40px; display: block; margin: 0 auto;">
+            <img src="public/assets/logo.jpg" alt="Company Logo" style="max-height: 40px; display: block; margin: 0 auto;">
           </div>
     
           <!-- Main Content -->
@@ -782,9 +782,9 @@ const sendResetLink = async (req, res) => {
     
             <!-- Details Section -->
             <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px;">
-                ⏳ Link expires in: <strong>1 hour</strong><br>14px;">
+              <p style="margin: 0; color: #64748b; font-size: 14px;">
                 ⏳ Link expires in: <strong>1 hour</strong><br>
-              </p> Not your request? Ignore this email
+                🔒 Not your request? Ignore this email
               </p>
             </div>
     
@@ -802,8 +802,8 @@ const sendResetLink = async (req, res) => {
                 <span style="color: #007bff;">Customer Support Team</span>
               </p>
               
+              <p style="margin: 0; color: #64748b; font-size: 12px; font-style: italic;">
                 ⚠️ Please note: This is an automated message. Do not reply to this email. 
-                For assistance, please contact us using the information in the footer below.
                 For assistance, please contact us using the information in the footer below.
               </p>
             </div>
@@ -819,19 +819,20 @@ const sendResetLink = async (req, res) => {
             
             <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
               <p style="margin: 5px 0;">12 Main Street, Kutus, Kenya</p>
+              <p style="margin: 5px 0;">
                 📧 <a href="mailto:kuriaaustin125@gmail.com" style="color: #cbd5e1; text-decoration: none;">Email Support</a> | 
-                📞 <a href="tel:+254797561978" style="color: #cbd5e1; text-decoration: none;">+254 797 561978</a> Support</a> | 
                 📞 <a href="tel:+254797561978" style="color: #cbd5e1; text-decoration: none;">+254 797 561978</a>
+              </p>
               <p style="margin: 15px 0 0; color: #94a3b8;">
-                © ${new Date().getFullYear()} Smart QR Code Attendance System. All rights reserved
                 © ${new Date().getFullYear()} Smart QR Code Attendance System. All rights reserved
               </p>
             </div>
-        </div>v>
+          </div>
         </div>
       `,
     };
     // Send Email
+    await transporter.sendMail(mailOptions);
     res.json({ message: "Password reset link sent to your email." });
   } catch (error) {
     console.error("Error sending reset email:", error);
@@ -846,9 +847,9 @@ const resetPassword = async (req, res) => {
 
     // Find user(s) with a reset token (hashed token cannot be directly searched)
     const users = await User.find({ resetPasswordToken: { $exists: true } });
-    let user;
 
     // Check if any user has the token (compare using bcrypt)
+    let user = null;
     for (const u of users) {
       const isMatch = await bcrypt.compare(token, u.resetPasswordToken);
       if (isMatch) {
@@ -861,10 +862,12 @@ const resetPassword = async (req, res) => {
       return res.status(400).json({ message: "Invalid or expired reset token" });
     }
 
+    // Check if token is expired
     if (user.resetPasswordExpires < Date.now()) {
       return res.status(400).json({ message: "Reset token has expired" });
     }
 
+    // Hash the new password
     const hashedPassword = await bcrypt.hash(newPassword, 10);
 
     // Update user password and remove reset token fields
@@ -881,67 +884,26 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// Send verification email with proper logo handling
-const sendVerificationEmail = async (email, verificationToken) => {
-  try {
-    // Define the absolute path to your logo for email
-    const logoPath = path.join(__dirname, '../public/assets/logo.jpg');
+// const updatePushToken = async (req, res) => {
+//   try {
+//     const { token } = req.body; // OneSignal playerId
+//     const userId = req.user.userId; // From auth middleware
 
-    // Inline logo as base64 (most reliable method for emails)
-    const logoBase64 = fs.readFileSync(logoPath).toString('base64');
+//     if (!token) return res.status(400).json({ message: 'Push token is required' });
 
-    // Create mail options with properly styled logo
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Email Verification for QRollCall',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <!-- Logo styled similar to Home.jsx -->
-            <div style="display: inline-block; padding: 10px;">
-              <img 
-                src="cid:logo" 
-                alt="QRollCall Logo" 
-                style="width: 80px; height: 80px; border-radius: 10px; border: 3px solid #6C63FF; padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: white;"
-              />
-            </div>
-            <h1 style="color: #6C63FF; margin: 10px 0;">QRollCall</h1>
-          </div>
-          
-          <div style="background-color: #f9f9f9; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            <h2 style="color: #6C63FF;">Please Verify Your Email</h2>
-            <p>Thank you for registering with QRollCall. To complete your registration, please click the button below to verify your email address:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a 
-                href="${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}" 
-                style="background-color: #6C63FF; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; font-weight: bold; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"
-              >
-                Verify Email Address
-              </a>
-            </div>
-            <p>If you did not create an account, please ignore this email.</p>
-          </div>
-          
-          <div style="text-align: center; color: #666; font-size: 14px;">
-            <p>© ${new Date().getFullYear()} QRollCall. All rights reserved.</p>
-          </div>
-        </div>
-      `,
-      attachments: [{
-        filename: 'logo.jpg',
-        path: logoPath,
-        cid: 'logo' // This content ID is referenced in the HTML above
-      }]
-    };
+//     const user = await User.findByIdAndUpdate(
+//       userId,
+//       { pushToken: token },
+//       { new: true }
+//     );
+//     if (!user) return res.status(404).json({ message: 'User not found' });
 
-    await transporter.sendMail(mailOptions);
-    console.log('Verification email sent successfully');
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-    throw new Error('Failed to send verification email');
-  }
-};
+//     res.status(200).json({ message: 'Push token updated successfully' });
+//   } catch (error) {
+//     console.error('Error updating push token:', error);
+//     res.status(500).json({ message: 'Server error', error: error.message });
+//   }
+// };
 
 module.exports = {
   login,
@@ -963,6 +925,5 @@ module.exports = {
   downloadLecturers,
   sendResetLink,
   resetPassword,
-  sendVerificationEmail
   // updatePushToken
 };
