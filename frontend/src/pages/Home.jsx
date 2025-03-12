@@ -1,6 +1,6 @@
 import { Layout, Button, Typography, Row, Col, Card, Space, Collapse, Carousel, Spin } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, GlobalOutlined, MessageOutlined } from '@ant-design/icons';
+import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect, useContext } from 'react';
 import { ThemeContext } from "../context/ThemeContext";
@@ -25,13 +25,16 @@ const Home = () => {
   const taglineAnimation = useSpring({
     from: { opacity: 0, transform: 'translateY(30px)' },
     to: { opacity: 1, transform: 'translateY(0)' },
-    delay: 800,
+    delay: 900,
   });
 
-  // Simulate loading delay
   useEffect(() => {
     setTimeout(() => setLoading(false), 1000);
   }, []);
+
+  useEffect(() => {
+    document.body.style.background = themeColors.background;
+  }, [themeColors]);
 
   if (loading) {
     return (
@@ -48,7 +51,7 @@ const Home = () => {
     padding: '24px',
     minHeight: '220px',
     transition: 'transform 0.3s ease',
-    background: 'inherit', // Ensure gradient is applied correctly
+    background: 'inherit',
   };
 
   return (
@@ -56,29 +59,28 @@ const Home = () => {
       {/* Header */}
       <Header style={{ 
         background: themeColors.cardBg, 
-        padding: '0 24px', // Reduced vertical padding for tighter fit
+        padding: '0 16px', 
         position: 'fixed', 
+        top: 0, 
         width: '100%', 
         zIndex: 10, 
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        height: 64, // Fixed height for consistency
-        lineHeight: '64px', // Align content vertically
+        lineHeight: '64px', 
+        height: '64px',
       }}>
         <Row justify="space-between" align="middle" style={{ height: '100%' }}>
-          <Col xs={12} sm={8} md={6}>
+          <Col xs={18} sm={12} md={6}>
             <Space align="center" style={{ height: '100%' }}>
               <img 
-                src="../assets/icon.svg" // Ensure this path matches your actual logo
+                src="../assets/icon.svg" 
                 alt="QRollCall Logo" 
-                style={{ width: 40, height: 40, verticalAlign: 'middle' }} 
+                style={{ width: 40, height: 40, marginRight: 8 }} 
               />
-              <Title level={3} style={{ color: themeColors.text, margin: 0, fontSize: '24px', lineHeight: '64px' }}>
-                QRollCall
-              </Title>
+              <Title level={3} style={{ color: themeColors.text, margin: 0, fontSize: '24px', lineHeight: 'inherit' }}>QRollCall</Title>
             </Space>
           </Col>
-          <Col xs={12} sm={8} md={6} style={{ textAlign: 'right' }}>
-            <Space size="middle" align="center" style={{ height: '100%' }}>
+          <Col xs={6} sm={12} md={6} style={{ textAlign: 'right' }}>
+            <Space size="small" style={{ height: '100%', lineHeight: 'inherit' }}>
               <Button 
                 ghost 
                 onClick={() => navigate('/auth/login')} 
@@ -86,9 +88,8 @@ const Home = () => {
                   color: themeColors.primary, 
                   borderColor: themeColors.primary, 
                   borderRadius: '8px', 
-                  height: '40px', 
-                  lineHeight: '40px', 
-                  verticalAlign: 'middle' 
+                  margin: '0 4px', 
+                  lineHeight: 'inherit',
                 }}
               >
                 Try Now
@@ -334,12 +335,6 @@ const Home = () => {
           padding: 0;
           overflow-x: hidden;
         }
-        .ant-layout-header {
-          padding: 0 24px !important;
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-        }
         .ant-btn-ghost:hover {
           color: ${themeColors.secondary} !important;
           border-color: ${themeColors.secondary} !important;
@@ -373,16 +368,19 @@ const Home = () => {
         .ant-card.hoverable:hover {
           transform: translateY(-6px);
         }
-        @media (max-width: 768px) {
+        @media (max-width: 767px) { /* Medium screens (md) */
+          .ant-row {
+            flex-direction: row !important;
+            flex-wrap: wrap !important; /* Allow wrapping for cards */
+          }
           .ant-col {
-            display: flex;
-            align-items: center;
+            padding: 0 8px !important;
           }
           .ant-space {
-            height: auto !important;
+            flex-wrap: wrap !important; /* Allow wrapping for header buttons */
           }
         }
-        @media (max-width: 576px) {
+        @media (max-width: 576px) { /* Small screens (xs) */
           .ant-typography h1 {
             font-size: 32px !important;
           }
@@ -390,19 +388,18 @@ const Home = () => {
             font-size: 28px !important;
           }
           .ant-btn {
-            padding: 0 20px !important;
-            height: 40px !important;
+            padding: 0 15px !important;
+            height: 36px !important;
             font-size: 14px !important;
           }
           section {
             padding: 40px 8px !important;
           }
-          .ant-layout-header {
-            padding: 0 16px !important;
-          }
           .ant-space {
-            flex-wrap: wrap;
-            justify-content: flex-end;
+            flex-wrap: wrap !important;
+          }
+          .ant-row {
+            flex-direction: column !important; /* Stack cards vertically */
           }
         }
       `}</style>
