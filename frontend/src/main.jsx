@@ -16,8 +16,10 @@ createRoot(document.getElementById('root')).render(
 register({
   onUpdate: (registration) => {
     const waitingWorker = registration.waiting;
+    console.log('Service worker update detected', registration);
     if (waitingWorker) {
-      toast.info('A new version is available! Click here to update.', {
+      console.log('New service worker waiting to be activated');
+      toast.info('🔄 New version available! Refresh for latest features.', {
         onClick: async () => {
           waitingWorker.postMessage({ action: 'skipWaiting' });
           // Clear caches and reload the page
@@ -26,6 +28,14 @@ register({
         },
         autoClose: false,
         closeOnClick: false,
+        position: "top-center",
+        hideProgressBar: false,
+        closeButton: false,
+        style: { 
+          backgroundColor: '#4285f4',
+          color: 'white',
+          fontWeight: 'bold'
+        },
       });
     }
   },
