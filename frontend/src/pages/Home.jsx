@@ -18,18 +18,18 @@ const StyledLogo = ({ size = 'normal', onClick = null }) => {
     normal: { width: 40, height: 40 },
     large: { width: 50, height: 50 }
   };
-  
+
   const { width, height } = sizes[size] || sizes.normal;
-  
+
   return (
-    <div 
-      className="styled-logo" 
+    <div
+      className="styled-logo"
       onClick={onClick}
       style={{ cursor: onClick ? 'pointer' : 'default' }}
     >
-      <img 
-        src={logoImage} 
-        alt="QRollCall Logo" 
+      <img
+        src={logoImage}
+        alt="QRollCall Logo"
         className={`logo-image ${size}`}
         width={width}
         height={height}
@@ -129,7 +129,18 @@ const Home = () => {
   const [subscribeLoading, setSubscribeLoading] = useState(false);
 
   // Replace simple alert with Ant Design notification
-  const handleSubscribe = (formValues) => { // Renamed from 'values' to 'formValues' to avoid unused var
+  const handleSubscribe = (formValues) => {
+    // First check for empty values (though Form will handle this)
+    if (!formValues?.email) {
+      notification.error({
+        message: 'Subscription Failed',
+        description: 'Please provide a valid email address.',
+        placement: 'top',
+        duration: 4,
+      });
+      return;
+    }
+
     setSubscribeLoading(true);
     // Simulate API call
     setTimeout(() => {
@@ -137,7 +148,7 @@ const Home = () => {
       form.resetFields();
       notification.success({
         message: 'Subscription Successful',
-        description: 'Thank you for subscribing to our updates!',
+        description: `Thank you for subscribing with ${formValues.email}! You'll receive our updates shortly.`,
         placement: 'top',
         duration: 4,
         style: {
@@ -146,6 +157,35 @@ const Home = () => {
         }
       });
     }, 1000);
+  };
+
+  // Enhanced validation function for email
+  const validateEmail = (_, value) => {
+    if (!value) {
+      return Promise.reject('Please enter your email address');
+    }
+
+    // Basic format validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(value)) {
+      return Promise.reject('Please enter a valid email format (example@domain.com)');
+    }
+
+    // Check for specific requirements
+    const domain = value.split('@')[1];
+
+    // Optional: Check domain validity (just a simple check)
+    if (domain && !domain.includes('.')) {
+      return Promise.reject('Invalid email domain format');
+    }
+
+    // Optional: Could warn about disposable emails but still allow them
+    const disposableDomains = ['mailinator.com', 'temporarymail.com', 'throwaway.com'];
+    if (domain && disposableDomains.includes(domain)) {
+      return Promise.reject('Please use a permanent email address');
+    }
+
+    return Promise.resolve();
   };
 
   // FAQ Items configuration for modern Collapse usage
@@ -707,10 +747,28 @@ const Home = () => {
                 Subscribe to our newsletter for the latest updates and features.
               </Text>
               <Form form={form} onFinish={handleSubscribe} className="newsletter-form">
-                <Form.Item name="email" rules={[{ required: true, message: 'Please enter your email', type: 'email' }]}>
+                <Form.Item
+                  name="email"
+                  validateTrigger={['onChange', 'onBlur']}
+                  rules={[
+                    {
+                      required: true,
+                      message: 'Email is required'
+                    },
+                    {
+                      type: 'email',
+                      message: 'Please enter a valid email address'
+                    },
+                    {
+                      validator: validateEmail
+                    }
+                  ]}
+                  validateFirst={true}
+                >
                   <Input
                     placeholder="Your email address"
                     style={{ color: isDarkMode ? '#fff' : themeColors.text }}
+                    status={form.getFieldError('email').length > 0 ? 'error' : ''}
                     suffix={
                       <Button
                         type="text"
@@ -1515,6 +1573,21 @@ const Home = () => {
           .logo-image {
             border-width: 1px;
           }
+        }
+
+        .newsletter-form .ant-form-item-explain-error {
+          font-size: 12px;
+          margin-top: 4px;
+          color: #ff4d4f;
+        }
+
+        .newsletter-form .ant-input-status-error {
+          border-color: #ff4d4f !important;
+          background: ${isDarkMode ? 'rgba(255,77,79,0.1)' : 'rgba(255,77,79,0.05)'} !important;
+        }
+
+        .newsletter-form .ant-input-status-error:hover {
+          border-color: #ff7875 !important;
         }
         
       `}</style>
