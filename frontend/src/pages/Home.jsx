@@ -1,6 +1,6 @@
 import { Layout, Button, Typography, Row, Col, Card, Space, Carousel, Spin, Collapse, Input, Divider, Form, notification, FloatButton } from 'antd';
 import { useNavigate } from 'react-router-dom';
-import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined, ArrowRightOutlined, TeamOutlined, LineChartOutlined, FormOutlined, EyeOutlined, CalendarOutlined, DownloadOutlined, DownOutlined, UpOutlined, TwitterOutlined, FacebookOutlined, LinkedinOutlined, InstagramOutlined, GithubOutlined, SendOutlined, ArrowUpOutlined } from '@ant-design/icons';
+import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined, ArrowRightOutlined, TeamOutlined, LineChartOutlined, FormOutlined, EyeOutlined, CalendarOutlined, DownloadOutlined, DownOutlined, UpOutlined, XOutlined, FacebookOutlined, LinkedinOutlined, InstagramOutlined, GithubOutlined, SendOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect, useContext, useRef } from 'react';
 import { ThemeContext } from "../context/ThemeContext";
@@ -633,7 +633,7 @@ const Home = () => {
                   Revolutionizing attendance tracking for educational institutions with smart, secure QR code technology.
                 </Text>
                 <div className="social-icons">
-                  <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer"><TwitterOutlined /></a>
+                  <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer"><XOutlined /></a>
                   <a href="https://facebook.com/" target="_blank" rel="noopener noreferrer"><FacebookOutlined /></a>
                   <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer"><LinkedinOutlined /></a>
                   <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer"><InstagramOutlined /></a>
@@ -715,14 +715,13 @@ const Home = () => {
         </div>
       </Footer>
 
-      {/* Back to Top Button - Using FloatButton.BackTop instead of BackTop */}
-      <FloatButton.BackTop>
-        <div className="back-to-top-btn">
-          <span role="img" aria-label="to-top">
-            <ArrowUpOutlined />
-          </span>
-        </div>
-      </FloatButton.BackTop>
+      {/* Back to Top Button - Now using ArrowUpOutlined */}
+      <FloatButton.BackTop
+        icon={<ArrowUpOutlined />}
+        style={{ backgroundColor: themeColors.primary }}
+        type="primary"
+        visibilityHeight={300}
+      />
 
       <style>{`
         html, body {
@@ -902,12 +901,12 @@ const Home = () => {
         }
         
         /* Back to top button styles */
-        .back-to-top-btn {
+        .back-to-top-btn, .ant-float-btn-circle {
           height: 40px;
           width: 40px;
           border-radius: 50%;
-          background-color: ${themeColors.primary};
-          color: #fff;
+          background-color: ${themeColors.primary}!important;
+          color: #fff !important;
           display: flex;
           justify-content: center;
           align-items: center;
@@ -915,8 +914,10 @@ const Home = () => {
           transition: all 0.3s ease;
         }
         
-        .back-to-top-btn:hover {
-          background-color: ${themeColors.focus};
+        .back-to-top-btn:hover, .ant-float-btn-circle:hover {
+          background-color: #A29BFE}!important;
+          cursor: pointer;
+          color: #fff !important;
           transform: scale(1.1);
         }
         
@@ -1405,6 +1406,26 @@ const Home = () => {
           .contact-info {
             text-align: center;
           }
+        }
+
+        /* Fixed FloatButton styles to always use primary color */
+        .ant-float-btn-primary {
+          background-color: ${themeColors.primary} !important;
+          color: #fff !important;
+        }
+        
+        .ant-float-btn-primary:hover {
+          background-color: ${themeColors.focus || themeColors.primary} !important;
+        }
+        
+        /* Override any default FloatButton styling */
+        .ant-float-btn {
+          right: 24px !important;
+          bottom: 24px !important;
+        }
+        
+        .ant-float-btn-body {
+          background-color: ${themeColors.primary} !important;
         }
       `}</style>
     </Layout>

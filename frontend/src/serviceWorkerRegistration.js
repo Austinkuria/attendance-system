@@ -2,27 +2,20 @@ export function register(config) {
   const isProduction = import.meta.env.MODE === 'production';
   if (isProduction && 'serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      console.log('Service Worker registration handled by VitePWA');
-      if (config && config.onSuccess) {
-        navigator.serviceWorker.ready.then((registration) =>
-          config.onSuccess(registration)
-        );
-      }
-      if (config && config.onUpdate) {
-        navigator.serviceWorker.getRegistration().then((registration) => {
-          if (registration) {
-            registration.onupdatefound = () => config.onUpdate(registration);
-          }
-        });
-      }
-    });
-  }
-}
-
-export function unregister() {
-  if ('serviceWorker' in navigator) {
-    navigator.serviceWorker.ready.then((registration) => {
-      registration.unregister();
+      const swUrl = '/service-worker.js';
+      navigator.serviceWorker.register(swUrl).then((registration) => {
+        console.log('Service Worker registered:', registration);
+        registration.onupdatefound = () => {
+          const installingWorker = registration.installing;
+          installingWorker.onstatechange = () => {
+            if (installingWorker.state === 'installed' && navigator.serviceWorker.controller) {
+              console.log('New update found');
+              if (config && config.onUpdate) config.onUpdate(registration);
+            }
+          };
+        };
+        if (config && config.onSuccess) config.onSuccess(registration);
+      }).catch((error) => console.error('Service Worker registration failed:', error));
     });
   }
 }
