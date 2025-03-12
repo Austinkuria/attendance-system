@@ -25,6 +25,14 @@ if (!fs.existsSync(uploadDir)) {
   console.log("Uploads folder already exists.");
 }
 
+// Make sure directory for assets exists to store logo
+const publicAssetsDir = path.join(__dirname, "public/assets");
+if (!fs.existsSync(publicAssetsDir)) {
+  fs.mkdirSync(publicAssetsDir, { recursive: true });
+  console.log("Public assets folder created successfully!");
+} else {
+  console.log("Public assets folder already exists.");
+}
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
@@ -79,6 +87,9 @@ app.use((req, res, next) => {
 
 app.use(morgan("dev"));
 app.use(helmet());
+
+// Make sure you have this line to serve static assets
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 
 // Connect to MongoDB
 const connectDB = async () => {

@@ -10,6 +10,7 @@ const validationResult = require('express-validator').validationResult;
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const transporter = require("../config/emailConfig");
+const path = require('path');
 
 // Login API
 const login = async (req, res) => {
@@ -725,10 +726,6 @@ const sendResetLink = async (req, res) => {
       return res.status(404).json({ message: "User not found" });
     }
 
-    if (!user) {
-      return res.status(404).json({ message: "User not found" });
-    }
-
     // Generate Reset Token and Hash It
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashedToken = await bcrypt.hash(resetToken, 10);
@@ -748,6 +745,9 @@ const sendResetLink = async (req, res) => {
 
     const resetLink = `${clientUrl}/auth/reset-password/${resetToken}`;
 
+    // Define the absolute path to your logo for email
+    const logoPath = path.join(__dirname, '../public/assets/logo.jpg');
+
     // Email Template
     const mailOptions = {
       from: `"Smart QR Code Attendance System" <${process.env.SMTP_USER}>`,
@@ -755,9 +755,13 @@ const sendResetLink = async (req, res) => {
       subject: "Password Reset Request",
       html: `
         <div style="max-width: 600px; margin: 0 auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333;">
-          <!-- Header Section -->
-          <div style="padding: 20px; background-color: #f8f9fa; border-bottom: 3px solid #007bff;">
-            <img src="public/assets/logo.jpg" alt="Company Logo" style="max-height: 40px; display: block; margin: 0 auto;">
+          <!-- Header Section with Styled Logo -->
+          <div style="padding: 20px; background-color: #f8f9fa; border-bottom: 3px solid #6C63FF; text-align: center;">
+            <div style="display: inline-block; padding: 10px;">
+              <img src="cid:logo" alt="QRollCall Logo" 
+                style="width: 80px; height: 80px; border-radius: 10px; border: 3px solid #6C63FF; padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: white;" />
+            </div>
+            <h2 style="color: #6C63FF; margin: 10px 0;">Smart QR Code Attendance System</h2>
           </div>
     
           <!-- Main Content -->
@@ -772,8 +776,8 @@ const sendResetLink = async (req, res) => {
             <!-- CTA Button -->
             <div style="text-align: center; margin: 30px 0;">
               <a href="${resetLink}" 
-                 style="background-color: #007bff; color: #ffffff; padding: 12px 30px; 
-                        text-decoration: none; border-radius: 25px; display: inline-block; 
+                 style="background-color: #6C63FF; color: #ffffff; padding: 12px 30px; 
+                        text-decoration: none; border-radius: 8px; display: inline-block; 
                         font-weight: 500; letter-spacing: 0.5px; transition: all 0.3s ease;
                         box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                 Reset Password
@@ -791,7 +795,7 @@ const sendResetLink = async (req, res) => {
             <!-- Fallback Text -->
             <p style="color: #94a3b8; font-size: 13px; margin: 20px 0;">
               If the button doesn't work, copy and paste this link in your browser:<br>
-              <span style="color: #007bff; word-break: break-all;">${resetLink}</span>
+              <span style="color: #6C63FF; word-break: break-all;">${resetLink}</span>
             </p>
     
             <!-- Thank You & Auto-Reply Notice -->
@@ -799,7 +803,7 @@ const sendResetLink = async (req, res) => {
               <p style="margin: 0 0 15px 0; color: #2d3956; line-height: 1.6;">
                 Thank you for choosing Smart QR Code Attendance System.<br>
                 <strong>Best regards,</strong><br>
-                <span style="color: #007bff;">Customer Support Team</span>
+                <span style="color: #6C63FF;">Customer Support Team</span>
               </p>
               
               <p style="margin: 0; color: #64748b; font-size: 12px; font-style: italic;">
@@ -830,13 +834,78 @@ const sendResetLink = async (req, res) => {
           </div>
         </div>
       `,
+      attachments: [{
+        filename: 'logo.jpg',
+        path: logoPath,
+        cid: 'logo' // Content ID referenced in the HTML img src
+      }]
     };
+
     // Send Email
     await transporter.sendMail(mailOptions);
     res.json({ message: "Password reset link sent to your email." });
   } catch (error) {
     console.error("Error sending reset email:", error);
     res.status(500).json({ message: "Server error", error });
+  }
+};
+
+// Send verification email with styled logo
+const sendVerificationEmail = async (email, verificationToken) => {
+  try {
+    // Define the absolute path to your logo for email
+    const logoPath = path.join(__dirname, '../public/assets/logo.jpg');
+
+    // Create mail options with properly styled logo
+    const mailOptions = {
+      from: process.env.EMAIL_USER,
+      to: email,
+      subject: 'Email Verification for QRollCall',
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
+          <div style="text-align: center; margin-bottom: 30px;">
+            <!-- Logo styled similar to Home.jsx -->
+            <div style="display: inline-block; padding: 10px;">
+              <img 
+                src="cid:logo" 
+                alt="QRollCall Logo" 
+                style="width: 80px; height: 80px; border-radius: 10px; border: 3px solid #6C63FF; padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: white;"
+              />
+            </div>
+            <h1 style="color: #6C63FF; margin: 10px 0;">QRollCall</h1>
+          </div>
+          
+          <div style="background-color: #f9f9f9; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
+            <h2 style="color: #6C63FF;">Please Verify Your Email</h2>
+            <p>Thank you for registering with QRollCall. To complete your registration, please click the button below to verify your email address:</p>
+            <div style="text-align: center; margin: 30px 0;">
+              <a 
+                href="${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}" 
+                style="background-color: #6C63FF; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"
+              >
+                Verify Email Address
+              </a>
+            </div>
+            <p>If you did not create an account, please ignore this email.</p>
+          </div>
+          
+          <div style="text-align: center; color: #666; font-size: 14px;">
+            <p>© ${new Date().getFullYear()} QRollCall. All rights reserved.</p>
+          </div>
+        </div>
+      `,
+      attachments: [{
+        filename: 'logo.jpg',
+        path: logoPath,
+        cid: 'logo' // Content ID referenced in the HTML img src
+      }]
+    };
+
+    await transporter.sendMail(mailOptions);
+    console.log('Verification email sent successfully');
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw new Error('Failed to send verification email');
   }
 };
 
