@@ -80,6 +80,9 @@ app.use((req, res, next) => {
 app.use(morgan("dev"));
 app.use(helmet());
 
+// Make sure you have this line in your server.js or app.js
+app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
+
 // Connect to MongoDB
 const connectDB = async () => {
   try {
