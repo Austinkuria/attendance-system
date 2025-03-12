@@ -47,29 +47,27 @@ const InstallButton = () => {
   const [dismissed, setDismissed] = useState(
     localStorage.getItem('installPromptDismissed') === 'true'
   );
-
   const deferredPrompt = useRef(null);
 
   useEffect(() => {
     const handleBeforeInstallPrompt = (event) => {
-      console.log('beforeinstallprompt event fired');
-      if (dismissed) return;
-
+      console.log('beforeinstallprompt event fired:', event);
       event.preventDefault();
       deferredPrompt.current = event;
-
-      // Show the banner after a short delay
-      setTimeout(() => {
-        setInstallable(true);
-      }, 3000);
+      if (!dismissed) {
+        setTimeout(() => {
+          setInstallable(true);
+        }, 3000);
+      }
     };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
     window.addEventListener('appinstalled', () => {
-      console.log('App installed');
+      console.log('App installed successfully');
       setInstallable(false);
       localStorage.setItem('installPromptDismissed', 'true');
+      setDismissed(true);
     });
 
     return () => {
@@ -87,12 +85,15 @@ const InstallButton = () => {
   };
 
   const handleInstallClick = async () => {
-    if (!deferredPrompt.current) return;
+    if (!deferredPrompt.current) {
+      console.log('No deferred prompt available');
+      return;
+    }
 
     try {
-      await deferredPrompt.current.prompt();
+      deferredPrompt.current.prompt();
       const { outcome } = await deferredPrompt.current.userChoice;
-
+      console.log('Install prompt outcome:', outcome);
       if (outcome === 'accepted') {
         console.log('User accepted the install prompt');
         localStorage.setItem('installPromptDismissed', 'true');
@@ -107,30 +108,33 @@ const InstallButton = () => {
     handleDismiss();
   };
 
-  if (!installable || isDismissing) return null;
+  // Force visibility for debugging (remove after testing)
+  // if (!installable || isDismissing) return null;
 
   return (
-    <InstallBanner className={isDismissing ? 'dismissing' : ''}>
-      <Space>
+    installable && !isDismissing && (
+      <InstallBanner className={isDismissing ? 'dismissing' : ''}>
+        <Space>
+          <Button
+            type="primary"
+            shape="round"
+            icon={<DownloadOutlined />}
+            onClick={handleInstallClick}
+            size="large"
+            aria-label="Install application"
+          >
+            Install App
+          </Button>
+          <span>Get the full experience</span>
+        </Space>
         <Button
-          type="primary"
-          shape="round"
-          icon={<DownloadOutlined />}
-          onClick={handleInstallClick}
-          size="large"
-          aria-label="Install application"
-        >
-          Install App
-        </Button>
-        <span>Get the full experience</span>
-      </Space>
-      <Button
-        type="text"
-        icon={<CloseOutlined />}
-        onClick={handleDismiss}
-        aria-label="Dismiss install prompt"
-      />
-    </InstallBanner>
+          type="text"
+          icon={<CloseOutlined />}
+          onClick={handleDismiss}
+          aria-label="Dismiss install prompt"
+        />
+      </InstallBanner>
+    )
   );
 };
 

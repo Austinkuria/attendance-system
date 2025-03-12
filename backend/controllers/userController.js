@@ -757,7 +757,7 @@ const sendResetLink = async (req, res) => {
         <div style="max-width: 600px; margin: 0 auto; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; color: #333333;">
           <!-- Header Section -->
           <div style="padding: 20px; background-color: #f8f9fa; border-bottom: 3px solid #007bff;">
-            <img src="https://www.freepik.com/icon/education_8212458" alt="Company Logo" style="max-height: 40px; display: block; margin: 0 auto;">
+            <img src="public/logo.jpg" alt="Company Logo" style="max-height: 40px; display: block; margin: 0 auto;">
           </div>
     
           <!-- Main Content -->

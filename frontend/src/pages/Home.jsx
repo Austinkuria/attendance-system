@@ -3,11 +3,46 @@ import { useNavigate } from 'react-router-dom';
 import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined, ArrowRightOutlined, TeamOutlined, LineChartOutlined, FormOutlined, EyeOutlined, CalendarOutlined, DownloadOutlined, DownOutlined, UpOutlined, XOutlined, FacebookOutlined, LinkedinOutlined, InstagramOutlined, GithubOutlined, SendOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import { animated, useSpring } from '@react-spring/web';
 import { useState, useEffect, useContext, useRef } from 'react';
+import PropTypes from 'prop-types'; // Add PropTypes import
 import { ThemeContext } from "../context/ThemeContext";
 import ThemeToggle from '../components/ThemeToggle';
+import logoImage from '../assets/logo.jpg';
 
 const { Header, Content, Footer } = Layout;
 const { Title, Text } = Typography;
+
+// Add a styled logo component
+const StyledLogo = ({ size = 'normal', onClick = null }) => {
+  const sizes = {
+    small: { width: 32, height: 32 },
+    normal: { width: 40, height: 40 },
+    large: { width: 50, height: 50 }
+  };
+  
+  const { width, height } = sizes[size] || sizes.normal;
+  
+  return (
+    <div 
+      className="styled-logo" 
+      onClick={onClick}
+      style={{ cursor: onClick ? 'pointer' : 'default' }}
+    >
+      <img 
+        src={logoImage} 
+        alt="QRollCall Logo" 
+        className={`logo-image ${size}`}
+        width={width}
+        height={height}
+      />
+    </div>
+  );
+};
+
+// Add PropTypes validation
+StyledLogo.propTypes = {
+  size: PropTypes.oneOf(['small', 'normal', 'large']),
+  onClick: PropTypes.func
+};
 
 const Home = () => {
   const navigate = useNavigate();
@@ -94,7 +129,7 @@ const Home = () => {
   const [subscribeLoading, setSubscribeLoading] = useState(false);
 
   // Replace simple alert with Ant Design notification
-  const handleSubscribe = (values) => {
+  const handleSubscribe = (formValues) => { // Renamed from 'values' to 'formValues' to avoid unused var
     setSubscribeLoading(true);
     // Simulate API call
     setTimeout(() => {
@@ -191,7 +226,8 @@ const Home = () => {
         <Row justify="space-between" align="middle" style={{ height: '100%' }}>
           <Col xs={14} sm={12} md={6}>
             <Space align="center" style={{ height: '100%' }}>
-              <img src="../assets/logo.jpg" alt="QRollCall Logo" style={{ width: 36, height: 36, marginRight: 4 }} />
+              {/* Replace the img tag with the styled logo component */}
+              <StyledLogo onClick={() => navigate('/')} />
               <Title level={3} className="site-title" style={{ color: themeColors.text, margin: 0, fontSize: '24px', lineHeight: 'inherit' }}>QRollCall</Title>
             </Space>
           </Col>
@@ -626,7 +662,7 @@ const Home = () => {
             <Col xs={24} sm={24} md={7}>
               <div className="footer-brand">
                 <div className="footer-logo">
-                  <img src="../assets/logo.jpg" alt="QRollCall Logo" />
+                  <StyledLogo size="large" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
                   <Title level={4} className="brand-name">QRollCall</Title>
                 </div>
                 <Text style={{ color: isDarkMode ? '#e0e0e0' : themeColors.text, opacity: 0.85 }}>
@@ -1427,6 +1463,60 @@ const Home = () => {
         .ant-float-btn-body {
           background-color: ${themeColors.primary} !important;
         }
+
+        /* Logo Styling */
+        .styled-logo {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          position: relative;
+          transition: transform 0.3s ease;
+        }
+
+        .styled-logo:hover {
+          transform: scale(1.05);
+        }
+        
+        .logo-image {
+          border-radius: 10px;
+          object-fit: cover;
+          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+          border: 2px solid ${themeColors.primary};
+          background-color: ${isDarkMode ? '#2a2a2a' : 'white'};
+          transition: all 0.3s ease;
+          padding: 2px;
+        }
+        
+        .logo-image:hover {
+          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+          border-color: ${themeColors.focus || themeColors.secondary};
+        }
+        
+        .logo-image.small {
+          border-width: 1px;
+          padding: 1px;
+        }
+        
+        .logo-image.large {
+          border-width: 3px;
+          padding: 3px;
+        }
+
+        .footer-logo .styled-logo {
+          margin-right: 12px;
+        }
+        
+        /* Make logo more noticeable on smaller screens */
+        @media (max-width: 576px) {
+          .styled-logo {
+            margin-right: 8px;
+          }
+          
+          .logo-image {
+            border-width: 1px;
+          }
+        }
+        
       `}</style>
     </Layout>
   );
