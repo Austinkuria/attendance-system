@@ -93,16 +93,26 @@ const Home = () => {
         height: '64px'
       }}>
         <Row justify="space-between" align="middle" style={{ height: '100%' }}>
-          <Col xs={18} sm={12} md={6}>
+          <Col xs={14} sm={12} md={6}>
             <Space align="center" style={{ height: '100%' }}>
-              <img src="../assets/icon.svg" alt="QRollCall Logo" style={{ width: 40, height: 40, marginRight: 8 }} />
-              <Title level={3} style={{ color: themeColors.text, margin: 0, fontSize: '24px', lineHeight: 'inherit' }}>QRollCall</Title>
+              <img src="../assets/icon.svg" alt="QRollCall Logo" style={{ width: 36, height: 36, marginRight: 4 }} />
+              <Title level={3} className="site-title" style={{ color: themeColors.text, margin: 0, fontSize: '24px', lineHeight: 'inherit' }}>QRollCall</Title>
             </Space>
           </Col>
-          <Col xs={6} sm={12} md={6} style={{ textAlign: 'right' }}>
-            <Space size="small" style={{ height: '100%', lineHeight: 'inherit' }}>
-              <Button ghost onClick={() => navigate('/auth/login')} style={{ borderColor: themeColors.primary, borderRadius: '8px', margin: '0 4px', lineHeight: 'inherit', background: themeColors.cardBg, ...(isDarkMode ? { color: '#fff' } : { color: themeColors.text }) }}>
-                Sign Up
+          <Col xs={10} sm={12} md={6} style={{ textAlign: 'right' }}>
+            <Space size="small" align="center" style={{ height: '100%', lineHeight: 'inherit' }}>
+              <Button
+                ghost
+                onClick={() => navigate('/auth/login')}
+                style={{
+                  borderColor: themeColors.primary,
+                  borderRadius: '8px',
+                  lineHeight: 'inherit',
+                  background: themeColors.cardBg,
+                  ...(isDarkMode ? { color: '#fff' } : { color: themeColors.text })
+                }}
+              >
+                <span className="btn-text">Sign Up</span>
               </Button>
               <ThemeToggle />
             </Space>
@@ -110,11 +120,11 @@ const Home = () => {
         </Row>
       </Header>
 
-      <Content style={{ margin: '20px 0 0 0', padding: '0', background: themeColors.background }}>
+      <Content style={{ padding: 0, background: themeColors.background, border: '3px solid black' }}>
         {/* Hero Section */}
         <section style={{
           padding: '30px 16px',
-          marginTop: '36px',
+          marginTop: '64px', // Base margin to account for fixed header
           background: `linear-gradient(135deg, ${themeColors.cardGradient1} 0%, ${themeColors.cardGradient2} 100%)`,
           display: 'flex',
           flexDirection: 'column',
@@ -123,8 +133,9 @@ const Home = () => {
           minHeight: '80vh',
           width: '100%',
           boxSizing: 'border-box',
+          border: '3px solid green',
         }}>
-          <Title level={1} style={{ marginBottom: '20px', color: themeColors.text, fontSize: 'clamp(32px, 6vw, 48px)', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
+          <Title level={1} style={{ marginBottom: '20px', border: '3px solid red', color: themeColors.text, fontSize: 'clamp(32px, 6vw, 48px)', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
             Attendance, Redefined
           </Title>
           <animated.div style={taglineAnimation}>
@@ -384,8 +395,19 @@ const Home = () => {
         html, body {
           margin: 0;
           padding: 0;
-          overflow-x: hidden;
+          overflow-x: 'hidden';
         }
+
+        /* Remove any default margins/paddings from Layout components */
+        .ant-layout {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        .ant-layout-content {
+          margin: 0 !important;
+        }
+        
         .ant-btn-ghost:hover {
           background: ${themeColors.primary} !important;
           border-color: ${themeColors.secondary} !important;
@@ -418,8 +440,22 @@ const Home = () => {
           .ant-space {
             flex-wrap: wrap !important;
           }
+          /* Reduce top margin/padding on medium screens */
+          section:first-of-type {
+            margin-top: 64px !important; 
+            padding-top: 16px !important;
+          }
         }
+        
         @media (max-width: 576px) {
+        .ant-layout {
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        .ant-layout-content {
+          margin: 0 !important;
+        }
           .ant-typography h1 {
             font-size: 32px !important;
           }
@@ -432,7 +468,53 @@ const Home = () => {
             font-size: 14px !important;
           }
           section {
-            padding: 40px 8px !important;
+            padding: 30px 8px !important;
+          }
+          /* Minimum spacing on small screens */
+          section:first-of-type {
+            margin-top: 6px !important;
+            padding-top: 8px !important;
+          }
+        }
+
+        /* Header responsive styling */
+        .site-title {
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
+        }
+        
+        /* Make space for all header elements */
+        @media (max-width: 576px) {
+          /* Smaller screens */
+          .ant-layout-header {
+            padding: 0 8px !important;
+          }
+          
+          .site-title {
+            font-size: 18px !important;
+          }
+          
+          .btn-text {
+            font-size: 12px;
+            padding: 0 4px;
+          }
+          
+          .ant-space {
+            gap: 4px !important;
+          }
+          
+          .ant-btn {
+            min-width: 0;
+            padding: 0 8px !important;
+          }
+        }
+        
+        @media (max-width: 350px) {
+          /* Very small screens */
+          .site-title {
+            max-width: 80px;
+            font-size: 16px !important;
           }
         }
       `}</style>
