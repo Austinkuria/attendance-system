@@ -78,7 +78,31 @@ const QRScanner = () => {
       Modal.confirm({
         title: 'Device Analysis',
         content: 'We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.',
-        onOk: () => localStorage.setItem('fingerprintConsent', 'true')
+        onOk: () => localStorage.setItem('fingerprintConsent', 'true'),
+        className: isDarkMode ? 'dark-mode-modal' : '',
+        // Consistent theme styling for modal content
+        bodyStyle: isDarkMode ? {
+          background: themeColors.cardBg || '#1f1f1f',
+          color: '#fff'
+        } : {},
+        maskStyle: isDarkMode ? {
+          backgroundColor: 'rgba(0,0,0,0.7)'
+        } : {},
+        // Use theme colors for all buttons regardless of mode
+        okButtonProps: {
+          style: {
+            backgroundColor: themeColors.secondary,
+            borderColor: themeColors.secondary,
+            color: '#fff'
+          }
+        },
+        cancelButtonProps: {
+          style: {
+            backgroundColor: themeColors.primary,
+            borderColor: themeColors.primary,
+            color: '#fff'
+          }
+        }
       });
     }
   }, []);
@@ -257,7 +281,17 @@ const QRScanner = () => {
             >
               Rescan
             </Button>
-            <Button type="primary" danger onClick={handleCancel} size="middle">Cancel</Button>
+            <Button
+              type="primary"
+              onClick={handleCancel}
+              size="middle"
+              style={{
+                backgroundColor: themeColors.primary,
+                borderColor: themeColors.primary
+              }}
+            >
+              Cancel
+            </Button>
           </Space>
         }
       >

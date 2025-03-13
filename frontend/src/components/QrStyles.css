@@ -202,6 +202,58 @@
   box-shadow: 0 0 8px 2px rgba(24, 144, 255, 0.5);
 }
 
+/* Dark mode modal styling - improved */
+.dark-mode-modal .ant-modal-content {
+  background-color: var(--card-bg, #1f1f1f) !important;
+  color: #fff !important;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.dark-mode-modal .ant-modal-header {
+  background-color: var(--card-bg, #1f1f1f) !important;
+  border-bottom-color: #303030 !important;
+}
+
+.dark-mode-modal .ant-modal-title {
+  color: #fff !important;
+}
+
+.dark-mode-modal .ant-modal-body {
+  color: #fff !important;
+  background-color: var(--card-bg, #1f1f1f) !important;
+}
+
+.dark-mode-modal .ant-modal-footer {
+  border-top-color: #303030 !important;
+  background-color: var(--card-bg, #1f1f1f) !important;
+}
+
+/* Remove hardcoded button styles to use ThemeContext colors instead */
+/* .dark-mode-modal .ant-btn-default {
+  background-color: #303030 !important;
+  border-color: #454545 !important;
+  color: #fff !important;
+}
+
+.dark-mode-modal .ant-btn-primary {
+  background-color: var(--secondary) !important;
+  border-color: var(--secondary) !important;
+  color: #fff !important;
+} */
+
+.dark-mode-modal .ant-btn:hover {
+  opacity: 0.85;
+}
+
+.dark-mode-modal .ant-modal-close {
+  color: #fff !important;
+}
+
+.dark-mode-modal .ant-modal-close:hover {
+  color: #d9d9d9 !important;
+}
+
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .qr-box {
