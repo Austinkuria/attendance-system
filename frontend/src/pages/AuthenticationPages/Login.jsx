@@ -65,7 +65,6 @@ const StyledInput = styled(Input)`
   padding: 12px;
   background-color: ${props => props.theme.inputBg} !important;
   border-color: ${props => props.theme.inputBorder} !important;
-  color: ${props => props.theme.text} !important;
   border-radius: 8px !important;
 
   &:hover, &:focus {
@@ -73,17 +72,11 @@ const StyledInput = styled(Input)`
     background-color: ${props => props.theme.inputHover} !important;
   }
 
-  &::placeholder {
-    color: ${props => props.isDarkMode
-    ? 'rgba(255, 255, 255, 0.5)' // Less bright for dark mode
-    : props.theme.placeholder} !important;
-  }
-
   .ant-input {
     background-color: ${props => props.theme.inputBg} !important;
     color: ${props => props.theme.text} !important;
     border-radius: 8px !important;
-    padding:2px 14px !important;
+    padding: 2px 14px !important;
   }
   
   .ant-input::placeholder {
@@ -97,6 +90,12 @@ const StyledInput = styled(Input)`
     ? 'rgba(255, 255, 255, 0.5)'
     : props.theme.placeholder} !important;
     margin-right: 8px;
+  }
+  
+  .ant-input-suffix .anticon {
+    color: ${props => props.isDarkMode
+    ? 'rgba(255, 255, 255, 0.5)'
+    : props.theme.placeholder} !important;
   }
   
   @media (max-width: 576px) {
@@ -120,6 +119,8 @@ const StyledPasswordInput = styled(Input.Password)`
   .ant-input {
     background-color: ${props => props.theme.inputBg} !important;
     color: ${props => props.theme.text} !important;
+    border-radius: 8px !important;
+    padding: 2px 14px !important;
   }
   
   .ant-input::placeholder {

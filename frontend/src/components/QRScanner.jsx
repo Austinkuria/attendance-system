@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import { useEffect, useRef, useState, useCallback, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message, Space, Modal } from "antd";
 import QrScanner from "qr-scanner";
@@ -6,10 +6,12 @@ import { markAttendance, getActiveSessionForUnit } from "../services/api";
 import { jwtDecode } from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
+import { ThemeContext } from "../context/ThemeContext"; // Adjust path as needed
 
 const { Title, Text } = Typography;
 
 const QRScanner = () => {
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const scanner = useRef(null);
   const videoEl = useRef(null);
   const qrBoxEl = useRef(null);
@@ -25,17 +27,13 @@ const QRScanner = () => {
   const navigate = useNavigate();
   const scanTimeoutRef = useRef(null);
 
-  // Enhanced fingerprint generation with caching and performance improvements
+  // Fingerprint generation and other useEffect hooks remain unchanged
   const generateDeviceFingerprint = async () => {
     try {
-      // Check if we already have a cached fingerprint
       const cachedFingerprint = localStorage.getItem('deviceFingerprint');
       const cachedCompositeFingerprint = localStorage.getItem('compositeFingerprint');
       const fingerprintTimestamp = localStorage.getItem('fingerprintTimestamp');
-
-      // Use cached fingerprint if it's less than 24 hours old
-      const isValid = fingerprintTimestamp &&
-        (Date.now() - parseInt(fingerprintTimestamp) < 24 * 60 * 60 * 1000);
+      const isValid = fingerprintTimestamp && (Date.now() - parseInt(fingerprintTimestamp) < 24 * 60 * 60 * 1000);
 
       if (cachedFingerprint && cachedCompositeFingerprint && isValid) {
         setDeviceId(cachedFingerprint);
@@ -43,7 +41,6 @@ const QRScanner = () => {
         return;
       }
 
-      // Asynchronously generate fingerprint in the background
       setTimeout(async () => {
         const fp = await FingerprintJS.load();
         const result = await fp.get();
@@ -51,15 +48,12 @@ const QRScanner = () => {
         setDeviceId(visitorId);
         localStorage.setItem('deviceFingerprint', visitorId);
 
-        // More efficient attributes collection
         const attributes = {
           screen: `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`,
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           language: navigator.language || 'unknown',
-          // Simplified fingerprint collection with fewer resource-intensive checks
         };
 
-        // Generate SHA-256 hash of combined attributes
         const encoder = new TextEncoder();
         const data = encoder.encode(JSON.stringify(attributes));
         const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -72,7 +66,6 @@ const QRScanner = () => {
       }, 0);
     } catch (error) {
       console.error('Error generating fingerprint:', error);
-      // Use a fallback fingerprint method instead of showing an error
       const fallbackFingerprint = navigator.userAgent + navigator.language + screen.width + screen.height;
       setDeviceId(fallbackFingerprint);
       setCompositeFingerprint(fallbackFingerprint);
@@ -81,7 +74,6 @@ const QRScanner = () => {
 
   useEffect(() => {
     generateDeviceFingerprint();
-
     if (!localStorage.getItem('fingerprintConsent')) {
       Modal.confirm({
         title: 'Device Analysis',
@@ -99,7 +91,6 @@ const QRScanner = () => {
         setLoading(false);
         return;
       }
-
       setLoading(true);
       try {
         const session = await getActiveSessionForUnit(selectedUnit);
@@ -126,7 +117,6 @@ const QRScanner = () => {
       message.error("Session has ended. Attendance cannot be marked.");
       return;
     }
-
     stopScanner();
     setScannedResult(result?.data);
     setLoading(true);
@@ -135,20 +125,11 @@ const QRScanner = () => {
     try {
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication failed. Please log in again.");
-
       const decoded = jwtDecode(token);
       const studentId = decoded.userId;
       const base64Data = result.data;
 
-      const response = await markAttendance(
-        sessionId,
-        studentId,
-        token,
-        deviceId,
-        base64Data,
-        compositeFingerprint
-      );
-
+      const response = await markAttendance(sessionId, studentId, token, deviceId, base64Data, compositeFingerprint);
       if (response.success) {
         message.success(response.message || "Attendance marked successfully!");
         navigate("/student-dashboard");
@@ -177,10 +158,7 @@ const QRScanner = () => {
 
   const startScanner = useCallback(() => {
     if (!videoEl.current || sessionEnded || !sessionId) return;
-
-    if (scanner.current) {
-      scanner.current.destroy();
-    }
+    if (scanner.current) scanner.current.destroy();
 
     scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
       onDecodeError: (err) => console.error("QR Scan Error:", err),
@@ -192,11 +170,7 @@ const QRScanner = () => {
       returnDetailedScanResult: true,
     });
 
-    scanner.current
-      .start()
-      .then(() => setQrOn(true))
-      .catch(() => setQrOn(false));
-
+    scanner.current.start().then(() => setQrOn(true)).catch(() => setQrOn(false));
     clearTimeout(scanTimeoutRef.current);
     scanTimeoutRef.current = setTimeout(() => {
       stopScanner();
@@ -205,9 +179,7 @@ const QRScanner = () => {
   }, [onScanSuccess, sessionEnded, sessionId]);
 
   useEffect(() => {
-    if (!loading && !sessionEnded && sessionId) {
-      startScanner();
-    }
+    if (!loading && !sessionEnded && sessionId) startScanner();
     return () => {
       clearTimeout(scanTimeoutRef.current);
       if (scanner.current) {
@@ -223,9 +195,7 @@ const QRScanner = () => {
       scanner.current.destroy();
       scanner.current = null;
     }
-    if (videoEl.current?.srcObject) {
-      videoEl.current.srcObject.getTracks().forEach((track) => track.stop());
-    }
+    if (videoEl.current?.srcObject) videoEl.current.srcObject.getTracks().forEach(track => track.stop());
   };
 
   const handleRescan = () => {
@@ -239,9 +209,7 @@ const QRScanner = () => {
   };
 
   useEffect(() => {
-    if (!qrOn) {
-      message.error("Camera access denied. Please allow permissions.");
-    }
+    if (!qrOn) message.error("Camera access denied. Please allow permissions.");
   }, [qrOn]);
 
   const handleCancel = () => {
@@ -250,22 +218,46 @@ const QRScanner = () => {
   };
 
   return (
-    <div className="qr-scanner-container">
+    <div
+      className="qr-scanner-container"
+      style={{
+        '--background': `linear-gradient(135deg, ${themeColors.background}, ${themeColors.border})`,
+        '--card-bg': themeColors.cardBg,
+        '--card-head-bg': themeColors.primary,
+        '--card-head-text': '#fff',
+        '--text-color': themeColors.text,
+        '--primary': themeColors.primary,
+        '--loading-bg': isDarkMode ? 'rgba(0, 0, 0, 0.8)' : 'rgba(0, 0, 0, 0.6)',
+        '--secondary': themeColors.secondary,
+      }}
+    >
       <Card
         className="qr-scanner-card"
-        title={
-          <Title level={4} style={{ color: "#fff", margin: 0 }}>
-            {sessionEnded ? "Session Ended" : "Scan QR Code"}
-          </Title>
-        }
+        title={<Title level={4} style={{ color: "#fff", margin: 0 }}>{sessionEnded ? "Session Ended" : "Scan QR Code"}</Title>}
         extra={
           <Space>
-            <Button type="primary" onClick={handleRescan} disabled={loading || sessionEnded}>
+            <Button
+              type="primary"
+              onClick={handleRescan}
+              disabled={loading || sessionEnded}
+              className="rescan-button"
+              style={{
+                backgroundColor: themeColors.secondary,
+                borderColor: themeColors.secondary,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.8';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'scale(1)';
+              }}
+            >
               Rescan
             </Button>
-            <Button type="primary" danger onClick={handleCancel} size="middle">
-              Cancel
-            </Button>
+            <Button type="primary" danger onClick={handleCancel} size="middle">Cancel</Button>
           </Space>
         }
       >
@@ -280,27 +272,37 @@ const QRScanner = () => {
             style={{ marginBottom: 16 }}
           />
         ) : (
-          <div className="qr-video-container">
-            <video ref={videoEl} className="qr-video" />
-            <div ref={qrBoxEl} className="qr-box">
-              <img
-                src="/static/images/icons/scan_qr1.svg"
-                alt="QR Frame"
-                className="qr-frame"
-              />
+          <>
+            <div className="scanning-instructions">
+              <Text strong style={{ color: isDarkMode ? '#fff' : themeColors.text }}>
+                Position the QR code within the frame to mark attendance
+              </Text>
             </div>
-            {loading && (
-              <div className="qr-loading-overlay">
-                <Spin size="large" tip="Marking Attendance..." />
+            <div className="qr-video-container">
+              <video ref={videoEl} className="qr-video" />
+              <div ref={qrBoxEl} className="qr-box">
+                <div className="corner-indicator top-left"></div>
+                <div className="corner-indicator top-right"></div>
+                <div className="corner-indicator bottom-left"></div>
+                <div className="corner-indicator bottom-right"></div>
+                <div className="scanning-line"></div>
+                <img src="/static/images/icons/scan_qr1.svg" alt="QR Frame" className="qr-frame" />
               </div>
-            )}
-          </div>
+              {loading && (
+                <div className="qr-loading-overlay">
+                  <Spin size="large" tip="Marking Attendance..." />
+                </div>
+              )}
+            </div>
+            <div className="scanning-status">
+              <Text type={isDarkMode ? undefined : "secondary"} style={{ color: isDarkMode ? '#fff' : undefined }}>
+                Camera active - awaiting QR code
+              </Text>
+            </div>
+          </>
         )}
-
         {scannedResult && !sessionEnded && (
-          <Text className="qr-result" strong>
-            Scanned Result: {scannedResult}
-          </Text>
+          <Text className="qr-result" strong>Scanned Result: {scannedResult}</Text>
         )}
       </Card>
     </div>

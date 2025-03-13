@@ -3,38 +3,59 @@
   justify-content: center;
   align-items: center;
   min-height: 100vh;
-  background: linear-gradient(135deg, #f5f7fa, #c3cfe2); /* Softer gradient for Ant Design feel */
+  max-height: 100vh;
   padding: 20px;
+  background: var(--background);
+  overflow: hidden;
+  box-sizing: border-box;
 }
 
 .qr-scanner-card {
   width: 100%;
   max-width: 600px;
-  background: #fff;
+  max-height: calc(100vh - 40px);
   border-radius: 12px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
-  overflow: hidden;
-  border: none; /* Remove default Ant Design card border */
+  overflow: auto;
+  border: none;
+  background: var(--card-bg);
+  display: flex;
+  flex-direction: column;
 }
 
 .qr-scanner-card .ant-card-head {
-  background: linear-gradient(135deg, #1890ff, #40a9ff); /* Ant Design primary gradient */
-  color: #fff;
   padding: 16px 24px;
   border-bottom: none;
+  background: var(--card-head-bg);
+  color: var(--card-head-text);
+}
+
+.qr-scanner-card .ant-card-body {
+  flex: 1;
+  overflow: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
 }
 
 .qr-video-container {
   position: relative;
   width: 100%;
-  border-radius: 8px;
+  border-radius: 12px;
   overflow: hidden;
   background: #000;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  flex: 1;
+  min-height: 300px;
+  max-height: calc(100vh - 200px);
 }
 
 .qr-video {
+  display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 12px;
 }
 
 .qr-box {
@@ -43,28 +64,62 @@
   left: 50%;
   transform: translate(-50%, -50%);
   width: 250px;
-
   height: 250px;
-  border: 4px solid #1890ff; /* Ant Design primary color */
-  border-radius: 12px;
+  border: 4px solid var(--primary);
+  border-radius: 16px;
   box-shadow: 0 0 15px rgba(24, 144, 255, 0.4);
+  overflow: hidden;
 }
 
 .qr-frame {
-  width: 100%;
-  height: 100%;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 70%;
+  height: 70%;
+  opacity: 0.7;
   animation: pulse 2s infinite ease-in-out;
 }
 
 @keyframes pulse {
   0% {
-    opacity: 0.9;
+    opacity: 0.6;
   }
+
   50% {
-    opacity: 0.5;
+    opacity: 1;
   }
+
   100% {
-    opacity: 0.9;
+    opacity: 0.6;
+  }
+}
+
+@keyframes scan {
+  0% {
+    top: 20%;
+    opacity: 0.6;
+  }
+
+  50% {
+    top: 80%;
+    opacity: 1;
+  }
+
+  100% {
+    top: 20%;
+    opacity: 0.6;
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
   }
 }
 
@@ -77,15 +132,74 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  background: rgba(0, 0, 0, 0.6);
+  background: var(--loading-bg);
 }
 
 .qr-result {
   display: block;
   margin-top: 16px;
   font-size: 16px;
-  color: #595959; /* Ant Design text color */
   text-align: center;
+  color: var(--text-color);
+}
+
+.scanning-instructions {
+  text-align: center;
+  margin-bottom: 15px;
+  animation: fadeIn 0.5s ease-in;
+}
+
+.scanning-status {
+  text-align: center;
+  margin-top: 15px;
+  animation: pulse 2s infinite;
+}
+
+.corner-indicator {
+  position: absolute;
+  width: 20px;
+  height: 20px;
+  border-color: var(--secondary, #1890ff);
+  z-index: 10;
+}
+
+.top-left {
+  top: 20px;
+  left: 20px;
+  border-top: 3px solid;
+  border-left: 3px solid;
+}
+
+.top-right {
+  top: 20px;
+  right: 20px;
+  border-top: 3px solid;
+  border-right: 3px solid;
+}
+
+.bottom-left {
+  bottom: 20px;
+  left: 20px;
+  border-bottom: 3px solid;
+  border-left: 3px solid;
+}
+
+.bottom-right {
+  bottom: 20px;
+  right: 20px;
+  border-bottom: 3px solid;
+  border-right: 3px solid;
+}
+
+.scanning-line {
+  position: absolute;
+  height: 2px;
+  width: 100%;
+  background-color: var(--secondary, #1890ff);
+  z-index: 9;
+  top: 50%;
+  animation: scan 2s ease-in-out infinite;
+  box-shadow: 0 0 8px 2px rgba(24, 144, 255, 0.5);
 }
 
 /* Responsive adjustments */
@@ -94,6 +208,7 @@
     width: 200px;
     height: 200px;
   }
+
   .qr-scanner-card {
     max-width: 450px;
   }
@@ -104,11 +219,25 @@
     width: 150px;
     height: 150px;
   }
+
   .qr-scanner-card {
     max-width: 100%;
     margin: 0 10px;
   }
+
   .ant-card-head {
     padding: 12px 16px;
+  }
+}
+
+/* Large screen optimizations */
+@media (min-height: 900px) {
+  .qr-scanner-card {
+    height: auto;
+    max-height: 800px;
+  }
+
+  .qr-video-container {
+    max-height: 500px;
   }
 }

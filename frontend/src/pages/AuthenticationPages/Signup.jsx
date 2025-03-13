@@ -119,6 +119,7 @@ const StyledPasswordInput = styled(Input.Password)`
     border-radius: 8px !important;
     background-color: ${props => props.theme.inputBg} !important;
     color: ${props => props.theme.text} !important;
+    padding: 2px 14px !important;
   }
   
   &:hover, &:focus {
