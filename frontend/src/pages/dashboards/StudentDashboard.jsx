@@ -82,6 +82,7 @@ const StudentDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
+  const [username, setUsername] = useState('');
   const [feedbackData, setFeedbackData] = useState({
     rating: 0,
     text: '',
@@ -113,6 +114,11 @@ const StudentDashboard = () => {
         getStudentUnits(token),
         getPendingFeedbackAttendance(),
       ]);
+
+      // Set username from profile response
+      if (profileRes && profileRes.firstName) {
+        setUsername(profileRes.firstName);
+      }
 
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
@@ -253,8 +259,8 @@ const StudentDashboard = () => {
     if (rate === null) return themeColors.accent;
     const value = parseFloat(rate);
     if (value >= 75) return themeColors.secondary;
-    if (value >= 50) return '#FAAD14';
-    if (value >= 25) return '#FF7F50';
+    if (value >= 50) return themeColors.primary || themeColors.warning || themeColors.accent;  // Use primary or fallback
+    if (value >= 25) return themeColors.warning || themeColors.accent; // Use warning or fallback
     return themeColors.accent;
   };
 
@@ -282,10 +288,10 @@ const StudentDashboard = () => {
       tooltip: { callbacks: { label: (context) => `${context.raw === 0 && attendanceRates[context.dataIndex].value === null ? 'N/A' : context.raw}%` } },
     },
     scales: {
-      y: { 
-        beginAtZero: true, 
-        max: 100, 
-        title: { display: true, text: 'Attendance Rate (%)', color: themeColors.text }, 
+      y: {
+        beginAtZero: true,
+        max: 100,
+        title: { display: true, text: 'Attendance Rate (%)', color: themeColors.text },
         grid: { color: `${themeColors.text}20` },
         ticks: { color: themeColors.text },
       },
@@ -294,7 +300,7 @@ const StudentDashboard = () => {
           maxRotation: 45,
           minRotation: 0,
           color: themeColors.text,
-          callback: function(value) {
+          callback: function (value) {
             const label = this.getLabelForValue(value);
             return window.innerWidth < 576 && label.length > 10 ? label.substring(0, 10) + '...' : label;
           },
@@ -324,10 +330,10 @@ const StudentDashboard = () => {
       );
       events = selectedWeek
         ? selectedWeek.events.map((event) => ({
-            title: `${event.unitName} - ${event.status}`,
-            date: moment(event.startTime),
-            status: event.status,
-          }))
+          title: `${event.unitName} - ${event.status}`,
+          date: moment(event.startTime),
+          status: event.status,
+        }))
         : [];
     } else {
       const selectedDay = attendanceData.dailyEvents.find((day) =>
@@ -335,10 +341,10 @@ const StudentDashboard = () => {
       );
       events = selectedDay
         ? selectedDay.events.map((event) => ({
-            title: `${event.unitName} - ${event.status}`,
-            date: moment(event.startTime),
-            status: event.status,
-          }))
+          title: `${event.unitName} - ${event.status}`,
+          date: moment(event.startTime),
+          status: event.status,
+        }))
         : [];
     }
 
@@ -802,14 +808,22 @@ const StudentDashboard = () => {
 
         <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
           <Spin spinning={loading} tip="Loading data...">
+            {username && (
+              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+                  Welcome, {username}! 👋
+                </AntTitle>
+              </motion.div>
+            )}
+
             <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
               <Col xs={24} sm={12}>
                 <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
                   <Card hoverable className="summary-card-1" style={styles.summaryCard1}>
                     <Space direction="vertical">
-                      <BookOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Units</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>{units.length}</h1>
+                      <BookOutlined style={{ fontSize: 28, color: '#fff' }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Total Units</h3>
+                      <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>{units.length}</h1>
                     </Space>
                   </Card>
                 </motion.div>
@@ -818,9 +832,9 @@ const StudentDashboard = () => {
                 <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
                   <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
                     <Space direction="vertical">
-                      <CheckCircleOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>
+                      <CheckCircleOutlined style={{ fontSize: 28, color: '#fff' }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Attendance Rate</h3>
+                      <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
                         {attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%
                       </h1>
                     </Space>
@@ -869,12 +883,13 @@ const StudentDashboard = () => {
                           <Col span={24}>
                             <Button
                               type="primary"
-                              icon={<QrcodeOutlined />}
+                              icon={<QrcodeOutlined style={{ color: '#fff' }} />}
                               block
                               onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
-                              style={styles.button}
+                              style={{ ...styles.button, color: '#fff !important' }}
+                              className="attend-button"
                             >
-                              Attend
+                              <span style={{ color: '#fff' }}>Attend</span>
                             </Button>
                           </Col>
                           <Col span={24}>
@@ -914,8 +929,13 @@ const StudentDashboard = () => {
               <div style={{ height: '400px' }}>
                 <Bar data={chartData} options={chartOptions} />
               </div>
-              <Button type="primary" style={styles.button} onClick={exportAttendanceData}>
-                Export Data
+              <Button
+                type="primary"
+                style={{ ...styles.button, color: '#fff !important' }}
+                onClick={exportAttendanceData}
+                className="export-button"
+              >
+                <span style={{ color: '#fff' }}>Export Data</span>
               </Button>
             </Card>
 
@@ -943,7 +963,7 @@ const StudentDashboard = () => {
               onOk={handleFeedbackSubmit}
               centered
               width={Math.min(window.innerWidth * 0.9, 600)}
-              okButtonProps={{ style: styles.button }}
+              okButtonProps={{ style: { ...styles.button, color: '#fff' } }}
               cancelButtonProps={{}}
             >
               <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
