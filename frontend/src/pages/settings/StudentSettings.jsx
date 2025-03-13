@@ -11,7 +11,7 @@ const { Title } = Typography;
 
 const SettingsCard = styled(Card)`
   max-width: 600px;
-  margin: 24px auto;
+  margin: 20px auto 12px; // Increased top margin from 12px to 20px
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background: ${props => props.background};
@@ -27,16 +27,21 @@ const SettingsCard = styled(Card)`
   .ant-card-head-title {
     color: #ffffff;
   }
+
+  // Reduce padding in card body to save space
+  .ant-card-body {
+    padding: 16px;
+  }
   
   @media (max-width: 768px) {
     width: 90%;
-    margin: 24px auto;
+    margin: 16px auto; // Reduced from 24px to 16px
   }
   
   @media (max-width: 576px) {
     width: 95%;
     padding: 0;
-    margin: 16px auto;
+    margin: 8px auto; // Reduced from 16px to 8px
   }
 `;
 
@@ -60,7 +65,7 @@ const StudentSettings = () => {
       maxWidth: '100%',
       width: '100%',
       margin: 0,
-      padding: '16px',
+      padding: '12px', // Reduced from 16px to 12px
       background: themeColors.background,
       borderRadius: 8,
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
@@ -68,7 +73,7 @@ const StudentSettings = () => {
       overflowY: 'auto',
       overflowX: 'hidden',
       marginTop: '30px', // Reduced from 45px to 30px
-      paddingBottom: '20px',
+      paddingBottom: '8px', // Reduced from 20px to 8px
       minHeight: 'calc(100vh - 45px)', // Adjusted to match new header height and margin
       display: 'flex',
       flexDirection: 'column',
@@ -145,12 +150,24 @@ const StudentSettings = () => {
         opacity: 0.7;
       }
 
+      .ant-input-password-icon {
+        color: rgba(255, 255, 255, 0.65) !important;
+      }
+      
+      .ant-input-password-icon:hover {
+        color: rgba(255, 255, 255, 0.85) !important;
+      }
+
       .ant-input:hover, .ant-input:focus {
         border-color: ${themeColors.primary} !important;
       }
       
       .ant-form {
-        padding: 16px;
+        padding: 8px; // Reduced from 16px to 8px
+      }
+      
+      .ant-form-item {
+        margin-bottom: 12px; // Reduce default margin-bottom
       }
 
       @media (max-width: 768px) {
@@ -225,7 +242,7 @@ const StudentSettings = () => {
         </Space>
       </Header>
       <Content style={styles.content}>
-        <Breadcrumb style={{ marginBottom: 16, padding: '0 16px' }}>
+        <Breadcrumb style={{ marginBottom: 12, padding: '0 8px', marginTop: 5 }}> {/* Added marginTop: 5 */}
           <Breadcrumb.Item><a onClick={() => navigate('/student-dashboard')} style={{ color: themeColors.primary }}>Dashboard</a></Breadcrumb.Item>
           <Breadcrumb.Item><a onClick={() => navigate('/student/profile')} style={{ color: themeColors.primary }}>Profile</a></Breadcrumb.Item>
           <Breadcrumb.Item style={{ color: themeColors.text }}>Settings</Breadcrumb.Item>
@@ -235,7 +252,7 @@ const StudentSettings = () => {
           background={themeColors.cardBg}
           headcolor={themeColors.primary}
           title="Edit Profile"
-          style={{ marginBottom: '1px' }}
+          style={{ marginBottom: '0px' }} // Removed bottom margin
         >
           {loading ? (
             <div style={{ textAlign: 'center', padding: '30px 0' }}>
@@ -304,7 +321,7 @@ const StudentSettings = () => {
                 />
               </Form.Item>
 
-              <Form.Item style={{ marginTop: 4 }}>
+              <Form.Item style={{ marginTop: 0 }}> {/* Reduced from 4 to 0 */}
                 <Button
                   type="primary"
                   htmlType="submit"
@@ -324,7 +341,7 @@ const StudentSettings = () => {
                 onClick={() => navigate('/student/profile')}
                 style={{
                   width: '100%',
-                  marginTop: 1,
+                  marginTop: 0, // Reduced from 1 to 0
                   background: themeColors.accent,
                   borderColor: themeColors.accent,
                   color: '#ffffff'
