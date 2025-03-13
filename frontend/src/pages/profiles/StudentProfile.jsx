@@ -34,8 +34,10 @@ const ProfileCard = styled(Card)`
   
   @media (max-width: 576px) {
     padding: 16px;
-    margin: 50px auto 16px;
+    margin: 0;
     width: 95%;
+    max-height: 90vh;
+    overflow-y: auto;
   }
 `;
 
@@ -264,6 +266,23 @@ const StudentProfile = () => {
         
         // ...existing mobile breakpoint code...
       }
+      
+      @media (max-width: 576px) {
+        .profile-card-wrapper {
+          margin: 0 !important;
+          height: calc(100vh - 45px) !important;
+          display: flex !important;
+          align-items: center !important;
+          justify-content: center !important;
+        }
+        
+        .profile-card {
+          max-height: 90vh !important;
+          overflow-y: auto !important;
+        }
+        
+        // ...existing mobile breakpoint code...
+      }
     `,
   };
 
@@ -344,7 +363,15 @@ const StudentProfile = () => {
       </Header>
       <Content style={styles.content}>
         <style>{styles.responsiveOverrides}</style>
-        <div className="profile-card-wrapper" style={{ width: '100%' }}>
+        <div className="profile-card-wrapper" style={{
+          width: '100%',
+          ...(window.innerWidth <= 576 ? {
+            height: 'calc(100vh - 45px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          } : {})
+        }}>
           <ProfileCard background={themeColors.cardBg} className="profile-card">
             <Space direction="vertical" size="large" style={{ width: '100%' }}>
               <ActionBar>

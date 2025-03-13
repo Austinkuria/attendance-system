@@ -273,7 +273,10 @@ const StudentDashboard = () => {
 
   const logout = () => {
     localStorage.removeItem('token');
-    message.success('Logged out successfully.');
+    message.success({
+      content: 'Logged out successfully.',
+      style: { color: themeColors.accent }
+    });
     navigate('/auth/login');
   };
 
@@ -654,21 +657,48 @@ const StudentDashboard = () => {
   };
 
   const profileItems = [
-    { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => navigate('/student/profile') },
-    { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => navigate('/student/settings') },
+    {
+      key: '1',
+      label: 'View Profile',
+      icon: <UserOutlined style={{ color: themeColors.text }} />,
+      onClick: () => navigate('/student/profile')
+    },
+    {
+      key: '2',
+      label: 'Settings',
+      icon: <SettingOutlined style={{ color: themeColors.text }} />,
+      onClick: () => navigate('/student/settings')
+    },
     { type: 'divider' },
     {
       key: '3',
       label: 'Logout',
-      icon: <LogoutOutlined />,
-      danger: true,
+      icon: <LogoutOutlined style={{ color: '#fff' }} />,
+      danger: false,
+      style: {
+        color: '#fff',
+        backgroundColor: themeColors.accent,
+        borderRadius: '4px'
+      },
       onClick: () =>
         Modal.confirm({
           title: <span style={{ color: themeColors.text }}>Confirm Logout</span>,
           content: <span style={{ color: themeColors.text }}>Are you sure you want to logout?</span>,
           onOk: logout,
           centered: true,
-          okButtonProps: { style: styles.button },
+          okButtonProps: {
+            style: {
+              ...styles.button,
+              backgroundColor: themeColors.accent,
+              borderColor: themeColors.accent,
+              color: '#fff'
+            }
+          },
+          cancelButtonProps: {
+            style: {
+              borderColor: themeColors.text
+            }
+          }
         }),
     },
   ];
@@ -918,9 +948,9 @@ const StudentDashboard = () => {
             mode="inline"
             defaultSelectedKeys={['1']}
             items={[
-              { key: '1', icon: <BookOutlined />, label: 'My Units', onClick: () => scrollToSection('my-units') },
-              { key: '2', icon: <CheckCircleOutlined />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
-              { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
+              { key: '1', icon: <BookOutlined style={{ color: themeColors.text }} />, label: 'My Units', onClick: () => scrollToSection('my-units') },
+              { key: '2', icon: <CheckCircleOutlined style={{ color: themeColors.text }} />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
+              { key: '3', icon: <CheckCircleOutlined style={{ color: themeColors.text }} />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
             ]}
           />
         </Sider>
