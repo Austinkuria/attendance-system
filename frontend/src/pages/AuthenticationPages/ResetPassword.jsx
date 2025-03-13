@@ -49,6 +49,8 @@ const StyledInput = styled(Input.Password)`
   .ant-input {
     background-color: ${props => props.theme.inputBg} !important;
     color: ${props => props.theme.text} !important;
+    padding: 6px 10px !important;
+    border-radius: 8px !important;
   }
   
   &:hover, &:focus {
