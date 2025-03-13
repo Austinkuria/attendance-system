@@ -102,6 +102,8 @@ const StudentDashboard = () => {
   const [pageSize] = useState(5);
   const [eventSortOrder, setEventSortOrder] = useState('mostRecent');
   const [notificationSortOrder, setNotificationSortOrder] = useState('mostRecent');
+  const [deviceModalVisible, setDeviceModalVisible] = useState(false);
+  const [deviceModalConfirmed, setDeviceModalConfirmed] = useState(false);
 
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -156,42 +158,55 @@ const StudentDashboard = () => {
         timestamp: record.session.endTime || new Date(),
       }));
 
-      // Count expired notifications instead of showing individual messages
-      let expiredCount = 0;
-      const filteredFeedbacks = await Promise.all(
-        newPendingFeedbacks.map(async (feedback) => {
-          try {
-            const { isExpired } = await fetchSessionStatus(feedback.unitId, feedback.sessionId);
-            if (isExpired) {
-              expiredCount++;
-              return null;
+      // Skip showing notifications if we've already processed them
+      const existingSessionIds = new Set(pendingFeedbacks.map(pf => pf.sessionId));
+      const newSessions = newPendingFeedbacks.filter(feedback => !existingSessionIds.has(feedback.sessionId));
+
+      if (newSessions.length > 0) {
+        // Track expired notifications with their unit names
+        let expiredCount = 0;
+        const expiredUnits = [];
+        const filteredFeedbacks = await Promise.all(
+          newSessions.map(async (feedback) => {
+            try {
+              const { isExpired } = await fetchSessionStatus(feedback.unitId, feedback.sessionId);
+              if (isExpired) {
+                expiredCount++;
+                expiredUnits.push(feedback.unitName);
+                return null;
+              }
+              return feedback;
+            } catch (error) {
+              console.error(`Error checking session ${feedback.sessionId}:`, error);
+              return feedback;
             }
-            return feedback;
-          } catch (error) {
-            console.error(`Error checking session ${feedback.sessionId}:`, error);
-            return feedback;
-          }
-        })
-      );
+          })
+        );
 
-      // Show a single aggregated message for all expired notifications
-      if (expiredCount > 0) {
-        message.warning(`${expiredCount} expired feedback notification${expiredCount > 1 ? 's were' : ' was'} dismissed.`);
+        // Show a single aggregated message for all expired notifications with unit names
+        if (expiredCount > 0) {
+          const uniqueUnits = [...new Set(expiredUnits)];
+          const unitList = uniqueUnits.join(', ');
+          message.warning(`${expiredCount} expired feedback notification${expiredCount > 1 ? 's were' : ' was'} dismissed for ${unitList}.`);
+        }
+
+        setPendingFeedbacks((prev) => {
+          const validNewFeedbacks = filteredFeedbacks.filter(pf => pf);
+          return [...prev, ...validNewFeedbacks];
+        });
       }
-
-      setPendingFeedbacks((prev) => {
-        const existingIds = new Set(prev.map((pf) => pf.sessionId));
-        const validNewFeedbacks = filteredFeedbacks.filter((pf) => pf && !existingIds.has(pf.sessionId));
-        return [...prev, ...validNewFeedbacks];
-      });
 
     } catch (error) {
       console.error("Error fetching data:", error);
-      message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
+      if (error.response && error.response.status === 429) {
+        message.error("Too many requests. Please wait a moment and try again.");
+      } else {
+        message.error("Unable to load data. Please check your connection and try again.");
+      }
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pendingFeedbacks]);
 
   useEffect(() => {
     const savedFeedbacks = JSON.parse(localStorage.getItem('pendingFeedbacks')) || [];
@@ -730,6 +745,14 @@ const StudentDashboard = () => {
       message.error("Unit ID is missing or invalid.");
       return;
     }
+
+    // Check if the user has already confirmed the device analysis modal
+    const hasConfirmedDeviceAnalysis = localStorage.getItem('hasConfirmedDeviceAnalysis');
+    if (!hasConfirmedDeviceAnalysis && !deviceModalConfirmed) {
+      setDeviceModalVisible(true);
+      return;
+    }
+
     try {
       const session = await getActiveSessionForUnit(unitId);
       if (session && session._id && !session.ended) {
@@ -744,6 +767,23 @@ const StudentDashboard = () => {
         : "Unable to check for an active session at this time.";
       message.info(errorMessage);
     }
+  };
+
+  // New function to handle device modal confirmation
+  const handleDeviceModalConfirm = () => {
+    localStorage.setItem('hasConfirmedDeviceAnalysis', 'true');
+    setDeviceModalConfirmed(true);
+    setDeviceModalVisible(false);
+
+    // Because we're in an async context, we need to re-trigger the latest attend click
+    if (selectedUnit && selectedUnit._id) {
+      setTimeout(() => handleAttendClick(selectedUnit._id), 0);
+    }
+  };
+
+  // New function to handle device modal cancellation
+  const handleDeviceModalCancel = () => {
+    setDeviceModalVisible(false);
   };
 
   const scrollToSection = (id) => {
@@ -1097,6 +1137,33 @@ const StudentDashboard = () => {
                   Submit anonymously
                 </Checkbox>
               </Space>
+            </Modal>
+
+            <Modal
+              title={<span style={{ color: themeColors.text }}>Device Analysis</span>}
+              open={deviceModalVisible}
+              onCancel={handleDeviceModalCancel}
+              footer={[
+                <Button key="cancel" onClick={handleDeviceModalCancel}>
+                  Cancel
+                </Button>,
+                <Button
+                  key="submit"
+                  type="primary"
+                  onClick={handleDeviceModalConfirm}
+                  style={{ ...styles.button, color: '#fff' }}
+                >
+                  I Understand
+                </Button>,
+              ]}
+              destroyOnClose={true}
+              maskClosable={false}
+              centered
+            >
+              <p style={{ color: themeColors.text }}>
+                We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.
+                By continuing, you agree to this analysis for attendance verification purposes only.
+              </p>
             </Modal>
           </Spin>
         </Content>
