@@ -82,6 +82,8 @@ const StyledInput = styled(Input)`
   .ant-input {
     background-color: ${props => props.theme.inputBg} !important;
     color: ${props => props.theme.text} !important;
+    border-radius: 8px !important;
+    padding:2px 14px !important;
   }
   
   .ant-input::placeholder {
