@@ -15,9 +15,28 @@ const SettingsCard = styled(Card)`
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background: ${props => props.background};
+  overflow: visible;
+  
+  .ant-card-head {
+    background-color: ${props => props.headcolor || props.theme.primary};
+    color: #ffffff;
+    border-top-left-radius: 12px;
+    border-top-right-radius: 12px;
+  }
+  
+  .ant-card-head-title {
+    color: #ffffff;
+  }
+  
+  @media (max-width: 768px) {
+    width: 90%;
+    margin: 24px auto;
+  }
+  
   @media (max-width: 576px) {
-    padding: 16px;
-    margin: 16px;
+    width: 95%;
+    padding: 0;
+    margin: 16px auto;
   }
 `;
 
@@ -46,8 +65,13 @@ const StudentSettings = () => {
       borderRadius: 8,
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
       boxSizing: 'border-box',
+      overflowY: 'auto',
       overflowX: 'hidden',
-      marginTop: '64px',
+      marginTop: '30px', // Reduced from 45px to 30px
+      paddingBottom: '20px',
+      minHeight: 'calc(100vh - 45px)', // Adjusted to match new header height and margin
+      display: 'flex',
+      flexDirection: 'column',
     },
     headerRow: {
       marginBottom: '16px',
@@ -61,7 +85,7 @@ const StudentSettings = () => {
       boxSizing: 'border-box',
     },
     header: {
-      padding: '0 24px',
+      padding: '0 16px',
       background: themeColors.cardBg,
       position: 'fixed',
       width: '100%',
@@ -69,7 +93,7 @@ const StudentSettings = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      height: 64,
+      height: '45px',
       borderBottom: `1px solid ${themeColors.border}`,
     },
     responsiveOverrides: `
@@ -77,7 +101,7 @@ const StudentSettings = () => {
         margin: 0;
         padding: 0;
         width: 100%;
-        overflow-x: 'hidden';
+        overflow-x: hidden;
         background: ${themeColors.background};
         color: ${themeColors.text};
       }
@@ -86,6 +110,11 @@ const StudentSettings = () => {
         padding: 0 !important;
         margin: 0 !important;
         background: ${themeColors.background} !important;
+      }
+      
+      .ant-layout {
+        min-height: 100vh;
+        height: auto;
       }
 
       .ant-form-item-label > label {
@@ -98,8 +127,30 @@ const StudentSettings = () => {
         color: ${themeColors.text} !important;
       }
 
+      /* Placeholder styling for better visibility in dark mode */
+      .ant-input::placeholder {
+        color: rgba(255, 255, 255, 0.45) !important;
+        opacity: 0.7;
+      }
+      
+      /* For Edge/IE */
+      .ant-input:-ms-input-placeholder {
+        color: rgba(255, 255, 255, 0.45) !important;
+        opacity: 0.7;
+      }
+      
+      /* For Firefox */
+      .ant-input::-moz-placeholder {
+        color: rgba(255, 255, 255, 0.45) !important;
+        opacity: 0.7;
+      }
+
       .ant-input:hover, .ant-input:focus {
         border-color: ${themeColors.primary} !important;
+      }
+      
+      .ant-form {
+        padding: 16px;
       }
 
       @media (max-width: 768px) {
@@ -117,6 +168,10 @@ const StudentSettings = () => {
         .header-row { 
           padding: 4px !important; 
         }
+      }
+      
+      .ant-card {
+        margin-bottom: 24px;
       }
     `,
   };
@@ -164,9 +219,9 @@ const StudentSettings = () => {
             type="text"
             icon={<ArrowLeftOutlined style={{ color: themeColors.primary }} />}
             onClick={() => navigate('/student/profile')}
-            style={{ fontSize: '16px', width: 64, height: 64, color: themeColors.text }}
+            style={{ fontSize: '16px', width: 56, height: 45, color: themeColors.text }}
           />
-          <Title level={3} style={{ margin: 0, color: themeColors.primary }}>Settings</Title>
+          <Title level={4} style={{ margin: 0, color: themeColors.primary }}>Settings</Title>
         </Space>
       </Header>
       <Content style={styles.content}>
@@ -178,14 +233,12 @@ const StudentSettings = () => {
 
         <SettingsCard
           background={themeColors.cardBg}
-          title={<span style={{ color: '#ffffff' }}>Edit Profile</span>}
-          headStyle={{
-            backgroundColor: themeColors.primary,
-            color: '#ffffff' // Ensure text color is white
-          }}
+          headcolor={themeColors.primary}
+          title="Edit Profile"
+          style={{ marginBottom: '1px' }}
         >
           {loading ? (
-            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+            <div style={{ textAlign: 'center', padding: '30px 0' }}>
               <Spin size="large" />
             </div>
           ) : (
@@ -251,7 +304,7 @@ const StudentSettings = () => {
                 />
               </Form.Item>
 
-              <Form.Item style={{ marginTop: 24 }}>
+              <Form.Item style={{ marginTop: 4 }}>
                 <Button
                   type="primary"
                   htmlType="submit"
@@ -271,7 +324,7 @@ const StudentSettings = () => {
                 onClick={() => navigate('/student/profile')}
                 style={{
                   width: '100%',
-                  marginTop: 8,
+                  marginTop: 1,
                   background: themeColors.accent,
                   borderColor: themeColors.accent,
                   color: '#ffffff'

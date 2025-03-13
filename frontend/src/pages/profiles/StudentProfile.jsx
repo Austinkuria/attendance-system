@@ -10,19 +10,27 @@ const { Header, Content } = Layout;
 const { Title, Text } = Typography;
 
 const ProfileCard = styled(Card)`
-  max-width: 100%;
+  max-width: 1200px;
   margin: 16px auto;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background: ${props => props.background};
   padding: 24px;
-  /* Remove transform to prevent movement */
+  overflow: visible;
+  
   &:hover {
     box-shadow: 0 6px 16px rgba(0, 0, 0, 0.15);
   }
+  
+  @media (max-width: 1200px) {
+    margin: 16px auto;
+    width: 90%;
+  }
+  
   @media (max-width: 576px) {
     padding: 16px;
-    margin: 16px 0;
+    margin: 16px auto;
+    width: 95%;
   }
 `;
 
@@ -72,8 +80,13 @@ const StudentProfile = () => {
       borderRadius: 8,
       boxShadow: '0 2px 8px rgba(0, 0, 0, 0.05)',
       boxSizing: 'border-box',
+      overflowY: 'auto',
       overflowX: 'hidden',
-      marginTop: '64px',
+      marginTop: '56px', // Reduced from 64px to 56px
+      paddingBottom: '24px',
+      minHeight: 'calc(100vh - 56px)', // Adjusted to match new header height
+      display: 'flex',
+      flexDirection: 'column',
     },
     headerRow: {
       marginBottom: '16px',
@@ -87,7 +100,7 @@ const StudentProfile = () => {
       boxSizing: 'border-box',
     },
     header: {
-      padding: '0 24px',
+      padding: '0 16px',
       background: themeColors.cardBg,
       position: 'fixed',
       width: '100%',
@@ -95,7 +108,7 @@ const StudentProfile = () => {
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'space-between',
-      height: 64,
+      height: '45px',
       borderBottom: `1px solid ${themeColors.border}`,
     },
     responsiveOverrides: `
@@ -112,6 +125,11 @@ const StudentProfile = () => {
         padding: 0 !important;
         margin: 0 !important;
         background: ${themeColors.background} !important;
+      }
+      
+      .ant-layout {
+        min-height: 100vh;
+        height: auto;
       }
 
       @media (max-width: 768px) {
@@ -203,9 +221,9 @@ const StudentProfile = () => {
             type="text"
             icon={<ArrowLeftOutlined style={{ color: themeColors.primary }} />}
             onClick={() => navigate('/student-dashboard')}
-            style={{ fontSize: '16px', width: 64, height: 64, color: themeColors.text }}
+            style={{ fontSize: '16px', width: 56, height: 56, color: themeColors.text }}
           />
-          <Title level={3} style={{ margin: 0, color: themeColors.primary }}>Profile</Title>
+          <Title level={4} style={{ margin: 0, color: themeColors.primary }}>Profile</Title>
         </Space>
       </Header>
       <Content style={styles.content}>
