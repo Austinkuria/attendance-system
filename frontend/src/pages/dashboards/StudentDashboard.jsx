@@ -44,7 +44,6 @@ import {
 import {
   UserOutlined,
   BookOutlined,
-  CheckCircleOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
   SettingOutlined,
@@ -52,6 +51,9 @@ import {
   QrcodeOutlined,
   CalendarOutlined,
   BellOutlined,
+  BarChartOutlined,
+  LineChartOutlined,
+  PieChartOutlined,
 } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
@@ -949,8 +951,8 @@ const StudentDashboard = () => {
             defaultSelectedKeys={['1']}
             items={[
               { key: '1', icon: <BookOutlined style={{ color: themeColors.text }} />, label: 'My Units', onClick: () => scrollToSection('my-units') },
-              { key: '2', icon: <CheckCircleOutlined style={{ color: themeColors.text }} />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
-              { key: '3', icon: <CheckCircleOutlined style={{ color: themeColors.text }} />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
+              { key: '2', icon: <BarChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
+              { key: '3', icon: <LineChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
             ]}
           />
         </Sider>
@@ -985,7 +987,7 @@ const StudentDashboard = () => {
                 <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
                   <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
                     <Space direction="vertical">
-                      <CheckCircleOutlined style={{ fontSize: 28, color: '#fff' }} />
+                      <PieChartOutlined style={{ fontSize: 28, color: '#fff' }} />
                       <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Attendance Rate</h3>
                       <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
                         {attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%
