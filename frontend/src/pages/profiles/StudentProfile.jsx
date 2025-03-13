@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../../services/api';
-import { Layout, Card, Typography, Button, Spin, Row, Col, Space, Avatar, Breadcrumb, message } from 'antd';
+import { Layout, Card, Typography, Button, Spin, Row, Col, Space, Avatar, message } from 'antd';
 import { ArrowLeftOutlined, MailOutlined, BookOutlined, CalendarOutlined, LogoutOutlined, EditOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -11,7 +11,7 @@ const { Title, Text } = Typography;
 
 const ProfileCard = styled(Card)`
   max-width: 1200px;
-  margin: 16px auto;
+  margin: 65px auto;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background: ${props => props.background};
@@ -23,13 +23,13 @@ const ProfileCard = styled(Card)`
   }
   
   @media (max-width: 1200px) {
-    margin: 16px auto;
+    margin: 24px auto;  // Increased from 16px to 24px
     width: 90%;
   }
   
   @media (max-width: 576px) {
     padding: 16px;
-    margin: 16px auto;
+    margin: 20px auto;  // Increased from 16px to 20px
     width: 95%;
   }
 `;
@@ -37,21 +37,60 @@ const ProfileCard = styled(Card)`
 const StyledAvatar = styled(Avatar)`
   background-color: ${props => props.bgcolor};
   font-size: 48px;
+  line-height: 120px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+  border: 4px solid #ffffff;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.3s ease;
+  
+  &:hover {
+    transform: scale(1.05);
+  }
+  
   @media (max-width: 576px) {
     font-size: 32px;
-    width: 80px;
-    height: 80px;
+    width: 80px !important;
+    height: 80px !important;
+    line-height: 76px;
+    border-width: 3px;
   }
 `;
 
 const ActionBar = styled.div`
   display: flex;
   justify-content: flex-end;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+  gap: 12px;
+  
   @media (max-width: 576px) {
     flex-direction: column;
     align-items: stretch;
-    gap: 8px;
+    gap: 10px;
+    margin-bottom: 20px;
+  }
+`;
+
+const ActionButton = styled(Button)`
+  min-width: 140px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  }
+  
+  @media (max-width: 576px) {
+    min-width: 100%;
   }
 `;
 
@@ -83,6 +122,7 @@ const StudentProfile = () => {
       overflowY: 'auto',
       overflowX: 'hidden',
       marginTop: '56px', // Reduced from 64px to 56px
+      paddingTop: '20px',  // Added padding to the top of content
       paddingBottom: '24px',
       minHeight: 'calc(100vh - 56px)', // Adjusted to match new header height
       display: 'flex',
@@ -132,20 +172,39 @@ const StudentProfile = () => {
         height: auto;
       }
 
+      /* Tablet Breakpoint */
       @media (max-width: 768px) {
         .ant-layout-content { 
-          padding: 8px !important; 
+          padding: 12px !important; 
         }
+        
         .header-row { 
-          padding: 8px !important; 
+          padding: 12px !important;
+          margin-bottom: 12px !important;
+        }
+        
+        .profile-card {
+          padding: 16px !important;
         }
       }
+      
+      /* Mobile Breakpoint */
       @media (max-width: 480px) {
         .ant-layout-content { 
-          padding: 4px !important; 
+          padding: 8px !important; 
         }
+        
         .header-row { 
-          padding: 4px !important; 
+          padding: 6px !important;
+          margin-bottom: 8px !important; 
+        }
+        
+        .profile-card {
+          padding: 12px !important;
+        }
+        
+        .ant-space {
+          gap: 12px !important;
         }
       }
     `,
@@ -228,43 +287,45 @@ const StudentProfile = () => {
       </Header>
       <Content style={styles.content}>
         <style>{styles.responsiveOverrides}</style>
-        <Breadcrumb style={{ marginBottom: 16, padding: '0 16px' }}>
-          <Breadcrumb.Item><a onClick={() => navigate('/student-dashboard')} style={{ color: themeColors.primary }}>Dashboard</a></Breadcrumb.Item>
-          <Breadcrumb.Item style={{ color: themeColors.text }}>Profile</Breadcrumb.Item>
-        </Breadcrumb>
         <ProfileCard background={themeColors.cardBg}>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <ActionBar>
-              <Button
+              <ActionButton
                 type="primary"
                 icon={<EditOutlined />}
                 onClick={() => navigate('/student/settings')}
                 style={{
-                  minWidth: 120,
                   background: themeColors.primary,
                   borderColor: themeColors.primary,
-                  color: '#ffffff' // Change this to white instead of themeColors.text
+                  color: '#ffffff'
                 }}
               >
                 Edit Profile
-              </Button>
-              <Button
+              </ActionButton>
+              <ActionButton
                 type="default"
                 icon={<LogoutOutlined />}
                 onClick={handleLogout}
                 style={{
-                  minWidth: 120,
                   background: themeColors.accent,
                   borderColor: themeColors.accent,
                   color: '#ffffff'
                 }}
               >
                 Logout
-              </Button>
+              </ActionButton>
             </ActionBar>
             <Row align="middle" gutter={[24, 24]}>
-              <Col xs={24} sm={6} style={{ textAlign: 'center' }}>
-                <StyledAvatar size={{ xs: 80, sm: 128 }} bgcolor={themeColors.primary}>
+              <Col xs={24} sm={6} style={{
+                textAlign: 'center',
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center'
+              }}>
+                <StyledAvatar
+                  size={{ xs: 80, sm: 120, md: 128 }}
+                  bgcolor={themeColors.primary}
+                >
                   {profile.firstName?.charAt(0)}{profile.lastName?.charAt(0)}
                 </StyledAvatar>
               </Col>
@@ -303,7 +364,7 @@ const StudentProfile = () => {
           </Space>
         </ProfileCard>
       </Content>
-    </Layout>
+    </Layout >
   );
 };
 
