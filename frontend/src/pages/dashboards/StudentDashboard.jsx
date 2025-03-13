@@ -156,12 +156,14 @@ const StudentDashboard = () => {
         timestamp: record.session.endTime || new Date(),
       }));
 
+      // Count expired notifications instead of showing individual messages
+      let expiredCount = 0;
       const filteredFeedbacks = await Promise.all(
         newPendingFeedbacks.map(async (feedback) => {
           try {
             const { isExpired } = await fetchSessionStatus(feedback.unitId, feedback.sessionId);
             if (isExpired) {
-              message.warning(`Notification dismissed: You cannot provide feedback for session ${feedback.sessionId} in ${feedback.unitName} since it is expired.`);
+              expiredCount++;
               return null;
             }
             return feedback;
@@ -171,6 +173,11 @@ const StudentDashboard = () => {
           }
         })
       );
+
+      // Show a single aggregated message for all expired notifications
+      if (expiredCount > 0) {
+        message.warning(`${expiredCount} expired feedback notification${expiredCount > 1 ? 's were' : ' was'} dismissed.`);
+      }
 
       setPendingFeedbacks((prev) => {
         const existingIds = new Set(prev.map((pf) => pf.sessionId));
@@ -505,30 +512,35 @@ const StudentDashboard = () => {
     const handleProvideFeedback = async (sessionId, unitId) => {
       try {
         const { isExpired, latestSession } = await fetchSessionStatus(unitId, sessionId);
+        let shouldDismiss = false;
+        let dismissReason = '';
 
         if (isExpired) {
-          message.warning(`Notification dismissed: You cannot provide feedback for this session since it is expired.`);
+          shouldDismiss = true;
+          dismissReason = 'expired session';
+        } else {
+          const feedbackSubmitted = await checkFeedbackStatus(sessionId);
+          if (feedbackSubmitted) {
+            shouldDismiss = true;
+            dismissReason = 'feedback already submitted';
+          } else if (!latestSession.ended) {
+            message.info('Feedback is only available after the session ends.');
+            return;
+          } else {
+            const attendanceRecord = attendanceData.attendanceRecords.find(
+              (rec) => rec.session._id === sessionId
+            );
+            if (attendanceRecord?.status !== 'Present') {
+              message.info('You must mark attendance for this session to provide feedback.');
+              return;
+            }
+          }
+        }
+
+        if (shouldDismiss) {
+          // Still show individual messages when manually clicking on a notification
+          message.info(`Notification dismissed: Cannot provide feedback for this ${dismissReason}.`);
           setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
-          return;
-        }
-
-        const feedbackSubmitted = await checkFeedbackStatus(sessionId);
-        if (feedbackSubmitted) {
-          message.info(`Notification dismissed: Feedback already submitted for this session.`);
-          setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
-          return;
-        }
-
-        if (!latestSession.ended) {
-          message.info('Feedback is only available after the session ends.');
-          return;
-        }
-
-        const attendanceRecord = attendanceData.attendanceRecords.find(
-          (rec) => rec.session._id === sessionId
-        );
-        if (attendanceRecord?.status !== 'Present') {
-          message.info('You must mark attendance for this session to provide feedback.');
           return;
         }
 
@@ -585,9 +597,10 @@ const StudentDashboard = () => {
                             size="small"
                             onClick={() => handleProvideFeedback(item.sessionId, item.unitId)}
                             disabled={isFeedbackSubmitted}
-                            style={styles.button}
+                            style={{ ...styles.button, color: '#fff !important' }}
+                            className="provide-button"
                           >
-                            Provide
+                            <span style={{ color: '#fff' }}>Provide</span>
                           </Button>,
                           <Button
                             key="dismiss"
@@ -700,13 +713,10 @@ const StudentDashboard = () => {
           rec.session._id === activeSessionId ? { ...rec, feedbackSubmitted: true } : rec
         ),
       }));
-      setPendingFeedbacks((prev) => {
-        const updatedFeedbacks = prev.filter((pf) => pf.sessionId !== activeSessionId);
-        if (prev.length > updatedFeedbacks.length) {
-          message.info(`Notification for session ${activeSessionId} dismissed after feedback submission.`);
-        }
-        return updatedFeedbacks;
-      });
+
+      // Silently dismiss notifications without showing message
+      setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== activeSessionId));
+
       await fetchAllData();
     } catch (error) {
       console.error('Feedback submission failed:', error);
@@ -745,12 +755,81 @@ const StudentDashboard = () => {
 
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
-      <style>{styles.globalStyles}</style>
+      <style>
+        {styles.globalStyles}
+        {`
+          .dark-mode-spinner .ant-spin-dot-item {
+            background-color: #fff !important;
+          }
+          .dark-mode-spinner .ant-spin-text {
+            color: #fff !important;
+          }
+          
+          /* Light mode pagination styling */
+          [data-theme='light'] .ant-pagination-item a {
+            color: #000 !important; /* Black color for non-active items */
+          }
+          
+          [data-theme='light'] .ant-pagination-item:hover a {
+            color: #000 !important; /* Keep black on hover */
+          }
+          
+          [data-theme='light'] .ant-pagination-item-active a {
+            color: #fff !important; /* Active item remains white */
+          }
+          
+          [data-theme='light'] .ant-pagination-item-link .anticon {
+            color: #000 !important; /* Black arrows in light mode */
+          }
+          
+          [data-theme='light'] .ant-pagination-prev:hover .ant-pagination-item-link,
+          [data-theme='light'] .ant-pagination-next:hover .ant-pagination-item-link {
+            color: #000 !important; /* Keep arrows black on hover */
+          }
+          
+          /* Light mode ellipsis */
+          [data-theme='light'] .ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-ellipsis,
+          [data-theme='light'] .ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-ellipsis {
+            color: #000 !important; /* Black ellipsis */
+          }
+          
+          /* Dark mode pagination styling */
+          [data-theme='dark'] .ant-pagination-item a {
+            color: #fff !important; /* White color for items */
+          }
+          
+          [data-theme='dark'] .ant-pagination-item:hover a {
+            color: #fff !important; /* Stay white on hover */
+          }
+          
+          [data-theme='dark'] .ant-pagination-item-active a {
+            color: #fff !important; /* Active item is white */
+          }
+          
+          [data-theme='dark'] .ant-pagination-item-link .anticon {
+            color: #fff !important; /* White arrows */
+          }
+          
+          [data-theme='dark'] .ant-pagination-prev:hover .ant-pagination-item-link,
+          [data-theme='dark'] .ant-pagination-next:hover .ant-pagination-item-link {
+            color: #fff !important; /* Keep arrows white on hover */
+          }
+          
+          /* Dark mode ellipsis */
+          [data-theme='dark'] .ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-ellipsis,
+          [data-theme='dark'] .ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-ellipsis {
+            color: #fff !important; /* White ellipsis */
+          }
+        `}
+      </style>
       <Header style={styles.header}>
         <Space>
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            icon={collapsed ?
+              <MenuUnfoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} /> :
+              <MenuFoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} />
+            }
             onClick={() => setCollapsed(!collapsed)}
             style={{ fontSize: 18, width: 64, height: 64 }}
           />
@@ -807,7 +886,11 @@ const StudentDashboard = () => {
         </Sider>
 
         <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
-          <Spin spinning={loading} tip="Loading data...">
+          <Spin
+            spinning={loading}
+            tip={<span style={{ color: isDarkMode ? '#fff' : undefined }}>Loading data...</span>}
+            className={isDarkMode ? "dark-mode-spinner" : ""}
+          >
             {username && (
               <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
                 <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
