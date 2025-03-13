@@ -1,27 +1,238 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
-import { Card, Input, Button, Typography, Alert, Form, theme } from 'antd';
+import { Card, Input, Button, Typography, Alert, Form } from 'antd';
 import { LockOutlined, MailOutlined, ArrowRightOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
+import { ThemeContext } from '../../context/ThemeContext';
 
 const { Title, Text } = Typography;
-const { useToken } = theme;
+
+const PageContainer = styled.div`
+  min-height: 100vh;
+  height: 100vh; /* Force exact viewport height */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: ${props => props.theme.background};
+  overflow: hidden; /* Prevent both x and y overflow */
+  padding: 0; /* Remove padding that could cause overflow */
+  box-sizing: border-box;
+`;
 
 const StyledCard = styled(Card)`
+  width: 100%;
   max-width: 520px;
-  margin: 42px auto;
+  max-height: 95vh; /* Limit height to prevent overflow */
+  overflow-y: auto; /* Allow scrolling inside the card if needed */
+  margin: 0 auto; /* Remove vertical margin */
   border-radius: 16px;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  background-color: ${props => props.theme.cardBg};
+  border: 1px solid ${props => props.theme.border};
+  
+  /* Add custom scrollbar for the card if content overflows */
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  &::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  &::-webkit-scrollbar-thumb {
+    background-color: ${props => props.theme.border};
+    border-radius: 6px;
+  }
   
   .ant-card-body {
-    padding: 50px; 
+    padding: 32px;
+    
+    @media (max-width: 768px) {
+      padding: 24px 16px;
+    }
+  }
+  
+  @media (max-width: 576px) {
+    max-width: 95%;
+    border-radius: 12px;
+  }
+`;
+
+const StyledInput = styled(Input)`
+  font-size: 20px;
+  padding: 12px;
+  background-color: ${props => props.theme.inputBg} !important;
+  border-color: ${props => props.theme.inputBorder} !important;
+  color: ${props => props.theme.text} !important;
+  border-radius: 8px !important;
+
+  &:hover, &:focus {
+    border-color: ${props => props.theme.focus} !important;
+    background-color: ${props => props.theme.inputHover} !important;
+  }
+
+  &::placeholder {
+    color: ${props => props.isDarkMode
+    ? 'rgba(255, 255, 255, 0.5)' // Less bright for dark mode
+    : props.theme.placeholder} !important;
+  }
+
+  .ant-input {
+    background-color: ${props => props.theme.inputBg} !important;
+    color: ${props => props.theme.text} !important;
+  }
+  
+  .ant-input::placeholder {
+    color: ${props => props.isDarkMode
+    ? 'rgba(255, 255, 255, 0.5)' // Less bright for dark mode
+    : props.theme.placeholder} !important;
+  }
+
+  .ant-input-prefix {
+    color: ${props => props.isDarkMode
+    ? 'rgba(255, 255, 255, 0.5)'
+    : props.theme.placeholder} !important;
+    margin-right: 8px;
+  }
+  
+  @media (max-width: 576px) {
+    font-size: 16px;
+    padding: 10px;
+  }
+`;
+
+const StyledPasswordInput = styled(Input.Password)`
+  font-size: 20px;
+  padding: 12px;
+  background-color: ${props => props.theme.inputBg} !important;
+  border-color: ${props => props.theme.inputBorder} !important;
+  border-radius: 8px !important;
+
+  &:hover, &:focus {
+    border-color: ${props => props.theme.focus} !important;
+    background-color: ${props => props.theme.inputHover} !important;
+  }
+
+  .ant-input {
+    background-color: ${props => props.theme.inputBg} !important;
+    color: ${props => props.theme.text} !important;
+  }
+  
+  .ant-input::placeholder {
+    color: ${props => props.isDarkMode
+    ? 'rgba(255, 255, 255, 0.5)' // Less bright for dark mode
+    : props.theme.placeholder} !important;
+  }
+
+  .ant-input-prefix {
+    color: ${props => props.isDarkMode
+    ? 'rgba(255, 255, 255, 0.5)'
+    : props.theme.placeholder} !important;
+    margin-right: 8px;
+  }
+  
+  .ant-input-suffix .anticon {
+    color: ${props => props.isDarkMode
+    ? 'rgba(255, 255, 255, 0.5)'
+    : props.theme.placeholder} !important;
+  }
+  
+  @media (max-width: 576px) {
+    font-size: 16px;
+    padding: 10px;
+  }
+`;
+
+const StyledButton = styled(Button)`
+  height: 48px;
+  font-size: 20px;
+  background-color: ${props => props.theme.primary} !important;
+  border-color: ${props => props.theme.primary} !important;
+  border-radius: 8px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  
+  .ant-btn-icon-only {
+    vertical-align: middle;
+  }
+  
+  .anticon {
+    display: inline-flex !important;
+    vertical-align: middle !important;
+    margin-right: 6px !important;
+  }
+  
+  span {
+    display: inline-flex !important;
+    align-items: center !important;
+  }
+
+  &:hover, &:focus {
+    background-color: ${props => props.theme.focus} !important;
+    border-color: ${props => props.theme.focus} !important;
+  }
+  
+  @media (max-width: 576px) {
+    height: 40px;
+    font-size: 16px;
+  }
+`;
+
+const StyledLinkButton = styled(Button)`
+  padding: 0;
+  font-size: 18px;
+  color: ${props => props.theme.primary} !important;
+
+  &:hover, &:focus {
+    color: ${props => props.theme.focus} !important;
+  }
+  
+  @media (max-width: 576px) {
+    font-size: 16px;
+  }
+`;
+
+const ResponsiveText = styled(Text)`
+  display: block;
+  text-align: center;
+  margin-bottom: 30px; /* Reduced margin */
+  font-size: 22px;
+  color: ${props => props.theme.placeholder};
+  
+  @media (max-width: 576px) {
+    font-size: 18px;
+    margin-bottom: 20px;
+  }
+`;
+
+const ResponsiveTitle = styled(Title)`
+  text-align: center;
+  margin-bottom: 12px; /* Reduced margin */
+  font-size: 28px !important; /* Slightly smaller */
+  color: ${props => props.isDarkMode ? '#FFFFFF' : props.theme.text} !important;
+  
+  @media (max-width: 576px) {
+    font-size: 22px !important;
+    margin-bottom: 10px;
+  }
+`;
+
+const FormItemStyled = styled(Form.Item)`
+  .ant-form-item-control-input-content {
+    &:hover {
+      .ant-input-affix-wrapper, .ant-input {
+        background-color: ${props => props.theme.inputHover} !important;
+        border-color: ${props => props.theme.focus} !important;
+      }
+    }
   }
 `;
 
 const Login = () => {
-  const { token: themeToken } = useToken();
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -98,19 +309,14 @@ const Login = () => {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      display: 'flex',
-      alignItems: 'center',
-      background: themeToken.colorBgContainer
-    }}>
-      <StyledCard>
-        <Title level={2} style={{ textAlign: 'center', marginBottom: 16, fontSize: '30px' }}>
+    <PageContainer theme={themeColors}>
+      <StyledCard theme={themeColors}>
+        <ResponsiveTitle level={2} theme={themeColors} isDarkMode={isDarkMode}>
           Welcome Back!
-        </Title>
-        <Text type="secondary" style={{ display: 'block', textAlign: 'center', marginBottom: 40, fontSize: '22px' }}>
+        </ResponsiveTitle>
+        <ResponsiveText theme={themeColors}>
           Login to access your account
-        </Text>
+        </ResponsiveText>
 
         {error && (
           <Alert
@@ -118,7 +324,11 @@ const Login = () => {
             type="error"
             showIcon
             closable
-            style={{ marginBottom: 32, fontSize: '20px' }}
+            style={{
+              marginBottom: 24, /* Reduced margin */
+              fontSize: '16px',
+              borderRadius: '8px'
+            }}
           />
         )}
 
@@ -128,8 +338,9 @@ const Login = () => {
           layout="vertical"
           onFinish={handleLogin}
           disabled={loading}
+          style={{ color: themeColors.text }}
         >
-          <Form.Item
+          <FormItemStyled
             name="email"
             rules={[
               { required: true, message: 'Please enter your email!' },
@@ -138,17 +349,20 @@ const Login = () => {
                 message: 'Enter a valid email format (e.g., user@example.com)!'
               }
             ]}
+            style={{ marginBottom: 20 }} /* Reduced margin */
+            theme={themeColors}
           >
-            <Input
-              prefix={<MailOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px' }} />} /* Increased icon size */
+            <StyledInput
+              prefix={<MailOutlined style={{ fontSize: '20px' }} />}
               placeholder="Email address"
               size="large"
-              style={{ fontSize: '20px', padding: '12px' }}
               autoFocus
+              theme={themeColors}
+              isDarkMode={isDarkMode}
             />
-          </Form.Item>
+          </FormItemStyled>
 
-          <Form.Item
+          <FormItemStyled
             name="password"
             rules={[
               { required: true, message: 'Please enter your password!' },
@@ -156,62 +370,64 @@ const Login = () => {
               { pattern: /[a-z]/, message: 'Password must contain at least one lowercase letter!' },
               { pattern: /[0-9]/, message: 'Password must contain at least one number!' }
             ]}
+            style={{ marginBottom: 24 }} /* Reduced margin */
+            theme={themeColors}
           >
-            <Input.Password
-              prefix={<LockOutlined style={{ color: themeToken.colorTextSecondary, fontSize: '20px' }} />} /* Increased icon size */
+            <StyledPasswordInput
+              prefix={<LockOutlined style={{ fontSize: '20px' }} />}
               placeholder="Password"
               size="large"
-              style={{ fontSize: '20px', padding: '12px' }}
+              theme={themeColors}
+              isDarkMode={isDarkMode}
             />
-          </Form.Item>
+          </FormItemStyled>
 
-          <Form.Item style={{ marginTop: 20 }}>
-            <Button
+          <Form.Item style={{ marginTop: 16 }}> {/* Reduced margin */}
+            <StyledButton
               type="primary"
               htmlType="submit"
               size="large"
               block
               loading={loading}
-              icon={<ArrowRightOutlined style={{ fontSize: '20px' }} />}
-              style={{ height: '48px', fontSize: '20px' }}
+              theme={themeColors}
             >
-              Login
-            </Button>
+              <ArrowRightOutlined style={{ fontSize: '20px' }} /> Login
+            </StyledButton>
           </Form.Item>
         </Form>
 
         <div style={{
           textAlign: 'center',
-          marginTop: 32,
+          marginTop: 24, /* Reduced margin */
           fontSize: '18px',
-          color: themeToken.colorTextSecondary
+          color: themeColors.placeholder
         }}>
           Don&apos;t have an account?{' '}
-          <Button
+          <StyledLinkButton
             type="link"
             onClick={() => navigate('/auth/signup')}
-            style={{ padding: 0, fontSize: '18px' }}
+            theme={themeColors}
           >
             Sign up here
-          </Button>
+          </StyledLinkButton>
         </div>
 
         <div style={{
           textAlign: 'center',
-          marginTop: 24,
+          marginTop: 16, /* Reduced margin */
           fontSize: '18px',
-          color: themeToken.colorTextSecondary
+          color: themeColors.placeholder
         }}>
-          <Button
+          <StyledLinkButton
             type="link"
             onClick={() => navigate('/auth/reset-password')}
-            style={{ padding: 0, fontSize: '18px' }}
+            theme={themeColors}
           >
             Forgot your password?
-          </Button>
+          </StyledLinkButton>
         </div>
       </StyledCard>
-    </div>
+    </PageContainer>
   );
 };
 
