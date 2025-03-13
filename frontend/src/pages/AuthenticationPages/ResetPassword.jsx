@@ -302,6 +302,12 @@ const ResetPassword = () => {
         .ant-alert-message {
           color: ${themeColors.text} !important;
         }
+        .ant-alert-success .ant-alert-message {
+          color: ${isDarkMode ? '#fff' : '#333'} !important;
+        }
+        .ant-alert-success .ant-alert-content {
+          color: ${isDarkMode ? '#fff' : '#333'} !important;
+        }
       `}</style>
     </PageContainer>
   );
