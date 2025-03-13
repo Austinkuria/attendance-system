@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../services/api';
-import { Layout, Card, Typography, Button, Form, Input, message, Spin, Space, Breadcrumb } from 'antd';
+import { Layout, Card, Typography, Button, Form, Input, message, Spin, Space } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -10,8 +10,8 @@ const { Header, Content } = Layout;
 const { Title } = Typography;
 
 const SettingsCard = styled(Card)`
-  max-width: 600px;
-  margin: 20px auto 12px; // Increased top margin from 12px to 20px
+  max-width: 800px; // Increased from 600px to 800px for better use of space
+  margin: 30px auto 12px; // Increased top margin from 20px to 30px
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background: ${props => props.background};
@@ -33,6 +33,10 @@ const SettingsCard = styled(Card)`
     padding: 16px;
   }
   
+  @media (min-height: 900px) {
+    margin-top: 80px; // Add more top margin on tall screens
+  }
+  
   @media (max-width: 768px) {
     width: 90%;
     margin: 16px auto; // Reduced from 24px to 16px
@@ -42,6 +46,18 @@ const SettingsCard = styled(Card)`
     width: 95%;
     padding: 0;
     margin: 8px auto; // Reduced from 16px to 8px
+  }
+  
+  @media (min-width: 1200px) {
+    max-width: 800px; // Maintain wider card on large screens
+  }
+  
+  @media (min-width: 992px) and (max-width: 1199px) {
+    max-width: 700px; // Slightly narrower on medium-large screens
+  }
+  
+  @media (min-width: 769px) and (max-width: 991px) {
+    max-width: 650px; // Adjusted size for smaller laptops
   }
 `;
 
@@ -72,11 +88,13 @@ const StudentSettings = () => {
       boxSizing: 'border-box',
       overflowY: 'auto',
       overflowX: 'hidden',
-      marginTop: '30px', // Reduced from 45px to 30px
-      paddingBottom: '8px', // Reduced from 20px to 8px
+      marginTop: '40px', // Increased from 30px to 40px to add more space
+      paddingBottom: '0px', // Reduce bottom padding
       minHeight: 'calc(100vh - 45px)', // Adjusted to match new header height and margin
       display: 'flex',
       flexDirection: 'column',
+      justifyContent: 'flex-start', // Change from default to flex-start
+      alignItems: 'center',
     },
     headerRow: {
       marginBottom: '16px',
@@ -170,17 +188,37 @@ const StudentSettings = () => {
         margin-bottom: 12px; // Reduce default margin-bottom
       }
 
+      @media (min-height: 900px) {
+        .settings-container {
+          margin-top: 20px;
+          justify-content: flex-start !important;
+        }
+      }
+
       @media (max-width: 768px) {
         .ant-layout-content { 
           padding: 8px !important; 
+          display: flex !important;
+          flex-direction: column !important;
+          justify-content: center !important;
+          align-items: center !important;
         }
         .header-row { 
           padding: 8px !important; 
         }
+        
+        .settings-container {
+          display: flex;
+          flex-direction: column;
+          justify-content: center;
+          min-height: calc(100vh - 100px);
+          width: 100%;
+        }
       }
+      
       @media (max-width: 480px) {
         .ant-layout-content { 
-          padding: 4px !important; 
+          padding: 4px !important;
         }
         .header-row { 
           padding: 4px !important; 
@@ -190,7 +228,27 @@ const StudentSettings = () => {
       .ant-card {
         margin-bottom: 24px;
       }
+
+      /* Fix for large screens to eliminate bottom margin */
+      @media (min-height: 750px) {
+        .ant-layout-content {
+          padding-bottom: 0 !important;
+          min-height: auto !important;
+          height: auto !important;
+        }
+        
+        .ant-card {
+          margin-bottom: 0 !important;
+        }
+      }
     `,
+    settingsContainer: {
+      display: 'flex',
+      flexDirection: 'column',
+      width: '100%',
+      marginTop: '35px', // Added top margin to the container
+      flexGrow: 0, // Prevent container from growing to fill space
+    }
   };
 
   useEffect(() => {
@@ -242,116 +300,122 @@ const StudentSettings = () => {
         </Space>
       </Header>
       <Content style={styles.content}>
-        <Breadcrumb style={{ marginBottom: 12, padding: '0 8px', marginTop: 5 }}> {/* Added marginTop: 5 */}
-          <Breadcrumb.Item><a onClick={() => navigate('/student-dashboard')} style={{ color: themeColors.primary }}>Dashboard</a></Breadcrumb.Item>
-          <Breadcrumb.Item><a onClick={() => navigate('/student/profile')} style={{ color: themeColors.primary }}>Profile</a></Breadcrumb.Item>
-          <Breadcrumb.Item style={{ color: themeColors.text }}>Settings</Breadcrumb.Item>
-        </Breadcrumb>
+        {/* Breadcrumb removed */}
 
-        <SettingsCard
-          background={themeColors.cardBg}
-          headcolor={themeColors.primary}
-          title="Edit Profile"
-          style={{ marginBottom: '0px' }} // Removed bottom margin
-        >
-          {loading ? (
-            <div style={{ textAlign: 'center', padding: '30px 0' }}>
-              <Spin size="large" />
-            </div>
-          ) : (
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={onFinish}
-              initialValues={{ remember: true }}
-            >
-              <Form.Item
-                label={<span style={{ color: themeColors.text }}>First Name</span>}
-                name="firstName"
-                rules={[{ required: true, message: 'Please enter your first name' }]}
+        <div className="settings-container" style={styles.settingsContainer}>
+          <SettingsCard
+            background={themeColors.cardBg}
+            headcolor={themeColors.primary}
+            title="Edit Profile"
+            style={{ marginBottom: '0px' }}
+          >
+            {loading ? (
+              <div style={{
+                textAlign: 'center',
+                padding: '30px 0',
+                minHeight: '400px', // Add minimum height when showing spinner
+                minWidth: '300px', // Add minimum width when showing spinner
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Spin size="large" />
+              </div>
+            ) : (
+              <Form
+                form={form}
+                layout="vertical"
+                onFinish={onFinish}
+                initialValues={{ remember: true }}
               >
-                <Input
-                  prefix={<UserOutlined style={{ color: themeColors.primary }} />}
-                  placeholder="First Name"
-                  style={{ background: themeColors.inputBg, color: themeColors.text }}
-                />
-              </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: themeColors.text }}>First Name</span>}
+                  name="firstName"
+                  rules={[{ required: true, message: 'Please enter your first name' }]}
+                >
+                  <Input
+                    prefix={<UserOutlined style={{ color: themeColors.primary }} />}
+                    placeholder="First Name"
+                    style={{ background: themeColors.inputBg, color: themeColors.text }}
+                  />
+                </Form.Item>
 
-              <Form.Item
-                label={<span style={{ color: themeColors.text }}>Last Name</span>}
-                name="lastName"
-                rules={[{ required: true, message: 'Please enter your last name' }]}
-              >
-                <Input
-                  prefix={<UserOutlined style={{ color: themeColors.primary }} />}
-                  placeholder="Last Name"
-                  style={{ background: themeColors.inputBg, color: themeColors.text }}
-                />
-              </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: themeColors.text }}>Last Name</span>}
+                  name="lastName"
+                  rules={[{ required: true, message: 'Please enter your last name' }]}
+                >
+                  <Input
+                    prefix={<UserOutlined style={{ color: themeColors.primary }} />}
+                    placeholder="Last Name"
+                    style={{ background: themeColors.inputBg, color: themeColors.text }}
+                  />
+                </Form.Item>
 
-              <Form.Item
-                label={<span style={{ color: themeColors.text }}>Email</span>}
-                name="email"
-                rules={[
-                  { required: true, message: 'Please enter your email' },
-                  { type: 'email', message: 'Please enter a valid email' },
-                ]}
-              >
-                <Input
-                  prefix={<MailOutlined style={{ color: themeColors.primary }} />}
-                  placeholder="Email"
-                  disabled
-                  style={{ background: themeColors.inputBg, color: themeColors.text }}
-                />
-              </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: themeColors.text }}>Email</span>}
+                  name="email"
+                  rules={[
+                    { required: true, message: 'Please enter your email' },
+                    { type: 'email', message: 'Please enter a valid email' },
+                  ]}
+                >
+                  <Input
+                    prefix={<MailOutlined style={{ color: themeColors.primary }} />}
+                    placeholder="Email"
+                    disabled
+                    style={{ background: themeColors.inputBg, color: themeColors.text }}
+                  />
+                </Form.Item>
 
-              <Form.Item
-                label={<span style={{ color: themeColors.text }}>New Password (leave blank to keep current)</span>}
-                name="password"
-                rules={[
-                  { min: 8, message: 'Password must be at least 8 characters long' },
-                  { pattern: /[A-Z]/, message: 'Password must contain at least 1 uppercase letter' },
-                  { pattern: /[0-9]/, message: 'Password must contain at least 1 number' },
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined style={{ color: themeColors.primary }} />}
-                  placeholder="New Password"
-                  style={{ background: themeColors.inputBg, color: themeColors.text }}
-                />
-              </Form.Item>
+                <Form.Item
+                  label={<span style={{ color: themeColors.text }}>New Password (leave blank to keep current)</span>}
+                  name="password"
+                  rules={[
+                    { min: 8, message: 'Password must be at least 8 characters long' },
+                    { pattern: /[A-Z]/, message: 'Password must contain at least 1 uppercase letter' },
+                    { pattern: /[0-9]/, message: 'Password must contain at least 1 number' },
+                  ]}
+                >
+                  <Input.Password
+                    prefix={<LockOutlined style={{ color: themeColors.primary }} />}
+                    placeholder="New Password"
+                    style={{ background: themeColors.inputBg, color: themeColors.text }}
+                  />
+                </Form.Item>
 
-              <Form.Item style={{ marginTop: 0 }}> {/* Reduced from 4 to 0 */}
+                <Form.Item style={{ marginTop: 0 }}> {/* Reduced from 4 to 0 */}
+                  <Button
+                    type="primary"
+                    htmlType="submit"
+                    loading={submitting}
+                    style={{
+                      width: '100%',
+                      background: themeColors.primary,
+                      borderColor: themeColors.primary,
+                      color: themeColors.text
+                    }}
+                  >
+                    Save Changes
+                  </Button>
+                </Form.Item>
+
                 <Button
-                  type="primary"
-                  htmlType="submit"
-                  loading={submitting}
+                  onClick={() => navigate('/student/profile')}
                   style={{
                     width: '100%',
-                    background: themeColors.primary,
-                    borderColor: themeColors.primary,
-                    color: themeColors.text
+                    marginTop: 0, // Reduced from 1 to 0
+                    background: themeColors.accent,
+                    borderColor: themeColors.accent,
+                    color: '#ffffff'
                   }}
                 >
-                  Save Changes
+                  Cancel
                 </Button>
-              </Form.Item>
-
-              <Button
-                onClick={() => navigate('/student/profile')}
-                style={{
-                  width: '100%',
-                  marginTop: 0, // Reduced from 1 to 0
-                  background: themeColors.accent,
-                  borderColor: themeColors.accent,
-                  color: '#ffffff'
-                }}
-              >
-                Cancel
-              </Button>
-            </Form>
-          )}
-        </SettingsCard>
+              </Form>
+            )}
+          </SettingsCard>
+        </div>
       </Content>
     </Layout>
   );
