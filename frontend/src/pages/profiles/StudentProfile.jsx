@@ -11,7 +11,7 @@ const { Title, Text } = Typography;
 
 const ProfileCard = styled(Card)`
   max-width: 1200px;
-  margin: 65px auto;
+  margin: 65px auto 24px;
   border-radius: 12px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
   background: ${props => props.background};
@@ -23,13 +23,18 @@ const ProfileCard = styled(Card)`
   }
   
   @media (max-width: 1200px) {
-    margin: 24px auto;  // Increased from 16px to 24px
+    margin: 60px auto 24px;
     width: 90%;
+  }
+  
+  @media (max-width: 768px) {
+    margin: 55px auto 20px;
+    width: 92%;
   }
   
   @media (max-width: 576px) {
     padding: 16px;
-    margin: 20px auto;  // Increased from 16px to 20px
+    margin: 50px auto 16px;
     width: 95%;
   }
 `;
@@ -148,10 +153,10 @@ const StudentProfile = () => {
       boxSizing: 'border-box',
       overflowY: 'auto',
       overflowX: 'hidden',
-      marginTop: '56px', // Reduced from 64px to 56px
-      paddingTop: '20px',  // Added padding to the top of content
+      marginTop: '45px', // Adjusted to exactly match header height
+      paddingTop: '10px', // Reduced from 20px to prevent extra space
       paddingBottom: '24px',
-      minHeight: 'calc(100vh - 56px)', // Adjusted to match new header height
+      minHeight: 'calc(100vh - 45px)', // Adjusted to match header height exactly
       display: 'flex',
       flexDirection: 'column',
     },
@@ -234,6 +239,31 @@ const StudentProfile = () => {
           gap: 12px !important;
         }
       }
+
+      /* Additional responsive margin fixes */
+      .profile-card-wrapper {
+        margin-top: 15px !important;
+        padding-top: 0 !important;
+        box-sizing: border-box;
+        width: 100%;
+      }
+      
+      /* Ensure consistent spacing across devices */
+      @media (max-width: 768px) {
+        .profile-card-wrapper {
+          margin-top: 10px !important;
+        }
+        
+        // ...existing tablet breakpoint code...
+      }
+      
+      @media (max-width: 480px) {
+        .profile-card-wrapper {
+          margin-top: 8px !important;
+        }
+        
+        // ...existing mobile breakpoint code...
+      }
     `,
   };
 
@@ -314,100 +344,102 @@ const StudentProfile = () => {
       </Header>
       <Content style={styles.content}>
         <style>{styles.responsiveOverrides}</style>
-        <ProfileCard background={themeColors.cardBg}>
-          <Space direction="vertical" size="large" style={{ width: '100%' }}>
-            <ActionBar>
-              <ActionButton
-                type="primary"
-                icon={<EditOutlined />}
-                onClick={() => navigate('/student/settings')}
-                style={{
-                  background: themeColors.primary,
-                  borderColor: themeColors.primary,
-                  color: '#ffffff'
-                }}
-              >
-                Edit Profile
-              </ActionButton>
-              <ActionButton
-                type="default"
-                icon={<LogoutOutlined />}
-                onClick={handleLogout}
-                style={{
-                  background: themeColors.accent,
-                  borderColor: themeColors.accent,
-                  color: '#ffffff'
-                }}
-              >
-                Logout
-              </ActionButton>
-            </ActionBar>
-
-            {/* Modified Row structure to prevent overlap */}
-            <Row gutter={[24, 36]}>
-              <Col xs={24} md={6} style={{
-                textAlign: 'center',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                padding: '12px',
-                marginBottom: '20px'
-              }}>
-                <ProfileInitialsCircle
-                  bgcolor={themeColors.primary}
-                  size={typeof window !== 'undefined' ?
-                    (window.innerWidth <= 576 ? 140 :
-                      window.innerWidth <= 768 ? 180 : 200)
-                    : 200}
+        <div className="profile-card-wrapper" style={{ width: '100%' }}>
+          <ProfileCard background={themeColors.cardBg} className="profile-card">
+            <Space direction="vertical" size="large" style={{ width: '100%' }}>
+              <ActionBar>
+                <ActionButton
+                  type="primary"
+                  icon={<EditOutlined />}
+                  onClick={() => navigate('/student/settings')}
+                  style={{
+                    background: themeColors.primary,
+                    borderColor: themeColors.primary,
+                    color: '#ffffff'
+                  }}
                 >
-                  {profile.firstName?.charAt(0)}{profile.lastName?.charAt(0)}
-                </ProfileInitialsCircle>
-              </Col>
+                  Edit Profile
+                </ActionButton>
+                <ActionButton
+                  type="default"
+                  icon={<LogoutOutlined />}
+                  onClick={handleLogout}
+                  style={{
+                    background: themeColors.accent,
+                    borderColor: themeColors.accent,
+                    color: '#ffffff'
+                  }}
+                >
+                  Logout
+                </ActionButton>
+              </ActionBar>
 
-              {/* User info column with increased spacing */}
-              <Col xs={24} md={18} style={{
-                paddingLeft: window.innerWidth > 768 ? '24px' : '0',
-                paddingTop: window.innerWidth <= 768 ? '12px' : '0'
-              }}>
-                <div style={{ textAlign: window.innerWidth <= 768 ? 'center' : 'left' }}>
-                  <Title level={2} style={{ margin: 0, color: themeColors.text }}>{profile.firstName} {profile.lastName}</Title>
-                  <Text type="secondary" style={{ color: `${themeColors.text}80` }}>Student Profile</Text>
-                </div>
+              {/* Modified Row structure to prevent overlap */}
+              <Row gutter={[24, 36]}>
+                <Col xs={24} md={6} style={{
+                  textAlign: 'center',
+                  display: 'flex',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  padding: '12px',
+                  marginBottom: '20px'
+                }}>
+                  <ProfileInitialsCircle
+                    bgcolor={themeColors.primary}
+                    size={typeof window !== 'undefined' ?
+                      (window.innerWidth <= 576 ? 140 :
+                        window.innerWidth <= 768 ? 180 : 200)
+                      : 200}
+                  >
+                    {profile.firstName?.charAt(0)}{profile.lastName?.charAt(0)}
+                  </ProfileInitialsCircle>
+                </Col>
 
-                {/* Profile details section with clear separation */}
-                <div style={{ marginTop: '32px' }}>
-                  <Row gutter={[16, 16]}>
-                    <Col xs={24} md={12}>
-                      <Text strong style={{ color: themeColors.text }}><MailOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Email:</Text>
-                      <Text block style={{ color: themeColors.text }}>{profile.email}</Text>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Text strong style={{ color: themeColors.text }}><BookOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Registration Number:</Text>
-                      <Text block style={{ color: themeColors.text }}>{profile.regNo}</Text>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Text strong style={{ color: themeColors.text }}><BookOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Course:</Text>
-                      <Text block style={{ color: themeColors.text }}>{profile.course?.name || 'N/A'}</Text>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Text strong style={{ color: themeColors.text }}><BookOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Department:</Text>
-                      <Text block style={{ color: themeColors.text }}>{profile.department?.name || 'N/A'}</Text>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Text strong style={{ color: themeColors.text }}><CalendarOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Year:</Text>
-                      <Text block style={{ color: themeColors.text }}>{profile.year}</Text>
-                    </Col>
-                    <Col xs={24} md={12}>
-                      <Text strong style={{ color: themeColors.text }}><CalendarOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Semester:</Text>
-                      <Text block style={{ color: themeColors.text }}>{profile.semester}</Text>
-                    </Col>
-                  </Row>
-                </div>
-              </Col>
-            </Row>
+                {/* User info column with increased spacing */}
+                <Col xs={24} md={18} style={{
+                  paddingLeft: window.innerWidth > 768 ? '24px' : '0',
+                  paddingTop: window.innerWidth <= 768 ? '12px' : '0'
+                }}>
+                  <div style={{ textAlign: window.innerWidth <= 768 ? 'center' : 'left' }}>
+                    <Title level={2} style={{ margin: 0, color: themeColors.text }}>{profile.firstName} {profile.lastName}</Title>
+                    <Text type="secondary" style={{ color: `${themeColors.text}80` }}>Student Profile</Text>
+                  </div>
 
-          </Space>
-        </ProfileCard>
+                  {/* Profile details section with clear separation */}
+                  <div style={{ marginTop: '32px' }}>
+                    <Row gutter={[16, 16]}>
+                      <Col xs={24} md={12}>
+                        <Text strong style={{ color: themeColors.text }}><MailOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Email:</Text>
+                        <Text block style={{ color: themeColors.text }}>{profile.email}</Text>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Text strong style={{ color: themeColors.text }}><BookOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Registration Number:</Text>
+                        <Text block style={{ color: themeColors.text }}>{profile.regNo}</Text>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Text strong style={{ color: themeColors.text }}><BookOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Course:</Text>
+                        <Text block style={{ color: themeColors.text }}>{profile.course?.name || 'N/A'}</Text>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Text strong style={{ color: themeColors.text }}><BookOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Department:</Text>
+                        <Text block style={{ color: themeColors.text }}>{profile.department?.name || 'N/A'}</Text>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Text strong style={{ color: themeColors.text }}><CalendarOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Year:</Text>
+                        <Text block style={{ color: themeColors.text }}>{profile.year}</Text>
+                      </Col>
+                      <Col xs={24} md={12}>
+                        <Text strong style={{ color: themeColors.text }}><CalendarOutlined style={{ marginRight: 8, color: themeColors.primary }} /> Semester:</Text>
+                        <Text block style={{ color: themeColors.text }}>{profile.semester}</Text>
+                      </Col>
+                    </Row>
+                  </div>
+                </Col>
+              </Row>
+
+            </Space>
+          </ProfileCard>
+        </div>
       </Content>
     </Layout >
   );
