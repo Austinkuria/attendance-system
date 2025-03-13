@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../../services/api';
-import { Layout, Card, Typography, Button, Spin, Row, Col, Space, Avatar, message } from 'antd';
+import { Layout, Card, Typography, Button, Spin, Row, Col, Space, message } from 'antd';
 import { ArrowLeftOutlined, MailOutlined, BookOutlined, CalendarOutlined, LogoutOutlined, EditOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -34,28 +34,55 @@ const ProfileCard = styled(Card)`
   }
 `;
 
-const StyledAvatar = styled(Avatar)`
+// Update ProfileInitialsCircle to ensure it's always a circle
+const ProfileInitialsCircle = styled.div`
+  width: ${props => props.size}px;
+  height: ${props => props.size}px;
   background-color: ${props => props.bgcolor};
-  font-size: 48px;
-  line-height: 120px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
-  border: 4px solid #ffffff;
-  margin: 0 auto;
+  color: white;
+  border-radius: 50%;  /* This ensures a circle shape */
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: transform 0.3s ease;
+  font-size: ${props => Math.floor(props.size * 0.4)}px;
+  font-weight:500;
+  text-transform: uppercase;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.25);
+  border: 6px solid #ffffff;
+  margin: 0 auto;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+  flex-shrink: 0; /* Prevent the circle from being squished */
+  
+  &::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 50%);
+    border-radius: 50%;
+  }
   
   &:hover {
     transform: scale(1.05);
+    box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3);
+  }
+  
+  @media (max-width: 768px) {
+    width: 180px;
+    height: 180px;
+    font-size: 72px;
+    border-width: 5px;
   }
   
   @media (max-width: 576px) {
-    font-size: 32px;
-    width: 80px !important;
-    height: 80px !important;
-    line-height: 76px;
-    border-width: 3px;
+    width: 140px;
+    height: 140px;
+    font-size: 56px;
+    border-width: 4px;
   }
 `;
 
@@ -320,14 +347,18 @@ const StudentProfile = () => {
                 textAlign: 'center',
                 display: 'flex',
                 justifyContent: 'center',
-                alignItems: 'center'
+                alignItems: 'center',
+                padding: '12px'
               }}>
-                <StyledAvatar
-                  size={{ xs: 80, sm: 120, md: 128 }}
+                <ProfileInitialsCircle
                   bgcolor={themeColors.primary}
+                  size={typeof window !== 'undefined' ?
+                    (window.innerWidth <= 576 ? 140 :
+                      window.innerWidth <= 768 ? 180 : 200)
+                    : 200}
                 >
                   {profile.firstName?.charAt(0)}{profile.lastName?.charAt(0)}
-                </StyledAvatar>
+                </ProfileInitialsCircle>
               </Col>
               <Col xs={24} sm={18}>
                 <Title level={2} style={{ margin: 0, color: themeColors.text }}>{profile.firstName} {profile.lastName}</Title>
