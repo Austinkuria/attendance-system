@@ -7,6 +7,6 @@ const { loginLimiter } = require('../middleware/rateLimiter');
 router.post('/login', loginLimiter, login);
 router.post('/signup', signup);
 router.post('/send-reset-link', sendResetLink);
-router.post('/reset-password', resetPassword);
+router.post('/reset-password', loginLimiter, resetPassword);
 
 module.exports = router;
