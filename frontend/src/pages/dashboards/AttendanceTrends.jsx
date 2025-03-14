@@ -73,11 +73,11 @@ const styles = {
   layoutStyle: {
     minHeight: '100vh',
     background: '#f5f7fa',
-    padding: 0,
-    margin: 0,
+    padding: '0 12px', // Added horizontal padding
+    margin: '0 auto',  // Center the layout
     display: 'flex',
     flexDirection: 'column',
-    width: '100%',  // Changed from 100vw to prevent overflow
+    width: 'calc(100% - 24px)', // Account for padding
     maxWidth: '100%',
     overflowX: 'hidden', // Prevent horizontal scrolling
   },
@@ -102,16 +102,18 @@ const styles = {
     }
     
     .ant-layout {
-      width: 100% !important;
-      max-width: 100% !important;
+      width: calc(100% - 24px) !important;
+      max-width: calc(100% - 24px) !important;
       overflow-x: hidden !important;
+      padding: 0 12px !important;
+      margin: 0 auto !important;
     }
     
     .ant-layout-content {
       overflow-x: hidden !important;
       max-width: 100% !important;
       width: 100% !important;
-      padding: 0 !important;
+      padding: 16px !important;
       margin: 0 !important;
       margin-top: 64px !important;
     }
@@ -124,21 +126,25 @@ const styles = {
     
     /* Responsive styles */
     @media (max-width: 1600px) { 
-      .ant-layout-content { max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; padding: 0 !important; } 
+      .ant-layout { padding: 0 12px !important; }
+      .ant-layout-content { padding: 16px !important; margin-top: 64px !important; } 
     }
     @media (max-width: 1200px) { 
-      .ant-layout-content { max-width: 100% !important; padding: 0 !important; margin: 0 !important; margin-top: 64px !important; } 
+      .ant-layout { padding: 0 10px !important; }
+      .ant-layout-content { padding: 14px !important; margin-top: 64px !important; } 
       .chart-container { height: 400px; } 
     }
     @media (max-width: 768px) { 
-      .ant-layout-content { max-width: 100% !important; padding: 0 !important; margin: 0 !important; margin-top: 64px !important; } 
+      .ant-layout { padding: 0 8px !important; }
+      .ant-layout-content { padding: 12px !important; margin-top: 64px !important; } 
       .controls { max-width: 100%; flex-direction: column; align-items: stretch; } 
       .chart-container { height: 350px; } 
       .ant-typography { font-size: 18px; }
       .header-space { padding: 0 8px; }
     }
     @media (max-width: 480px) { 
-      .ant-layout-content { max-width: 100% !important; padding: 0 !important; margin: 0 !important; margin-top: 64px !important; } 
+      .ant-layout { padding: 0 6px !important; }
+      .ant-layout-content { padding: 10px !important; margin-top: 64px !important; } 
       .chart-container { height: 250px; } 
       .ant-btn { font-size: 14px; padding: 4px 8px; height: 48px; }
       .ant-select, .ant-picker { width: 100% !important; } 
@@ -388,8 +394,10 @@ const AttendanceTrends = () => {
         <Header style={{
           ...styles.header,
           background: colorBgContainer,
-          width: '100%',
-          maxWidth: '100%',
+          width: 'calc(100% - 24px)',
+          maxWidth: 'calc(100% - 24px)',
+          left: '12px',
+          right: '12px',
           ...debugStyles.header
         }}>
           <Button
@@ -416,7 +424,7 @@ const AttendanceTrends = () => {
           ...styles.content,
           margin: 0,
           marginTop: 64,
-          padding: debugMode ? '0px' : '0px',
+          padding: debugMode ? '10px' : '16px', // Added padding, conditional on debug mode
           width: '100%',
           maxWidth: '100%',
           overflowX: 'hidden',
