@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, getStudentAttendanceByFilter } from '../../services/api';
 import { Line, Bar } from 'react-chartjs-2';
@@ -13,11 +13,12 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
-import { Layout, Button, Card, Space, theme, Typography, Spin, Select, DatePicker, Switch, message } from 'antd';
+import { Layout, Button, Card, Space, Typography, Spin, Select, DatePicker, Switch, message } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons'; // Changed to LeftOutlined if preferred
 import moment from 'moment';
 import 'antd/dist/reset.css';
 import zoomPlugin from 'chartjs-plugin-zoom';
+import { ThemeContext } from '../../context/ThemeContext';
 
 ChartJS.register(
   CategoryScale,
@@ -72,7 +73,6 @@ const styles = {
   },
   layoutStyle: {
     minHeight: '100vh',
-    background: '#f5f7fa',
     padding: '0 12px', // Added horizontal padding
     margin: '0 auto',  // Center the layout
     display: 'flex',
@@ -161,10 +161,45 @@ const styles = {
       position: relative;
     }
   `,
+  calendarOverrides: `
+    .ant-picker-panel {
+      background-color: var(--calendar-bg) !important;
+    }
+    .ant-picker-panel-container {
+      background-color: var(--calendar-bg) !important;
+    }
+    .ant-picker-content th,
+    .ant-picker-content td {
+      color: var(--calendar-text) !important;
+    }
+    .ant-picker-header {
+      color: var(--calendar-text) !important;
+      border-bottom: 1px solid var(--calendar-border) !important;
+    }
+    .ant-picker-header button {
+      color: var(--calendar-text) !important;
+    }
+    .ant-picker-cell:hover .ant-picker-cell-inner {
+      background: var(--calendar-hover) !important;
+    }
+    .ant-picker-cell-in-view {
+      color: var(--calendar-text) !important;
+    }
+    .ant-picker-time-panel-column > li.ant-picker-time-panel-cell .ant-picker-time-panel-cell-inner {
+      color: var(--calendar-text) !important;
+    }
+    .ant-picker-time-panel {
+      background-color: var(--calendar-bg) !important;
+    }
+    .ant-picker-footer {
+      border-top: 1px solid var(--calendar-border) !important;
+      background-color: var(--calendar-bg) !important;
+    }
+  `,
 };
 
 const AttendanceTrends = () => {
-  const { token: { colorBgContainer } } = theme.useToken();
+  const { themeColors } = useContext(ThemeContext);
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('30days');
@@ -227,15 +262,25 @@ const AttendanceTrends = () => {
   }, [fetchAttendanceData]);
 
   useEffect(() => {
-    // Apply global style to prevent scroll
+    // Apply global style to prevent scroll and add calendar styles
     const style = document.createElement('style');
-    style.innerHTML = styles.globalStyles;
+    style.innerHTML = `
+      ${styles.globalStyles}
+      ${styles.responsiveOverrides}
+      :root {
+        --calendar-bg: ${themeColors.cardBg};
+        --calendar-text: ${themeColors.text};
+        --calendar-border: ${themeColors.border};
+        --calendar-hover: ${themeColors.hover};
+      }
+      ${styles.calendarOverrides}
+    `;
     document.head.appendChild(style);
 
     return () => {
       document.head.removeChild(style);
     };
-  }, []);
+  }, [themeColors]);
 
   const getTrendData = useCallback(() => {
     let labels = [];
@@ -320,12 +365,17 @@ const AttendanceTrends = () => {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { position: 'top' },
+      legend: {
+        position: 'top',
+        labels: {
+          color: themeColors.text
+        }
+      },
       title: {
         display: true,
         text: `Attendance Trend (${filter === '30days' ? 'Last 30 Days' : filter === 'daily' ? 'Daily' : 'Weekly'}${dateRange ? ` from ${dateRange[0]?.format('MMM D, YYYY')} to ${dateRange[1]?.format('MMM D, YYYY')}` : ''})`,
         font: { size: 16 },
-        color: '#1890ff',
+        color: themeColors.primary,
       },
       tooltip: { callbacks: { label: (context) => `${context.raw.toFixed(2)}%` } },
       zoom: {
@@ -350,18 +400,32 @@ const AttendanceTrends = () => {
         title: {
           display: true,
           text: 'Attendance Rate (%)',
-          color: '#FF5733',
+          color: themeColors.accent,
           font: { size: 14 },
         },
+        grid: {
+          color: themeColors.border
+        },
+        ticks: {
+          color: themeColors.text
+        }
       },
       x: {
         title: {
           display: true,
           text: getXAxisLabel(),
-          color: '#28A745',
+          color: themeColors.secondary,
           font: { size: 14 },
         },
-        ticks: { maxRotation: 45, minRotation: 0, font: { size: 12 } },
+        grid: {
+          color: themeColors.border
+        },
+        ticks: {
+          maxRotation: 45,
+          minRotation: 0,
+          font: { size: 12 },
+          color: themeColors.text
+        }
       },
     },
   };
@@ -389,11 +453,12 @@ const AttendanceTrends = () => {
       <style>{styles.responsiveOverrides}</style>
       <Layout style={{
         ...styles.layoutStyle,
+        background: themeColors.background,
         ...debugStyles.layout
       }}>
         <Header style={{
           ...styles.header,
-          background: colorBgContainer,
+          background: themeColors.cardBg,
           width: 'calc(100% - 24px)',
           maxWidth: 'calc(100% - 24px)',
           left: '12px',
@@ -407,7 +472,12 @@ const AttendanceTrends = () => {
           >
             Dashboard
           </Button>
-          <AntTitle level={3} style={{ margin: 0, textAlign: 'center', flexGrow: 1 }}>
+          <AntTitle level={3} style={{
+            margin: 0,
+            textAlign: 'center',
+            flexGrow: 1,
+            color: themeColors.text
+          }}>
             Attendance Trends
           </AntTitle>
           <Button
@@ -428,6 +498,7 @@ const AttendanceTrends = () => {
           width: '100%',
           maxWidth: '100%',
           overflowX: 'hidden',
+          background: themeColors.background,
           ...debugStyles.content
         }} className="ant-layout-content">
           <Spin spinning={loading} tip="Loading data...">
@@ -447,7 +518,7 @@ const AttendanceTrends = () => {
                 <Select
                   value={filter}
                   onChange={handleFilterChange}
-                  style={{ minWidth: '150px', width: '100%' }}
+                  style={{ minWidth: '150px', width: '100%', backgroundColor: themeColors.inputBg, borderColor: themeColors.inputBorder }}
                   placeholder="Select Filter"
                 >
                   <Option value="30days">Last 30 Days</Option>
@@ -458,7 +529,17 @@ const AttendanceTrends = () => {
                   onChange={handleDateRangeChange}
                   value={dateRange}
                   format="YYYY-MM-DD"
-                  style={{ minWidth: '200px', width: '100%' }}
+                  style={{
+                    minWidth: '200px',
+                    width: '100%',
+                    backgroundColor: themeColors.inputBg,
+                    borderColor: themeColors.inputBorder,
+                    color: themeColors.text
+                  }}
+                  popupStyle={{
+                    backgroundColor: themeColors.cardBg,
+                    borderColor: themeColors.border
+                  }}
                   disabled={filter === 'weekly'}
                 />
                 <Switch
@@ -472,8 +553,8 @@ const AttendanceTrends = () => {
                 marginTop: debugMode ? 0 : 16, // Remove margin in debug mode
                 borderRadius: 10,
                 width: '100%',
-                maxWidth: '100%',
-                overflow: 'hidden',
+                backgroundColor: themeColors.cardBg,
+                borderColor: themeColors.border,
                 ...debugStyles.card
               }}>
                 <div style={{
