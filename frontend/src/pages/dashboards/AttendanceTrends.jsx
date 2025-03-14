@@ -49,10 +49,10 @@ const styles = {
     boxSizing: 'border-box',
   },
   chartContainer: {
-    width: '100%',
+    width: '800px',  // Fixed width for the chart
     height: '500px',
-    overflowX: 'auto', // Enable horizontal scroll
-    overflowY: 'hidden', // Prevent vertical scroll
+    maxWidth: '800px',
+    position: 'relative',
   },
   controls: {
     width: '100%',
@@ -162,15 +162,29 @@ const styles = {
     }
     @media (max-width: 768px) { 
       .ant-layout { padding: 0 8px !important; }
-      .ant-layout-content { padding: 12px !important; margin-top: 64px !important; } 
-      .controls { max-width: 100%; flex-direction: column; align-items: stretch; } 
+      .ant-layout-content { 
+        padding: 12px !important; 
+        margin-top: 96px !important;  /* Increased margin-top */
+      } 
+      .controls { 
+        max-width: 100%; 
+        flex-direction: column; 
+        align-items: stretch;
+        margin-top: 16px !important;
+      } 
       .chart-container { height: 350px; } 
       .ant-typography { font-size: 18px; }
       .header-space { padding: 0 8px; }
     }
     @media (max-width: 480px) { 
       .ant-layout { padding: 0 6px !important; }
-      .ant-layout-content { padding: 10px !important; margin-top: 64px !important; } 
+      .ant-layout-content { 
+        padding: 10px !important; 
+        margin-top: 88px !important;  /* Increased margin-top */
+      } 
+      .controls {
+        margin-top: 12px !important;
+      }
       .chart-container { height: 250px; } 
       .ant-btn { font-size: 14px; padding: 4px 8px; height: 48px; }
       .ant-select, .ant-picker { width: 100% !important; } 
@@ -316,38 +330,58 @@ const styles = {
     }
 
     /* Chart container responsive styles */
-    .chart-container {
-      min-width: 600px !important; // Minimum width to prevent squishing
-      padding-bottom: 16px !important; // Space for scrollbar
-    }
-
     .chart-wrapper {
+      width: 100% !important;
       overflow-x: auto !important;
       overflow-y: hidden !important;
-      margin-bottom: 16px !important;
-      -webkit-overflow-scrolling: touch !important; // Smooth scroll on iOS
+      padding-bottom: 8px !important;
+      -webkit-overflow-scrolling: touch !important;
+      scrollbar-width: thin !important;
+      position: relative !important;
     }
 
-    /* Hide scrollbar for Chrome, Safari and Opera */
+    .chart-container {
+      margin: 0 auto !important;
+      position: relative !important;
+    }
+
+    /* Custom scrollbar for the chart wrapper */
     .chart-wrapper::-webkit-scrollbar {
-      height: 8px;
+      height: 6px !important;
+      background-color: transparent !important;
     }
 
-    /* Track */
-    .chart-wrapper::-webkit-scrollbar-track {
-      background: var(--calendar-border);
-      border-radius: 4px;
-    }
-
-    /* Handle */
     .chart-wrapper::-webkit-scrollbar-thumb {
-      background: var(--primary-color);
-      border-radius: 4px;
+      background-color: var(--primary-color) !important;
+      border-radius: 3px !important;
     }
 
-    /* Handle on hover */
-    .chart-wrapper::-webkit-scrollbar-thumb:hover {
-      background: var(--secondary-color);
+    .chart-wrapper::-webkit-scrollbar-track {
+      background-color: var(--calendar-border) !important;
+      border-radius: 3px !important;
+    }
+
+    @media (max-width: 868px) {
+      .chart-container {
+        width: 700px !important;
+      }
+    }
+
+    @media (max-width: 668px) {
+      .chart-container {
+        width: 600px !important;
+      }
+    }
+
+    /* Media queries updates */
+    @media (max-width: 1200px) { 
+      .chart-container { height: 500px !important; } 
+    }
+    @media (max-width: 768px) { 
+      .chart-container { height: 500px !important; } 
+    }
+    @media (max-width: 480px) { 
+      .chart-container { height: 500px !important; } 
     }
   `,
   // Force global styles
@@ -776,13 +810,12 @@ const AttendanceTrends = () => {
                 width: '100%',
                 backgroundColor: themeColors.cardBg,
                 borderColor: themeColors.border,
+                overflow: 'hidden',
+                padding: '16px 0',
                 ...debugStyles.card
               }}>
-                <div className="chart-wrapper" style={{ width: '100%' }}>
-                  <div style={{
-                    ...styles.chartContainer,
-                    ...debugStyles.chartContainer
-                  }} className="chart-container">
+                <div className="chart-wrapper">
+                  <div className="chart-container">
                     {chartType === 'line' ? (
                       <Line data={getTrendData()} options={trendOptions} />
                     ) : (
