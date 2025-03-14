@@ -923,6 +923,160 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-ellipsis {
             color: #fff !important; /* White ellipsis */
           }
+
+          /* Dark mode slider marks */
+          [data-theme='dark'] .ant-slider-mark-text {
+            color: #fff !important;
+          }
+
+          /* Checkbox styles */
+          .ant-checkbox-checked .ant-checkbox-inner {
+            background-color: ${themeColors.primary} !important;
+            border-color: ${themeColors.primary} !important;
+          }
+
+          /* Button text color fixes */
+          .ant-btn-primary:hover span {
+            color: #fff !important;
+          }
+
+          /* Modal button styles */
+          .ant-modal-footer .ant-btn {
+            transition: opacity 0.3s;
+          }
+
+          .ant-modal-footer .ant-btn:hover {
+            opacity: 0.8;
+          }
+
+          .ant-btn-primary span,
+          .ant-modal-footer .ant-btn span {
+            color: #fff !important;
+          }
+
+          .ant-btn-primary:hover span,
+          .ant-modal-footer .ant-btn:hover span {
+            color: #fff !important;
+          }
+
+          /* Target feedback modal cancel button specifically */
+          .ant-modal-footer > .ant-btn:not(.ant-btn-primary) {
+            background-color: ${themeColors.accent} !important;
+            border-color: ${themeColors.accent} !important;
+            color: #fff !important;
+            opacity: 1;
+            transition: opacity 0.3s ease;
+            cursor: pointer;
+          }
+
+          .ant-modal-footer > .ant-btn:not(.ant-btn-primary):hover {
+            background-color: ${themeColors.accent} !important;
+            border-color: ${themeColors.accent} !important;
+            color: #fff !important;
+            opacity: 0.7 !important;
+          }
+
+          .ant-modal-footer > .ant-btn:not(.ant-btn-primary) > span {
+            color: #fff !important;
+          }
+
+          /* Dark mode slider marks with better visibility */
+          [data-theme='dark'] .ant-slider-mark {
+            color: #fff !important;
+            font-size: 14px;
+            font-weight: 500;
+          }
+
+          [data-theme='dark'] .ant-slider-mark-text {
+            color: #fff !important;
+            opacity: 0.85;
+          }
+
+          [data-theme='dark'] .ant-slider-mark-text-active {
+            color: #fff !important;
+            opacity: 1;
+          }
+
+          /* Enhanced dark mode slider marks visibility */
+          [data-theme='dark'] .ant-slider .ant-slider-mark > span.ant-slider-mark-text {
+            color: rgba(255, 255, 255, 0.85) !important;
+            font-size: 14px;
+            font-weight: 500;
+            text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
+          }
+
+          [data-theme='dark'] .ant-slider .ant-slider-mark > span.ant-slider-mark-text-active {
+            color: #fff !important;
+            font-weight: 600;
+          }
+
+          [data-theme='dark'] .ant-slider:hover .ant-slider-mark > span.ant-slider-mark-text {
+            opacity: 1;
+          }
+
+          /* More specific and contrasting slider marks in dark mode */
+          [data-theme='dark'] .ant-slider .ant-slider-mark {
+            z-index: 1;
+          }
+
+          [data-theme='dark'] .ant-slider .ant-slider-mark-text,
+          [data-theme='dark'] .ant-slider:hover .ant-slider-mark-text {
+            color: rgba(255, 255, 255, 0.95) !important;
+            font-size: 14px;
+            font-weight: 600;
+            background: rgba(0, 0, 0, 0.5);
+            padding: 2px 4px;
+            border-radius: 2px;
+            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
+          }
+
+          [data-theme='dark'] .ant-slider .ant-slider-mark-text-active {
+            color: #fff !important;
+            font-weight: 700;
+          }
+
+          /* Override Ant Design's default slider mark styles */
+          .css-dev-only-do-not-override-1v613y0.ant-slider .ant-slider-mark-text,
+          .ant-slider .ant-slider-mark-text {
+            color: ${isDarkMode ? '#fff' : 'rgba(0, 0, 0, 0.45)'} !important;
+            font-size: 14px;
+            font-weight: 500;
+            text-shadow: ${isDarkMode ? '0px 1px 2px rgba(0, 0, 0, 0.5)' : 'none'};
+          }
+
+          .css-dev-only-do-not-override-1v613y0.ant-slider .ant-slider-mark-text-active,
+          .ant-slider .ant-slider-mark-text-active {
+            color: ${isDarkMode ? '#fff' : 'rgba(0, 0, 0, 0.88)'} !important;
+            font-weight: 600;
+          }
+
+          /* Slider mark styles with better active/inactive differentiation */
+          .ant-slider .ant-slider-mark-text {
+            color: ${isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.45)'} !important;
+            font-size: 12px;
+            font-weight: 400;
+            opacity: 0.7;
+            transition: all 0.3s ease;
+          }
+
+          .ant-slider .ant-slider-mark-text-active {
+            color: ${isDarkMode ? '#fff' : 'rgba(0, 0, 0, 0.88)'} !important;
+            font-size: 14px;
+            font-weight: 600;
+            opacity: 1;
+            transform: scale(1.05);
+          }
+
+          .ant-slider .ant-slider-mark-text:hover {
+            opacity: 1;
+          }
+
+          /* Add background for better visibility */
+          [data-theme='dark'] .ant-slider .ant-slider-mark-text-active {
+            background: rgba(0, 0, 0, 0.4);
+            padding: 2px 6px;
+            border-radius: 3px;
+          }
         `}
       </style>
       <Header style={styles.header}>
@@ -1152,8 +1306,29 @@ const StudentDashboard = () => {
               onOk={handleFeedbackSubmit}
               centered
               width={Math.min(window.innerWidth * 0.9, 600)}
-              okButtonProps={{ style: { ...styles.button, color: '#fff' } }}
-              cancelButtonProps={{}}
+              okButtonProps={{
+                style: {
+                  ...styles.button,
+                  backgroundColor: themeColors.accent,
+                  borderColor: themeColors.accent,
+                  color: '#fff'
+                }
+              }}
+              cancelButtonProps={{
+                style: {
+                  backgroundColor: themeColors.accent,
+                  borderColor: themeColors.accent,
+                  color: '#fff',
+                  opacity: 1,
+                  transition: 'opacity 0.3s',
+                  '&:hover': {
+                    opacity: 0.8,
+                    backgroundColor: `${themeColors.accent} !important`,
+                    borderColor: `${themeColors.accent} !important`,
+                    color: '#fff !important'
+                  }
+                }
+              }}
             >
               <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
                 <div>
@@ -1210,7 +1385,14 @@ const StudentDashboard = () => {
               open={deviceModalVisible}
               onCancel={handleDeviceModalCancel}
               footer={[
-                <Button key="cancel" onClick={handleDeviceModalCancel}>
+                <Button
+                  key="cancel"
+                  onClick={handleDeviceModalCancel}
+                  style={{
+                    borderColor: themeColors.accent,
+                    color: themeColors.accent
+                  }}
+                >
                   Cancel
                 </Button>,
                 <Button
@@ -1219,7 +1401,7 @@ const StudentDashboard = () => {
                   onClick={handleDeviceModalConfirm}
                   style={{ ...styles.button, color: '#fff' }}
                 >
-                  I Understand
+                  <span style={{ color: '#fff' }}>I Understand</span>
                 </Button>,
               ]}
               destroyOnClose={true}
