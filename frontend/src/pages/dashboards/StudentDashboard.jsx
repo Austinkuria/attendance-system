@@ -83,6 +83,13 @@ const StudentDashboard = () => {
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState(true);
+  // Add separate loading states for different data types
+  const [loadingStates, setLoadingStates] = useState({
+    profile: false,
+    units: false,
+    attendance: false,
+    feedback: false
+  });
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
   const [username, setUsername] = useState('');
@@ -112,10 +119,103 @@ const StudentDashboard = () => {
   const [latestSession, setLatestSession] = useState(null);
   const [isSessionActive, setIsSessionActive] = useState(true);
 
-  const fetchAllData = useCallback(async () => {
+  // Split the fetchAllData into separate functions for each data type
+  const fetchProfileData = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    setDataLoadingError(false); // reset error before fetching
+
+    setLoadingStates(prev => ({ ...prev, profile: true }));
+    try {
+      const profileRes = await getUserProfile(token);
+
+      // Set username from profile response
+      if (profileRes && profileRes.firstName) {
+        setUsername(profileRes.firstName);
+      }
+
+      // Store profile data in localStorage with expiration time (1 day)
+      const profileData = {
+        data: profileRes,
+        expiry: Date.now() + (24 * 60 * 60 * 1000)
+      };
+      localStorage.setItem('cachedProfileData', JSON.stringify(profileData));
+
+      return profileRes;
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+      throw error;
+    } finally {
+      setLoadingStates(prev => ({ ...prev, profile: false }));
+    }
+  }, []);
+
+  const fetchUnitsData = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+
+    // Check for cached units data (expires after 1 day)
+    const cachedUnits = localStorage.getItem('cachedUnitsData');
+    if (cachedUnits) {
+      try {
+        const parsedCache = JSON.parse(cachedUnits);
+        if (parsedCache.expiry > Date.now()) {
+          // Cache is still valid
+          const sanitizedUnits = parsedCache.data.filter((unit) =>
+            unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
+          setUnits(sanitizedUnits);
+          return sanitizedUnits;
+        }
+      } catch (error) {
+        console.error("Error parsing cached units:", error);
+        // Continue to fetch fresh data if cache parsing fails
+      }
+    }
+
+    setLoadingStates(prev => ({ ...prev, units: true }));
+    try {
+      const unitsRes = await getStudentUnits(token);
+
+      const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
+      const sanitizedUnits = unitsData.filter((unit) =>
+        unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
+      setUnits(sanitizedUnits);
+
+      // Cache units data with expiration (1 day)
+      const unitsCache = {
+        data: sanitizedUnits,
+        expiry: Date.now() + (24 * 60 * 60 * 1000)
+      };
+      localStorage.setItem('cachedUnitsData', JSON.stringify(unitsCache));
+
+      return sanitizedUnits;
+    } catch (error) {
+      console.error("Error fetching units data:", error);
+      throw error;
+    } finally {
+      setLoadingStates(prev => ({ ...prev, units: false }));
+    }
+  }, []);
+
+  const fetchAttendanceData = useCallback(async (profileId) => {
+    const token = localStorage.getItem('token');
+    if (!token || !profileId) return;
+
+    setLoadingStates(prev => ({ ...prev, attendance: true }));
+    try {
+      const attendanceRes = await getStudentAttendance(profileId);
+      setAttendanceData(attendanceRes);
+      return attendanceRes;
+    } catch (error) {
+      console.error("Error fetching attendance data:", error);
+      throw error;
+    } finally {
+      setLoadingStates(prev => ({ ...prev, attendance: false }));
+    }
+  }, []);
+
+  const fetchFeedbackData = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
 
     // Check if we should throttle the feedback fetch
     const lastFetchTime = localStorage.getItem('lastFeedbackFetch');
@@ -126,33 +226,15 @@ const StudentDashboard = () => {
       return; // Skip fetching if within cooldown period
     }
 
-    setLoading(true);
+    setLoadingStates(prev => ({ ...prev, feedback: true }));
     try {
-      const [profileRes, unitsRes, feedbackRes] = await Promise.all([
-        getUserProfile(token),
-        getStudentUnits(token),
-        getPendingFeedbackAttendance(),
-      ]);
+      const feedbackRes = await getPendingFeedbackAttendance();
 
       // Store fetch timestamp
       localStorage.setItem('lastFeedbackFetch', now.toString());
 
       // Get processed notification IDs from localStorage
       const processedNotifications = new Set(JSON.parse(localStorage.getItem('processedNotifications') || '[]'));
-
-      // Set username from profile response
-      if (profileRes && profileRes.firstName) {
-        setUsername(profileRes.firstName);
-      }
-
-      const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
-      const sanitizedUnits = unitsData.filter((unit) => unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
-      setUnits(sanitizedUnits);
-
-      if (profileRes._id) {
-        const attendanceRes = await getStudentAttendance(profileRes._id);
-        setAttendanceData(attendanceRes);
-      }
 
       // Create a unique ID for each notification to prevent duplicates
       const existingNotificationIds = new Set(pendingFeedbacks.map(pf => `${pf.sessionId}-${pf.unitId}`));
@@ -216,6 +298,51 @@ const StudentDashboard = () => {
         });
       }
 
+      return feedbackRes;
+    } catch (error) {
+      console.error("Error fetching feedback data:", error);
+      throw error;
+    } finally {
+      setLoadingStates(prev => ({ ...prev, feedback: false }));
+    }
+  }, [pendingFeedbacks]);
+
+  // Replace fetchAllData with a coordinated fetch function that calls individual fetchers
+  const fetchAllData = useCallback(async () => {
+    const token = localStorage.getItem('token');
+    if (!token) return;
+    setDataLoadingError(false); // reset error before fetching
+
+    // Set a timeout to prevent infinite loading - increase to 30 seconds
+    const loadingTimeout = setTimeout(() => {
+      setLoading(false);
+      setDataLoadingError(true);
+      message.error("Loading took too long. Please try refreshing the page.");
+    }, 30000); // 30 seconds timeout
+
+    setLoading(true);
+    try {
+      // Fetch profile data first
+      const profileRes = await fetchProfileData();
+
+      // Fetch units data in parallel with attendance data
+      const unitsPromise = fetchUnitsData();
+
+      // Only fetch attendance if we have the profile ID
+      let attendancePromise = null;
+      if (profileRes && profileRes._id) {
+        attendancePromise = fetchAttendanceData(profileRes._id);
+      }
+
+      // Wait for both units and attendance to complete
+      await Promise.all([unitsPromise, attendancePromise].filter(Boolean));
+
+      // Fetch feedback data last as it's less critical
+      await fetchFeedbackData();
+
+      // Clear the timeout since we got the data
+      clearTimeout(loadingTimeout);
+
     } catch (error) {
       console.error("Error fetching data:", error);
       setDataLoadingError(true); // mark error occurred
@@ -225,60 +352,107 @@ const StudentDashboard = () => {
         message.error("Unable to load data. Please check your connection and try again.");
       }
     } finally {
-      setLoading(false);
+      clearTimeout(loadingTimeout); // Make sure timeout is cleared
+      setLoading(false); // Always ensure loading is set to false
     }
-  }, [pendingFeedbacks]);
+  }, [fetchProfileData, fetchUnitsData, fetchAttendanceData, fetchFeedbackData]);
 
+  // Add a new effect to reset loading state if stuck
   useEffect(() => {
-    // Load notifications from localStorage, but ensure no duplicates
-    try {
-      const savedFeedbacks = JSON.parse(localStorage.getItem('pendingFeedbacks')) || [];
+    // Reset loading state after component mounts (in case we're returning from QR scanner)
+    const resetTimeout = setTimeout(() => {
+      if (loading) {
+        console.log("Force resetting loading state after timeout");
+        setLoading(false);
+      }
+    }, 5000); // 5 second backup timeout
 
-      // Add notificationId if it doesn't exist
-      const feedbacksWithIds = savedFeedbacks.map(feedback => ({
-        ...feedback,
-        notificationId: feedback.notificationId || `${feedback.sessionId}-${feedback.unitId}`
-      }));
+    return () => clearTimeout(resetTimeout);
+  }, [loading]);
 
-      // Filter out duplicates by using a Map with notificationId as keys
-      const uniqueFeedbacks = Array.from(
-        new Map(feedbacksWithIds.map(item => [item.notificationId, item])).values()
-      );
-
-      setPendingFeedbacks(uniqueFeedbacks);
-    } catch (error) {
-      console.error("Error loading notifications from localStorage:", error);
-      setPendingFeedbacks([]);
-    }
-  }, []);
-
-  useEffect(() => {
-    // Ensure all notifications have a notificationId before saving
-    const feedbacksToSave = pendingFeedbacks.map(feedback => ({
-      ...feedback,
-      notificationId: feedback.notificationId || `${feedback.sessionId}-${feedback.unitId}`
-    }));
-
-    // Save unique notifications by using a Map
-    const uniqueFeedbacks = Array.from(
-      new Map(feedbacksToSave.map(item => [item.notificationId, item])).values()
-    );
-
-    localStorage.setItem('pendingFeedbacks', JSON.stringify(uniqueFeedbacks));
-  }, [pendingFeedbacks]);
-
+  // Update the useEffect that calls fetchAllData to handle navigation return and load cached data first
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (!token) {
       navigate('/auth/login');
       return;
     }
-    fetchAllData();
+
+    // Check if we're returning from QR scanner
+    const returnFromScanner = sessionStorage.getItem('returnFromQrScanner');
+    if (returnFromScanner === 'true') {
+      sessionStorage.removeItem('returnFromQrScanner');
+      setLoading(false); // Reset loading state immediately
+
+      // When returning, try to use cached data first for units and profile
+      const tryLoadCachedData = async () => {
+        let profileData = null;
+        let needFullRefresh = false;
+
+        // Try to load cached profile
+        try {
+          const cachedProfile = localStorage.getItem('cachedProfileData');
+          if (cachedProfile) {
+            const parsedProfile = JSON.parse(cachedProfile);
+            if (parsedProfile.expiry > Date.now()) {
+              profileData = parsedProfile.data;
+              if (profileData?.firstName) {
+                setUsername(profileData.firstName);
+              }
+            } else {
+              needFullRefresh = true;
+            }
+          } else {
+            needFullRefresh = true;
+          }
+        } catch (error) {
+          console.error("Error loading cached profile:", error);
+          needFullRefresh = true;
+        }
+
+        // Try to load cached units
+        try {
+          const cachedUnits = localStorage.getItem('cachedUnitsData');
+          if (cachedUnits) {
+            const parsedUnits = JSON.parse(cachedUnits);
+            if (parsedUnits.expiry > Date.now()) {
+              const sanitizedUnits = parsedUnits.data.filter((unit) =>
+                unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
+              setUnits(sanitizedUnits);
+            } else {
+              needFullRefresh = true;
+            }
+          } else {
+            needFullRefresh = true;
+          }
+        } catch (error) {
+          console.error("Error loading cached units:", error);
+          needFullRefresh = true;
+        }
+
+        // If we have profile data, update attendance even when returning
+        if (profileData?._id) {
+          fetchAttendanceData(profileData._id);
+        }
+
+        // Always check for new feedback
+        fetchFeedbackData();
+
+        // If any cache is invalid or missing, do a full refresh
+        if (needFullRefresh) {
+          setTimeout(() => fetchAllData(), 1000);
+        }
+      };
+
+      tryLoadCachedData();
+    } else {
+      fetchAllData();
+    }
 
     const handleResize = () => setCollapsed(window.innerWidth < 992);
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
-  }, [navigate, fetchAllData]);
+  }, [navigate, fetchAllData, fetchAttendanceData, fetchFeedbackData]);
 
   const calculateAttendanceRate = useCallback(
     (unitId) => {
@@ -825,8 +999,30 @@ const StudentDashboard = () => {
         return;
       }
 
-      // Verify session status and feedback availability
-      const sessionStatus = await checkSessionStatus(latestSession.session._id);
+      // Wrap checkSessionStatus to catch errors that indicate feedback was already submitted
+      let sessionStatus;
+      try {
+        sessionStatus = await checkSessionStatus(latestSession.session._id);
+      } catch (e) {
+        if (
+          e.response &&
+          e.response.data &&
+          typeof e.response.data.message === 'string' &&
+          e.response.data.message.toLowerCase().includes("already submitted")
+        ) {
+          message.info("You've already submitted feedback for this session.");
+          setAttendanceData(prev => ({
+            ...prev,
+            attendanceRecords: prev.attendanceRecords.map(rec =>
+              rec.session._id === latestSession.session._id
+                ? { ...rec, feedbackSubmitted: true }
+                : rec
+            )
+          }));
+          return;
+        }
+        throw e;
+      }
 
       if (!sessionStatus.ended) {
         message.info("Feedback will be available after the session ends.");
@@ -917,6 +1113,7 @@ const StudentDashboard = () => {
     }
   };
 
+  // Update handleAttendClick to set the return flag
   const handleAttendClick = async (unitId) => {
     if (!unitId || typeof unitId !== 'string' || unitId.trim() === '' || unitId === 'undefined') {
       console.error("Invalid unitId:", unitId);
@@ -934,6 +1131,8 @@ const StudentDashboard = () => {
     try {
       const session = await getActiveSessionForUnit(unitId);
       if (session && session._id && !session.ended) {
+        // Set flag that we're navigating to QR scanner
+        sessionStorage.setItem('returnFromQrScanner', 'true');
         navigate(`/qr-scanner/${unitId}`);
       } else {
         message.info("No active session is currently available for this unit.");
@@ -1033,6 +1232,7 @@ const StudentDashboard = () => {
     }
   }, [selectedUnit, attendanceData.attendanceRecords]);
 
+  // Update the loading indicator in the UI to show more specific loading states
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
       <style>
@@ -1066,8 +1266,6 @@ const StudentDashboard = () => {
             width: 24px;
             height: 24px;
           }
-
-          /* ... rest of existing styles ... */
           
           /* Remove the dark mode spinner overrides and other styles remain the same */
           
@@ -1432,7 +1630,10 @@ const StudentDashboard = () => {
             size="large"
             spinning={loading}
             tip={<span style={{ color: isDarkMode ? '#fff' : themeColors.text, fontSize: '16px', fontWeight: 500 }}>
-              Loading data...
+              Loading data...{Object.entries(loadingStates)
+                .filter(([, isLoading]) => isLoading)
+                .map(([key]) => ` ${key}`)
+                .join(',')}
             </span>}
             className="custom-spin"
           >

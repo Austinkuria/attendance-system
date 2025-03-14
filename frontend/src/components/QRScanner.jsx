@@ -74,11 +74,12 @@ const QRScanner = () => {
 
   useEffect(() => {
     generateDeviceFingerprint();
-    if (!localStorage.getItem('fingerprintConsent')) {
+    // Use 'hasConfirmedDeviceAnalysis' instead of 'fingerprintConsent' to be consistent
+    if (!localStorage.getItem('hasConfirmedDeviceAnalysis')) {
       Modal.confirm({
         title: 'Device Analysis',
         content: 'We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.',
-        onOk: () => localStorage.setItem('fingerprintConsent', 'true'),
+        onOk: () => localStorage.setItem('hasConfirmedDeviceAnalysis', 'true'),
         className: isDarkMode ? 'dark-mode-modal' : '',
         // Consistent theme styling for modal content
         bodyStyle: isDarkMode ? {

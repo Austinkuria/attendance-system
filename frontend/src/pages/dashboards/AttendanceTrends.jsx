@@ -459,7 +459,12 @@ const AttendanceTrends = () => {
       }
     } catch (error) {
       console.error("Error fetching data:", error);
-      message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
+      // Handle error 429 with a meaningful message instead of showing "429"
+      if (error.response && error.response.status === 429) {
+        message.error("Too many requests. Please try again later.");
+      } else {
+        message.error(`Failed to load data: ${error.message || 'Unknown error'}`);
+      }
     } finally {
       setLoading(false);
     }
