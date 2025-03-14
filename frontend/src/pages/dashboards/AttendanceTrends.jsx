@@ -42,10 +42,9 @@ const styles = {
     padding: '24px',
     minHeight: 'calc(100vh - 64px)',
     overflowY: 'auto',
-    maxWidth: '1600px',
+    overflowX: 'hidden',  // Force no horizontal scroll
+    maxWidth: '100%',
     width: '100%',
-    marginLeft: 'auto',
-    marginRight: 'auto',
     boxSizing: 'border-box',
   },
   chartContainer: {
@@ -71,27 +70,89 @@ const styles = {
     justifyContent: 'space-between',
     alignItems: 'center',
   },
+  layoutStyle: {
+    minHeight: '100vh',
+    background: '#f5f7fa',
+    padding: 0,
+    margin: 0,
+    display: 'flex',
+    flexDirection: 'column',
+    width: '100%',  // Changed from 100vw to prevent overflow
+    maxWidth: '100%',
+    overflowX: 'hidden', // Prevent horizontal scrolling
+  },
   responsiveOverrides: `
+    /* Global overflow control */
+    html, body, #root, .ant-layout {
+      overflow-x: hidden !important;
+      max-width: 100vw !important;
+      width: 100% !important;
+    }
+    
+    /* Stop any element from causing horizontal overflow */
+    * {
+      max-width: 100vw;
+      box-sizing: border-box;
+    }
+    
+    body, html {
+      margin: 0;
+      padding: 0;
+      position: relative;
+    }
+    
+    .ant-layout {
+      width: 100% !important;
+      max-width: 100% !important;
+      overflow-x: hidden !important;
+    }
+    
+    .ant-layout-content {
+      overflow-x: hidden !important;
+      max-width: 100% !important;
+      width: 100% !important;
+      padding: 0 !important;
+      margin: 0 !important;
+      margin-top: 64px !important;
+    }
+    
+    .ant-card {
+      max-width: 100% !important;
+      width: 100% !important;
+      overflow: hidden !important;
+    }
+    
+    /* Responsive styles */
     @media (max-width: 1600px) { 
-      .ant-layout-content { max-width: 90vw; } 
+      .ant-layout-content { max-width: 100% !important; margin-left: 0 !important; margin-right: 0 !important; padding: 0 !important; } 
     }
     @media (max-width: 1200px) { 
-      .ant-layout-content { max-width: 95vw; padding: 16px; } 
+      .ant-layout-content { max-width: 100% !important; padding: 0 !important; margin: 0 !important; margin-top: 64px !important; } 
       .chart-container { height: 400px; } 
     }
     @media (max-width: 768px) { 
-      .ant-layout-content { max-width: 100vw; padding: 12px; } 
+      .ant-layout-content { max-width: 100% !important; padding: 0 !important; margin: 0 !important; margin-top: 64px !important; } 
       .controls { max-width: 100%; flex-direction: column; align-items: stretch; } 
       .chart-container { height: 350px; } 
       .ant-typography { font-size: 18px; }
       .header-space { padding: 0 8px; }
     }
     @media (max-width: 480px) { 
+      .ant-layout-content { max-width: 100% !important; padding: 0 !important; margin: 0 !important; margin-top: 64px !important; } 
       .chart-container { height: 250px; } 
       .ant-btn { font-size: 14px; padding: 4px 8px; height: 48px; }
       .ant-select, .ant-picker { width: 100% !important; } 
       .ant-typography { font-size: 16px; }
       .header-space { padding: 0 4px; }
+    }
+  `,
+  // Force global styles
+  globalStyles: `
+    html, body, #root {
+      overflow-x: hidden !important;
+      width: 100% !important;
+      max-width: 100% !important;
+      position: relative;
     }
   `,
 };
@@ -103,7 +164,19 @@ const AttendanceTrends = () => {
   const [filter, setFilter] = useState('30days');
   const [dateRange, setDateRange] = useState(null);
   const [chartType, setChartType] = useState('line');
+  const [debugMode, setDebugMode] = useState(false);
   const navigate = useNavigate();
+
+  // Debug styles with colorful borders
+  const debugStyles = {
+    layout: debugMode ? { border: '3px solid red', boxSizing: 'border-box' } : {},
+    header: debugMode ? { border: '3px dashed purple', boxSizing: 'border-box' } : {},
+    content: debugMode ? { border: '3px solid blue', boxSizing: 'border-box' } : {},
+    card: debugMode ? { border: '3px dashed green', boxSizing: 'border-box' } : {},
+    controls: debugMode ? { border: '3px dotted orange', boxSizing: 'border-box' } : {},
+    chartContainer: debugMode ? { border: '3px solid magenta', boxSizing: 'border-box' } : {},
+    space: debugMode ? { border: '2px dashed cyan', boxSizing: 'border-box' } : {},
+  };
 
   const fetchAttendanceData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -146,6 +219,17 @@ const AttendanceTrends = () => {
   useEffect(() => {
     fetchAttendanceData();
   }, [fetchAttendanceData]);
+
+  useEffect(() => {
+    // Apply global style to prevent scroll
+    const style = document.createElement('style');
+    style.innerHTML = styles.globalStyles;
+    document.head.appendChild(style);
+
+    return () => {
+      document.head.removeChild(style);
+    };
+  }, []);
 
   const getTrendData = useCallback(() => {
     let labels = [];
@@ -290,64 +374,118 @@ const AttendanceTrends = () => {
     setChartType(checked ? 'bar' : 'line');
   };
 
-  return (
-    <Layout style={{ minHeight: '100vh', background: '#f5f7fa' }}>
-      <Header style={{ ...styles.header, background: colorBgContainer }}>
-        <Button
-          type="link"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/student-dashboard')}
-        >
-          Dashboard
-        </Button>
-        <AntTitle level={3} style={{ margin: 0, textAlign: 'center', flexGrow: 1 }}>
-          Attendance Trends
-        </AntTitle>
-        <div style={{ width: 64 }} /> {/* Spacer for symmetry */}
-      </Header>
+  const handleToggleDebug = () => {
+    setDebugMode(!debugMode);
+  };
 
-      <Content style={styles.content} className="ant-layout-content">
-        <style>{styles.responsiveOverrides}</style>
-        <Spin spinning={loading} tip="Loading data...">
-          <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Space style={styles.controls} className="controls">
-              <Select
-                value={filter}
-                onChange={handleFilterChange}
-                style={{ minWidth: '150px', width: '100%' }}
-                placeholder="Select Filter"
-              >
-                <Option value="30days">Last 30 Days</Option>
-                <Option value="daily">Daily</Option>
-                <Option value="weekly">Weekly</Option>
-              </Select>
-              <RangePicker
-                onChange={handleDateRangeChange}
-                value={dateRange}
-                format="YYYY-MM-DD"
-                style={{ minWidth: '200px', width: '100%' }}
-                disabled={filter === 'weekly'}
-              />
-              <Switch
-                checked={chartType === 'bar'}
-                onChange={handleChartTypeChange}
-                checkedChildren="Bar"
-                unCheckedChildren="Line"
-              />
+  return (
+    <>
+      <style>{styles.responsiveOverrides}</style>
+      <Layout style={{
+        ...styles.layoutStyle,
+        ...debugStyles.layout
+      }}>
+        <Header style={{
+          ...styles.header,
+          background: colorBgContainer,
+          width: '100%',
+          maxWidth: '100%',
+          ...debugStyles.header
+        }}>
+          <Button
+            type="link"
+            icon={<ArrowLeftOutlined />}
+            onClick={() => navigate('/student-dashboard')}
+          >
+            Dashboard
+          </Button>
+          <AntTitle level={3} style={{ margin: 0, textAlign: 'center', flexGrow: 1 }}>
+            Attendance Trends
+          </AntTitle>
+          <Button
+            type="text"
+            onClick={handleToggleDebug}
+            size="small"
+            style={{ backgroundColor: debugMode ? '#ff4d4f' : '#1890ff', color: 'white' }}
+          >
+            {debugMode ? 'Debug: ON' : 'Debug'}
+          </Button>
+        </Header>
+
+        <Content style={{
+          ...styles.content,
+          margin: 0,
+          marginTop: 64,
+          padding: debugMode ? '0px' : '0px',
+          width: '100%',
+          maxWidth: '100%',
+          overflowX: 'hidden',
+          ...debugStyles.content
+        }} className="ant-layout-content">
+          <Spin spinning={loading} tip="Loading data...">
+            <Space direction="vertical" size={debugMode ? 0 : 16} style={{
+              width: '100%',
+              maxWidth: '100%',
+              margin: 0,
+              padding: 0,
+              overflowX: 'hidden',
+              ...debugStyles.space
+            }}>
+              <Space style={{
+                ...styles.controls,
+                marginBottom: debugMode ? 0 : '16px', // Remove margin in debug mode
+                ...debugStyles.controls
+              }} className="controls">
+                <Select
+                  value={filter}
+                  onChange={handleFilterChange}
+                  style={{ minWidth: '150px', width: '100%' }}
+                  placeholder="Select Filter"
+                >
+                  <Option value="30days">Last 30 Days</Option>
+                  <Option value="daily">Daily</Option>
+                  <Option value="weekly">Weekly</Option>
+                </Select>
+                <RangePicker
+                  onChange={handleDateRangeChange}
+                  value={dateRange}
+                  format="YYYY-MM-DD"
+                  style={{ minWidth: '200px', width: '100%' }}
+                  disabled={filter === 'weekly'}
+                />
+                <Switch
+                  checked={chartType === 'bar'}
+                  onChange={handleChartTypeChange}
+                  checkedChildren="Bar"
+                  unCheckedChildren="Line"
+                />
+              </Space>
+              <Card style={{
+                marginTop: debugMode ? 0 : 16, // Remove margin in debug mode
+                borderRadius: 10,
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden',
+                ...debugStyles.card
+              }}>
+                <div style={{
+                  ...styles.chartContainer,
+                  maxWidth: '100%',
+                  overflow: 'hidden',
+                  ...debugStyles.chartContainer
+                }} className="chart-container">
+                  {chartType === 'line' ? (
+                    <Line data={getTrendData()} options={trendOptions} />
+                  ) : (
+                    <Bar data={getTrendData()} options={trendOptions} />
+                  )}
+                </div>
+              </Card>
             </Space>
-            <Card style={{ marginTop: 16, borderRadius: 10, width: '100%', overflow: 'hidden' }}>
-              <div style={styles.chartContainer} className="chart-container">
-                {chartType === 'line' ? (
-                  <Line data={getTrendData()} options={trendOptions} />
-                ) : (
-                  <Bar data={getTrendData()} options={trendOptions} />
-                )}
-              </div>
-            </Card>
-          </Space>
-        </Spin>
-      </Content>
-    </Layout>
+          </Spin>
+        </Content>
+      </Layout>
+    </>
   );
 };
 
