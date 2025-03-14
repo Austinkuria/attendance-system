@@ -49,10 +49,10 @@ const styles = {
     boxSizing: 'border-box',
   },
   chartContainer: {
-    width: '800px',  // Fixed width for the chart
+    width: '100%',
     height: '500px',
-    maxWidth: '800px',
-    position: 'relative',
+    overflowX: 'auto', // Enable horizontal scroll
+    overflowY: 'hidden', // Prevent vertical scroll
   },
   controls: {
     width: '100%',
@@ -157,34 +157,20 @@ const styles = {
     }
     @media (max-width: 1200px) { 
       .ant-layout { padding: 0 10px !important; }
-      .ant-layout-content { padding: 14px !important; margin-top: 64px !important; } 
+      .ant-layout-content { padding: 14px !important; margin-top: 72px !important; } 
       .chart-container { height: 400px; } 
     }
     @media (max-width: 768px) { 
       .ant-layout { padding: 0 8px !important; }
-      .ant-layout-content { 
-        padding: 12px !important; 
-        margin-top: 96px !important;  /* Increased margin-top */
-      } 
-      .controls { 
-        max-width: 100%; 
-        flex-direction: column; 
-        align-items: stretch;
-        margin-top: 16px !important;
-      } 
+      .ant-layout-content { padding: 12px !important; margin-top: 80px !important; } 
+      .controls { max-width: 100%; flex-direction: column; align-items: stretch; } 
       .chart-container { height: 350px; } 
       .ant-typography { font-size: 18px; }
       .header-space { padding: 0 8px; }
     }
     @media (max-width: 480px) { 
       .ant-layout { padding: 0 6px !important; }
-      .ant-layout-content { 
-        padding: 10px !important; 
-        margin-top: 88px !important;  /* Increased margin-top */
-      } 
-      .controls {
-        margin-top: 12px !important;
-      }
+      .ant-layout-content { padding: 10px !important; margin-top: 88px !important; } 
       .chart-container { height: 250px; } 
       .ant-btn { font-size: 14px; padding: 4px 8px; height: 48px; }
       .ant-select, .ant-picker { width: 100% !important; } 
@@ -330,58 +316,41 @@ const styles = {
     }
 
     /* Chart container responsive styles */
+    .chart-container {
+      min-width: 600px !important; // Minimum width to prevent squishing
+      padding-bottom: 16px !important; // Space for scrollbar
+    }
+
     .chart-wrapper {
       width: 100% !important;
       overflow-x: auto !important;
       overflow-y: hidden !important;
-      padding-bottom: 8px !important;
-      -webkit-overflow-scrolling: touch !important;
+      padding-bottom: 4px !important; // Reduced from 16px
+      -webkit-overflow-scrolling: touch !important; // Smooth scroll on iOS
       scrollbar-width: thin !important;
       position: relative !important;
     }
 
-    .chart-container {
-      margin: 0 auto !important;
-      position: relative !important;
-    }
-
-    /* Custom scrollbar for the chart wrapper */
+    /* Hide scrollbar for Chrome, Safari and Opera */
     .chart-wrapper::-webkit-scrollbar {
-      height: 6px !important;
-      background-color: transparent !important;
+      height: 8px;
     }
 
-    .chart-wrapper::-webkit-scrollbar-thumb {
-      background-color: var(--primary-color) !important;
-      border-radius: 3px !important;
-    }
-
+    /* Track */
     .chart-wrapper::-webkit-scrollbar-track {
-      background-color: var(--calendar-border) !important;
-      border-radius: 3px !important;
+      background: var(--calendar-border);
+      border-radius: 4px;
     }
 
-    @media (max-width: 868px) {
-      .chart-container {
-        width: 700px !important;
-      }
+    /* Handle */
+    .chart-wrapper::-webkit-scrollbar-thumb {
+      background: var(--primary-color);
+      border-radius: 4px;
     }
 
-    @media (max-width: 668px) {
-      .chart-container {
-        width: 600px !important;
-      }
-    }
-
-    /* Media queries updates */
-    @media (max-width: 1200px) { 
-      .chart-container { height: 500px !important; } 
-    }
-    @media (max-width: 768px) { 
-      .chart-container { height: 500px !important; } 
-    }
-    @media (max-width: 480px) { 
-      .chart-container { height: 500px !important; } 
+    /* Handle on hover */
+    .chart-wrapper::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary-color);
     }
   `,
   // Force global styles
@@ -810,12 +779,14 @@ const AttendanceTrends = () => {
                 width: '100%',
                 backgroundColor: themeColors.cardBg,
                 borderColor: themeColors.border,
-                overflow: 'hidden',
-                padding: '16px 0',
+                padding: '8px 4px', // Added specific padding
                 ...debugStyles.card
               }}>
-                <div className="chart-wrapper">
-                  <div className="chart-container">
+                <div className="chart-wrapper" style={{ width: '100%' }}>
+                  <div style={{
+                    ...styles.chartContainer,
+                    ...debugStyles.chartContainer
+                  }} className="chart-container">
                     {chartType === 'line' ? (
                       <Line data={getTrendData()} options={trendOptions} />
                     ) : (
