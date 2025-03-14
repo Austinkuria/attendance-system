@@ -886,7 +886,7 @@ const AttendanceManagement = () => {
               style={{
                 background: themeColors.primary,
                 borderColor: themeColors.primary,
-                color: themeColors.text,
+                color: isDarkMode ? themeColors.text : "#fff",
                 width: screens.xs ? "100%" : "auto",
                 borderRadius: 8,
                 transition: "all 0.3s",

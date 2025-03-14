@@ -99,7 +99,6 @@ const StudentDashboard = () => {
   const [viewMode, setViewMode] = useState('daily');
   const [selectedDate, setSelectedDate] = useState(moment());
   const [pendingFeedbacks, setPendingFeedbacks] = useState([]);
-  const [unitSessionStatus, setUnitSessionStatus] = useState({});
   const [eventPage, setEventPage] = useState(1);
   const [notificationPage, setNotificationPage] = useState(1);
   const [pageSize] = useState(5);
@@ -112,7 +111,6 @@ const StudentDashboard = () => {
   // Add state variables for session status
   const [latestSession, setLatestSession] = useState(null);
   const [isSessionActive, setIsSessionActive] = useState(true);
-  const [feedbackAvailable, setFeedbackAvailable] = useState(false);
 
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -154,24 +152,6 @@ const StudentDashboard = () => {
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
         setAttendanceData(attendanceRes);
-
-        const sessionStatusPromises = sanitizedUnits.map(async (unit) => {
-          const unitAttendance = attendanceRes.attendanceRecords
-            .filter((data) => data.session.unit._id.toString() === unit._id.toString())
-            .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
-          const latestSession = unitAttendance[0];
-          if (!latestSession) return { unitId: unit._id, isExpired: true, feedbackSubmitted: false };
-
-          const { isExpired } = await fetchSessionStatus(unit._id, latestSession.session._id);
-          return {
-            unitId: unit._id,
-            isExpired,
-            feedbackSubmitted: latestSession.feedbackSubmitted || false,
-          };
-        });
-
-        const sessionStatuses = await Promise.all(sessionStatusPromises);
-        setUnitSessionStatus(Object.fromEntries(sessionStatuses.map(status => [status.unitId, status])));
       }
 
       // Create a unique ID for each notification to prevent duplicates
@@ -806,45 +786,78 @@ const StudentDashboard = () => {
 
   const openFeedbackModal = async (unitId) => {
     try {
-      // Get the latest feedback status from the backend first
+      // Get all sessions for this unit, sorted by date (newest first)
       const unitAttendance = attendanceData.attendanceRecords
         .filter((data) => data.session.unit._id.toString() === unitId.toString())
         .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
 
-      const unitLatestSession = unitAttendance[0];
+      const latestSession = unitAttendance[0];
 
-      if (!unitLatestSession) {
+      if (!latestSession) {
         message.warning('No attendance records found for this unit.');
         return;
       }
 
-      // Double check feedback status with backend before opening modal
-      const feedbackSubmitted = await checkFeedbackStatus(unitLatestSession.session._id);
-      if (feedbackSubmitted) {
-        message.info("You've already submitted feedback for this session.");
-
-        // Update local state to reflect the submitted status
-        setAttendanceData((prev) => ({
-          ...prev,
-          attendanceRecords: prev.attendanceRecords.map((rec) =>
-            rec.session._id === unitLatestSession.session._id ? { ...rec, feedbackSubmitted: true } : rec
-          ),
-        }));
-
-        // Update unit session status
-        setUnitSessionStatus((prev) => ({
-          ...prev,
-          [unitId]: { ...prev[unitId], feedbackSubmitted: true }
-        }));
-
+      // Check if there's an active session first
+      const activeSession = await getActiveSessionForUnit(unitId);
+      if (activeSession && !activeSession.ended) {
+        message.info("Please mark your attendance first. Feedback will be available after the session ends.");
         return;
       }
 
-      // Rest of your existing openFeedbackModal logic...
-      // ...existing openFeedbackModal code...
+      // Check if feedback was already submitted for the latest session
+      if (latestSession.feedbackSubmitted) {
+        message.info("You've already submitted feedback for the latest session.");
+        return;
+      }
+
+      // Get all attended sessions
+      const latestAttendedSession = unitAttendance
+        .find(record => record.status === 'Present');
+
+      if (!latestAttendedSession) {
+        message.error("No attended sessions found for this unit.");
+        return;
+      }
+
+      if (latestAttendedSession.session._id !== latestSession.session._id) {
+        message.info("Feedback can only be provided for your most recent attended session.");
+        return;
+      }
+
+      // Verify session status and feedback availability
+      const sessionStatus = await checkSessionStatus(latestSession.session._id);
+
+      if (!sessionStatus.ended) {
+        message.info("Feedback will be available after the session ends.");
+        return;
+      }
+
+      // Double-check feedback status one last time before opening modal
+      const feedbackStatus = await checkFeedbackStatus(latestSession.session._id);
+      if (feedbackStatus) {
+        message.info("You've already submitted feedback for this session.");
+
+        // Update local state to reflect feedback submission
+        setAttendanceData(prev => ({
+          ...prev,
+          attendanceRecords: prev.attendanceRecords.map(rec =>
+            rec.session._id === latestSession.session._id
+              ? { ...rec, feedbackSubmitted: true }
+              : rec
+          )
+        }));
+        return;
+      }
+
+      // If all checks pass, open the feedback modal
+      setLatestSession(latestSession);
+      setActiveSessionId(latestSession.session._id);
+      setFeedbackModalVisible(true);
+
     } catch (error) {
-      console.error("Error checking feedback status:", error);
-      message.error("Unable to verify feedback status. Please try again later.");
+      console.error("Error checking feedback availability:", error);
+      message.error("Unable to check feedback availability. Please try again later.");
     }
   };
 
@@ -985,7 +998,6 @@ const StudentDashboard = () => {
       try {
         const status = await checkSessionStatus(latestSession.session._id);
         setIsSessionActive(status.active);
-        setFeedbackAvailable(status.feedbackEnabled || status.ended);
 
         // If session was active but is now ended, refresh the dashboard
         if (!status.active && isSessionActive) {
@@ -1522,15 +1534,22 @@ const StudentDashboard = () => {
                                   block
                                   onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
                                   disabled={
-                                    unitSessionStatus[unit._id]?.feedbackSubmitted ||
                                     !attendanceData.attendanceRecords.some((rec) =>
                                       rec.session.unit._id.toString() === unit._id.toString() &&
-                                      !rec.feedbackSubmitted
-                                    ) ||
-                                    (latestSession?.session?.unit?._id === unit._id && !feedbackAvailable)
+                                      rec.status === 'Present'
+                                    )
                                   }
                                 >
-                                  {unitSessionStatus[unit._id]?.feedbackSubmitted ? 'Feedback Submitted' : 'Feedback'}
+                                  {(() => {
+                                    const latestRecord = attendanceData.attendanceRecords
+                                      .filter(rec => rec.session.unit._id.toString() === unit._id.toString())
+                                      .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime))[0];
+
+                                    if (!latestRecord) return 'Feedback';
+                                    if (latestRecord.feedbackSubmitted) return 'Feedback Submitted';
+                                    if (latestRecord.session.ended) return 'Feedback Available';
+                                    return 'Feedback';
+                                  })()}
                                 </Button>
                               </Col>
                             </Row>
