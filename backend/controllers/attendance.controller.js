@@ -52,12 +52,13 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
+    // Check if session is manually ended OR time has elapsed
     const now = new Date();
-    if (now < session.startTime || now > session.endTime || session.ended) {
+    if (session.ended || now < session.startTime || now > session.endTime) {
       return res.status(400).json({
         success: false,
         code: "SESSION_INACTIVE",
-        message: "Session is not active."
+        message: "Session is not active or has ended."
       });
     }
 

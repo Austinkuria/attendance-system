@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback, useContext } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { Button, Spin, Alert, Typography, Card, message, Space, Modal } from "antd";
 import QrScanner from "qr-scanner";
-import { markAttendance, getActiveSessionForUnit } from "../services/api";
+import { markAttendance, getActiveSessionForUnit, checkSessionStatus } from "../services/api";
 import { jwtDecode } from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
@@ -124,21 +124,24 @@ const QRScanner = () => {
         } else {
           setSessionEnded(true);
           message.error("No active session found for this unit or the session has ended.");
+          navigate("/student-dashboard");
         }
       } catch (err) {
         const errorMsg = err.response?.data?.message || err.message || "Error fetching session details";
         message.error(errorMsg);
         setSessionEnded(true);
+        navigate("/student-dashboard");
       } finally {
         setLoading(false);
       }
     };
     fetchSession();
-  }, [selectedUnit]);
+  }, [selectedUnit, navigate]);
 
   const onScanSuccess = useCallback(async (result) => {
     if (!sessionId || sessionEnded) {
       message.error("Session has ended. Attendance cannot be marked.");
+      navigate("/student-dashboard");
       return;
     }
     stopScanner();
@@ -147,6 +150,14 @@ const QRScanner = () => {
     clearTimeout(scanTimeoutRef.current);
 
     try {
+      // First check if session is still active
+      const sessionStatus = await checkSessionStatus(sessionId);
+      if (!sessionStatus.active || sessionStatus.ended) {
+        message.error("Session has ended. Attendance cannot be marked.");
+        navigate("/student-dashboard");
+        return;
+      }
+
       const token = localStorage.getItem("token");
       if (!token) throw new Error("Authentication failed. Please log in again.");
       const decoded = jwtDecode(token);
@@ -159,22 +170,22 @@ const QRScanner = () => {
         navigate("/student-dashboard");
       } else {
         switch (response.code) {
-          case "INVALID_ID_FORMAT":
-          case "NO_TOKEN_PROVIDED":
-          case "TOKEN_MISMATCH":
-          case "SESSION_NOT_FOUND":
           case "SESSION_INACTIVE":
-          case "INVALID_QR_CODE":
-          case "ATTENDANCE_ALREADY_MARKED":
-          case "DEVICE_CONFLICT":
-            message.error(response.message);
+            message.error("This session has ended.");
+            navigate("/student-dashboard");
             break;
+          // ...existing error cases...
           default:
             message.error("An unexpected error occurred. Please try again.");
         }
       }
     } catch (err) {
-      message.error(err.message || "An unexpected error occurred. Please try again.");
+      if (err.message && err.message.includes("Session")) {
+        message.error("This session is no longer active.");
+        navigate("/student-dashboard");
+      } else {
+        message.error(err.message || "An unexpected error occurred. Please try again.");
+      }
     } finally {
       setLoading(false);
     }

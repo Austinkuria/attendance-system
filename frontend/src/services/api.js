@@ -1049,6 +1049,22 @@ export const getActiveSessionForUnit = async (unitId) => {
   }
 };
 
+export const checkSessionStatus = async (sessionId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.get(`${API_URL}/sessions/status/${sessionId}`, {
+      headers: {
+        "Content-Type": "application/json",
+        "Authorization": `Bearer ${token}`
+      }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error checking session status:", error);
+    throw error;
+  }
+};
+
 export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken, compositeFingerprint) => {
   try {
     const response = await axios.post(
@@ -1164,10 +1180,10 @@ export const getSessionAttendance = async (sessionId) => {
     const enrichedData = response.data.map(record => ({
       _id: record._id,
       regNo: record.student?.regNo || 'N/A',
-      course: typeof record.student?.course === 'object' && record.student?.course?.name 
-        ? record.student.course.name 
-        : typeof record.student?.course === 'string' 
-          ? record.student.course 
+      course: typeof record.student?.course === 'object' && record.student?.course?.name
+        ? record.student.course.name
+        : typeof record.student?.course === 'string'
+          ? record.student.course
           : 'N/A',
       year: record.student?.year || 'N/A',
       semester: record.student?.semester || 'N/A',
@@ -1230,14 +1246,14 @@ export const getLastSession = async (unitId) => {
 //   try {
 //     const token = localStorage.getItem('token');
 //     if (!token) throw new Error("Authentication token missing");
-    
+
 //     const response = await axios.get(`${API_URL}/attendance/trends/${unitId}`, {
 //       headers: {
 //         "Authorization": `Bearer ${token}`,
 //         "Content-Type": "application/json"
 //       }
 //     });
-    
+
 //     return response.data;
 //   } catch (error) {
 //     console.error("Error fetching attendance trends:", error);

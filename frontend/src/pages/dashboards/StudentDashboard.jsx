@@ -7,6 +7,7 @@ import {
   submitFeedback,
   getActiveSessionForUnit,
   getPendingFeedbackAttendance,
+  checkSessionStatus, // Add import for checkSessionStatus
 } from '../../services/api';
 import { Bar } from 'react-chartjs-2';
 import {
@@ -106,6 +107,11 @@ const StudentDashboard = () => {
   const [notificationSortOrder, setNotificationSortOrder] = useState('mostRecent');
   const [deviceModalVisible, setDeviceModalVisible] = useState(false);
   const [deviceModalConfirmed, setDeviceModalConfirmed] = useState(false);
+
+  // Add state variables for session status
+  const [latestSession, setLatestSession] = useState(null);
+  const [isSessionActive, setIsSessionActive] = useState(true);
+  const [feedbackAvailable, setFeedbackAvailable] = useState(false);
 
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -796,25 +802,40 @@ const StudentDashboard = () => {
   ];
 
   const openFeedbackModal = async (unitId) => {
+    // First, update the latestSession for this specific unit
     const unitAttendance = attendanceData.attendanceRecords
       .filter((data) => data.session.unit._id.toString() === unitId.toString())
       .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
-    const latestSession = unitAttendance[0];
-    if (!latestSession) {
+
+    const unitLatestSession = unitAttendance[0];
+    setLatestSession(unitLatestSession);
+
+    if (!unitLatestSession) {
       message.warning('No attendance records found for this unit.');
       return;
     }
 
-    if (!latestSession.session.ended) {
-      message.info('Feedback is only available after the latest session ends.');
+    if (unitLatestSession.status !== 'Present') {
+      message.error("You must be marked present to provide feedback.");
       return;
     }
-    if (latestSession.status !== 'Present') {
-      message.info('You must mark attendance for the latest session to provide feedback.');
-      return;
+
+    try {
+      // Check if feedback is available for this session
+      const sessionStatus = await checkSessionStatus(unitLatestSession.session._id);
+      setFeedbackAvailable(sessionStatus.feedbackEnabled || sessionStatus.ended);
+
+      if (!sessionStatus.feedbackEnabled && !sessionStatus.ended) {
+        message.info("Feedback is only available after the session ends.");
+        return;
+      }
+
+      setActiveSessionId(unitLatestSession.session._id);
+      setFeedbackModalVisible(true);
+    } catch (error) {
+      console.error("Error checking feedback availability:", error);
+      message.error("Unable to check feedback availability. Please try again later.");
     }
-    setActiveSessionId(latestSession.session._id);
-    setFeedbackModalVisible(true);
   };
 
   const handleFeedbackSubmit = async () => {
@@ -919,6 +940,69 @@ const StudentDashboard = () => {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  // Define fetchUserAttendance function
+  const fetchUserAttendance = useCallback(async () => {
+    try {
+      const profileRes = await getUserProfile();
+      if (profileRes._id) {
+        const attendanceRes = await getStudentAttendance(profileRes._id);
+        setAttendanceData(attendanceRes);
+        // Also update the latest session when attendance is refreshed
+        if (selectedUnit && attendanceRes.attendanceRecords.length > 0) {
+          const unitAttendance = attendanceRes.attendanceRecords
+            .filter((data) => data.session.unit._id.toString() === selectedUnit._id?.toString())
+            .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
+          setLatestSession(unitAttendance[0] || null);
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching user attendance:", error);
+      message.error("Unable to refresh attendance data");
+    }
+  }, [selectedUnit]);
+
+  // Function to check if a session is still active
+  const checkSessionStatusFromApi = useCallback(async () => {
+    if (latestSession && latestSession.session && latestSession.session._id) {
+      try {
+        const status = await checkSessionStatus(latestSession.session._id);
+        setIsSessionActive(status.active);
+        setFeedbackAvailable(status.feedbackEnabled || status.ended);
+
+        // If session was active but is now ended, refresh the dashboard
+        if (!status.active && isSessionActive) {
+          message.info("The session has ended.");
+          fetchUserAttendance();
+        }
+      } catch (error) {
+        console.error("Error checking session status:", error);
+      }
+    }
+  }, [isSessionActive, fetchUserAttendance, latestSession]);
+
+  // Set up an interval to check session status
+  useEffect(() => {
+    if (latestSession && latestSession.session && latestSession.session._id) {
+      // Check immediately on component mount
+      checkSessionStatusFromApi();
+
+      // Check every 30 seconds
+      const intervalId = setInterval(checkSessionStatusFromApi, 30000);
+
+      return () => clearInterval(intervalId);
+    }
+  }, [checkSessionStatusFromApi, latestSession]);
+
+  // Update latestSession when selectedUnit changes
+  useEffect(() => {
+    if (selectedUnit && attendanceData.attendanceRecords.length > 0) {
+      const unitAttendance = attendanceData.attendanceRecords
+        .filter((data) => data.session.unit._id.toString() === selectedUnit._id?.toString())
+        .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
+      setLatestSession(unitAttendance[0] || null);
+    }
+  }, [selectedUnit, attendanceData.attendanceRecords]);
 
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
@@ -1365,10 +1449,16 @@ const StudentDashboard = () => {
                               disabled={
                                 unitSessionStatus[unit._id]?.isExpired ||
                                 unitSessionStatus[unit._id]?.feedbackSubmitted ||
-                                !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString())
+                                !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString()) ||
+                                // Use the feedbackAvailable state here for the currently selected unit
+                                (latestSession &&
+                                  latestSession.session &&
+                                  latestSession.session.unit &&
+                                  latestSession.session.unit._id === unit._id &&
+                                  !feedbackAvailable)
                               }
                             >
-                              Feedback
+                              Feedback {feedbackAvailable && latestSession?.session?.unit?._id === unit._id ? '(Available)' : ''}
                             </Button>
                           </Col>
                         </Row>

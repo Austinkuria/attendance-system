@@ -222,3 +222,38 @@ exports.getActiveSessionForUnit = async (req, res) => {
     res.status(500).json({ message: 'Error fetching active session', error: error.message });
   }
 };
+
+exports.checkSessionStatus = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!mongoose.isValidObjectId(sessionId)) {
+      return res.status(400).json({ message: 'Invalid session ID format' });
+    }
+
+    const session = await Session.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        active: false,
+        message: 'Session not found'
+      });
+    }
+
+    // Check if session has been manually ended or time has elapsed
+    const isActive = !session.ended && new Date() <= new Date(session.endTime);
+
+    // Check if feedback is enabled
+    const feedbackEnabled = session.feedbackEnabled || session.ended;
+
+    res.json({
+      active: isActive,
+      ended: session.ended,
+      feedbackEnabled: feedbackEnabled,
+      endTime: session.endTime
+    });
+  } catch (error) {
+    console.error("Error checking session status:", error);
+    res.status(500).json({ message: 'Error checking session status', error: error.message });
+  }
+};
