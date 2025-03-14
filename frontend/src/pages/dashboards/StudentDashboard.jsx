@@ -111,6 +111,15 @@ const StudentDashboard = () => {
     const token = localStorage.getItem('token');
     if (!token) return;
 
+    // Check if we should throttle the feedback fetch
+    const lastFetchTime = localStorage.getItem('lastFeedbackFetch');
+    const now = Date.now();
+    const FETCH_COOLDOWN = 5 * 60 * 1000; // 5 minutes cooldown
+
+    if (lastFetchTime && (now - parseInt(lastFetchTime)) < FETCH_COOLDOWN) {
+      return; // Skip fetching if within cooldown period
+    }
+
     setLoading(true);
     try {
       const [profileRes, unitsRes, feedbackRes] = await Promise.all([
@@ -118,6 +127,12 @@ const StudentDashboard = () => {
         getStudentUnits(token),
         getPendingFeedbackAttendance(),
       ]);
+
+      // Store fetch timestamp
+      localStorage.setItem('lastFeedbackFetch', now.toString());
+
+      // Get processed notification IDs from localStorage
+      const processedNotifications = new Set(JSON.parse(localStorage.getItem('processedNotifications') || '[]'));
 
       // Set username from profile response
       if (profileRes && profileRes.firstName) {
@@ -151,51 +166,41 @@ const StudentDashboard = () => {
         setUnitSessionStatus(Object.fromEntries(sessionStatuses.map(status => [status.unitId, status])));
       }
 
-      const newPendingFeedbacks = feedbackRes.pendingFeedbackRecords.map((record) => ({
-        sessionId: record.session._id,
-        unitId: record.session.unit._id,
-        unitName: record.session.unit.name,
-        title: "Feedback Available",
-        message: "Please provide your feedback for the session.",
-        timestamp: record.session.endTime || new Date(),
-      }));
+      const newPendingFeedbacks = feedbackRes.pendingFeedbackRecords
+        .filter(record => !processedNotifications.has(record.session._id))
+        .map((record) => ({
+          sessionId: record.session._id,
+          unitId: record.session.unit._id,
+          unitName: record.session.unit.name,
+          title: "Feedback Available",
+          message: "Please provide your feedback for the session.",
+          timestamp: record.session.endTime || new Date(),
+        }));
 
-      // Skip showing notifications if we've already processed them
-      const existingSessionIds = new Set(pendingFeedbacks.map(pf => pf.sessionId));
-      const newSessions = newPendingFeedbacks.filter(feedback => !existingSessionIds.has(feedback.sessionId));
-
-      if (newSessions.length > 0) {
-        // Track expired notifications with their unit names
-        let expiredCount = 0;
-        const expiredUnits = [];
-        const filteredFeedbacks = await Promise.all(
-          newSessions.map(async (feedback) => {
+      if (newPendingFeedbacks.length > 0) {
+        const checkedFeedbacks = await Promise.all(
+          newPendingFeedbacks.map(async (feedback) => {
             try {
               const { isExpired } = await fetchSessionStatus(feedback.unitId, feedback.sessionId);
               if (isExpired) {
-                expiredCount++;
-                expiredUnits.push(feedback.unitName);
+                // Add to processed notifications
+                processedNotifications.add(feedback.sessionId);
                 return null;
               }
               return feedback;
             } catch (error) {
               console.error(`Error checking session ${feedback.sessionId}:`, error);
-              return feedback;
+              return null;
             }
           })
         );
 
-        // Show a single aggregated message for all expired notifications with unit names
-        if (expiredCount > 0) {
-          const uniqueUnits = [...new Set(expiredUnits)];
-          const unitList = uniqueUnits.join(', ');
-          message.warning(`${expiredCount} expired feedback notification${expiredCount > 1 ? 's were' : ' was'} dismissed for ${unitList}.`);
-        }
+        // Update processed notifications in localStorage
+        localStorage.setItem('processedNotifications', JSON.stringify([...processedNotifications]));
 
-        setPendingFeedbacks((prev) => {
-          const validNewFeedbacks = filteredFeedbacks.filter(pf => pf);
-          return [...prev, ...validNewFeedbacks];
-        });
+        // Filter out null values and update state
+        const validFeedbacks = checkedFeedbacks.filter(f => f !== null);
+        setPendingFeedbacks(prev => [...prev, ...validFeedbacks]);
       }
 
     } catch (error) {
