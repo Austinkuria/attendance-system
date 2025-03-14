@@ -328,6 +328,29 @@ export const useStyles = (isDarkMode, themeColors) =>
       .ant-picker-header-view button:hover, .ant-picker-header button:hover {
         color: ${themeColors.primary} !important;
       }
+      /* Sider trigger styles */
+      .ant-layout-sider-trigger {
+        position: fixed;
+        bottom: 0;
+        z-index: 1;
+        height: 48px;
+        line-height: 48px;
+        text-align: center;
+        background-color: ${themeColors.background} !important;
+        color: ${themeColors.text} !important;
+        border-top: 1px solid ${themeColors.border} !important;
+        transition: all 0.2s;
+      }
+
+      [data-theme='dark'] .ant-layout-sider-trigger {
+        background-color: ${themeColors.background} !important;
+        color: ${themeColors.text} !important;
+        border-top: 1px solid ${themeColors.border} !important;
+      }
+
+      .ant-layout-sider-trigger:hover {
+        background-color: ${themeColors.border} !important;
+      }
       @media (max-width: 992px) {
         .ant-layout-content { margin-left: 88px !important; }
       }

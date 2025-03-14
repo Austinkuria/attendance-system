@@ -1091,18 +1091,24 @@ const StudentDashboard = () => {
             color: ${themeColors.text} !important;
           }
 
-          /* Dark mode calendar weekday headers */
-          [data-theme='dark'] .ant-picker-dropdown .ant-picker-content th {
-            color: ${themeColors.text} !important;
-            font-weight: 500;
-          }
-
-          [data-theme='dark'] .ant-picker-dropdown .ant-picker-week-panel-row th {
+          [data-theme='dark'] .ant-picker-content {
             color: ${themeColors.text} !important;
           }
 
-          [data-theme='dark'] .ant-picker-week-panel-row-selected th {
+          [data-theme='dark'] .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-range-start):not(.ant-picker-cell-range-end):not(.ant-picker-cell-range-hover-start):not(.ant-picker-cell-range-hover-end) .ant-picker-cell-inner {
+            background: ${themeColors.border} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-cell-inner {
             color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-cell-today .ant-picker-cell-inner::before {
+            border-color: ${themeColors.primary} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-cell-selected .ant-picker-cell-inner {
+            background: ${themeColors.primary} !important;
           }
         `}
       </style>
