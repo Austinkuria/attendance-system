@@ -24,7 +24,7 @@ const login = async (req, res) => {
 
   try {
     // More efficient query with lean() for faster object creation
-    const user = await User.findOne({ email }).lean().select('_id password role firstName lastName');
+    const user = await User.findOne({ email: { $eq: email } }).lean().select('_id password role firstName lastName');
 
     if (!user) {
       return res.status(400).json({ message: 'Invalid email or password' });
