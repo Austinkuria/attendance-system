@@ -107,6 +107,7 @@ const StudentDashboard = () => {
   const [notificationSortOrder, setNotificationSortOrder] = useState('mostRecent');
   const [deviceModalVisible, setDeviceModalVisible] = useState(false);
   const [deviceModalConfirmed, setDeviceModalConfirmed] = useState(false);
+  const [dataLoadingError, setDataLoadingError] = useState(false); // New state for error
 
   // Add state variables for session status
   const [latestSession, setLatestSession] = useState(null);
@@ -116,6 +117,7 @@ const StudentDashboard = () => {
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
+    setDataLoadingError(false); // reset error before fetching
 
     // Check if we should throttle the feedback fetch
     const lastFetchTime = localStorage.getItem('lastFeedbackFetch');
@@ -236,6 +238,7 @@ const StudentDashboard = () => {
 
     } catch (error) {
       console.error("Error fetching data:", error);
+      setDataLoadingError(true); // mark error occurred
       if (error.response && error.response.status === 429) {
         message.error("Too many requests. Please wait a moment and try again.");
       } else {
@@ -1358,274 +1361,285 @@ const StudentDashboard = () => {
             </span>}
             className="custom-spin"
           >
-            {username && (
-              <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-                  Welcome, {username}! 👋
-                </AntTitle>
-              </motion.div>
-            )}
-
-            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-              <Col xs={24} sm={12}>
-                <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                  <Card hoverable className="summary-card-1" style={styles.summaryCard1}>
-                    <Space direction="vertical">
-                      <BookOutlined style={{ fontSize: 28, color: '#fff' }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Total Units</h3>
-                      <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>{units.length}</h1>
-                    </Space>
-                  </Card>
-                </motion.div>
-              </Col>
-              <Col xs={24} sm={12}>
-                <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                  <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
-                    <Space direction="vertical">
-                      <PieChartOutlined style={{ fontSize: 28, color: '#fff' }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Attendance Rate</h3>
-                      <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
-                        {attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%
-                      </h1>
-                    </Space>
-                  </Card>
-                </motion.div>
-              </Col>
-            </Row>
-
-            <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-              My Units
-            </AntTitle>
-            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-              {units.map((unit) => unit._id ? (
-                <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
-                  <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                    <Card
-                      title={<span style={{ color: themeColors.text, fontWeight: 600 }}>{unit.name || 'Untitled Unit'}</span>}
-                      extra={<span style={{ color: `${themeColors.text}80` }}>{unit.code || 'N/A'}</span>}
-                      hoverable
-                      style={styles.card}
-                      styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
-                      onClick={() => setSelectedUnit(unit)}
-                    >
-                      <Space direction="vertical" style={{ width: '100%' }} size={16}>
-                        {(() => {
-                          const rate = calculateAttendanceRate(unit._id);
-                          return rate === null ? (
-                            <div style={{ color: `${themeColors.text}80` }}>No sessions</div>
-                          ) : (
-                            <div style={{ background: `${themeColors.text}20`, borderRadius: 6, overflow: 'hidden', height: 20 }}>
-                              <div style={{
-                                width: `${rate}%`,
-                                minWidth: rate === '0.00' ? '20px' : '0',
-                                background: getAttendanceColor(rate),
-                                color: '#fff',
-                                textAlign: 'center',
-                                padding: '2px 0',
-                                transition: 'width 0.5s ease',
-                              }}>
-                                {rate}%
-                              </div>
-                            </div>
-                          );
-                        })()}
-                        <Row gutter={[8, 8]} justify="space-between">
-                          <Col span={24}>
-                            <Button
-                              type="primary"
-                              icon={<QrcodeOutlined style={{ color: '#fff' }} />}
-                              block
-                              onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
-                              style={{ ...styles.button, color: '#fff !important' }}
-                              className="attend-button"
-                            >
-                              <span style={{ color: '#fff' }}>Attend</span>
-                            </Button>
-                          </Col>
-                          <Col span={24}>
-                            <Button
-                              block
-                              onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
-                              disabled={
-                                unitSessionStatus[unit._id]?.isExpired ||
-                                unitSessionStatus[unit._id]?.feedbackSubmitted ||
-                                !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString()) ||
-                                // Use the feedbackAvailable state here for the currently selected unit
-                                (latestSession &&
-                                  latestSession.session &&
-                                  latestSession.session.unit &&
-                                  latestSession.session.unit._id === unit._id &&
-                                  !feedbackAvailable)
-                              }
-                            >
-                              Feedback {feedbackAvailable && latestSession?.session?.unit?._id === unit._id ? '(Available)' : ''}
-                            </Button>
-                          </Col>
-                        </Row>
-                      </Space>
-                    </Card>
-                  </motion.div>
-                </Col>
-              ) : null)}
-            </Row>
-
-            <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-              <Col xs={24} md={12}>
-                {renderNotifications()}
-              </Col>
-              <Col xs={24} md={12}>
-                {renderCalendarEvents()}
-              </Col>
-            </Row>
-
-            <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-              Attendance Overview
-            </AntTitle>
-            <Card style={styles.card}>
-              <div style={{ height: '400px' }}>
-                <Bar data={chartData} options={chartOptions} />
+            {dataLoadingError && !loading ? (
+              <div style={{ textAlign: 'center', margin: '20px', color: themeColors.text }}>
+                <p>Failed to load data. Please check your network and try again.</p>
+                <Button type="primary" onClick={fetchAllData}>
+                  Retry
+                </Button>
               </div>
-              <Button
-                type="primary"
-                style={{ ...styles.button, color: '#fff !important' }}
-                onClick={exportAttendanceData}
-                className="export-button"
-              >
-                <span style={{ color: '#fff' }}>Export Data</span>
-              </Button>
-            </Card>
+            ) : (
+              <>
+                {username && (
+                  <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                    <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+                      Welcome, {username}! 👋
+                    </AntTitle>
+                  </motion.div>
+                )}
 
-            <Modal
-              open={!!selectedUnit}
-              title={<span style={{ color: themeColors.text }}>{selectedUnit?.name}</span>}
-              onCancel={() => setSelectedUnit(null)}
-              footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>}
-              centered
-              width={Math.min(window.innerWidth * 0.9, 500)}
-            >
-              {selectedUnit && (
-                <Space direction="vertical" style={{ color: themeColors.text }}>
-                  <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
-                  <p><strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}</p>
-                  <p><strong>Description:</strong> {selectedUnit.description || 'N/A'}</p>
-                </Space>
-              )}
-            </Modal>
+                <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                  <Col xs={24} sm={12}>
+                    <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+                      <Card hoverable className="summary-card-1" style={styles.summaryCard1}>
+                        <Space direction="vertical">
+                          <BookOutlined style={{ fontSize: 28, color: '#fff' }} />
+                          <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Total Units</h3>
+                          <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>{units.length}</h1>
+                        </Space>
+                      </Card>
+                    </motion.div>
+                  </Col>
+                  <Col xs={24} sm={12}>
+                    <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+                      <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
+                        <Space direction="vertical">
+                          <PieChartOutlined style={{ fontSize: 28, color: '#fff' }} />
+                          <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Attendance Rate</h3>
+                          <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
+                            {attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%
+                          </h1>
+                        </Space>
+                      </Card>
+                    </motion.div>
+                  </Col>
+                </Row>
 
-            <Modal
-              open={feedbackModalVisible}
-              title={<span style={{ color: themeColors.text }}>Session Feedback</span>}
-              onCancel={() => setFeedbackModalVisible(false)}
-              onOk={handleFeedbackSubmit}
-              centered
-              width={Math.min(window.innerWidth * 0.9, 600)}
-              okButtonProps={{
-                style: {
-                  ...styles.button,
-                  backgroundColor: themeColors.accent,
-                  borderColor: themeColors.accent,
-                  color: '#fff'
-                }
-              }}
-              cancelButtonProps={{
-                style: {
-                  backgroundColor: themeColors.accent,
-                  borderColor: themeColors.accent,
-                  color: '#fff',
-                  opacity: 1,
-                  transition: 'opacity 0.3s',
-                  '&:hover': {
-                    opacity: 0.8,
-                    backgroundColor: `${themeColors.accent} !important`,
-                    borderColor: `${themeColors.accent} !important`,
-                    color: '#fff !important'
-                  }
-                }
-              }}
-            >
-              <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
-                <div>
-                  <p>Overall Satisfaction <span style={{ color: themeColors.accent }}>*</span></p>
-                  <Rate allowHalf value={feedbackData.rating} onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })} />
-                </div>
-                <div>
-                  <p>Pace of the Session (Slow to Fast) <span style={{ color: themeColors.accent }}>*</span></p>
-                  <Slider
-                    min={0}
-                    max={100}
-                    value={feedbackData.pace}
-                    onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
-                    marks={{ 0: 'Too Slow', 50: 'Just Right', 100: 'Too Fast' }}
-                  />
-                </div>
-                <div>
-                  <p>Interactivity Level <span style={{ color: themeColors.accent }}>*</span></p>
-                  <Rate value={feedbackData.interactivity} onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })} />
-                </div>
-                <div>
-                  <p>Was the content clear? <span style={{ color: themeColors.accent }}>*</span></p>
-                  <Switch
-                    checked={feedbackData.clarity}
-                    onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
-                    checkedChildren="Yes"
-                    unCheckedChildren="No"
-                  />
-                </div>
-                <Input.TextArea
-                  rows={1}
-                  placeholder="Share your thoughts (optional)"
-                  value={feedbackData.text}
-                  onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
-                />
-                <Input.TextArea
-                  rows={1}
-                  placeholder="Suggestions for resources or improvements (optional)"
-                  value={feedbackData.resources}
-                  onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
-                />
-                <Checkbox
-                  checked={feedbackData.anonymous}
-                  onChange={(e) => setFeedbackData({ ...feedbackData, anonymous: e.target.checked })}
-                  style={{ color: themeColors.text }}
+                <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+                  My Units
+                </AntTitle>
+                <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                  {units.map((unit) => unit._id ? (
+                    <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
+                      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+                        <Card
+                          title={<span style={{ color: themeColors.text, fontWeight: 600 }}>{unit.name || 'Untitled Unit'}</span>}
+                          extra={<span style={{ color: `${themeColors.text}80` }}>{unit.code || 'N/A'}</span>}
+                          hoverable
+                          style={styles.card}
+                          styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
+                          onClick={() => setSelectedUnit(unit)}
+                        >
+                          <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                            {(() => {
+                              const rate = calculateAttendanceRate(unit._id);
+                              return rate === null ? (
+                                <div style={{ color: `${themeColors.text}80` }}>No sessions</div>
+                              ) : (
+                                <div style={{ background: `${themeColors.text}20`, borderRadius: 6, overflow: 'hidden', height: 20 }}>
+                                  <div style={{
+                                    width: `${rate}%`,
+                                    minWidth: rate === '0.00' ? '20px' : '0',
+                                    background: getAttendanceColor(rate),
+                                    color: '#fff',
+                                    textAlign: 'center',
+                                    padding: '2px 0',
+                                    transition: 'width 0.5s ease',
+                                  }}>
+                                    {rate}%
+                                  </div>
+                                </div>
+                              );
+                            })()}
+                            <Row gutter={[8, 8]} justify="space-between">
+                              <Col span={24}>
+                                <Button
+                                  type="primary"
+                                  icon={<QrcodeOutlined style={{ color: '#fff' }} />}
+                                  block
+                                  onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
+                                  style={{ ...styles.button, color: '#fff !important' }}
+                                  className="attend-button"
+                                >
+                                  <span style={{ color: '#fff' }}>Attend</span>
+                                </Button>
+                              </Col>
+                              <Col span={24}>
+                                <Button
+                                  block
+                                  onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
+                                  disabled={
+                                    unitSessionStatus[unit._id]?.isExpired ||
+                                    unitSessionStatus[unit._id]?.feedbackSubmitted ||
+                                    !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString()) ||
+                                    // Use the feedbackAvailable state here for the currently selected unit
+                                    (latestSession &&
+                                      latestSession.session &&
+                                      latestSession.session.unit &&
+                                      latestSession.session.unit._id === unit._id &&
+                                      !feedbackAvailable)
+                                  }
+                                >
+                                  Feedback {feedbackAvailable && latestSession?.session?.unit?._id === unit._id ? '(Available)' : ''}
+                                </Button>
+                              </Col>
+                            </Row>
+                          </Space>
+                        </Card>
+                      </motion.div>
+                    </Col>
+                  ) : null)}
+                </Row>
+
+                <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                  <Col xs={24} md={12}>
+                    {renderNotifications()}
+                  </Col>
+                  <Col xs={24} md={12}>
+                    {renderCalendarEvents()}
+                  </Col>
+                </Row>
+
+                <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+                  Attendance Overview
+                </AntTitle>
+                <Card style={styles.card}>
+                  <div style={{ height: '400px' }}>
+                    <Bar data={chartData} options={chartOptions} />
+                  </div>
+                  <Button
+                    type="primary"
+                    style={{ ...styles.button, color: '#fff !important' }}
+                    onClick={exportAttendanceData}
+                    className="export-button"
+                  >
+                    <span style={{ color: '#fff' }}>Export Data</span>
+                  </Button>
+                </Card>
+
+                <Modal
+                  open={!!selectedUnit}
+                  title={<span style={{ color: themeColors.text }}>{selectedUnit?.name}</span>}
+                  onCancel={() => setSelectedUnit(null)}
+                  footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>}
+                  centered
+                  width={Math.min(window.innerWidth * 0.9, 500)}
                 >
-                  Submit anonymously
-                </Checkbox>
-              </Space>
-            </Modal>
+                  {selectedUnit && (
+                    <Space direction="vertical" style={{ color: themeColors.text }}>
+                      <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
+                      <p><strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}</p>
+                      <p><strong>Description:</strong> {selectedUnit.description || 'N/A'}</p>
+                    </Space>
+                  )}
+                </Modal>
 
-            <Modal
-              title={<span style={{ color: themeColors.text }}>Device Analysis</span>}
-              open={deviceModalVisible}
-              onCancel={handleDeviceModalCancel}
-              footer={[
-                <Button
-                  key="cancel"
-                  onClick={handleDeviceModalCancel}
-                  style={{
-                    borderColor: themeColors.accent,
-                    color: themeColors.accent
+                <Modal
+                  open={feedbackModalVisible}
+                  title={<span style={{ color: themeColors.text }}>Session Feedback</span>}
+                  onCancel={() => setFeedbackModalVisible(false)}
+                  onOk={handleFeedbackSubmit}
+                  centered
+                  width={Math.min(window.innerWidth * 0.9, 600)}
+                  okButtonProps={{
+                    style: {
+                      ...styles.button,
+                      backgroundColor: themeColors.accent,
+                      borderColor: themeColors.accent,
+                      color: '#fff'
+                    }
+                  }}
+                  cancelButtonProps={{
+                    style: {
+                      backgroundColor: themeColors.accent,
+                      borderColor: themeColors.accent,
+                      color: '#fff',
+                      opacity: 1,
+                      transition: 'opacity 0.3s',
+                      '&:hover': {
+                        opacity: 0.8,
+                        backgroundColor: `${themeColors.accent} !important`,
+                        borderColor: `${themeColors.accent} !important`,
+                        color: '#fff !important'
+                      }
+                    }
                   }}
                 >
-                  Cancel
-                </Button>,
-                <Button
-                  key="submit"
-                  type="primary"
-                  onClick={handleDeviceModalConfirm}
-                  style={{ ...styles.button, color: '#fff' }}
+                  <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
+                    <div>
+                      <p>Overall Satisfaction <span style={{ color: themeColors.accent }}>*</span></p>
+                      <Rate allowHalf value={feedbackData.rating} onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })} />
+                    </div>
+                    <div>
+                      <p>Pace of the Session (Slow to Fast) <span style={{ color: themeColors.accent }}>*</span></p>
+                      <Slider
+                        min={0}
+                        max={100}
+                        value={feedbackData.pace}
+                        onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
+                        marks={{ 0: 'Too Slow', 50: 'Just Right', 100: 'Too Fast' }}
+                      />
+                    </div>
+                    <div>
+                      <p>Interactivity Level <span style={{ color: themeColors.accent }}>*</span></p>
+                      <Rate value={feedbackData.interactivity} onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })} />
+                    </div>
+                    <div>
+                      <p>Was the content clear? <span style={{ color: themeColors.accent }}>*</span></p>
+                      <Switch
+                        checked={feedbackData.clarity}
+                        onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
+                        checkedChildren="Yes"
+                        unCheckedChildren="No"
+                      />
+                    </div>
+                    <Input.TextArea
+                      rows={1}
+                      placeholder="Share your thoughts (optional)"
+                      value={feedbackData.text}
+                      onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
+                    />
+                    <Input.TextArea
+                      rows={1}
+                      placeholder="Suggestions for resources or improvements (optional)"
+                      value={feedbackData.resources}
+                      onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
+                    />
+                    <Checkbox
+                      checked={feedbackData.anonymous}
+                      onChange={(e) => setFeedbackData({ ...feedbackData, anonymous: e.target.checked })}
+                      style={{ color: themeColors.text }}
+                    >
+                      Submit anonymously
+                    </Checkbox>
+                  </Space>
+                </Modal>
+
+                <Modal
+                  title={<span style={{ color: themeColors.text }}>Device Analysis</span>}
+                  open={deviceModalVisible}
+                  onCancel={handleDeviceModalCancel}
+                  footer={[
+                    <Button
+                      key="cancel"
+                      onClick={handleDeviceModalCancel}
+                      style={{
+                        borderColor: themeColors.accent,
+                        color: themeColors.accent
+                      }}
+                    >
+                      Cancel
+                    </Button>,
+                    <Button
+                      key="submit"
+                      type="primary"
+                      onClick={handleDeviceModalConfirm}
+                      style={{ ...styles.button, color: '#fff' }}
+                    >
+                      <span style={{ color: '#fff' }}>I Understand</span>
+                    </Button>,
+                  ]}
+                  destroyOnClose={true}
+                  maskClosable={false}
+                  centered
                 >
-                  <span style={{ color: '#fff' }}>I Understand</span>
-                </Button>,
-              ]}
-              destroyOnClose={true}
-              maskClosable={false}
-              centered
-            >
-              <p style={{ color: themeColors.text }}>
-                We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.
-                By continuing, you agree to this analysis for attendance verification purposes only.
-              </p>
-            </Modal>
+                  <p style={{ color: themeColors.text }}>
+                    We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.
+                    By continuing, you agree to this analysis for attendance verification purposes only.
+                  </p>
+                </Modal>
+              </>
+            )}
           </Spin>
         </Content>
       </Layout>
