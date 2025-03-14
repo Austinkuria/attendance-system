@@ -295,11 +295,22 @@ const styles = {
     }
 
     .ant-switch.ant-switch-checked {
-      background-color: var(--primary-color) !important;
+      background-color: var(--secondary-color) !important;
     }
 
     .ant-switch:not(.ant-switch-disabled):hover {
       background-color: var(--hover-color) !important;
+    }
+
+    .ant-switch .ant-switch-handle::before {
+      background-color: var(--text-color) !important;
+    }
+
+    /* Dashboard navigation button hover styles */
+    .dashboard-nav-btn:hover {
+      background-color: var(--hover-color) !important;
+      color: var(--text-color) !important;
+      transition: all 0.3s ease;
     }
   `,
   // Force global styles
@@ -429,6 +440,7 @@ const AttendanceTrends = () => {
         --input-bg: ${themeColors.inputBg};
         --primary-color: ${themeColors.primary};
         --disabled-color: ${themeColors.disabled};
+        --secondary-color: ${themeColors.secondary};
       }
       ${styles.calendarOverrides}
     `;
@@ -627,6 +639,7 @@ const AttendanceTrends = () => {
             icon={<ArrowLeftOutlined style={{ color: themeColors.text }} />}
             onClick={() => navigate('/student-dashboard')}
             style={{ color: themeColors.text }}
+            className="dashboard-nav-btn"
           >
             Dashboard
           </Button>
@@ -718,9 +731,6 @@ const AttendanceTrends = () => {
                   onChange={handleChartTypeChange}
                   checkedChildren="Bar"
                   unCheckedChildren="Line"
-                  style={{
-                    backgroundColor: chartType === 'bar' ? themeColors.primary : themeColors.disabled
-                  }}
                 />
               </Space>
               <Card style={{
