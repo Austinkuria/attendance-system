@@ -300,8 +300,13 @@ const styles = {
       background-color: var(--secondary-color) !important;
     }
 
+    /* Remove hover styles */
     .ant-switch:not(.ant-switch-disabled):hover {
-      background-color: var(--hover-color) !important;
+      background-color: var(--disabled-color) !important;
+    }
+
+    .ant-switch.ant-switch-checked:not(.ant-switch-disabled):hover {
+      background-color: var(--secondary-color) !important;
     }
 
     .ant-switch .ant-switch-handle::before {
