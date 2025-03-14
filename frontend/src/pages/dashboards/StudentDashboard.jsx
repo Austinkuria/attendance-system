@@ -805,39 +805,46 @@ const StudentDashboard = () => {
   ];
 
   const openFeedbackModal = async (unitId) => {
-    // First, update the latestSession for this specific unit
-    const unitAttendance = attendanceData.attendanceRecords
-      .filter((data) => data.session.unit._id.toString() === unitId.toString())
-      .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
-
-    const unitLatestSession = unitAttendance[0];
-    setLatestSession(unitLatestSession);
-
-    if (!unitLatestSession) {
-      message.warning('No attendance records found for this unit.');
-      return;
-    }
-
-    if (unitLatestSession.status !== 'Present') {
-      message.error("You must be marked present to provide feedback.");
-      return;
-    }
-
     try {
-      // Check if feedback is available for this session
-      const sessionStatus = await checkSessionStatus(unitLatestSession.session._id);
-      setFeedbackAvailable(sessionStatus.feedbackEnabled || sessionStatus.ended);
+      // Get the latest feedback status from the backend first
+      const unitAttendance = attendanceData.attendanceRecords
+        .filter((data) => data.session.unit._id.toString() === unitId.toString())
+        .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime));
 
-      if (!sessionStatus.feedbackEnabled && !sessionStatus.ended) {
-        message.info("Feedback is only available after the session ends.");
+      const unitLatestSession = unitAttendance[0];
+
+      if (!unitLatestSession) {
+        message.warning('No attendance records found for this unit.');
         return;
       }
 
-      setActiveSessionId(unitLatestSession.session._id);
-      setFeedbackModalVisible(true);
+      // Double check feedback status with backend before opening modal
+      const feedbackSubmitted = await checkFeedbackStatus(unitLatestSession.session._id);
+      if (feedbackSubmitted) {
+        message.info("You've already submitted feedback for this session.");
+
+        // Update local state to reflect the submitted status
+        setAttendanceData((prev) => ({
+          ...prev,
+          attendanceRecords: prev.attendanceRecords.map((rec) =>
+            rec.session._id === unitLatestSession.session._id ? { ...rec, feedbackSubmitted: true } : rec
+          ),
+        }));
+
+        // Update unit session status
+        setUnitSessionStatus((prev) => ({
+          ...prev,
+          [unitId]: { ...prev[unitId], feedbackSubmitted: true }
+        }));
+
+        return;
+      }
+
+      // Rest of your existing openFeedbackModal logic...
+      // ...existing openFeedbackModal code...
     } catch (error) {
-      console.error("Error checking feedback availability:", error);
-      message.error("Unable to check feedback availability. Please try again later.");
+      console.error("Error checking feedback status:", error);
+      message.error("Unable to verify feedback status. Please try again later.");
     }
   };
 
@@ -855,19 +862,21 @@ const StudentDashboard = () => {
     }
 
     try {
-      await submitFeedback({
+      const feedbackPayload = {
         sessionId: activeSessionId,
         rating: feedbackData.rating,
         feedbackText: feedbackData.text || '',
         pace: feedbackData.pace,
         interactivity: feedbackData.interactivity,
         clarity: feedbackData.clarity,
-        resources: feedbackData.resources || '',
+        resources: feedbackData.resources.trim(),
         anonymous: feedbackData.anonymous,
-      });
+      };
+
+      await submitFeedback(feedbackPayload);
       message.success('Feedback submitted successfully!');
-      setFeedbackModalVisible(false);
-      setFeedbackData({ rating: 0, text: '', pace: 0, interactivity: 0, clarity: null, resources: '', anonymous: false });
+
+      // Update local state to reflect feedback submission
       setAttendanceData((prev) => ({
         ...prev,
         attendanceRecords: prev.attendanceRecords.map((rec) =>
@@ -875,15 +884,20 @@ const StudentDashboard = () => {
         ),
       }));
 
-      // Remove all notifications related to this session
+      // Remove feedback notifications
       setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== activeSessionId));
 
-      // Add this session to processed notifications
+      // Add to processed notifications
       const processedNotifications = new Set(JSON.parse(localStorage.getItem('processedNotifications') || '[]'));
       processedNotifications.add(activeSessionId);
       localStorage.setItem('processedNotifications', JSON.stringify([...processedNotifications]));
 
-      await fetchAllData();
+      // Reset form and close modal
+      setFeedbackData({ rating: 0, text: '', pace: 0, interactivity: 0, clarity: null, resources: '', anonymous: false });
+      setFeedbackModalVisible(false);
+      setActiveSessionId(null);
+
+      await fetchAllData(); // Refresh data
     } catch (error) {
       console.error('Feedback submission failed:', error);
       message.error(`Error submitting feedback: ${error.response?.data?.message || error.message}`);
@@ -1285,97 +1299,53 @@ const StudentDashboard = () => {
             color: #000 !important;
           }
 
-          /* Add these slider mark text styles to ensure visibility in both themes */
-          .ant-slider-mark-text {
-            color: ${themeColors.text} !important;
-            opacity: 0.6;
+          /* Rate component styles for both themes */
+          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
+          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
+            color: rgba(0, 0, 0, 0.25) !important;
+          }
+          
+          [data-theme='dark'] .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
+          [data-theme='dark'] .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
+            color: rgba(255, 255, 255, 0.3) !important;
+          }
+          
+          /* Ensure empty stars are visible */
+          .ant-rate-star-zero .ant-rate-star-first,
+          .ant-rate-star-zero .ant-rate-star-second {
+            opacity: 1 !important;
           }
 
-          /* Make active slider mark text more noticeable */
+          /* Slider mark text styles for better visibility */
+          .ant-slider-mark-text {
+            color: ${themeColors.text}99 !important;
+            font-size: 12px;
+            font-weight: normal;
+          }
+
+          /* Active mark text styling */
           .ant-slider-mark-text-active {
             color: ${themeColors.text} !important;
-            opacity: 1;
             font-weight: 600;
+            font-size: 13px;
           }
 
-          /* Fix for light mode specifically */
+          /* Light mode specific adjustments */
           [data-theme='light'] .ant-slider-mark-text {
-            color: rgba(0, 0, 0, 0.8) !important;
+            color: rgba(0, 0, 0, 0.65) !important;
           }
 
           [data-theme='light'] .ant-slider-mark-text-active {
-            color: rgba(0, 0, 0, 0.9) !important;
-            font-weight: 600;
+            color: rgba(0, 0, 0, 0.88) !important;
           }
 
-          /* Fix for dark mode specifically */
+          /* Dark mode specific adjustments */
           [data-theme='dark'] .ant-slider-mark-text {
-            color: rgba(255, 255, 255, 0.8) !important;
+            color: rgba(255, 255, 255, 0.65) !important;
           }
 
           [data-theme='dark'] .ant-slider-mark-text-active {
-            color: rgba(255, 255, 255, 1) !important;
-            font-weight: 600;
-          }
-          
-          /* Rate component styles - fix visibility in both modes */
-          .ant-rate {
-            color: ${themeColors.primary} !important;
-          }
-          
-          /* Fix empty stars in both themes */
-          .ant-rate-star-zero .ant-rate-star-first svg,
-          .ant-rate-star-zero .ant-rate-star-second svg {
-            color: rgba(0, 0, 0, 0.2) !important;
-            fill: rgba(0, 0, 0, 0.2) !important;
-          }
-          
-          [data-theme='dark'] .ant-rate-star-zero .ant-rate-star-first svg,
-          [data-theme='dark'] .ant-rate-star-zero .ant-rate-star-second svg {
-            color: rgba(255, 255, 255, 0.3) !important;
-            fill: rgba(255, 255, 255, 0.3) !important;
-          }
-          
-          /* Ensure the stars have solid outline in all modes */
-          .ant-rate .ant-rate-star svg {
-            stroke-width: 1px;
-            stroke: currentColor;
-          }
-
-          /* Ensure contrast for the outline */
-          [data-theme='light'] .ant-rate-star:not(.ant-rate-star-full) svg {
-            stroke: rgba(0, 0, 0, 0.45) !important;
-          }
-          
-          [data-theme='dark'] .ant-rate-star:not(.ant-rate-star-full) svg {
-            stroke: rgba(255, 255, 255, 0.45) !important;
-          }
-
-          /* Rate component styles for feedback modal */
-          .feedback-rate.ant-rate {
-            font-size: 24px;
-          }
-
-          .feedback-rate .ant-rate-star {
-            margin-inline-end: 4px;
-          }
-
-          /* Updated unfilled star color to match placeholder opacity */
-          .feedback-rate .ant-rate-star:not(.ant-rate-star-full) svg {
-            fill: ${themeColors.text}40 !important;
-            color: ${themeColors.text}40 !important;
-          }
-
-          /* Ensure consistency in hover state */
-          .feedback-rate .ant-rate-star:hover:not(.ant-rate-star-full) svg {
-            fill: ${themeColors.primary}80 !important;
-            color: ${themeColors.primary}80 !important;
-          }
-
-          /* Filled star color */
-          .feedback-rate .ant-rate-star-full svg {
-            fill: ${themeColors.primary} !important;
-            color: ${themeColors.primary} !important;
+            color: rgba(255, 255, 255, 0.88) !important;
           }
         `}
       </style>
@@ -1383,68 +1353,75 @@ const StudentDashboard = () => {
         <Space>
           <Button
             type="text"
-            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            icon={collapsed ?
+              <MenuUnfoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} /> :
+              <MenuFoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} />
+            }
             onClick={() => setCollapsed(!collapsed)}
-            style={{ color: themeColors.text }}
+            style={{ fontSize: 18, width: 64, height: 64 }}
           />
-          <AntTitle level={3} style={{ color: themeColors.text, margin: 0 }}>
-            Student Dashboard
-          </AntTitle>
         </Space>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            flex: 1,
+            textAlign: 'center',
+            position: 'absolute',
+            left: '50%',
+            transform: 'translateX(-50%)',
+            display: window.innerWidth < 992 ? 'none' : 'block',
+            color: themeColors.text,
+          }}
+        >
+          Student Dashboard
+        </AntTitle>
+        <AntTitle
+          level={3}
+          style={{
+            margin: 0,
+            display: window.innerWidth >= 992 ? 'none' : 'inline',
+            color: themeColors.text,
+          }}
+        >
+          Student Dashboard
+        </AntTitle>
         <Space>
           <Switch
             checked={isDarkMode}
             onChange={() => setIsDarkMode(!isDarkMode)}
-            checkedChildren="🌙"
-            unCheckedChildren="☀️"
+            checkedChildren="Dark"
+            unCheckedChildren="Light"
           />
-          <Dropdown
-            overlay={
-              <Menu items={profileItems} />
-            }
-            trigger={['click']}
-          >
+          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
             <Button
               type="text"
-              icon={<UserOutlined className="header-profile-icon" />}
-              style={{ color: themeColors.text }}
+              icon={<UserOutlined className="header-profile-icon" style={{ fontSize: 24, color: isDarkMode ? '#fff' : undefined }} />}
             />
           </Dropdown>
         </Space>
       </Header>
+
       <Layout>
-        <Sider
-          trigger={null}
-          collapsible
-          collapsed={collapsed}
-          style={styles.sider}
-        >
+        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={styles.sider}>
           <Menu
-            theme="dark"
             mode="inline"
             defaultSelectedKeys={['1']}
-            style={styles.menu}
-          >
-            <Menu.Item key="1" icon={<BookOutlined />} onClick={() => scrollToSection('my-units')}>
-              My Units
-            </Menu.Item>
-            <Menu.Item key="2" icon={<BarChartOutlined />} onClick={() => scrollToSection('attendance-overview')}>
-              Attendance Overview
-            </Menu.Item>
-            <Menu.Item key="3" icon={<LineChartOutlined />} onClick={() => navigate('/student/attendance-trends')}>
-              Attendance Trends
-            </Menu.Item>
-          </Menu>
+            items={[
+              { key: '1', icon: <BookOutlined style={{ color: themeColors.text }} />, label: 'My Units', onClick: () => scrollToSection('my-units') },
+              { key: '2', icon: <BarChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
+              { key: '3', icon: <LineChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
+            ]}
+          />
         </Sider>
+
         <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
           <Spin
             size="large"
             spinning={loading}
-            tip={
-              <span style={{ color: isDarkMode ? '#fff' : themeColors.text, fontSize: '16px', fontWeight: 500 }}>
-                Loading data...
-              </span>
-            }
+            tip={<span style={{ color: isDarkMode ? '#fff' : themeColors.text, fontSize: '16px', fontWeight: 500 }}>
+              Loading data...
+            </span>}
             className="custom-spin"
           >
             {dataLoadingError && !loading ? (
@@ -1545,18 +1522,15 @@ const StudentDashboard = () => {
                                   block
                                   onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
                                   disabled={
-                                    unitSessionStatus[unit._id]?.isExpired ||
                                     unitSessionStatus[unit._id]?.feedbackSubmitted ||
-                                    !attendanceData.attendanceRecords.some((rec) => rec.session.unit._id.toString() === unit._id.toString()) ||
-                                    // Use the feedbackAvailable state here for the currently selected unit
-                                    (latestSession &&
-                                      latestSession.session &&
-                                      latestSession.session.unit &&
-                                      latestSession.session.unit._id === unit._id &&
-                                      !feedbackAvailable)
+                                    !attendanceData.attendanceRecords.some((rec) =>
+                                      rec.session.unit._id.toString() === unit._id.toString() &&
+                                      !rec.feedbackSubmitted
+                                    ) ||
+                                    (latestSession?.session?.unit?._id === unit._id && !feedbackAvailable)
                                   }
                                 >
-                                  Feedback {feedbackAvailable && latestSession?.session?.unit?._id === unit._id ? '(Available)' : ''}
+                                  {unitSessionStatus[unit._id]?.feedbackSubmitted ? 'Feedback Submitted' : 'Feedback'}
                                 </Button>
                               </Col>
                             </Row>
@@ -1648,7 +1622,7 @@ const StudentDashboard = () => {
                         allowHalf
                         value={feedbackData.rating}
                         onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
-                        className="feedback-rate"
+                        style={{ color: themeColors.primary }}
                       />
                     </div>
                     <div>
@@ -1658,7 +1632,15 @@ const StudentDashboard = () => {
                         max={100}
                         value={feedbackData.pace}
                         onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
-                        marks={{ 0: 'Too Slow', 50: 'Just Right', 100: 'Too Fast' }}
+                        marks={{
+                          0: 'Too Slow',
+                          25: 'Slow',
+                          50: 'Just Right',
+                          75: 'Fast',
+                          100: 'Too Fast'
+                        }}
+                        step={25}
+                        style={{ marginBottom: '24px' }}
                       />
                     </div>
                     <div>
@@ -1666,7 +1648,7 @@ const StudentDashboard = () => {
                       <Rate
                         value={feedbackData.interactivity}
                         onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })}
-                        className="feedback-rate"
+                        style={{ color: themeColors.primary }}
                       />
                     </div>
                     <div>
