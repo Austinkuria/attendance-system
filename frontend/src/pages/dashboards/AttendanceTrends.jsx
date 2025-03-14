@@ -87,6 +87,30 @@ const styles = {
       overflow-x: hidden !important;
       max-width: 100vw !important;
       width: 100% !important;
+      background: var(--bg-color) !important;
+    }
+    
+    body {
+      background: var(--bg-color) !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
+    .ant-spin-text {
+      color: var(--text-color) !important;
+    }
+
+    .ant-select-dropdown {
+      background-color: var(--dropdown-bg) !important;
+    }
+
+    .ant-select-item {
+      color: var(--text-color) !important;
+    }
+
+    .ant-select-item-option-active,
+    .ant-select-item-option-selected {
+      background-color: var(--hover-color) !important;
     }
     
     /* Stop any element from causing horizontal overflow */
@@ -150,6 +174,132 @@ const styles = {
       .ant-select, .ant-picker { width: 100% !important; } 
       .ant-typography { font-size: 16px; }
       .header-space { padding: 0 4px; }
+    }
+
+    /* Dark mode Select styles */
+    .ant-select-selector {
+      color: var(--text-color) !important;
+    }
+
+    .ant-select-selection-placeholder {
+      color: var(--text-color) !important;
+      opacity: 0.65;
+    }
+
+    .ant-select-arrow {
+      color: var(--text-color) !important;
+    }
+
+    /* Dark mode DatePicker styles */
+    .ant-picker {
+      background-color: var(--input-bg) !important;
+    }
+
+    .ant-picker-input > input {
+      color: var(--text-color) !important;
+    }
+
+    .ant-picker-suffix,
+    .ant-picker-clear {
+      color: var(--text-color) !important;
+    }
+
+    .ant-picker-range-separator {
+      color: var(--text-color) !important;
+    }
+
+    .ant-select-selection-item {
+      color: var(--text-color) !important;
+      background-color: var(--dropdown-bg) !important;
+    }
+
+    .ant-select-dropdown .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+      background-color: var(--hover-color) !important;
+      color: var(--text-color) !important;
+    }
+
+    /* Enhanced Select dark mode styles */
+    .ant-select {
+      background-color: var(--input-bg) !important;
+      border-color: var(--calendar-border) !important;
+    }
+
+    .ant-select:not(.ant-select-disabled):hover .ant-select-selector {
+      border-color: var(--hover-color) !important;
+    }
+
+    .ant-select-selector {
+      background-color: var(--input-bg) !important;
+      border-color: var(--calendar-border) !important;
+    }
+
+    .ant-select-dropdown {
+      background-color: var(--dropdown-bg) !important;
+      border: 1px solid var(--calendar-border) !important;
+      box-shadow: 0 3px 6px -4px rgba(0, 0, 0, 0.48) !important;
+    }
+
+    .ant-select-item {
+      color: var(--text-color) !important;
+      background: var(--dropdown-bg) !important;
+    }
+
+    .ant-select-item-option-active,
+    .ant-select-item-option-selected {
+      color: var(--text-color) !important;
+      background-color: var(--hover-color) !important;
+    }
+
+    .ant-select-selection-item {
+      color: var(--text-color) !important;
+    }
+
+    /* DatePicker separator icon in dark mode */
+    .ant-picker-range-separator .ant-picker-separator {
+      color: var(--text-color) !important;
+    }
+
+    .ant-picker-separator {
+      color: var(--text-color) !important;
+    }
+
+    /* Make sure the separator icon is visible */
+    .ant-picker-range .ant-picker-active-bar {
+      background: var(--text-color) !important;
+    }
+
+    /* Enhanced DatePicker placeholder styles */
+    .ant-picker-input > input::placeholder {
+      color: var(--text-color) !important;
+      opacity: 0.7 !important;
+    }
+
+    .ant-picker {
+      color: var(--text-color) !important;
+    }
+
+    .ant-picker-input > input:-internal-autofill-selected {
+      -webkit-text-fill-color: var(--text-color) !important;
+      transition: background-color 5000s ease-in-out 0s;
+    }
+
+    /* Make placeholder text more visible in dark mode */
+    .ant-picker:not(.ant-picker-disabled) input::-webkit-input-placeholder {
+      color: var(--text-color) !important;
+      opacity: 0.7 !important;
+    }
+
+    /* Switch component dark mode styles */
+    .ant-switch {
+      background-color: var(--disabled-color) !important;
+    }
+
+    .ant-switch.ant-switch-checked {
+      background-color: var(--primary-color) !important;
+    }
+
+    .ant-switch:not(.ant-switch-disabled):hover {
+      background-color: var(--hover-color) !important;
     }
   `,
   // Force global styles
@@ -268,10 +418,17 @@ const AttendanceTrends = () => {
       ${styles.globalStyles}
       ${styles.responsiveOverrides}
       :root {
+        --bg-color: ${themeColors.background};
+        --text-color: ${themeColors.text};
+        --dropdown-bg: ${themeColors.cardBg};
+        --hover-color: ${themeColors.hover};
         --calendar-bg: ${themeColors.cardBg};
         --calendar-text: ${themeColors.text};
         --calendar-border: ${themeColors.border};
         --calendar-hover: ${themeColors.hover};
+        --input-bg: ${themeColors.inputBg};
+        --primary-color: ${themeColors.primary};
+        --disabled-color: ${themeColors.disabled};
       }
       ${styles.calendarOverrides}
     `;
@@ -467,8 +624,9 @@ const AttendanceTrends = () => {
         }}>
           <Button
             type="link"
-            icon={<ArrowLeftOutlined />}
+            icon={<ArrowLeftOutlined style={{ color: themeColors.text }} />}
             onClick={() => navigate('/student-dashboard')}
+            style={{ color: themeColors.text }}
           >
             Dashboard
           </Button>
@@ -504,7 +662,11 @@ const AttendanceTrends = () => {
           background: themeColors.background,
           ...debugStyles.content
         }} className="ant-layout-content">
-          <Spin spinning={loading} tip="Loading data...">
+          <Spin
+            spinning={loading}
+            tip="Loading data..."
+            style={{ color: themeColors.text }}
+          >
             <Space direction="vertical" size={debugMode ? 0 : 16} style={{
               width: '100%',
               maxWidth: '100%',
@@ -521,7 +683,13 @@ const AttendanceTrends = () => {
                 <Select
                   value={filter}
                   onChange={handleFilterChange}
-                  style={{ minWidth: '150px', width: '100%', backgroundColor: themeColors.inputBg, borderColor: themeColors.inputBorder }}
+                  style={{
+                    minWidth: '150px',
+                    width: '100%',
+                  }}
+                  dropdownStyle={{
+                    backgroundColor: themeColors.cardBg,
+                  }}
                   placeholder="Select Filter"
                 >
                   <Option value="30days">Last 30 Days</Option>
@@ -550,6 +718,9 @@ const AttendanceTrends = () => {
                   onChange={handleChartTypeChange}
                   checkedChildren="Bar"
                   unCheckedChildren="Line"
+                  style={{
+                    backgroundColor: chartType === 'bar' ? themeColors.primary : themeColors.disabled
+                  }}
                 />
               </Space>
               <Card style={{
