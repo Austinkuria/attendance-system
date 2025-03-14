@@ -411,10 +411,11 @@ const AttendanceTrends = () => {
   const [filter, setFilter] = useState('30days');
   const [dateRange, setDateRange] = useState(null);
   const [chartType, setChartType] = useState('line');
-  const [debugMode, setDebugMode] = useState(false);
+  // const [debugMode, setDebugMode] = useState(false);
   const navigate = useNavigate();
 
-  // Debug styles with colorful borders
+  // Debug styles with colorful borders - commented out
+  /*
   const debugStyles = {
     layout: debugMode ? { border: '3px solid red', boxSizing: 'border-box' } : {},
     header: debugMode ? { border: '3px dashed purple', boxSizing: 'border-box' } : {},
@@ -424,6 +425,7 @@ const AttendanceTrends = () => {
     chartContainer: debugMode ? { border: '3px solid magenta', boxSizing: 'border-box' } : {},
     space: debugMode ? { border: '2px dashed cyan', boxSizing: 'border-box' } : {},
   };
+  */
 
   const fetchAttendanceData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -658,9 +660,9 @@ const AttendanceTrends = () => {
     setChartType(checked ? 'bar' : 'line');
   };
 
-  const handleToggleDebug = () => {
-    setDebugMode(!debugMode);
-  };
+  // const handleToggleDebug = () => {
+  //   setDebugMode(!debugMode);
+  // };
 
   return (
     <>
@@ -668,7 +670,7 @@ const AttendanceTrends = () => {
       <Layout style={{
         ...styles.layoutStyle,
         background: themeColors.background,
-        ...debugStyles.layout
+        // ...debugStyles.layout
       }}>
         <Header style={{
           ...styles.header,
@@ -677,7 +679,7 @@ const AttendanceTrends = () => {
           maxWidth: 'calc(100% - 24px)',
           left: '12px',
           right: '12px',
-          ...debugStyles.header
+          // ...debugStyles.header
         }}>
           <Button
             type="link"
@@ -696,47 +698,37 @@ const AttendanceTrends = () => {
           }}>
             Attendance Trends
           </AntTitle>
-          <Button
-            type="text"
-            onClick={handleToggleDebug}
-            size="small"
-            style={{
-              backgroundColor: debugMode ? themeColors.accent : themeColors.primary,
-              color: themeColors.text
-            }}
-          >
-            {debugMode ? 'Debug: ON' : 'Debug'}
-          </Button>
+          {/* Debug button removed */}
         </Header>
 
         <Content style={{
           ...styles.content,
           margin: 0,
           marginTop: 64,
-          padding: debugMode ? '10px' : '16px', // Added padding, conditional on debug mode
+          padding: '16px', // Removed debug condition
           width: '100%',
           maxWidth: '100%',
           overflowX: 'hidden',
           background: themeColors.background,
-          ...debugStyles.content
+          // ...debugStyles.content
         }} className="ant-layout-content">
           <Spin
             spinning={loading}
             tip="Loading data..."
             style={{ color: themeColors.text }}
           >
-            <Space direction="vertical" size={debugMode ? 0 : 16} style={{
+            <Space direction="vertical" size={16} style={{
               width: '100%',
               maxWidth: '100%',
               margin: 0,
               padding: 0,
               overflowX: 'hidden',
-              ...debugStyles.space
+              // ...debugStyles.space
             }}>
               <Space style={{
                 ...styles.controls,
-                marginBottom: debugMode ? 0 : '16px', // Remove margin in debug mode
-                ...debugStyles.controls
+                marginBottom: '16px', // Remove margin in debug mode
+                // ...debugStyles.controls
               }} className="controls">
                 <Select
                   value={filter}
@@ -779,18 +771,18 @@ const AttendanceTrends = () => {
                 />
               </Space>
               <Card style={{
-                marginTop: debugMode ? 0 : 16, // Remove margin in debug mode
+                marginTop: 16, // Remove margin in debug mode
                 borderRadius: 10,
                 width: '100%',
                 backgroundColor: themeColors.cardBg,
                 borderColor: themeColors.border,
                 padding: '8px 4px', // Added specific padding
-                ...debugStyles.card
+                // ...debugStyles.card
               }}>
                 <div className="chart-wrapper" style={{ width: '100%' }}>
                   <div style={{
                     ...styles.chartContainer,
-                    ...debugStyles.chartContainer
+                    // ...debugStyles.chartContainer
                   }} className="chart-container">
                     {chartType === 'line' ? (
                       <Line data={getTrendData()} options={trendOptions} />
