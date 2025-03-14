@@ -51,6 +51,8 @@ const styles = {
   chartContainer: {
     width: '100%',
     height: '500px',
+    overflowX: 'auto', // Enable horizontal scroll
+    overflowY: 'hidden', // Prevent vertical scroll
   },
   controls: {
     width: '100%',
@@ -311,6 +313,41 @@ const styles = {
       background-color: var(--hover-color) !important;
       color: var(--text-color) !important;
       transition: all 0.3s ease;
+    }
+
+    /* Chart container responsive styles */
+    .chart-container {
+      min-width: 600px !important; // Minimum width to prevent squishing
+      padding-bottom: 16px !important; // Space for scrollbar
+    }
+
+    .chart-wrapper {
+      overflow-x: auto !important;
+      overflow-y: hidden !important;
+      margin-bottom: 16px !important;
+      -webkit-overflow-scrolling: touch !important; // Smooth scroll on iOS
+    }
+
+    /* Hide scrollbar for Chrome, Safari and Opera */
+    .chart-wrapper::-webkit-scrollbar {
+      height: 8px;
+    }
+
+    /* Track */
+    .chart-wrapper::-webkit-scrollbar-track {
+      background: var(--calendar-border);
+      border-radius: 4px;
+    }
+
+    /* Handle */
+    .chart-wrapper::-webkit-scrollbar-thumb {
+      background: var(--primary-color);
+      border-radius: 4px;
+    }
+
+    /* Handle on hover */
+    .chart-wrapper::-webkit-scrollbar-thumb:hover {
+      background: var(--secondary-color);
     }
   `,
   // Force global styles
@@ -741,17 +778,17 @@ const AttendanceTrends = () => {
                 borderColor: themeColors.border,
                 ...debugStyles.card
               }}>
-                <div style={{
-                  ...styles.chartContainer,
-                  maxWidth: '100%',
-                  overflow: 'hidden',
-                  ...debugStyles.chartContainer
-                }} className="chart-container">
-                  {chartType === 'line' ? (
-                    <Line data={getTrendData()} options={trendOptions} />
-                  ) : (
-                    <Bar data={getTrendData()} options={trendOptions} />
-                  )}
+                <div className="chart-wrapper" style={{ width: '100%' }}>
+                  <div style={{
+                    ...styles.chartContainer,
+                    ...debugStyles.chartContainer
+                  }} className="chart-container">
+                    {chartType === 'line' ? (
+                      <Line data={getTrendData()} options={trendOptions} />
+                    ) : (
+                      <Bar data={getTrendData()} options={trendOptions} />
+                    )}
+                  </div>
                 </div>
               </Card>
             </Space>
