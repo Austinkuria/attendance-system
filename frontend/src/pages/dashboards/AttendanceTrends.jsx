@@ -325,12 +325,12 @@ const AttendanceTrends = () => {
     }
 
     const barColors = [
-      'rgba(255, 99, 132, 0.6)',
-      'rgba(54, 162, 235, 0.6)',
-      'rgba(255, 206, 86, 0.6)',
-      'rgba(75, 192, 192, 0.6)',
-      'rgba(153, 102, 255, 0.6)',
-      'rgba(255, 159, 64, 0.6)',
+      `${themeColors.primary}99`,    // Primary with opacity
+      `${themeColors.secondary}99`,  // Secondary with opacity
+      `${themeColors.accent}99`,     // Accent with opacity
+      `${themeColors.focus}99`,      // Focus with opacity
+      `${themeColors.placeholder}99`, // Placeholder with opacity
+      `${themeColors.disabled}99`,    // Disabled with opacity
     ];
 
     return {
@@ -338,15 +338,15 @@ const AttendanceTrends = () => {
       datasets: [{
         label: `${filter === '30days' ? 'Daily (Last 30 Days)' : filter === 'daily' ? 'Daily' : 'Weekly'} Attendance (%)`,
         data: dataPoints,
-        borderColor: chartType === 'line' ? '#1890ff' : barColors.map((color, index) => barColors[index % barColors.length]),
-        backgroundColor: chartType === 'line' ? 'rgba(24, 144, 255, 0.2)' : barColors.map((color, index) => barColors[index % barColors.length]),
+        borderColor: chartType === 'line' ? themeColors.primary : barColors,
+        backgroundColor: chartType === 'line' ? `${themeColors.primary}33` : barColors,
         borderWidth: chartType === 'line' ? 2 : 1,
         fill: chartType === 'line',
         tension: chartType === 'line' ? 0.3 : 0,
         barThickness: chartType === 'bar' ? 20 : undefined,
       }],
     };
-  }, [attendanceData, filter, dateRange, chartType]);
+  }, [attendanceData, filter, dateRange, chartType, themeColors]);
 
   const getXAxisLabel = useCallback(() => {
     switch (filter) {
@@ -484,7 +484,10 @@ const AttendanceTrends = () => {
             type="text"
             onClick={handleToggleDebug}
             size="small"
-            style={{ backgroundColor: debugMode ? '#ff4d4f' : '#1890ff', color: 'white' }}
+            style={{
+              backgroundColor: debugMode ? themeColors.accent : themeColors.primary,
+              color: themeColors.text
+            }}
           >
             {debugMode ? 'Debug: ON' : 'Debug'}
           </Button>
