@@ -457,7 +457,13 @@ const StudentDashboard = () => {
                   current={eventPage}
                   pageSize={pageSize}
                   total={totalEvents}
-                  onChange={(page) => setEventPage(page)}
+                  onChange={(page) => {
+                    // Only allow navigation to pages that have data
+                    const maxPage = Math.ceil(totalEvents / pageSize);
+                    if (page <= maxPage) {
+                      setEventPage(page);
+                    }
+                  }}
                   showSizeChanger={false}
                   style={{ textAlign: 'center', marginTop: 16 }}
                 />
@@ -649,7 +655,13 @@ const StudentDashboard = () => {
                   current={notificationPage}
                   pageSize={pageSize}
                   total={totalNotifications}
-                  onChange={(page) => setNotificationPage(page)}
+                  onChange={(page) => {
+                    // Only allow navigation to pages that have data
+                    const maxPage = Math.ceil(totalNotifications / pageSize);
+                    if (page <= maxPage) {
+                      setNotificationPage(page);
+                    }
+                  }}
                   showSizeChanger={false}
                   style={{ textAlign: 'center', marginTop: 16 }}
                 />
@@ -960,138 +972,137 @@ const StudentDashboard = () => {
           }
 
           /* Target feedback modal cancel button specifically */
-          .ant-modal-footer > .ant-btn:not(.ant-btn-primary) {
+          .ant-modal-footer button.ant-btn:not(.ant-btn-primary) {
             background-color: ${themeColors.accent} !important;
             border-color: ${themeColors.accent} !important;
             color: #fff !important;
             opacity: 1;
-            transition: opacity 0.3s ease;
-            cursor: pointer;
+            transition: opacity 0.3s;
           }
 
-          .ant-modal-footer > .ant-btn:not(.ant-btn-primary):hover {
+          .ant-modal-footer button.ant-btn:not(.ant-btn-primary):hover {
+            opacity: 0.8;
             background-color: ${themeColors.accent} !important;
             border-color: ${themeColors.accent} !important;
             color: #fff !important;
-            opacity: 0.7 !important;
           }
 
-          .ant-modal-footer > .ant-btn:not(.ant-btn-primary) > span {
-            color: #fff !important;
+          /* Dark mode Select dropdown styles */
+          [data-theme='dark'] .ant-select-selector {
+            background-color: ${themeColors.background} !important;
+            border-color: ${themeColors.border} !important;
+            color: ${themeColors.text} !important;
           }
 
-          /* Dark mode slider marks with better visibility */
-          [data-theme='dark'] .ant-slider-mark {
-            color: #fff !important;
-            font-size: 14px;
+          [data-theme='dark'] .ant-select-selection-item {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-select-dropdown {
+            background-color: ${themeColors.background} !important;
+          }
+
+          [data-theme='dark'] .ant-select-item {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+            background-color: ${themeColors.border} !important;
+          }
+
+          [data-theme='dark'] .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+            background-color: ${themeColors.primary}40 !important;
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-select-arrow {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-select-dropdown .ant-select-item {
+            background-color: ${themeColors.background} !important;
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-content {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-active {
+            background-color: ${themeColors.border} !important;
+          }
+
+          [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-selected {
+            background-color: ${themeColors.primary}40 !important;
+          }
+
+          [data-theme='dark'] .ant-select-dropdown .ant-select-item:hover {
+            background-color: ${themeColors.border} !important;
+          }
+
+          [data-theme='dark'] .ant-select-selection-item {
+            color: ${themeColors.text} !important;
+          }
+
+          /* Dark mode calendar and datepicker styles */
+          [data-theme='dark'] .ant-picker {
+            background-color: ${themeColors.background} !important;
+            border-color: ${themeColors.border} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-suffix {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-input > input {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-dropdown {
+            background-color: ${themeColors.background} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-content th {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-header {
+            color: ${themeColors.text} !important;
+            border-bottom-color: ${themeColors.border} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-header button {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-header-view {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-cell {
+            color: ${themeColors.text} !important;
+          }
+
+          [data-theme='dark'] .ant-picker-cell-disabled {
+            color: ${themeColors.text}40 !important;
+          }
+
+          [data-theme='dark'] .ant-picker-cell-in-view {
+            color: ${themeColors.text} !important;
+          }
+
+          /* Dark mode calendar weekday headers */
+          [data-theme='dark'] .ant-picker-dropdown .ant-picker-content th {
+            color: ${themeColors.text} !important;
             font-weight: 500;
           }
 
-          [data-theme='dark'] .ant-slider-mark-text {
-            color: #fff !important;
-            opacity: 0.85;
+          [data-theme='dark'] .ant-picker-dropdown .ant-picker-week-panel-row th {
+            color: ${themeColors.text} !important;
           }
 
-          [data-theme='dark'] .ant-slider-mark-text-active {
-            color: #fff !important;
-            opacity: 1;
-          }
-
-          /* Enhanced dark mode slider marks visibility */
-          [data-theme='dark'] .ant-slider .ant-slider-mark > span.ant-slider-mark-text {
-            color: rgba(255, 255, 255, 0.85) !important;
-            font-size: 14px;
-            font-weight: 500;
-            text-shadow: 0px 1px 2px rgba(0, 0, 0, 0.2);
-          }
-
-          [data-theme='dark'] .ant-slider .ant-slider-mark > span.ant-slider-mark-text-active {
-            color: #fff !important;
-            font-weight: 600;
-          }
-
-          [data-theme='dark'] .ant-slider:hover .ant-slider-mark > span.ant-slider-mark-text {
-            opacity: 1;
-          }
-
-          /* More specific and contrasting slider marks in dark mode */
-          [data-theme='dark'] .ant-slider .ant-slider-mark {
-            z-index: 1;
-          }
-
-          [data-theme='dark'] .ant-slider .ant-slider-mark-text,
-          [data-theme='dark'] .ant-slider:hover .ant-slider-mark-text {
-            color: rgba(255, 255, 255, 0.95) !important;
-            font-size: 14px;
-            font-weight: 600;
-            background: rgba(0, 0, 0, 0.5);
-            padding: 2px 4px;
-            border-radius: 2px;
-            text-shadow: 1px 1px 1px rgba(0, 0, 0, 0.5);
-          }
-
-          [data-theme='dark'] .ant-slider .ant-slider-mark-text-active {
-            color: #fff !important;
-            font-weight: 700;
-          }
-
-          /* Override Ant Design's default slider mark styles */
-          .css-dev-only-do-not-override-1v613y0.ant-slider .ant-slider-mark-text,
-          .ant-slider .ant-slider-mark-text {
-            color: ${isDarkMode ? '#fff' : 'rgba(0, 0, 0, 0.45)'} !important;
-            font-size: 14px;
-            font-weight: 500;
-            text-shadow: ${isDarkMode ? '0px 1px 2px rgba(0, 0, 0, 0.5)' : 'none'};
-          }
-
-          .css-dev-only-do-not-override-1v613y0.ant-slider .ant-slider-mark-text-active,
-          .ant-slider .ant-slider-mark-text-active {
-            color: ${isDarkMode ? '#fff' : 'rgba(0, 0, 0, 0.88)'} !important;
-            font-weight: 600;
-          }
-
-          /* Slider mark styles with better active/inactive differentiation */
-          .ant-slider .ant-slider-mark-text {
-            color: ${isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.45)'} !important;
-            font-size: 12px;
-            font-weight: 400;
-            opacity: 0.7;
-            transition: all 0.3s ease;
-          }
-
-          .ant-slider .ant-slider-mark-text-active {
-            color: ${isDarkMode ? '#fff' : 'rgba(0, 0, 0, 0.88)'} !important;
-            font-size: 14px;
-            font-weight: 600;
-            opacity: 1;
-            transform: scale(1.05);
-          }
-
-          .ant-slider .ant-slider-mark-text:hover {
-            opacity: 1;
-          }
-
-          /* Add background for better visibility */
-          [data-theme='dark'] .ant-slider .ant-slider-mark-text-active {
-            background: rgba(0, 0, 0, 0.4);
-            padding: 2px 6px;
-            border-radius: 3px;
-          }
-
-          /* Make Rate component unfilled stars more visible */
-          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
-          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
-            color: ${isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)'} !important;
-          }
-
-          .ant-rate .ant-rate-star-first,
-          .ant-rate .ant-rate-star-second {
-            transition: all 0.3s ease;
-          }
-
-          .ant-rate:hover .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
-          .ant-rate:hover .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
-            color: ${isDarkMode ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.25)'} !important;
+          [data-theme='dark'] .ant-picker-week-panel-row-selected th {
+            color: ${themeColors.text} !important;
           }
         `}
       </style>
