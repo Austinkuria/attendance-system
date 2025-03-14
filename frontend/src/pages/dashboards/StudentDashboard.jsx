@@ -1077,6 +1077,22 @@ const StudentDashboard = () => {
             padding: 2px 6px;
             border-radius: 3px;
           }
+
+          /* Make Rate component unfilled stars more visible */
+          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
+          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
+            color: ${isDarkMode ? 'rgba(255, 255, 255, 0.3)' : 'rgba(0, 0, 0, 0.15)'} !important;
+          }
+
+          .ant-rate .ant-rate-star-first,
+          .ant-rate .ant-rate-star-second {
+            transition: all 0.3s ease;
+          }
+
+          .ant-rate:hover .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
+          .ant-rate:hover .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
+            color: ${isDarkMode ? 'rgba(255, 255, 255, 0.45)' : 'rgba(0, 0, 0, 0.25)'} !important;
+          }
         `}
       </style>
       <Header style={styles.header}>
