@@ -1284,81 +1284,167 @@ const StudentDashboard = () => {
           [data-theme='light'] .header-profile-icon {
             color: #000 !important;
           }
+
+          /* Add these slider mark text styles to ensure visibility in both themes */
+          .ant-slider-mark-text {
+            color: ${themeColors.text} !important;
+            opacity: 0.6;
+          }
+
+          /* Make active slider mark text more noticeable */
+          .ant-slider-mark-text-active {
+            color: ${themeColors.text} !important;
+            opacity: 1;
+            font-weight: 600;
+          }
+
+          /* Fix for light mode specifically */
+          [data-theme='light'] .ant-slider-mark-text {
+            color: rgba(0, 0, 0, 0.8) !important;
+          }
+
+          [data-theme='light'] .ant-slider-mark-text-active {
+            color: rgba(0, 0, 0, 0.9) !important;
+            font-weight: 600;
+          }
+
+          /* Fix for dark mode specifically */
+          [data-theme='dark'] .ant-slider-mark-text {
+            color: rgba(255, 255, 255, 0.8) !important;
+          }
+
+          [data-theme='dark'] .ant-slider-mark-text-active {
+            color: rgba(255, 255, 255, 1) !important;
+            font-weight: 600;
+          }
+          
+          /* Rate component styles - fix visibility in both modes */
+          .ant-rate {
+            color: ${themeColors.primary} !important;
+          }
+          
+          /* Fix empty stars in both themes */
+          .ant-rate-star-zero .ant-rate-star-first svg,
+          .ant-rate-star-zero .ant-rate-star-second svg {
+            color: rgba(0, 0, 0, 0.2) !important;
+            fill: rgba(0, 0, 0, 0.2) !important;
+          }
+          
+          [data-theme='dark'] .ant-rate-star-zero .ant-rate-star-first svg,
+          [data-theme='dark'] .ant-rate-star-zero .ant-rate-star-second svg {
+            color: rgba(255, 255, 255, 0.3) !important;
+            fill: rgba(255, 255, 255, 0.3) !important;
+          }
+          
+          /* Ensure the stars have solid outline in all modes */
+          .ant-rate .ant-rate-star svg {
+            stroke-width: 1px;
+            stroke: currentColor;
+          }
+
+          /* Ensure contrast for the outline */
+          [data-theme='light'] .ant-rate-star:not(.ant-rate-star-full) svg {
+            stroke: rgba(0, 0, 0, 0.45) !important;
+          }
+          
+          [data-theme='dark'] .ant-rate-star:not(.ant-rate-star-full) svg {
+            stroke: rgba(255, 255, 255, 0.45) !important;
+          }
+
+          /* Rate component styles for feedback modal */
+          .feedback-rate.ant-rate {
+            font-size: 24px;
+          }
+
+          .feedback-rate .ant-rate-star {
+            margin-inline-end: 4px;
+          }
+
+          /* Updated unfilled star color to match placeholder opacity */
+          .feedback-rate .ant-rate-star:not(.ant-rate-star-full) svg {
+            fill: ${themeColors.text}40 !important;
+            color: ${themeColors.text}40 !important;
+          }
+
+          /* Ensure consistency in hover state */
+          .feedback-rate .ant-rate-star:hover:not(.ant-rate-star-full) svg {
+            fill: ${themeColors.primary}80 !important;
+            color: ${themeColors.primary}80 !important;
+          }
+
+          /* Filled star color */
+          .feedback-rate .ant-rate-star-full svg {
+            fill: ${themeColors.primary} !important;
+            color: ${themeColors.primary} !important;
+          }
         `}
       </style>
       <Header style={styles.header}>
         <Space>
           <Button
             type="text"
-            icon={collapsed ?
-              <MenuUnfoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} /> :
-              <MenuFoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} />
-            }
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: 18, width: 64, height: 64 }}
+            style={{ color: themeColors.text }}
           />
+          <AntTitle level={3} style={{ color: themeColors.text, margin: 0 }}>
+            Student Dashboard
+          </AntTitle>
         </Space>
-        <AntTitle
-          level={3}
-          style={{
-            margin: 0,
-            flex: 1,
-            textAlign: 'center',
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: window.innerWidth < 992 ? 'none' : 'block',
-            color: themeColors.text,
-          }}
-        >
-          Student Dashboard
-        </AntTitle>
-        <AntTitle
-          level={3}
-          style={{
-            margin: 0,
-            display: window.innerWidth >= 992 ? 'none' : 'inline',
-            color: themeColors.text,
-          }}
-        >
-          Student Dashboard
-        </AntTitle>
         <Space>
           <Switch
             checked={isDarkMode}
             onChange={() => setIsDarkMode(!isDarkMode)}
-            checkedChildren="Dark"
-            unCheckedChildren="Light"
+            checkedChildren="🌙"
+            unCheckedChildren="☀️"
           />
-          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
+          <Dropdown
+            overlay={
+              <Menu items={profileItems} />
+            }
+            trigger={['click']}
+          >
             <Button
               type="text"
-              icon={<UserOutlined className="header-profile-icon" style={{ fontSize: 24, color: isDarkMode ? '#fff' : undefined }} />}
+              icon={<UserOutlined className="header-profile-icon" />}
+              style={{ color: themeColors.text }}
             />
           </Dropdown>
         </Space>
       </Header>
-
       <Layout>
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={styles.sider}>
+        <Sider
+          trigger={null}
+          collapsible
+          collapsed={collapsed}
+          style={styles.sider}
+        >
           <Menu
+            theme="dark"
             mode="inline"
             defaultSelectedKeys={['1']}
-            items={[
-              { key: '1', icon: <BookOutlined style={{ color: themeColors.text }} />, label: 'My Units', onClick: () => scrollToSection('my-units') },
-              { key: '2', icon: <BarChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
-              { key: '3', icon: <LineChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
-            ]}
-          />
+            style={styles.menu}
+          >
+            <Menu.Item key="1" icon={<BookOutlined />} onClick={() => scrollToSection('my-units')}>
+              My Units
+            </Menu.Item>
+            <Menu.Item key="2" icon={<BarChartOutlined />} onClick={() => scrollToSection('attendance-overview')}>
+              Attendance Overview
+            </Menu.Item>
+            <Menu.Item key="3" icon={<LineChartOutlined />} onClick={() => navigate('/student/attendance-trends')}>
+              Attendance Trends
+            </Menu.Item>
+          </Menu>
         </Sider>
-
         <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
           <Spin
             size="large"
             spinning={loading}
-            tip={<span style={{ color: isDarkMode ? '#fff' : themeColors.text, fontSize: '16px', fontWeight: 500 }}>
-              Loading data...
-            </span>}
+            tip={
+              <span style={{ color: isDarkMode ? '#fff' : themeColors.text, fontSize: '16px', fontWeight: 500 }}>
+                Loading data...
+              </span>
+            }
             className="custom-spin"
           >
             {dataLoadingError && !loading ? (
@@ -1558,7 +1644,12 @@ const StudentDashboard = () => {
                   <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
                     <div>
                       <p>Overall Satisfaction <span style={{ color: themeColors.accent }}>*</span></p>
-                      <Rate allowHalf value={feedbackData.rating} onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })} />
+                      <Rate
+                        allowHalf
+                        value={feedbackData.rating}
+                        onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
+                        className="feedback-rate"
+                      />
                     </div>
                     <div>
                       <p>Pace of the Session (Slow to Fast) <span style={{ color: themeColors.accent }}>*</span></p>
@@ -1572,7 +1663,11 @@ const StudentDashboard = () => {
                     </div>
                     <div>
                       <p>Interactivity Level <span style={{ color: themeColors.accent }}>*</span></p>
-                      <Rate value={feedbackData.interactivity} onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })} />
+                      <Rate
+                        value={feedbackData.interactivity}
+                        onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })}
+                        className="feedback-rate"
+                      />
                     </div>
                     <div>
                       <p>Was the content clear? <span style={{ color: themeColors.accent }}>*</span></p>
