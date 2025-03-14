@@ -835,16 +835,42 @@ const StudentDashboard = () => {
       <style>
         {styles.globalStyles}
         {`
-          .dark-mode-spinner .ant-spin-dot-item {
-            background-color: #fff !important;
+          /* Add custom spin size styles */
+          .custom-spin.ant-spin {
+            font-size: 24px;
           }
-          .dark-mode-spinner .ant-spin-text {
-            color: #fff !important;
+          
+          .custom-spin .ant-spin-text {
+            margin-top: 16px;
+            font-size: 16px;
           }
+          
+          .custom-spin.ant-spin-spinning {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            min-height: 400px;
+          }
+          
+          .custom-spin .ant-spin-dot {
+            font-size: 48px;
+          }
+          
+          .custom-spin .ant-spin-dot i {
+            width: 24px;
+            height: 24px;
+          }
+
+          /* ... rest of existing styles ... */
+          
+          /* Remove the dark mode spinner overrides and other styles remain the same */
           
           /* Light mode pagination styling */
           [data-theme='light'] .ant-pagination-item a {
-            color: #000 !important; /* Black color for non-active items */
+            color: #000 !important;
           }
           
           [data-theme='light'] .ant-pagination-item:hover a {
@@ -964,9 +990,12 @@ const StudentDashboard = () => {
 
         <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
           <Spin
+            size="large"
             spinning={loading}
-            tip={<span style={{ color: isDarkMode ? '#fff' : undefined }}>Loading data...</span>}
-            className={isDarkMode ? "dark-mode-spinner" : ""}
+            tip={<span style={{ color: isDarkMode ? '#fff' : themeColors.text, fontSize: '16px', fontWeight: 500 }}>
+              Loading data...
+            </span>}
+            className="custom-spin"
           >
             {username && (
               <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
@@ -1155,13 +1184,13 @@ const StudentDashboard = () => {
                   />
                 </div>
                 <Input.TextArea
-                  rows={4}
+                  rows={1}
                   placeholder="Share your thoughts (optional)"
                   value={feedbackData.text}
                   onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
                 />
                 <Input.TextArea
-                  rows={3}
+                  rows={1}
                   placeholder="Suggestions for resources or improvements (optional)"
                   value={feedbackData.resources}
                   onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
