@@ -166,8 +166,16 @@ const StudentDashboard = () => {
         setUnitSessionStatus(Object.fromEntries(sessionStatuses.map(status => [status.unitId, status])));
       }
 
+      // Create a unique ID for each notification to prevent duplicates
+      const existingNotificationIds = new Set(pendingFeedbacks.map(pf => `${pf.sessionId}-${pf.unitId}`));
+
       const newPendingFeedbacks = feedbackRes.pendingFeedbackRecords
-        .filter(record => !processedNotifications.has(record.session._id))
+        .filter(record =>
+          // Filter out already processed notifications
+          !processedNotifications.has(record.session._id) &&
+          // Filter out duplicates that already exist in the state
+          !existingNotificationIds.has(`${record.session._id}-${record.session.unit._id}`)
+        )
         .map((record) => ({
           sessionId: record.session._id,
           unitId: record.session.unit._id,
@@ -175,6 +183,8 @@ const StudentDashboard = () => {
           title: "Feedback Available",
           message: "Please provide your feedback for the session.",
           timestamp: record.session.endTime || new Date(),
+          // Add a unique notification ID
+          notificationId: `${record.session._id}-${record.session.unit._id}`
         }));
 
       if (newPendingFeedbacks.length > 0) {
@@ -200,7 +210,22 @@ const StudentDashboard = () => {
 
         // Filter out null values and update state
         const validFeedbacks = checkedFeedbacks.filter(f => f !== null);
-        setPendingFeedbacks(prev => [...prev, ...validFeedbacks]);
+
+        // Update state with new unique notifications
+        setPendingFeedbacks(prev => {
+          // Create a map of existing notifications
+          const existingNotifications = new Map(prev.map(p => [p.notificationId || `${p.sessionId}-${p.unitId}`, p]));
+
+          // Add new notifications, overwriting if duplicate
+          validFeedbacks.forEach(feedback => {
+            if (feedback) {
+              existingNotifications.set(feedback.notificationId, feedback);
+            }
+          });
+
+          // Convert the map back to array
+          return Array.from(existingNotifications.values());
+        });
       }
 
     } catch (error) {
@@ -216,12 +241,41 @@ const StudentDashboard = () => {
   }, [pendingFeedbacks]);
 
   useEffect(() => {
-    const savedFeedbacks = JSON.parse(localStorage.getItem('pendingFeedbacks')) || [];
-    setPendingFeedbacks(savedFeedbacks);
+    // Load notifications from localStorage, but ensure no duplicates
+    try {
+      const savedFeedbacks = JSON.parse(localStorage.getItem('pendingFeedbacks')) || [];
+
+      // Add notificationId if it doesn't exist
+      const feedbacksWithIds = savedFeedbacks.map(feedback => ({
+        ...feedback,
+        notificationId: feedback.notificationId || `${feedback.sessionId}-${feedback.unitId}`
+      }));
+
+      // Filter out duplicates by using a Map with notificationId as keys
+      const uniqueFeedbacks = Array.from(
+        new Map(feedbacksWithIds.map(item => [item.notificationId, item])).values()
+      );
+
+      setPendingFeedbacks(uniqueFeedbacks);
+    } catch (error) {
+      console.error("Error loading notifications from localStorage:", error);
+      setPendingFeedbacks([]);
+    }
   }, []);
 
   useEffect(() => {
-    localStorage.setItem('pendingFeedbacks', JSON.stringify(pendingFeedbacks));
+    // Ensure all notifications have a notificationId before saving
+    const feedbacksToSave = pendingFeedbacks.map(feedback => ({
+      ...feedback,
+      notificationId: feedback.notificationId || `${feedback.sessionId}-${feedback.unitId}`
+    }));
+
+    // Save unique notifications by using a Map
+    const uniqueFeedbacks = Array.from(
+      new Map(feedbacksToSave.map(item => [item.notificationId, item])).values()
+    );
+
+    localStorage.setItem('pendingFeedbacks', JSON.stringify(uniqueFeedbacks));
   }, [pendingFeedbacks]);
 
   useEffect(() => {
@@ -530,11 +584,20 @@ const StudentDashboard = () => {
   };
 
   const renderNotifications = () => {
-    const sortedNotifications = [...pendingFeedbacks].sort((a, b) => {
+    // Ensure we have unique notifications by using a Map
+    const uniqueNotifications = Array.from(
+      new Map(pendingFeedbacks.map(item => [
+        item.notificationId || `${item.sessionId}-${item.unitId}`,
+        item
+      ])).values()
+    );
+
+    const sortedNotifications = uniqueNotifications.sort((a, b) => {
       const timeA = moment(a.timestamp).valueOf();
       const timeB = moment(b.timestamp).valueOf();
       return notificationSortOrder === 'mostRecent' ? timeB - timeA : timeA - timeB;
     });
+
     const totalNotifications = sortedNotifications.length;
     const startIndex = (notificationPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
@@ -571,7 +634,17 @@ const StudentDashboard = () => {
         if (shouldDismiss) {
           // Still show individual messages when manually clicking on a notification
           message.info(`Notification dismissed: Cannot provide feedback for this ${dismissReason}.`);
-          setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== sessionId));
+
+          // Remove this specific notification
+          setPendingFeedbacks((prev) => prev.filter((pf) =>
+            pf.notificationId !== `${sessionId}-${unitId}` && pf.sessionId !== sessionId
+          ));
+
+          // Add to processed notifications
+          const processedNotifications = new Set(JSON.parse(localStorage.getItem('processedNotifications') || '[]'));
+          processedNotifications.add(sessionId);
+          localStorage.setItem('processedNotifications', JSON.stringify([...processedNotifications]));
+
           return;
         }
 
@@ -778,8 +851,13 @@ const StudentDashboard = () => {
         ),
       }));
 
-      // Silently dismiss notifications without showing message
+      // Remove all notifications related to this session
       setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== activeSessionId));
+
+      // Add this session to processed notifications
+      const processedNotifications = new Set(JSON.parse(localStorage.getItem('processedNotifications') || '[]'));
+      processedNotifications.add(activeSessionId);
+      localStorage.setItem('processedNotifications', JSON.stringify([...processedNotifications]));
 
       await fetchAllData();
     } catch (error) {
@@ -1110,6 +1188,15 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-picker-cell-selected .ant-picker-cell-inner {
             background: ${themeColors.primary} !important;
           }
+
+          /* Fix profile icon color in dark mode */
+          [data-theme='dark'] .header-profile-icon {
+            color: #fff !important;
+          }
+          
+          [data-theme='light'] .header-profile-icon {
+            color: #000 !important;
+          }
         `}
       </style>
       <Header style={styles.header}>
@@ -1157,7 +1244,10 @@ const StudentDashboard = () => {
             unCheckedChildren="Light"
           />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} />
+            <Button
+              type="text"
+              icon={<UserOutlined className="header-profile-icon" style={{ fontSize: 24, color: isDarkMode ? '#fff' : undefined }} />}
+            />
           </Dropdown>
         </Space>
       </Header>
