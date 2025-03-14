@@ -37,6 +37,7 @@ import AdminFeedbackView from './pages/FeedbackPages/AdminFeedbackView';
 import LecturerFeedbackView from './pages/FeedbackPages/LecturerFeedbackView';
 import PastAttendance from './pages/dashboards/PastAttendance';
 import { ThemeProvider } from './context/ThemeContext';
+import { ThemeAwareToasts } from './components/ThemeAwareToasts';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -88,6 +89,7 @@ function App() {
           pauseOnHover
         />
         <InstallButton />
+        <ThemeAwareToasts />
 
         {showBanner && (
           <div
