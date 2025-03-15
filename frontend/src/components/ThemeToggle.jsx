@@ -2,6 +2,7 @@
 import { Switch } from 'antd';
 import { BulbOutlined, BulbFilled } from '@ant-design/icons';
 import { useContext } from 'react';
+import PropTypes from 'prop-types';
 import { ThemeContext } from '../context/ThemeContext';
 
 const ThemeToggle = ({ position = 'default' }) => {
@@ -34,6 +35,9 @@ const ThemeToggle = ({ position = 'default' }) => {
       }}
     />
   );
+};
+ThemeToggle.propTypes = {
+  position: PropTypes.oneOf(['default', 'topRight', 'headerRight'])
 };
 
 export default ThemeToggle;

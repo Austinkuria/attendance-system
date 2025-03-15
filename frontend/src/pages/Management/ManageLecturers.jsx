@@ -841,18 +841,27 @@ const ManageLecturers = () => {
                 </Select>
               </Col>
             </Row>
-            <Row gutter={[16, 16]} style={{ marginTop: 2 }}>
+            <Row gutter={[16, 16]} style={{ marginTop: 16 }}>
               <Col xs={24} md={8}>
                 <Row gutter={8} align="middle">
                   <Col flex="auto">
-                    <Input type="file" accept=".csv" onChange={handleFileUpload} />
+                    <Input
+                      type="file"
+                      accept=".csv"
+                      onChange={handleFileUpload}
+                      style={{ marginRight: 8, marginBottom: 8 }}
+                    />
                   </Col>
                   <Col>
                     <Button
                       type="primary"
                       icon={<ImportOutlined />}
                       disabled={!file}
-                      style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+                      style={{
+                        background: themeColors.primary,
+                        borderColor: themeColors.primary,
+                        margin: '0 8px 8px 0'
+                      }}
                       onClick={handleImport}
                     >
                       {file ? `Import ${file.name}` : "CSV Import"}
@@ -865,7 +874,11 @@ const ManageLecturers = () => {
                   type="primary"
                   icon={<DownloadOutlined />}
                   block
-                  style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+                  style={{
+                    background: themeColors.primary,
+                    borderColor: themeColors.primary,
+                    margin: '8px 0'
+                  }}
                   onClick={async () => {
                     try {
                       await downloadLecturers();
