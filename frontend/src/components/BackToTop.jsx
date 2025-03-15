@@ -5,7 +5,7 @@ import { ThemeContext } from '../context/ThemeContext';
 
 const BackToTop = () => {
     const [visible, setVisible] = useState(false);
-    const { themeColors } = useContext(ThemeContext);
+    const { isDarkMode, themeColors } = useContext(ThemeContext);
 
     useEffect(() => {
         const toggleVisibility = () => {
@@ -42,13 +42,13 @@ const BackToTop = () => {
                         zIndex: 10000,
                         background: themeColors.primary,
                         borderColor: themeColors.primary,
-                        color: themeColors.text,
+                        color: themeColors.textInvert,
                         width: 50,
                         height: 50,
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+                        boxShadow: `0 4px 10px ${isDarkMode ? 'rgba(0, 0, 0, 0.4)' : 'rgba(0, 0, 0, 0.2)'}`,
                         pointerEvents: 'auto',
                     }}
                     className="back-to-top-btn"

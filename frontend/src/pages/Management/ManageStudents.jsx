@@ -887,13 +887,27 @@ const ManageStudents = () => {
         open={isAddModalVisible}
         onCancel={() => setIsAddModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>Cancel</Button>,
+          <Button
+            key="cancel"
+            onClick={() => setIsAddModalVisible(false)}
+            style={{
+              color: isDarkMode ? themeColors.text : themeColors.text,
+              background: isDarkMode ? themeColors.cardBg : '#fff',
+              borderColor: themeColors.border
+            }}
+          >
+            Cancel
+          </Button>,
           <Button
             key="submit"
             type="primary"
             onClick={handleAddStudent}
             loading={loading}
-            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+            style={{
+              background: themeColors.primary,
+              borderColor: themeColors.primary,
+              color: themeColors.textInvert
+            }}
           >
             Create Student
           </Button>,
@@ -1029,13 +1043,27 @@ const ManageStudents = () => {
         open={isEditModalVisible}
         onCancel={() => setIsEditModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setIsEditModalVisible(false)}>Cancel</Button>,
+          <Button
+            key="cancel"
+            onClick={() => setIsEditModalVisible(false)}
+            style={{
+              color: isDarkMode ? themeColors.text : themeColors.text,
+              background: isDarkMode ? themeColors.cardBg : '#fff',
+              borderColor: themeColors.border
+            }}
+          >
+            Cancel
+          </Button>,
           <Button
             key="submit"
             type="primary"
             onClick={handleEditStudent}
             loading={loading}
-            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+            style={{
+              background: themeColors.primary,
+              borderColor: themeColors.primary,
+              color: themeColors.textInvert
+            }}
           >
             Save Changes
           </Button>,
@@ -1150,14 +1178,28 @@ const ManageStudents = () => {
         centered
         onCancel={() => setIsDeleteModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setIsDeleteModalVisible(false)}>Cancel</Button>,
+          <Button
+            key="cancel"
+            onClick={() => setIsDeleteModalVisible(false)}
+            style={{
+              color: isDarkMode ? themeColors.text : themeColors.text,
+              background: isDarkMode ? themeColors.cardBg : '#fff',
+              borderColor: themeColors.border
+            }}
+          >
+            Cancel
+          </Button>,
           <Button
             key="delete"
             type="primary"
             danger
             onClick={handleConfirmDelete}
             loading={loading}
-            style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+            style={{
+              background: themeColors.accent,
+              borderColor: themeColors.accent,
+              color: themeColors.textInvert
+            }}
           >
             Delete Student
           </Button>,

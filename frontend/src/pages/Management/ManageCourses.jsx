@@ -602,7 +602,12 @@ const ManageCourses = () => {
           )}
 
           <Row justify="space-between" align="middle" style={styles.headerRow} className="header-row">
-            <Button type="link" icon={<LeftOutlined />} onClick={() => navigate('/admin')}>
+            <Button
+              type="link"
+              icon={<LeftOutlined />}
+              onClick={() => navigate('/admin')}
+              style={{ color: themeColors.primary }}
+            >
               Back to Admin
             </Button>
             <Title level={3} style={styles.headerTitle}>
@@ -613,7 +618,7 @@ const ManageCourses = () => {
             <Button
               type="primary"
               icon={<PlusOutlined />}
-              style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+              style={{ background: themeColors.primary, borderColor: themeColors.primary, color: themeColors.textInvert }}
               onClick={() => {
                 setShowCourseModal(true);
                 setSelectedCourse(null);
@@ -687,13 +692,27 @@ const ManageCourses = () => {
               form.resetFields();
             }}
             footer={[
-              <Button key="cancel" onClick={() => setShowCourseModal(false)}>Cancel</Button>,
+              <Button
+                key="cancel"
+                onClick={() => setShowCourseModal(false)}
+                style={{
+                  color: isDarkMode ? themeColors.text : themeColors.text,
+                  background: isDarkMode ? themeColors.cardBg : '#fff',
+                  borderColor: themeColors.border
+                }}
+              >
+                Cancel
+              </Button>,
               <Button
                 key="submit"
                 type="primary"
                 onClick={handleCourseSubmit}
                 loading={loading}
-                style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+                style={{
+                  background: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  color: themeColors.textInvert
+                }}
               >
                 Save Course
               </Button>,
@@ -756,14 +775,28 @@ const ManageCourses = () => {
             centered
             onCancel={() => setShowDeleteModal(false)}
             footer={[
-              <Button key="cancel" onClick={() => setShowDeleteModal(false)}>Cancel</Button>,
+              <Button
+                key="cancel"
+                onClick={() => setShowDeleteModal(false)}
+                style={{
+                  color: isDarkMode ? themeColors.text : themeColors.text,
+                  background: isDarkMode ? themeColors.cardBg : '#fff',
+                  borderColor: themeColors.border
+                }}
+              >
+                Cancel
+              </Button>,
               <Button
                 key="delete"
                 type="primary"
                 danger
                 onClick={handleDelete}
                 loading={loading}
-                style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+                style={{
+                  background: themeColors.accent,
+                  borderColor: themeColors.accent,
+                  color: themeColors.textInvert
+                }}
               >
                 Delete Course
               </Button>,
@@ -784,14 +817,28 @@ const ManageCourses = () => {
             title={<span style={styles.modalHeader}>Confirm Unit Removal</span>}
             onCancel={() => setShowUnitDeleteModal(false)}
             footer={[
-              <Button key="cancel" onClick={() => setShowUnitDeleteModal(false)}>Cancel</Button>,
+              <Button
+                key="cancel"
+                onClick={() => setShowUnitDeleteModal(false)}
+                style={{
+                  color: isDarkMode ? themeColors.text : themeColors.text,
+                  background: isDarkMode ? themeColors.cardBg : '#fff',
+                  borderColor: themeColors.border
+                }}
+              >
+                Cancel
+              </Button>,
               <Button
                 key="remove"
                 type="primary"
                 danger
                 onClick={confirmUnitDelete}
                 loading={loading}
-                style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+                style={{
+                  background: themeColors.accent,
+                  borderColor: themeColors.accent,
+                  color: themeColors.textInvert
+                }}
               >
                 Remove Unit
               </Button>,

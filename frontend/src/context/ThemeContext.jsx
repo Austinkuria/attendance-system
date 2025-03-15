@@ -22,12 +22,16 @@ export const ThemeProvider = ({ children }) => {
       accent: '#FF7675',         // Warnings, errors, or emphasis
       background: '#F7F9FC',     // Page background
       text: '#2D3436',           // Default text
+      textInvert: '#FFFFFF',     // Text on dark backgrounds
+      textSecondary: '#718096',  // Secondary text color
       cardBg: '#FFFFFF',         // Card backgrounds
       border: '#E2E8F0',         // Borders, dividers
       hover: '#EDF2FF',          // Hover background (light tint of primary)
       focus: '#A29BFE',          // Focus states (derived from primary)
       disabled: '#CBD5E0',       // Disabled elements
       placeholder: '#A0AEC0',    // Placeholder text
+      primaryLight: '#EDF2FF',   // Light version of primary
+      backgroundLight: '#F7F9FC', // Light version of background
 
       // Summary Card Gradients (constrained to palette)
       cardGradient1: 'linear-gradient(135deg, #6C5CE7, #A29BFE)', // Primary-based
@@ -51,12 +55,16 @@ export const ThemeProvider = ({ children }) => {
       accent: '#FAB1A0',         // Lightened accent
       background: '#2D3436',     // Dark background
       text: '#F7F9FC',           // Light text
+      textInvert: '#2D3436',     // Text on light backgrounds
+      textSecondary: '#A0AEC0',  // Secondary text color
       cardBg: '#3A4042',         // Dark card background
       border: '#4A5568',         // Dark borders
       hover: '#4A5568',          // Hover background (dark tint)
       focus: '#6C5CE7',          // Focus states (darker primary)
       disabled: '#718096',       // Disabled elements
       placeholder: '#A0AEC0',    // Placeholder text
+      primaryLight: '#3A3851',   // Light version of primary for dark mode
+      backgroundLight: '#353B3D', // Light version of background for dark mode
 
       // Summary Card Gradients (constrained to palette)
       cardGradient1: 'linear-gradient(135deg, #5A4FCF, #8E86E5)!important', // Primary-based

@@ -811,7 +811,15 @@ const ManageLecturers = () => {
         open={isAddModalVisible}
         onCancel={() => setIsAddModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setIsAddModalVisible(false)}>
+          <Button
+            key="cancel"
+            onClick={() => setIsAddModalVisible(false)}
+            style={{
+              color: isDarkMode ? themeColors.text : themeColors.text,
+              background: isDarkMode ? themeColors.cardBg : '#fff',
+              borderColor: themeColors.border
+            }}
+          >
             Cancel
           </Button>,
           <Button
@@ -819,7 +827,11 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleAddLecturer}
             loading={loading}
-            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+            style={{
+              background: themeColors.primary,
+              borderColor: themeColors.primary,
+              color: themeColors.textInvert
+            }}
           >
             Add Lecturer
           </Button>,
@@ -903,7 +915,15 @@ const ManageLecturers = () => {
         open={isEditModalVisible}
         onCancel={() => setIsEditModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setIsEditModalVisible(false)}>
+          <Button
+            key="cancel"
+            onClick={() => setIsEditModalVisible(false)}
+            style={{
+              color: isDarkMode ? themeColors.text : themeColors.text,
+              background: isDarkMode ? themeColors.cardBg : '#fff',
+              borderColor: themeColors.border
+            }}
+          >
             Cancel
           </Button>,
           <Button
@@ -911,7 +931,11 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleEditLecturer}
             loading={loading}
-            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+            style={{
+              background: themeColors.primary,
+              borderColor: themeColors.primary,
+              color: themeColors.textInvert
+            }}
           >
             Save Changes
           </Button>,
@@ -976,7 +1000,15 @@ const ManageLecturers = () => {
         open={isDeleteModalVisible}
         onCancel={() => setIsDeleteModalVisible(false)}
         footer={[
-          <Button key="cancel" onClick={() => setIsDeleteModalVisible(false)}>
+          <Button
+            key="cancel"
+            onClick={() => setIsDeleteModalVisible(false)}
+            style={{
+              color: isDarkMode ? themeColors.text : themeColors.text,
+              background: isDarkMode ? themeColors.cardBg : '#fff',
+              borderColor: themeColors.border
+            }}
+          >
             Cancel
           </Button>,
           <Button
@@ -985,7 +1017,11 @@ const ManageLecturers = () => {
             danger
             onClick={handleConfirmDelete}
             loading={loading}
-            style={{ background: themeColors.accent, borderColor: themeColors.accent }}
+            style={{
+              background: themeColors.accent,
+              borderColor: themeColors.accent,
+              color: themeColors.textInvert
+            }}
           >
             Delete Lecturer
           </Button>,
@@ -1011,7 +1047,15 @@ const ManageLecturers = () => {
         open={isUnitsModalVisible}
         onCancel={() => setIsUnitsModalVisible(false)}
         footer={[
-          <Button key="close" onClick={() => setIsUnitsModalVisible(false)}>
+          <Button
+            key="close"
+            onClick={() => setIsUnitsModalVisible(false)}
+            style={{
+              color: isDarkMode ? themeColors.text : themeColors.text,
+              background: isDarkMode ? themeColors.cardBg : '#fff',
+              borderColor: themeColors.border
+            }}
+          >
             Close
           </Button>,
           <Button
@@ -1019,7 +1063,11 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleAssignUnit}
             loading={loading}
-            style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+            style={{
+              background: themeColors.primary,
+              borderColor: themeColors.primary,
+              color: themeColors.textInvert
+            }}
           >
             Assign Unit
           </Button>,
