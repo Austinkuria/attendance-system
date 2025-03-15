@@ -66,6 +66,7 @@ import { ThemeContext } from '../../context/ThemeContext';
 import { useStyles } from '../../styles/styles.js';
 import { useContext } from 'react';
 import BackToTop from '../../components/BackToTop.jsx';
+import ThemeToggle from '../../components/ThemeToggle.jsx';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -1809,12 +1810,7 @@ const StudentDashboard = () => {
           Student Dashboard
         </AntTitle>
         <Space>
-          <Switch
-            checked={isDarkMode}
-            onChange={() => setIsDarkMode(!isDarkMode)}
-            checkedChildren="Dark"
-            unCheckedChildren="Light"
-          />
+          <ThemeToggle />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
             <Button
               type="text"

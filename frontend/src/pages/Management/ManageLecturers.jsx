@@ -32,7 +32,6 @@ import {
   ApartmentOutlined
 } from "@ant-design/icons";
 import { ThemeContext } from '../../context/ThemeContext';
-import ThemeToggle from '../../components/ThemeToggle';
 import {
   getLecturers,
   deleteLecturer,
@@ -757,7 +756,6 @@ const ManageLecturers = () => {
               Back to Admin
             </Button>
             <h2 style={styles.headerTitle}>Lecturer Management</h2>
-            <ThemeToggle />
             <Button
               type="primary"
               icon={<UserAddOutlined />}

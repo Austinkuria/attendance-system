@@ -20,13 +20,13 @@ import {
   message,
   Typography,
   Spin,
-  Switch,
 } from 'antd';
 import { Link } from 'react-router-dom';
 import AttendanceManagement from '../../components/AttendanceManagement';
 import Analytics from './Analytics';
 import { ThemeContext } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
+import ThemeToggle from '../../components/ThemeToggle';
 
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
@@ -186,13 +186,7 @@ const LecturerDashboard = () => {
           Lecturer Dashboard
         </AntTitle>
         <Space>
-          <Switch
-            checked={isDarkMode}
-            onChange={() => setIsDarkMode(!isDarkMode)}
-            checkedChildren="Dark"
-            unCheckedChildren="Light"
-            style={{ marginRight: 16 }}
-          />
+          <ThemeToggle />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
             <Button
               type="text"

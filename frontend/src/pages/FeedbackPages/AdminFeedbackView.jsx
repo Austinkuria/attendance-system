@@ -14,7 +14,6 @@ import {
   Col,
   Statistic,
   Button,
-  Switch,
   Space // Added Space import
 } from 'antd';
 import { Bar } from 'react-chartjs-2';
@@ -124,7 +123,7 @@ const useStyles = (themeColors) => ({
 });
 
 const AdminFeedbackView = () => {
-  const { themeColors, isDarkMode, setIsDarkMode } = useContext(ThemeContext);
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const navigate = useNavigate();
   const [summary, setSummary] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -375,15 +374,6 @@ const AdminFeedbackView = () => {
         >
           Feedback Analytics Dashboard
         </AntTitle>
-        <Space>
-          <Switch
-            checked={isDarkMode}
-            onChange={() => setIsDarkMode(!isDarkMode)}
-            checkedChildren="Dark"
-            unCheckedChildren="Light"
-            style={{ marginRight: 16 }}
-          />
-        </Space>
       </Header>
 
       {/* Add paddingTop to the filters row to avoid overlap with the fixed header */}

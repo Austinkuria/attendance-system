@@ -38,7 +38,6 @@ import {
   getUnitsByCourse,
 } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';
-import ThemeToggle from '../../components/ThemeToggle';
 import { useTableStyles } from '../../components/SharedTableStyles';
 import { useModalStyles } from '../../components/SharedModalStyles';
 
@@ -682,7 +681,6 @@ const ManageCourses = () => {
               <BookOutlined style={{ marginRight: 8 }} />
               Course Management
             </Title>
-            <ThemeToggle />
             <Button
               type="primary"
               icon={<PlusOutlined />}

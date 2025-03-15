@@ -26,7 +26,7 @@ import {
 import moment from 'moment';
 import axios from 'axios';
 import { ThemeContext } from '../../context/ThemeContext';
-import { getDepartments,getLecturerUnits } from '../../services/api';
+import { getDepartments, getLecturerUnits } from '../../services/api';
 import { useTableStyles } from '../../components/SharedTableStyles';
 
 const { Option } = Select;
@@ -255,7 +255,14 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
 
   return (
     <>
-      <Card title={<Text strong style={{ color: themeColors.text }}>Past Attendance Records</Text>} style={cardStyle}>
+      <Card
+        title={
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text strong style={{ color: themeColors.text }}>Past Attendance Records</Text>
+          </div>
+        }
+        style={cardStyle}
+      >
         <Space direction="vertical" style={{ width: '100%' }}>
           <Space wrap style={{ marginBottom: 16 }}>
             <Select
