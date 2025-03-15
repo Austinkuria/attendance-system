@@ -735,6 +735,10 @@ const StudentDashboard = () => {
   const checkFeedbackStatus = async (sessionId) => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error("Authentication token missing");
+      }
+
       const response = await axios.get(
         `${API_URL}/attendance/feedback/status/${sessionId}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -742,7 +746,8 @@ const StudentDashboard = () => {
       return response.data.feedbackSubmitted;
     } catch (error) {
       console.error('Error checking feedback status:', error);
-      return false;
+      // Specifically throw the error so it can be caught and handled by the caller
+      throw error;
     }
   };
 
@@ -960,6 +965,13 @@ const StudentDashboard = () => {
 
   const openFeedbackModal = async (unitId) => {
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        message.error("Authentication token missing. Please log in again.");
+        navigate('/auth/login');
+        return;
+      }
+
       // Get all sessions for this unit, sorted by date (newest first)
       const unitAttendance = attendanceData.attendanceRecords
         .filter((data) => data.session.unit._id.toString() === unitId.toString())
@@ -973,10 +985,15 @@ const StudentDashboard = () => {
       }
 
       // Check if there's an active session first
-      const activeSession = await getActiveSessionForUnit(unitId);
-      if (activeSession && !activeSession.ended) {
-        message.info("Please mark your attendance first. Feedback will be available after the session ends.");
-        return;
+      try {
+        const activeSession = await getActiveSessionForUnit(unitId);
+        if (activeSession && !activeSession.ended) {
+          message.info("Please mark your attendance first. Feedback will be available after the session ends.");
+          return;
+        }
+      } catch (error) {
+        console.error("Error checking active session:", error);
+        // Continue if we can't check active session - might be no active session
       }
 
       // Check if feedback was already submitted for the latest session
@@ -999,11 +1016,16 @@ const StudentDashboard = () => {
         return;
       }
 
-      // Wrap checkSessionStatus to catch errors that indicate feedback was already submitted
-      let sessionStatus;
+      // Check session status
       try {
-        sessionStatus = await checkSessionStatus(latestSession.session._id);
+        const sessionStatus = await checkSessionStatus(latestSession.session._id);
+
+        if (!sessionStatus.ended) {
+          message.info("Feedback will be available after the session ends.");
+          return;
+        }
       } catch (e) {
+        // Check if this is the "already submitted" error
         if (
           e.response &&
           e.response.data &&
@@ -1021,52 +1043,71 @@ const StudentDashboard = () => {
           }));
           return;
         }
-        throw e;
-      }
 
-      if (!sessionStatus.ended) {
-        message.info("Feedback will be available after the session ends.");
-        return;
+        // For other errors, try to continue with the feedback modal
+        console.warn("Error checking session status:", e);
       }
 
       // Double-check feedback status one last time before opening modal
-      const feedbackStatus = await checkFeedbackStatus(latestSession.session._id);
-      if (feedbackStatus) {
-        message.info("You've already submitted feedback for this session.");
+      try {
+        const feedbackStatus = await checkFeedbackStatus(latestSession.session._id);
+        if (feedbackStatus) {
+          message.info("You've already submitted feedback for this session.");
 
-        // Update local state to reflect feedback submission
-        setAttendanceData(prev => ({
-          ...prev,
-          attendanceRecords: prev.attendanceRecords.map(rec =>
-            rec.session._id === latestSession.session._id
-              ? { ...rec, feedbackSubmitted: true }
-              : rec
-          )
-        }));
-        return;
+          // Update local state to reflect feedback submission
+          setAttendanceData(prev => ({
+            ...prev,
+            attendanceRecords: prev.attendanceRecords.map(rec =>
+              rec.session._id === latestSession.session._id
+                ? { ...rec, feedbackSubmitted: true }
+                : rec
+            )
+          }));
+          return;
+        }
+      } catch (error) {
+        // Just log the error but continue - the user may still be able to submit feedback
+        console.warn("Error checking feedback status:", error);
       }
 
-      // If all checks pass, open the feedback modal
+      // If all checks pass or some were skipped due to non-critical errors, open the feedback modal
       setLatestSession(latestSession);
       setActiveSessionId(latestSession.session._id);
       setFeedbackModalVisible(true);
 
     } catch (error) {
       console.error("Error checking feedback availability:", error);
-      message.error("Unable to check feedback availability. Please try again later.");
+
+      // Provide more specific error messages
+      if (error.response) {
+        if (error.response.status === 401) {
+          message.error("Session expired. Please log in again.");
+          navigate('/auth/login');
+        } else if (error.response.status === 404) {
+          message.warning("Session information not found. It may have been deleted.");
+        } else {
+          message.error(`Error: ${error.response.data?.message || 'Something went wrong'}`);
+        }
+      } else if (error.request) {
+        message.error("Network error. Please check your internet connection.");
+      } else {
+        message.error("Unable to check feedback availability. Please try again later.");
+      }
     }
   };
 
   const handleFeedbackSubmit = async () => {
     if (!activeSessionId) return message.error('No session selected.');
 
-    if (
-      feedbackData.rating === 0 ||
-      feedbackData.pace === 0 ||
-      feedbackData.interactivity === 0 ||
-      feedbackData.clarity === null
-    ) {
-      message.error('Please complete all required feedback fields (marked with *).');
+    // Check each required field individually to provide more specific error messages
+    const missingFields = [];
+    if (feedbackData.rating === 0) missingFields.push('Rating');
+    if (feedbackData.pace === 0) missingFields.push('Pace');
+    if (feedbackData.interactivity === 0) missingFields.push('Interactivity');
+    if (feedbackData.clarity === null || feedbackData.clarity === undefined) missingFields.push('Content Clarity');
+
+    if (missingFields.length > 0) {
+      message.error(`Please complete the following required fields: ${missingFields.join(', ')}`);
       return;
     }
 
@@ -1173,7 +1214,14 @@ const StudentDashboard = () => {
   // Define fetchUserAttendance function
   const fetchUserAttendance = useCallback(async () => {
     try {
-      const profileRes = await getUserProfile();
+      const token = localStorage.getItem('token');
+      if (!token) {
+        message.error("Authentication token missing. Please log in again.");
+        navigate('/auth/login');
+        return;
+      }
+
+      const profileRes = await getUserProfile(token);
       if (profileRes._id) {
         const attendanceRes = await getStudentAttendance(profileRes._id);
         setAttendanceData(attendanceRes);
@@ -1187,9 +1235,15 @@ const StudentDashboard = () => {
       }
     } catch (error) {
       console.error("Error fetching user attendance:", error);
-      message.error("Unable to refresh attendance data");
+
+      if (error.response && error.response.status === 401) {
+        message.error("Session expired. Please log in again.");
+        navigate('/auth/login');
+      } else {
+        message.error("Unable to refresh attendance data");
+      }
     }
-  }, [selectedUnit]);
+  }, [selectedUnit, navigate]);
 
   // Function to check if a session is still active
   const checkSessionStatusFromApi = useCallback(async () => {
