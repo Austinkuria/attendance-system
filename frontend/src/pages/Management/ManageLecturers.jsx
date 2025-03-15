@@ -41,6 +41,7 @@ import {
   downloadLecturers,
 } from "../../services/api";
 import api from "../../services/api";
+import { useTableStyles } from '../../components/SharedTableStyles';
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -315,6 +316,8 @@ const ManageLecturers = () => {
     }
   };
 
+  const tableStyles = useTableStyles();
+
   const styles = useMemo(() => ({
     layout: {
       minHeight: "100vh",
@@ -556,8 +559,77 @@ const ManageLecturers = () => {
           margin-bottom: 8px !important;
         }
       }
+      /* Button hover styles */
+      .ant-btn-primary:not(.ant-btn-dangerous):hover,
+      .ant-btn-primary:not(.ant-btn-dangerous):focus {
+        background: ${themeColors.primaryHover} !important;
+        border-color: ${themeColors.primaryHover} !important;
+      }
+      
+      .ant-btn-dangerous.ant-btn-primary:hover,
+      .ant-btn-dangerous.ant-btn-primary:focus {
+        background: ${themeColors.accentHover} !important;
+        border-color: ${themeColors.accentHover} !important;
+      }
+      
+      .ant-btn:not(.ant-btn-primary):hover,
+      .ant-btn:not(.ant-btn-primary):focus {
+        border-color: ${themeColors.primary} !important;
+        color: ${themeColors.primary} !important;
+      }
+      
+      /* This overrides the earlier generic button hover */
+      .ant-btn-default:hover {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        border-color: ${themeColors.primary} !important;
+        color: ${themeColors.primary} !important;
+      }
+      
+      /* Remove generic hover state we set earlier */
+      .ant-btn:hover {
+        background: inherit;
+      }
+      
+      /* Consistent table styling */
+      .ant-table {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${themeColors.text} !important;
+        border: 1px solid ${themeColors.border} !important;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+      }
+      .ant-table-thead > tr > th {
+        background: ${isDarkMode ? themeColors.backgroundLight : themeColors.tableHeaderBg} !important;
+        color: ${themeColors.text} !important;
+        font-weight: 600;
+        border-bottom: 2px solid ${themeColors.border} !important;
+      }
+      .ant-table-tbody > tr > td {
+        background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
+        color: ${themeColors.text} !important;
+        border-bottom: 1px solid ${themeColors.border} !important;
+      }
+      .ant-table-tbody > tr:hover > td {
+        background: ${isDarkMode ? themeColors.hover : themeColors.tableRowHover} !important;
+      }
+      .ant-table-row:nth-child(even) {
+        background-color: ${isDarkMode ? themeColors.backgroundLight : themeColors.background} !important;
+      }
+      .ant-table-row:nth-child(even) > td {
+        background-color: ${isDarkMode ? themeColors.backgroundLight : themeColors.background} !important;
+      }
+      .ant-table-title {
+        padding: 16px;
+        font-weight: 600;
+        background: ${themeColors.primary} !important;
+        color: ${themeColors.textInvert} !important;
+        border-radius: 8px 8px 0 0;
+      }
+      
+      ${tableStyles}
+      
     `,
-  }), [isDarkMode, themeColors]);
+  }), [isDarkMode, themeColors, tableStyles]);
 
   const columns = [
     {

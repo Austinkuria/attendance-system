@@ -1,7 +1,7 @@
-// context/ThemeContext.js
 import { createContext, useState, useEffect } from 'react';
 import PropTypes from 'prop-types';
 
+// Create context in a separate variable
 export const ThemeContext = createContext();
 
 export const ThemeProvider = ({ children }) => {
@@ -39,14 +39,24 @@ export const ThemeProvider = ({ children }) => {
       cardGradient3: 'linear-gradient(135deg, #FF7675, #FAB1A0)', // Accent-based
       cardGradient4: 'linear-gradient(135deg, #0984E3, #74B9FF)', // Blue variant (within palette)
 
+      // Table styling
+      tableHeaderBg: '#EDF2FF',      // Light blue background for table headers
+      tableHeaderText: '#2D3436',    // Dark text for table headers
+      tableRowHover: '#E6F1FF',      // Stronger light blue for row hover - updated for better visibility
+      tableStripedRow: '#F7FAFC',    // Very light grey for striped rows
+      tableBorder: '#E2E8F0',        // Light border color
+
       // Additional UI Elements
-      tableHeaderBg: '#F7F9FC',   // Table headers
-      tableRowHover: '#EDF2FF',  // Table row hover
       modalBg: '#FFFFFF',        // Modal background
       inputBg: '#FFFFFF',        // Input background
       inputBorder: '#E2E8F0',    // Input border
       inputHover: '#EDF2FF',     // Input hover background
       paginationActive: '#6C5CE7', // Pagination active item
+
+      // Opacity variants for hover states
+      primaryHover: 'rgba(108, 92, 231, 0.85)', // Primary with opacity
+      secondaryHover: 'rgba(0, 206, 201, 0.85)', // Secondary with opacity
+      accentHover: 'rgba(255, 118, 117, 0.85)', // Accent with opacity
     },
     dark: {
       // Core Palette
@@ -72,14 +82,24 @@ export const ThemeProvider = ({ children }) => {
       cardGradient3: 'linear-gradient(135deg, #E65F5C, #E09B86)', // Accent-based
       cardGradient4: 'linear-gradient(135deg, #0773C4, #5DA8FF)', // Blue variant (within palette)
 
+      // Table styling
+      tableHeaderBg: '#3A3851',      // Dark purple-grey for table headers
+      tableHeaderText: '#F7F9FC',    // Light text for headers
+      tableRowHover: '#4A5568',      // Darker hover color
+      tableStripedRow: '#353B3D',    // Slightly lighter than background for striped rows
+      tableBorder: '#4A5568',        // Darker border color
+
       // Additional UI Elements
-      tableHeaderBg: '#3A4042',   // Table headers
-      tableRowHover: '#4A5568',  // Table row hover
       modalBg: '#3A4042',        // Modal background
       inputBg: '#3A4042',        // Input background
       inputBorder: '#4A5568',    // Input border
       inputHover: '#4A5568',     // Input hover background
       paginationActive: '#A29BFE', // Pagination active item
+
+      // Opacity variants for hover states
+      primaryHover: 'rgba(162, 155, 254, 0.85)', // Primary with opacity
+      secondaryHover: 'rgba(129, 236, 236, 0.85)', // Secondary with opacity
+      accentHover: 'rgba(250, 177, 160, 0.85)', // Accent with opacity
     },
   };
 

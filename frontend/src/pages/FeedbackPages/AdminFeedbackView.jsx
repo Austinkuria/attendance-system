@@ -28,6 +28,7 @@ import { getFeedbackSummary } from '../../services/api';
 import { css } from '@emotion/css';
 import { ThemeContext } from '../../context/ThemeContext';
 import { useNavigate } from 'react-router-dom';
+import { useTableStyles } from '../../components/SharedTableStyles';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Tooltip, Legend);
 
@@ -129,6 +130,7 @@ const AdminFeedbackView = () => {
   });
   const screens = useBreakpoint();
   const styles = useStyles(themeColors);
+  const tableStyles = useTableStyles();
 
   const summaryCardColors = {
     totalSessions: themeColors.summaryTotalSessions || themeColors.primary,
@@ -501,22 +503,10 @@ const AdminFeedbackView = () => {
         .ant-select-item-option-content {
           color: ${themeColors.text} !important;
         }
-        .ant-table {
-          background: ${themeColors.cardBg} !important;
-          color: ${themeColors.text} !important;
-        }
-        .ant-table-thead > tr > th {
-          background: ${themeColors.primary} !important;
-          color: #fff !important;
-        }
-        .ant-table-tbody > tr > td {
-          border-bottom: 1px solid ${themeColors.text}20 !important;
-          color: ${themeColors.text} !important;
-        }
-        .ant-table-tbody > tr:hover > td {
-          background: ${themeColors.hoverBg ? themeColors.hoverBg : themeColors.cardBg} !important;
-          color: ${themeColors.text} !important;
-        }
+        
+        ${tableStyles}
+        
+        /* Other table-related styles */
         .ant-table-tbody > tr > td:first-child {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;

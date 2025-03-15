@@ -38,6 +38,7 @@ import {
 } from "../services/api";
 import moment from "moment";
 import { ThemeContext } from "../context/ThemeContext";
+import { useTableStyles } from './SharedTableStyles';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -803,6 +804,8 @@ const AttendanceManagement = () => {
     ]).isRequired,
   };
 
+  const tableStyles = useTableStyles();
+
   return (
     <div style={{ padding: screens.xs ? 0 : 4, margin: 0, background: themeColors.background, width: "100%" }}>
       {loadingSessionData ? (
@@ -1174,30 +1177,9 @@ const AttendanceManagement = () => {
         .table-row-dark {
           background: ${themeColors.background};
         }
-        .ant-table {
-          background: ${themeColors.cardBg} !important;
-          color: ${themeColors.text} !important;
-          border: 1px solid ${themeColors.border} !important;
-          border-radius: 8px;
-          width: 100%;
-        }
-        .ant-table-thead > tr > th {
-          background: ${themeColors.tableHeaderBg} !important;
-          color: ${themeColors.text} !important;
-          font-weight: 600;
-          border-bottom: 2px solid ${themeColors.border} !important;
-          padding: ${screens.xs ? "4px 2px" : "16px 8px"};
-          font-size: ${screens.xs ? "11px" : "14px"};
-        }
-        .ant-table-tbody > tr > td {
-          border-bottom: 1px solid ${themeColors.border} !important;
-          padding: ${screens.xs ? "2px" : "8px"};
-          font-size: ${screens.xs ? "11px" : "14px"};
-          color: ${themeColors.text} !important;
-        }
-        .ant-table-tbody > tr:hover:not(.ant-table-expanded-row) > td {
-          background: ${themeColors.tableRowHover} !important;
-        }
+        
+        ${tableStyles}
+        
         .ant-btn-primary {
           background: ${themeColors.primary} !important;
           border-color: ${themeColors.primary} !important;

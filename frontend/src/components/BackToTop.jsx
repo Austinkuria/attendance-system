@@ -56,8 +56,8 @@ const BackToTop = () => {
             )}
             <style>{`
         .back-to-top-btn:hover {
-          background-color: ${themeColors.focus} !important;
-          border-color: ${themeColors.focus} !important;
+          background-color: ${themeColors.primaryHover} !important;
+          border-color: ${themeColors.primaryHover} !important;
           transform: scale(1.1);
         }
       `}</style>
