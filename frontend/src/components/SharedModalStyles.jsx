@@ -4,21 +4,28 @@ import { ThemeContext } from '../context/ThemeContext';
 export const useModalStyles = () => {
     const { isDarkMode, themeColors } = React.useContext(ThemeContext);
 
+    // For debugging purposes - enable this to show debug borders
+    const DEBUG_MODE = false;
+    const debugBorder = DEBUG_MODE ? '1px dashed red' : 'none';
+
     return {
         modalContainer: {
             background: themeColors.modalBg || themeColors.cardBg,
             borderRadius: '12px',
             overflow: 'hidden',
+            border: debugBorder, // Debug border
         },
         modalHeader: {
             textAlign: 'center',
-            padding: '16px',
+            padding: '16px 24px',
             background: themeColors.primary,
             color: themeColors.textInvert,
             borderBottom: `1px solid ${themeColors.border}`,
             borderRadius: '12px 12px 0 0',
             fontWeight: 600,
-            fontSize: '18px'
+            fontSize: '18px',
+            position: 'relative',
+            border: debugBorder, // Debug border
         },
         modalTitle: {
             color: themeColors.textInvert,
@@ -29,11 +36,14 @@ export const useModalStyles = () => {
             alignItems: 'center',
             justifyContent: 'center',
             gap: '8px',
+            width: '100%',
+            border: debugBorder, // Debug border
         },
         modalBody: {
             padding: '24px',
             background: themeColors.modalBg || themeColors.cardBg,
             color: themeColors.text,
+            border: debugBorder, // Debug border
         },
         modalFooter: {
             borderTop: `1px solid ${themeColors.border}`,
@@ -42,10 +52,25 @@ export const useModalStyles = () => {
             justifyContent: 'flex-end',
             gap: '8px',
             background: themeColors.modalBg || themeColors.cardBg,
+            border: debugBorder, // Debug border
         },
         styles: `
+      /* Reset default Ant Design Modal styling */
+      .ant-modal {
+        width: auto !important;
+        margin: 0 auto;
+      }
+      
+      .ant-modal-content {
+        border-radius: 12px !important;
+        overflow: hidden !important;
+        background: ${themeColors.modalBg || themeColors.cardBg} !important;
+        box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15) !important;
+        padding: 0 !important; /* Remove default padding */
+      }
+      
       .ant-modal-header {
-        text-align: center !important;
+        margin: 0 !important;
         padding: 16px !important;
         background: ${themeColors.primary} !important;
         border-bottom: 1px solid ${themeColors.border} !important;
@@ -57,16 +82,18 @@ export const useModalStyles = () => {
         font-size: 18px !important;
         font-weight: 600 !important;
         text-align: center !important;
+        margin: 0 !important;
       }
       
       .ant-modal-close {
+        top: 16px !important;
+        inset-inline-end: 16px !important;
         color: ${themeColors.textInvert} !important;
       }
       
-      .ant-modal-content {
-        border-radius: 12px !important;
-        overflow: hidden !important;
-        background: ${themeColors.modalBg || themeColors.cardBg} !important;
+      .ant-modal-close:hover {
+        color: ${themeColors.textInvert}CC !important;
+        background: transparent !important;
       }
       
       .ant-modal-body {
@@ -76,9 +103,39 @@ export const useModalStyles = () => {
       }
       
       .ant-modal-footer {
+        margin-top: 0 !important;
         border-top: 1px solid ${themeColors.border} !important;
         padding: 12px 16px !important;
         background: ${themeColors.modalBg || themeColors.cardBg} !important;
+      }
+      
+      /* Modal responsive styles */
+      @media (max-width: 768px) {
+        .ant-modal {
+          max-width: 90% !important;
+        }
+        
+        .ant-modal-body {
+          padding: 16px !important;
+        }
+        
+        .ant-modal-footer {
+          padding: 10px !important;
+        }
+      }
+      
+      @media (max-width: 576px) {
+        .ant-modal {
+          max-width: 95% !important;
+        }
+        
+        .ant-modal-title {
+          font-size: 16px !important;
+        }
+        
+        .ant-modal-body {
+          padding: 12px !important;
+        }
       }
     `
     };
