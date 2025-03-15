@@ -99,12 +99,17 @@ export const useStyles = (isDarkMode, themeColors) =>
       position: 'fixed',
       bottom: 32,
       right: 32,
-      zIndex: 1000,
+      zIndex: 10000, // Increase z-index to ensure visibility
       background: themeColors.primary,
-      borderColor: themeColors.border,
+      borderColor: themeColors.primary,
+      color: '#fff !important', // Force white text
       width: 50,
       height: 50,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
       boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+      pointerEvents: 'auto', // Ensure the button can be clicked
     },
     cardVariants: {
       hidden: { opacity: 0, y: 20 },

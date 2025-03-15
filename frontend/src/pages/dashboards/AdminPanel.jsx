@@ -12,7 +12,6 @@ import {
   TeamOutlined,
   LineChartOutlined,
   FormOutlined,
-  ArrowUpOutlined,
 } from '@ant-design/icons';
 import {
   Layout,
@@ -33,6 +32,7 @@ import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
 import { motion } from 'framer-motion';
 import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
+import BackToTop from '../../components/BackToTop';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
@@ -52,7 +52,6 @@ const AdminPanel = () => {
   const [lecturersLoading, setLecturersLoading] = useState(false);
   const [coursesLoading, setCoursesLoading] = useState(false);
   const [attendanceLoading, setAttendanceLoading] = useState(false);
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   useEffect(() => {
     const checkAuth = () => {
@@ -75,14 +74,6 @@ const AdminPanel = () => {
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
-
-  useEffect(() => {
-    const handleScroll = () => setShowBackToTop(window.scrollY > 200);
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
-
-  const scrollToTop = () => window.scrollTo({ top: 0, behavior: 'smooth' });
 
   const logout = () => {
     localStorage.removeItem('token');
@@ -189,9 +180,9 @@ const AdminPanel = () => {
         label: 'Attendance Rate (%)',
         data: courses.length
           ? courses.map(course => {
-              const rate = attendanceRates[course._id];
-              return rate && rate.totalPossible > 0 ? Math.round((rate.totalPresent / rate.totalPossible) * 100) : 0;
-            })
+            const rate = attendanceRates[course._id];
+            return rate && rate.totalPossible > 0 ? Math.round((rate.totalPresent / rate.totalPossible) * 100) : 0;
+          })
           : [0],
         borderColor: themeColors.primary,
         backgroundColor: `${themeColors.primary}33`,
@@ -233,9 +224,9 @@ const AdminPanel = () => {
         label: 'Total Sessions',
         data: courses.length
           ? courses.map(course => {
-              const rate = attendanceRates[course._id];
-              return rate ? rate.weeklyTrends?.reduce((acc, t) => acc + (t.sessionCount || 0), 0) || 0 : 0;
-            })
+            const rate = attendanceRates[course._id];
+            return rate ? rate.weeklyTrends?.reduce((acc, t) => acc + (t.sessionCount || 0), 0) || 0 : 0;
+          })
           : [0],
         backgroundColor: [
           themeColors.primary,
@@ -278,12 +269,12 @@ const AdminPanel = () => {
   };
 
   const menuItems = [
-    { key: '1', icon: <TeamOutlined />, label: 'Students', onClick: () => window.location.href = '/admin/manage-students' },
-    { key: '2', icon: <BookOutlined />, label: 'Courses', onClick: () => window.location.href = '/admin/manage-courses' },
-    { key: '3', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => document.getElementById('attendance-overview').scrollIntoView({ behavior: 'smooth' }) },
-    { key: '4', icon: <UserOutlined />, label: 'Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
+    { key: '1', icon: <TeamOutlined />, label: 'Manage Students', onClick: () => window.location.href = '/admin/manage-students' },
+    { key: '2', icon: <BookOutlined />, label: 'Manage Courses', onClick: () => window.location.href = '/admin/manage-courses' },
+    { key: '3', icon: <CheckCircleOutlined />, label: 'Manage Attendance', onClick: () => document.getElementById('attendance-overview').scrollIntoView({ behavior: 'smooth' }) },
+    { key: '4', icon: <TeamOutlined />, label: 'Manage Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
     { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' },
-    { key: '6', icon: <FormOutlined />, label: 'Feedback', onClick: () => window.location.href = '/admin/feedback' },
+    { key: '6', icon: <FormOutlined />, label: 'View Feedbacks', onClick: () => window.location.href = '/admin/feedback' },
   ];
 
   const profileItems = [
@@ -320,7 +311,12 @@ const AdminPanel = () => {
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: 18, width: 64, height: 64 }}
+            style={{
+              fontSize: 18,
+              width: 64,
+              height: 64,
+              color: isDarkMode ? '#fff' : undefined // White color in dark mode
+            }}
           />
         </Space>
         <AntTitle
@@ -368,9 +364,9 @@ const AdminPanel = () => {
                 <motion.div initial="hidden" animate="visible" variants={cardVariants}>
                   <Card hoverable className="summary-card-1" style={styles.summaryCard1} onClick={() => window.location.href = '/admin/manage-students'}>
                     <Space direction="vertical">
-                      <TeamOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Students</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
+                      <TeamOutlined style={{ fontSize: 28, color: 'white' }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0', color: 'white' }}>Total Students</h3>
+                      <h1 style={{ fontSize: 32, margin: 0, color: 'white' }}>{studentsLoading ? 'Loading...' : (students.length || 'N/A')}</h1>
                     </Space>
                   </Card>
                 </motion.div>
@@ -379,9 +375,9 @@ const AdminPanel = () => {
                 <motion.div initial="hidden" animate="visible" variants={cardVariants}>
                   <Card hoverable className="summary-card-2" style={styles.summaryCard2} onClick={() => window.location.href = '/admin/manage-courses'}>
                     <Space direction="vertical">
-                      <BookOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Courses</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
+                      <BookOutlined style={{ fontSize: 28, color: 'white' }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0', color: 'white' }}>Total Courses</h3>
+                      <h1 style={{ fontSize: 32, margin: 0, color: 'white' }}>{coursesLoading ? 'Loading...' : (courses.length || 'N/A')}</h1>
                     </Space>
                   </Card>
                 </motion.div>
@@ -390,9 +386,9 @@ const AdminPanel = () => {
                 <motion.div initial="hidden" animate="visible" variants={cardVariants}>
                   <Card hoverable className="summary-card-3" style={styles.summaryCard3} onClick={() => window.location.href = '/admin/manage-lecturers'}>
                     <Space direction="vertical">
-                      <UserOutlined style={{ fontSize: 28 }} />
-                      <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Total Lecturers</h3>
-                      <h1 style={{ fontSize: 32, margin: 0 }}>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
+                      <TeamOutlined style={{ fontSize: 28, color: 'white' }} />
+                      <h3 style={{ fontWeight: 600, margin: '8px 0', color: 'white' }}>Total Lecturers</h3>
+                      <h1 style={{ fontSize: 32, margin: 0, color: 'white' }}>{lecturersLoading ? 'Loading...' : (lecturers.length || 'N/A')}</h1>
                     </Space>
                   </Card>
                 </motion.div>
@@ -402,9 +398,9 @@ const AdminPanel = () => {
                   <motion.div initial="hidden" animate="visible" variants={cardVariants}>
                     <Card hoverable className="summary-card-4" style={styles.summaryCard4} onClick={() => window.location.href = '/admin/analytics'}>
                       <Space direction="vertical">
-                        <CheckCircleOutlined style={{ fontSize: 28 }} />
-                        <h3 style={{ fontWeight: 600, margin: '8px 0' }}>Attendance Rate</h3>
-                        <h1 style={{ fontSize: 32, margin: 0 }}>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
+                        <CheckCircleOutlined style={{ fontSize: 28, color: 'white' }} />
+                        <h3 style={{ fontWeight: 600, margin: '8px 0', color: 'white' }}>Attendance Rate</h3>
+                        <h1 style={{ fontSize: 32, margin: 0, color: 'white' }}>{attendanceLoading ? 'Loading...' : `${calculateOverallRate()}%`}</h1>
                       </Space>
                     </Card>
                   </motion.div>
@@ -421,11 +417,30 @@ const AdminPanel = () => {
             </AntTitle>
             <Card style={styles.card}>
               <Spin spinning={attendanceLoading || coursesLoading} tip="Loading chart data...">
-                <div style={{ height: 500, padding: 16 }}>
-                  <Line data={overviewChartData} options={overviewChartOptions} />
+                {/* Add a responsive container with horizontal scrolling */}
+                <div style={{
+                  overflowX: 'auto',
+                  overflowY: 'hidden',
+                  width: '100%',
+                  paddingBottom: 10 // Add padding to accommodate scrollbar
+                }}>
+                  <div style={{
+                    height: 500,
+                    padding: 16,
+                    minWidth: courses.length > 5 ? Math.max(600, courses.length * 100) : '100%' // Set minimum width based on number of courses
+                  }}>
+                    <Line data={overviewChartData} options={overviewChartOptions} />
+                  </div>
                 </div>
-                <Button type="primary" style={styles.button} onClick={() => window.location.href = '/admin/analytics'}>
-                  View Detailed Analytics
+                <Button
+                  type="primary"
+                  style={{
+                    ...styles.button,
+                    color: '#fff !important',
+                  }}
+                  onClick={() => window.location.href = '/admin/analytics'}
+                >
+                  <span style={{ color: '#fff' }}>View Detailed Analytics</span>
                 </Button>
               </Spin>
             </Card>
@@ -444,9 +459,7 @@ const AdminPanel = () => {
               </Spin>
             </Card>
 
-            {showBackToTop && (
-              <Button shape="circle" icon={<ArrowUpOutlined />} onClick={scrollToTop} style={styles.backToTopButton} />
-            )}
+            <BackToTop />
           </Spin>
         </Content>
       </Layout>
