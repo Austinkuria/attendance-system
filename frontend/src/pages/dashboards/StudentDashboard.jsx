@@ -123,6 +123,9 @@ const StudentDashboard = () => {
   // Add state for back to top button visibility
   const [showBackToTop, setShowBackToTop] = useState(false);
 
+  // Add a new state to track active sessions by unit ID
+  const [activeSessionsByUnit, setActiveSessionsByUnit] = useState({});
+
   // Split the fetchAllData into separate functions for each data type
   const fetchProfileData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -888,8 +891,8 @@ const StudentDashboard = () => {
                         ]}
                       >
                         <List.Item.Meta
-                          title={<span style={{ color: themeColors.text }}>{item.title}</span>}
-                          description={<span style={{ color: `${themeColors.text}80` }}>{`${item.message} (Unit: ${item.unitName}) - ${moment(item.timestamp).fromNow()}`}</span>}
+                          title={<span style={{ color: themeColors.text }}>{item.title || 'Notification'}</span>}
+                          description={<span style={{ color: `${themeColors.text}80` }}>{`${item.message || ''} (Unit: ${item.unitName || 'Unknown'}) - ${moment(item.timestamp || new Date()).fromNow()}`}</span>}
                         />
                       </List.Item>
                     );
@@ -1338,6 +1341,38 @@ const StudentDashboard = () => {
       top: 0,
       behavior: 'smooth'
     });
+  };
+
+  // Add the checkActiveSessionForUnit function that was missing
+  const checkActiveSessionForUnit = async (unitId) => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Set loading state for this specific unit
+      setActiveSessionsByUnit(prev => ({
+        ...prev,
+        [unitId]: { loading: true }
+      }));
+
+      const session = await getActiveSessionForUnit(unitId);
+
+      // Update the state with the session data if it exists and is active
+      setActiveSessionsByUnit(prev => ({
+        ...prev,
+        [unitId]: session && !session.ended ? session : null
+      }));
+
+      return session;
+    } catch (err) {
+      console.error('Error checking active session for unit:', err);
+      // Clear the loading state if there's an error
+      setActiveSessionsByUnit(prev => ({
+        ...prev,
+        [unitId]: null
+      }));
+      return null;
+    }
   };
 
   // Update the loading indicator in the UI to show more specific loading states
@@ -1793,7 +1828,7 @@ const StudentDashboard = () => {
                   My Units
                 </AntTitle>
                 <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                  {units.map((unit) => unit._id ? (
+                  {units.map((unit) => unit && unit._id ? (
                     <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
                       <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
                         <Card
@@ -1806,8 +1841,27 @@ const StudentDashboard = () => {
                             e.preventDefault(); // Prevent default behavior
                             try {
                               // Only set selected unit if it's a valid object
-                              if (unit && unit._id) {
-                                setSelectedUnit(unit);
+                              if (unit && typeof unit === 'object' && unit._id) {
+                                // Check if there's an active session for this unit
+                                checkActiveSessionForUnit(unit._id);
+
+                                // Create a safe copy of the unit object to avoid rendering issues
+                                const safeUnit = {
+                                  _id: unit._id,
+                                  name: unit.name || 'Unnamed Unit',
+                                  code: unit.code || 'N/A',
+                                  // Format lecturer properly based on its type
+                                  lecturer: typeof unit.lecturer === 'object'
+                                    ? (unit.lecturer?.firstName && unit.lecturer?.lastName
+                                      ? `${unit.lecturer.firstName} ${unit.lecturer.lastName}`
+                                      : unit.lecturer?.name || 'N/A')
+                                    : (unit.lecturer || 'N/A'),
+                                  // Handle description that might be an object
+                                  description: typeof unit.description === 'object'
+                                    ? 'See course syllabus for details'
+                                    : (unit.description || 'N/A')
+                                };
+                                setSelectedUnit(safeUnit);
                               }
                             } catch (error) {
                               console.error("Error selecting unit:", error);
@@ -1915,10 +1969,65 @@ const StudentDashboard = () => {
                   width={Math.min(window.innerWidth * 0.9, 500)}
                 >
                   {selectedUnit && (
-                    <Space direction="vertical" style={{ color: themeColors.text }}>
+                    <Space direction="vertical" style={{ width: '100%', color: themeColors.text }}>
                       <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
-                      <p><strong>Lecturer:</strong> {selectedUnit.lecturer || 'N/A'}</p>
-                      <p><strong>Description:</strong> {selectedUnit.description || 'N/A'}</p>
+                      <p><strong>Lecturer:</strong> {
+                        typeof selectedUnit.lecturer === 'object'
+                          ? (selectedUnit.lecturer?.firstName && selectedUnit.lecturer?.lastName
+                            ? `${selectedUnit.lecturer.firstName} ${selectedUnit.lecturer.lastName}`
+                            : selectedUnit.lecturer?.name || 'N/A')
+                          : (selectedUnit.lecturer || 'N/A')
+                      }</p>
+                      <p><strong>Description:</strong> {
+                        typeof selectedUnit.description === 'object'
+                          ? 'Complex description (see course syllabus)'
+                          : (selectedUnit.description || 'N/A')
+                      }</p>
+
+                      {/* Display session status */}
+                      <div style={{
+                        marginTop: '12px',
+                        padding: '8px',
+                        borderRadius: '4px',
+                        backgroundColor: activeSessionsByUnit[selectedUnit._id] ? '#52c41a20' : '#ff4d4f20',
+                        borderLeft: `4px solid ${activeSessionsByUnit[selectedUnit._id] ? '#52c41a' : '#ff4d4f'}`,
+                      }}>
+                        <p style={{
+                          margin: 0,
+                          fontWeight: 'bold',
+                          color: activeSessionsByUnit[selectedUnit._id] ? '#52c41a' : '#ff4d4f'
+                        }}>
+                          {activeSessionsByUnit[selectedUnit._id]
+                            ? <><span style={{ marginRight: '8px' }}>●</span> Active Session Available</>
+                            : <><span style={{ marginRight: '8px' }}>○</span> No Active Session</>}
+                        </p>
+                        {activeSessionsByUnit[selectedUnit._id] && (
+                          <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                            Started: {moment(activeSessionsByUnit[selectedUnit._id].startTime).format('MMM D, YYYY h:mm A')}
+                          </p>
+                        )}
+                        <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                          {activeSessionsByUnit[selectedUnit._id]
+                            ? 'You can mark attendance for this session now.'
+                            : 'Check back later for the next available session.'}
+                        </p>
+                      </div>
+
+                      <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
+                        <Button
+                          type="primary"
+                          icon={<QrcodeOutlined style={{ color: '#fff' }} />}
+                          onClick={() => { handleAttendClick(selectedUnit._id); }}
+                          disabled={!activeSessionsByUnit[selectedUnit._id]}
+                          style={{
+                            ...styles.button,
+                            color: '#fff',
+                            opacity: activeSessionsByUnit[selectedUnit._id] ? 1 : 0.6
+                          }}
+                        >
+                          <span style={{ color: '#fff' }}>Attend Session</span>
+                        </Button>
+                      </div>
                     </Space>
                   )}
                 </Modal>
