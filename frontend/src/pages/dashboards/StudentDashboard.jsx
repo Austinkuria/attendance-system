@@ -1802,7 +1802,18 @@ const StudentDashboard = () => {
                           hoverable
                           style={styles.card}
                           styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
-                          onClick={() => setSelectedUnit(unit)}
+                          onClick={(e) => {
+                            e.preventDefault(); // Prevent default behavior
+                            try {
+                              // Only set selected unit if it's a valid object
+                              if (unit && unit._id) {
+                                setSelectedUnit(unit);
+                              }
+                            } catch (error) {
+                              console.error("Error selecting unit:", error);
+                              message.error("Failed to select unit. Please try again.");
+                            }
+                          }}
                         >
                           <Space direction="vertical" style={{ width: '100%' }} size={16}>
                             {(() => {

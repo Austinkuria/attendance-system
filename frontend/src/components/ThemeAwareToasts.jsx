@@ -21,23 +21,35 @@ export const ThemeAwareToasts = () => {
                 console.log('Service worker update detected', registration);
                 if (waitingWorker) {
                     console.log('New service worker waiting to be activated');
-                    toast.info('🔄 New version available! Refresh for latest features.', {
-                        onClick: async () => {
-                            waitingWorker.postMessage({ action: 'skipWaiting' });
-                            await clearCaches();
-                            window.location.reload();
-                        },
-                        autoClose: false,
-                        closeOnClick: false,
-                        position: 'top-center',
-                        hideProgressBar: false,
-                        closeButton: false,
-                        style: {
-                            backgroundColor: themeColors.primary || '#4285f4',
-                            color: themeColors.text || 'white',
-                            fontWeight: 'bold',
-                        },
-                    });
+
+                    // Get the appropriate position based on screen size
+                    const position = window.innerWidth >= 768 ? 'top-right' : 'top-center';
+
+                    toast.info(
+                        <div>
+                            <span role="img" aria-label="Update" style={{ marginRight: '8px', fontSize: '18px' }}>
+                                🔄
+                            </span>
+                            <span>New version available! Refresh for latest features.</span>
+                        </div>,
+                        {
+                            onClick: async () => {
+                                waitingWorker.postMessage({ action: 'skipWaiting' });
+                                await clearCaches();
+                                window.location.reload();
+                            },
+                            autoClose: false,
+                            closeOnClick: false,
+                            position: position,
+                            hideProgressBar: false,
+                            closeButton: false,
+                            style: {
+                                backgroundColor: themeColors.primary || '#4285f4',
+                                color: 'white', // Always white text
+                                fontWeight: 'bold',
+                            },
+                        }
+                    );
                 }
             },
             onSuccess: () => {
@@ -48,18 +60,38 @@ export const ThemeAwareToasts = () => {
         // Listen for controller change to detect updates
         const controllerChangeHandler = () => {
             console.log('Service worker controller changed');
-            toast.info('🔄 New version installed! Page will reload.', {
-                onClick: () => window.location.reload(),
-                autoClose: 5000,
-                position: 'top-center',
-                style: {
-                    backgroundColor: themeColors.primary || '#4285f4',
-                    color: themeColors.text || 'white',
-                    fontWeight: 'bold',
-                },
-            });
+
+            // Get the appropriate position based on screen size
+            const position = window.innerWidth >= 768 ? 'top-right' : 'top-center';
+
+            toast.info(
+                <div>
+                    <span role="img" aria-label="Update" style={{ marginRight: '8px', fontSize: '18px' }}>
+                        ⚡
+                    </span>
+                    <span>New version installed! Page will reload.</span>
+                </div>,
+                {
+                    onClick: () => window.location.reload(),
+                    autoClose: 5000,
+                    position: position,
+                    style: {
+                        backgroundColor: themeColors.primary || '#4285f4',
+                        color: 'white', // Always white text
+                        fontWeight: 'bold',
+                    },
+                }
+            );
             setTimeout(() => window.location.reload(), 5000);
         };
+
+        // Add resize listener to update toast position when screen size changes
+        const handleResize = () => {
+            // This will ensure new toasts use the correct position based on current screen size
+            toast.dismiss(); // Optional: dismiss existing toasts on resize
+        };
+
+        window.addEventListener('resize', handleResize);
 
         if (navigator.serviceWorker) {
             navigator.serviceWorker.addEventListener('controllerchange', controllerChangeHandler);
@@ -69,6 +101,7 @@ export const ThemeAwareToasts = () => {
             if (navigator.serviceWorker) {
                 navigator.serviceWorker.removeEventListener('controllerchange', controllerChangeHandler);
             }
+            window.removeEventListener('resize', handleResize);
         };
     }, [themeColors]); // Re-run when themeColors changes
 
