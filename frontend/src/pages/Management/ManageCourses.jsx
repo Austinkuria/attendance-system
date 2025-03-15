@@ -327,7 +327,7 @@ const ManageCourses = () => {
       }
       .ant-input::placeholder,
       .ant-select-selection-placeholder {
-        color: ${isDarkMode ? "#a0a0a0" : "#999"} !important;
+        color: ${isDarkMode ? themeColors.textSecondary : "#999"} !important; // Changed from hardcoded #a0a0a0
       }
       .ant-form-item {
         background: transparent !important;
@@ -512,7 +512,11 @@ const ManageCourses = () => {
             type="default"
             icon={<UnorderedListOutlined />}
             size="small"
-            style={{ background: themeColors.cardBg, borderColor: themeColors.secondary, color: themeColors.text }}
+            style={{
+              background: isDarkMode ? themeColors.cardBg : "#fff", // Using dynamic background instead of hardcoded
+              borderColor: themeColors.secondary,
+              color: themeColors.text
+            }}
             onClick={() => handleManageUnits(record)}
           >
             Units

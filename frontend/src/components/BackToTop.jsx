@@ -1,61 +1,68 @@
-import { useState, useEffect, useContext } from "react";
-import { Button } from "antd";
-import { UpOutlined } from "@ant-design/icons";
-import { ThemeContext } from "../context/ThemeContext";
-import PropTypes from 'prop-types';
+import { useState, useEffect, useContext } from 'react';
+import { Button } from 'antd';
+import { ArrowUpOutlined } from '@ant-design/icons';
+import { ThemeContext } from '../context/ThemeContext';
 
-const BackToTop = ({ debug = false }) => {
+const BackToTop = () => {
     const [visible, setVisible] = useState(false);
     const { themeColors } = useContext(ThemeContext);
 
     useEffect(() => {
-        const toggleVisible = () => {
-            const scrolled = document.documentElement.scrollTop;
-            setVisible(scrolled > 300);
+        const toggleVisibility = () => {
+            if (window.pageYOffset > 300) {
+                setVisible(true);
+            } else {
+                setVisible(false);
+            }
         };
 
-        // Add event listener inside useEffect
-        window.addEventListener("scroll", toggleVisible);
-
-        // Important: Remove the event listener on cleanup
-        return () => window.removeEventListener("scroll", toggleVisible);
-    }, []); // Empty dependency array to run only once on mount
+        window.addEventListener('scroll', toggleVisibility);
+        return () => window.removeEventListener('scroll', toggleVisibility);
+    }, []);
 
     const scrollToTop = () => {
-        window.scrollTo({ top: 0, behavior: "smooth" });
+        window.scrollTo({
+            top: 0,
+            behavior: 'smooth',
+        });
     };
 
     return (
-        <Button
-            type="primary"
-            shape="circle"
-            icon={<UpOutlined />}
-            size="large"
-            onClick={scrollToTop}
-            style={{
-                position: "fixed",
-                bottom: 20,
-                right: 20,
-                zIndex: 1000,
-                display: visible ? "block" : "none",
-                backgroundColor: themeColors?.primary || "#1890ff",
-                borderColor: themeColors?.primary || "#1890ff",
-                color: "#fff",
-                // Debug border
-                outline: debug ? "3px solid red" : "none",
-                boxShadow: debug ? "0 0 0 5px rgba(255,0,0,0.5)" : "0 4px 10px rgba(0, 0, 0, 0.2)",
-                // Make click target area more obvious in debug mode
-                padding: debug ? "8px" : undefined,
-                // Add a transparent border to visualize the clickable area
-                border: debug ? "2px dashed #ff0000" : undefined,
-            }}
-        />
+        <>
+            {visible && (
+                <Button
+                    type="primary"
+                    shape="circle"
+                    icon={<ArrowUpOutlined />}
+                    onClick={scrollToTop}
+                    style={{
+                        position: 'fixed',
+                        bottom: 32,
+                        right: 32,
+                        zIndex: 10000,
+                        background: themeColors.primary,
+                        borderColor: themeColors.primary,
+                        color: themeColors.text,
+                        width: 50,
+                        height: 50,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+                        pointerEvents: 'auto',
+                    }}
+                    className="back-to-top-btn"
+                />
+            )}
+            <style>{`
+        .back-to-top-btn:hover {
+          background-color: ${themeColors.focus} !important;
+          border-color: ${themeColors.focus} !important;
+          transform: scale(1.1);
+        }
+      `}</style>
+        </>
     );
-};
-
-// Add prop types validation
-BackToTop.propTypes = {
-    debug: PropTypes.bool
 };
 
 export default BackToTop;

@@ -429,7 +429,7 @@ const ManageLecturers = () => {
       }
       .ant-input::placeholder,
       .ant-select-selection-placeholder {
-        color: ${isDarkMode ? "#a0a0a0" : "#999"} !important;
+        color: ${isDarkMode ? themeColors.textSecondary : "#999"} !important; // Changed from hardcoded #a0a0a0
       }
       .ant-form-item {
         background: transparent !important;
@@ -827,9 +827,9 @@ const ManageLecturers = () => {
         styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Loading data...">
-          <Form 
-            form={addForm} 
-            layout="vertical" 
+          <Form
+            form={addForm}
+            layout="vertical"
             style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
           >
             <Form.Item
@@ -837,8 +837,8 @@ const ManageLecturers = () => {
               name="firstName"
               rules={[{ required: true, message: "First name is required" }]}
             >
-              <Input 
-                placeholder="Enter first name" 
+              <Input
+                placeholder="Enter first name"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               />
             </Form.Item>
@@ -847,8 +847,8 @@ const ManageLecturers = () => {
               name="lastName"
               rules={[{ required: true, message: "Last name is required" }]}
             >
-              <Input 
-                placeholder="Enter last name" 
+              <Input
+                placeholder="Enter last name"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               />
             </Form.Item>
@@ -860,9 +860,9 @@ const ManageLecturers = () => {
                 { type: "email", message: "Invalid email format" },
               ]}
             >
-              <Input 
+              <Input
                 autoComplete="new-email" // Prevent autofill
-                placeholder="Enter email" 
+                placeholder="Enter email"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               />
             </Form.Item>
@@ -871,9 +871,9 @@ const ManageLecturers = () => {
               name="password"
               rules={[{ required: true, message: "Password is required" }]}
             >
-              <Input.Password 
+              <Input.Password
                 autoComplete="new-password" // Prevent autofill
-                placeholder="Enter password" 
+                placeholder="Enter password"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               />
             </Form.Item>
@@ -882,7 +882,7 @@ const ManageLecturers = () => {
               name="department"
               rules={[{ required: true, message: "Department is required" }]}
             >
-              <Select 
+              <Select
                 placeholder="Select Department"
                 dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
@@ -919,17 +919,17 @@ const ManageLecturers = () => {
         styles={{ body: styles.modalContent }}
       >
         <Spin spinning={loading} tip="Loading data...">
-          <Form 
-            form={editForm} 
-            layout="vertical" 
+          <Form
+            form={editForm}
+            layout="vertical"
             style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
           >
             <Form.Item
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>First Name</span>}
               name="firstName"
             >
-              <Input 
-                placeholder="First name" 
+              <Input
+                placeholder="First name"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               />
             </Form.Item>
@@ -937,8 +937,8 @@ const ManageLecturers = () => {
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Last Name</span>}
               name="lastName"
             >
-              <Input 
-                placeholder="Last name" 
+              <Input
+                placeholder="Last name"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               />
             </Form.Item>
@@ -946,8 +946,8 @@ const ManageLecturers = () => {
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Email</span>}
               name="email"
             >
-              <Input 
-                placeholder="Email" 
+              <Input
+                placeholder="Email"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               />
             </Form.Item>
@@ -955,7 +955,7 @@ const ManageLecturers = () => {
               label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Department</span>}
               name="department"
             >
-              <Select 
+              <Select
                 placeholder="Select Department"
                 dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
@@ -1046,9 +1046,9 @@ const ManageLecturers = () => {
                   </span>
                 )}
               </div>
-              <Form 
-                form={unitForm} 
-                layout="vertical" 
+              <Form
+                form={unitForm}
+                layout="vertical"
                 style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
               >
                 <Form.Item
@@ -1061,7 +1061,7 @@ const ManageLecturers = () => {
                   }
                   rules={[{ required: true, message: "Please select a unit" }]}
                 >
-                  <Select 
+                  <Select
                     placeholder="Select a unit"
                     dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                     style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}

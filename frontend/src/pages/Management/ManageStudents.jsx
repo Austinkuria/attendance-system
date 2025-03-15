@@ -447,6 +447,7 @@ const ManageStudents = () => {
       zIndex: 1000,
       background: themeColors.primary,
       borderColor: themeColors.primary,
+      color: themeColors.text, // Changed from #fff to use theme color
     },
     table: {
       borderRadius: 8,
@@ -494,7 +495,7 @@ const ManageStudents = () => {
       }
       .ant-input::placeholder,
       .ant-select-selection-placeholder {
-        color: ${isDarkMode ? "#a0a0a0" : "#999"} !important;
+        color: ${isDarkMode ? themeColors.textSecondary : "#999"} !important; // Changed from hardcoded #a0a0a0 to use theme color
       }
       .ant-form-item {
         background: transparent !important;
