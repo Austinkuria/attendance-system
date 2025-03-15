@@ -99,8 +99,8 @@ const QRScanner = () => {
         },
         cancelButtonProps: {
           style: {
-            backgroundColor: themeColors.primary,
-            borderColor: themeColors.primary,
+            backgroundColor: themeColors.accent,
+            borderColor: themeColors.accent,
             color: '#fff'
           }
         }
@@ -298,8 +298,17 @@ const QRScanner = () => {
               onClick={handleCancel}
               size="middle"
               style={{
-                backgroundColor: themeColors.primary,
-                borderColor: themeColors.primary
+                backgroundColor: themeColors.accent,
+                borderColor: themeColors.accent,
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.opacity = '0.8';
+                e.currentTarget.style.transform = 'scale(1.05)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.opacity = '1';
+                e.currentTarget.style.transform = 'scale(1)';
               }}
             >
               Cancel

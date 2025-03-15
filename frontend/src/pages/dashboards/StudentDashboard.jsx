@@ -55,6 +55,7 @@ import {
   BarChartOutlined,
   LineChartOutlined,
   PieChartOutlined,
+  ArrowUpOutlined, // Add ArrowUp icon for back to top button
 } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
@@ -118,6 +119,9 @@ const StudentDashboard = () => {
   // Add state variables for session status
   const [latestSession, setLatestSession] = useState(null);
   const [isSessionActive, setIsSessionActive] = useState(true);
+
+  // Add state for back to top button visibility
+  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Split the fetchAllData into separate functions for each data type
   const fetchProfileData = useCallback(async () => {
@@ -1165,6 +1169,8 @@ const StudentDashboard = () => {
     // Check if the user has already confirmed the device analysis modal
     const hasConfirmedDeviceAnalysis = localStorage.getItem('hasConfirmedDeviceAnalysis');
     if (!hasConfirmedDeviceAnalysis && !deviceModalConfirmed) {
+      // Store the current unitId to use after confirmation
+      sessionStorage.setItem('pendingAttendUnitId', unitId);
       setDeviceModalVisible(true);
       return;
     }
@@ -1188,20 +1194,41 @@ const StudentDashboard = () => {
   };
 
   // New function to handle device modal confirmation
-  const handleDeviceModalConfirm = () => {
+  const handleDeviceModalConfirm = async () => {
     localStorage.setItem('hasConfirmedDeviceAnalysis', 'true');
     setDeviceModalConfirmed(true);
     setDeviceModalVisible(false);
 
-    // Because we're in an async context, we need to re-trigger the latest attend click
-    if (selectedUnit && selectedUnit._id) {
-      setTimeout(() => handleAttendClick(selectedUnit._id), 0);
+    // Get the pending unitId from sessionStorage
+    const unitId = sessionStorage.getItem('pendingAttendUnitId');
+    sessionStorage.removeItem('pendingAttendUnitId');
+
+    if (unitId) {
+      try {
+        const session = await getActiveSessionForUnit(unitId);
+        if (session && session._id && !session.ended) {
+          // Set flag that we're navigating to QR scanner
+          sessionStorage.setItem('returnFromQrScanner', 'true');
+          navigate(`/qr-scanner/${unitId}`);
+        } else {
+          message.info("No active session is currently available for this unit.");
+        }
+      } catch (err) {
+        console.error('Error checking active session:', err);
+        const errorMessage = err.response?.status === 404
+          ? "No active session is currently available for this unit."
+          : "Unable to check for an active session at this time.";
+        message.info(errorMessage);
+      }
     }
   };
 
   // New function to handle device modal cancellation
   const handleDeviceModalCancel = () => {
     setDeviceModalVisible(false);
+    // Clear the pending unitId
+    sessionStorage.removeItem('pendingAttendUnitId');
+    message.info("You need to accept device analysis to attend sessions.");
   };
 
   const scrollToSection = (id) => {
@@ -1285,6 +1312,33 @@ const StudentDashboard = () => {
       setLatestSession(unitAttendance[0] || null);
     }
   }, [selectedUnit, attendanceData.attendanceRecords]);
+
+  // Add useEffect to handle scroll event for back to top button
+  useEffect(() => {
+    const handleScroll = () => {
+      // Show button when scrolled down 300px
+      if (window.scrollY > 300) {
+        setShowBackToTop(true);
+      } else {
+        setShowBackToTop(false);
+      }
+    };
+
+    window.addEventListener('scroll', handleScroll);
+
+    // Clean up event listener
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+    };
+  }, []);
+
+  // Function to scroll to top
+  const scrollToTop = () => {
+    window.scrollTo({
+      top: 0,
+      behavior: 'smooth'
+    });
+  };
 
   // Update the loading indicator in the UI to show more specific loading states
   return (
@@ -1994,6 +2048,31 @@ const StudentDashboard = () => {
           </Spin>
         </Content>
       </Layout>
+
+      {/* Add Back to Top Button */}
+      {showBackToTop && (
+        <Button
+          type="primary"
+          icon={<ArrowUpOutlined />}
+          onClick={scrollToTop}
+          style={{
+            position: 'fixed',
+            bottom: '30px',
+            right: '30px',
+            width: '50px',
+            height: '50px',
+            borderRadius: '50%',
+            fontSize: '20px',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            background: themeColors.accent,
+            border: '2px solid #fff',
+            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+            zIndex: 9999,
+          }}
+        />
+      )}
     </Layout>
   );
 };
