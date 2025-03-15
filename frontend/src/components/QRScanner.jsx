@@ -317,7 +317,7 @@ const QRScanner = () => {
         }
       >
         {loading ? (
-          <Spin size="large" tip="Loading session..." />
+          <Spin size="large" tip="Verifying session status..." />
         ) : sessionEnded ? (
           <Alert
             message="Session Ended"
@@ -345,7 +345,7 @@ const QRScanner = () => {
               </div>
               {loading && (
                 <div className="qr-loading-overlay">
-                  <Spin size="large" tip="Marking Attendance..." />
+                  <Spin size="large" tip="Processing attendance data..." />
                 </div>
               )}
             </div>

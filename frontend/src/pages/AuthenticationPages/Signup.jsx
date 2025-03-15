@@ -247,7 +247,7 @@ const Signup = () => {
 
       if (response.status === 201) {
         form.resetFields();
-        message.success("Account Created! Redirecting to login...", 2);
+        message.success("Account created successfully! Redirecting to login page...", 2);
 
         setTimeout(() => navigate("/auth/login"), 2000);
       }
@@ -473,7 +473,8 @@ const Signup = () => {
               loading={loading}
               theme={themeColors}
             >
-              <ArrowRightOutlined style={{ marginRight: 8 }} /> Create Account
+              <ArrowRightOutlined style={{ marginRight: 8 }} />
+              {loading ? "Creating Account..." : "Create Account"}
             </StyledButton>
           </Form.Item>
         </Form>

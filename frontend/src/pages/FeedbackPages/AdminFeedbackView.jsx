@@ -476,7 +476,7 @@ const AdminFeedbackView = () => {
         </div>
       </Card>
 
-      <Spin spinning={loading} tip="Loading..." size="large">
+      <Spin spinning={loading} tip="Loading feedback analytics data..." size="large">
         <Table
           columns={tableColumns}
           dataSource={filteredData}

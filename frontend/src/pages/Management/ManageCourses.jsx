@@ -656,7 +656,7 @@ const ManageCourses = () => {
     <Layout style={styles.layout}>
       <Content style={styles.content} className="ant-layout-content">
         <style>{styles.responsiveOverrides}</style>
-        <Spin spinning={loading} tip="Loading data...">
+        <Spin spinning={loading} tip={selectedCourse ? "Processing course..." : "Loading courses..."}>
           {showBackToTop && (
             <Button
               type="primary"
@@ -801,7 +801,7 @@ const ManageCourses = () => {
             }}
             className="responsive-modal"
           >
-            <Spin spinning={loading} tip="Loading data...">
+            <Spin spinning={loading} tip={selectedCourse ? "Updating course details..." : "Creating new course..."}>
               <Form
                 form={form}
                 layout="vertical"
@@ -894,7 +894,7 @@ const ManageCourses = () => {
               content: modalStyles.modalContainer
             }}
           >
-            <Spin spinning={loading} tip="Loading data...">
+            <Spin spinning={loading} tip="Deleting course...">
               <p style={{ color: themeColors.accent }}>
                 <ExclamationCircleOutlined style={{ marginRight: 8 }} />
                 Are you sure you want to delete this course? This action cannot be undone.
@@ -946,7 +946,7 @@ const ManageCourses = () => {
               content: modalStyles.modalContainer
             }}
           >
-            <Spin spinning={loading} tip="Loading data...">
+            <Spin spinning={loading} tip="Removing unit...">
               <p style={{ color: themeColors.accent }}>
                 <ExclamationCircleOutlined style={{ marginRight: 8 }} />
                 Are you sure you want to remove this unit? This action cannot be undone.
@@ -973,7 +973,7 @@ const ManageCourses = () => {
             }}
             className="responsive-modal"
           >
-            <Spin spinning={loading} tip="Loading data...">
+            <Spin spinning={loading} tip={units.length ? "Managing course units..." : "Loading course units..."}>
               <Form
                 form={unitForm}
                 layout="vertical"

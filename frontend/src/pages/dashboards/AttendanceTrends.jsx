@@ -408,6 +408,7 @@ const AttendanceTrends = () => {
   const { themeColors } = useContext(ThemeContext);
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Loading attendance data...');
   const [filter, setFilter] = useState('30days');
   const [dateRange, setDateRange] = useState(null);
   const [chartType, setChartType] = useState('line');
@@ -435,12 +436,15 @@ const AttendanceTrends = () => {
     }
 
     setLoading(true);
+    setLoadingMessage('Retrieving your profile information...');
     try {
       const profileRes = await getUserProfile(token);
       if (profileRes._id) {
+        setLoadingMessage('Fetching attendance records...');
         const start = dateRange && dateRange[0] ? dateRange[0].format('YYYY-MM-DD') : null;
         const end = dateRange && dateRange[1] ? dateRange[1].format('YYYY-MM-DD') : null;
         const attendanceRes = await getStudentAttendanceByFilter(profileRes._id, filter, start, end);
+        setLoadingMessage('Processing attendance data...');
         const normalizedEvents = attendanceRes.events.flatMap(item => {
           if (filter === 'weekly') {
             return item.events.map(event => ({
@@ -654,11 +658,13 @@ const AttendanceTrends = () => {
   const handleFilterChange = (value) => {
     setFilter(value);
     if (value === '30days') setDateRange(null);
+    setLoadingMessage(`Loading ${value === '30days' ? 'last 30 days' : value} attendance data...`);
   };
 
   const handleDateRangeChange = (dates) => {
     setDateRange(dates);
     if (!filter.includes('daily')) setFilter('daily');
+    setLoadingMessage('Loading attendance data for selected date range...');
   };
 
   const handleChartTypeChange = (checked) => {
@@ -719,7 +725,7 @@ const AttendanceTrends = () => {
         }} className="ant-layout-content">
           <Spin
             spinning={loading}
-            tip="Loading data..."
+            tip={loadingMessage}
             style={{ color: themeColors.text }}
           >
             <Space direction="vertical" size={16} style={{

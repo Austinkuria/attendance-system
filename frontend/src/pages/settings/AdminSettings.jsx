@@ -61,7 +61,7 @@ const AdminSettings = () => {
     return (
       <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
         <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }}>
-          <Spin size="large" tip="Loading settings..." />
+          <Spin size="large" tip="Loading profile settings..." />
         </Content>
       </Layout>
     );
@@ -142,17 +142,17 @@ const AdminSettings = () => {
             </Form.Item>
             <Form.Item>
               <Space style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap', gap: 8 }}>
-                <Button 
-                  type="primary" 
-                  htmlType="submit" 
-                  loading={isUpdating} 
+                <Button
+                  type="primary"
+                  htmlType="submit"
+                  loading={isUpdating}
                   disabled={isUpdating}
                   style={{ flex: 1, minWidth: 120 }}
                 >
                   {isUpdating ? 'Updating...' : 'Update Profile'}
                 </Button>
-                <Button 
-                  style={{ flex: 1, minWidth: 120 }} 
+                <Button
+                  style={{ flex: 1, minWidth: 120 }}
                   onClick={() => navigate('/admin/profile')}
                 >
                   Cancel

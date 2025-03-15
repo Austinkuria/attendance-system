@@ -22,6 +22,7 @@ const AdminAnalytics = () => {
   const [courses, setCourses] = useState([]);
   const [attendanceRates, setAttendanceRates] = useState({});
   const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Loading data...');
   const [selectedCourse, setSelectedCourse] = useState(null);
   const [courseUnits, setCourseUnits] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
@@ -33,6 +34,7 @@ const AdminAnalytics = () => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadingMessage('Fetching available courses...');
       const coursesRes = await getCourses();
       const enrichedCourses = await Promise.all(coursesRes.map(async (course) => {
         const units = await getUnitsByCourse(course._id);
@@ -41,7 +43,7 @@ const AdminAnalytics = () => {
       }));
       setCourses(enrichedCourses);
     } catch {
-      message.error('Error loading data');
+      message.error('Error loading course data');
     } finally {
       setLoading(false);
     }
@@ -50,6 +52,7 @@ const AdminAnalytics = () => {
   const fetchCourseAttendanceRates = useCallback(async () => {
     try {
       setLoading(true);
+      setLoadingMessage('Calculating attendance statistics...');
       const attendanceData = await Promise.all(
         courses.map(async (course) => ({
           courseId: course._id,
@@ -72,6 +75,7 @@ const AdminAnalytics = () => {
   useEffect(() => {
     if (selectedCourse) {
       setLoading(true);
+      setLoadingMessage('Fetching course units...');
       getUnitsByCourse(selectedCourse)
         .then(units => setCourseUnits(units.filter(u => u && u._id && u.name)))
         .catch(() => message.error('Failed to fetch course units'))
@@ -168,7 +172,7 @@ const AdminAnalytics = () => {
       </Header>
 
       <Content style={{ marginTop: 64, padding: '24px 12px 24px 12px', background: themeColors.background }}>
-        <Spin spinning={loading} tip="Loading data...">
+        <Spin spinning={loading} tip={loadingMessage}>
           <Card style={{ marginBottom: 24, borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}>
             {/* Added wrapper for filters */}
             <div className="filter-container">

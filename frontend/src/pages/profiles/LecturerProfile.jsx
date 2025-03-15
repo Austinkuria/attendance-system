@@ -81,7 +81,7 @@ const LecturerProfile = () => {
     return (
       <Layout style={{ minHeight: '100vh', background: '#f0f2f5' }}>
         <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }}>
-          <Spin size="large" tip="Loading profile..." />
+          <Spin size="large" tip="Fetching lecturer profile data..." />
         </Content>
       </Layout>
     );

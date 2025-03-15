@@ -312,7 +312,7 @@ const StudentProfile = () => {
     return (
       <Layout style={styles.layout}>
         <Content style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '24px' }}>
-          <Spin size="large" tip="Loading profile..." />
+          <Spin size="large" tip="Loading student profile data..." />
         </Content>
       </Layout>
     );

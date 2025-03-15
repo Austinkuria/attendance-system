@@ -316,10 +316,12 @@ const StudentSettings = () => {
                 minHeight: '400px', // Add minimum height when showing spinner
                 minWidth: '300px', // Add minimum width when showing spinner
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center'
               }}>
-                <Spin size="large" />
+                <Spin size="large" tip="Loading profile data..." />
+                <p style={{ marginTop: '10px', color: themeColors.text }}>Please wait while we fetch your profile information</p>
               </div>
             ) : (
               <Form

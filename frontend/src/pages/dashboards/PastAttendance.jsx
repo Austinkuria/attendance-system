@@ -349,7 +349,10 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
             </Button>
           </Space>
 
-          <Spin spinning={loading}>
+          <Spin
+            spinning={loading}
+            tip={pastFilters.sessionId ? "Loading attendance data..." : "Loading past sessions..."}
+          >
             {pastAttendance.length > 0 ? (
               <Table
                 dataSource={pastAttendance}

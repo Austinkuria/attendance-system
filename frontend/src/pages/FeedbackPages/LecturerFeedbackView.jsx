@@ -1,4 +1,4 @@
-import  { useState, useEffect, useMemo, useContext } from 'react';
+import { useState, useEffect, useMemo, useContext } from 'react';
 import { Card, Typography, Rate, Select, Row, Col, Spin, Alert, Tag, Button, Pagination, Statistic } from 'antd';
 import { Bar, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend } from 'chart.js';
@@ -385,7 +385,7 @@ const LecturerFeedbackView = () => {
         </Col>
       </Row>
 
-      <Spin spinning={loading} tip="Loading feedback..." size="large">
+      <Spin spinning={loading} tip="Loading feedback analytics data..." size="large">
         {filteredFeedback.length > 0 ? (
           <>
             <div className={styles.gridContainer}>

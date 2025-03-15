@@ -29,8 +29,7 @@ import {
   UserOutlined,
   IdcardOutlined,
   CheckCircleOutlined,
-  CloseCircleOutlined,
-  ScanOutlined
+  ScanOutlined,
 } from "@ant-design/icons";
 import PropTypes from "prop-types";
 import axios from "axios";
@@ -860,7 +859,7 @@ const AttendanceManagement = () => {
                   transition: "all 0.3s",
                 }}
               >
-                End Session Early
+                {loading.session ? "Ending Session..." : "End Session Early"}
               </Button>
             </Col>
           </Row>
@@ -902,13 +901,14 @@ const AttendanceManagement = () => {
                 transition: "all 0.3s",
               }}
             >
-              {screens.md ? "Generate QR Code" : "QR Code"}
+              {loading.qr ? "Generating..." : screens.md ? "Generate QR Code" : "QR Code"}
             </Button>
             <Button
               type="primary"
               icon={<CalendarOutlined />}
               onClick={handleCreateSession}
               disabled={loading.session || (currentSession && !currentSession.ended)}
+              loading={loading.session}
               style={{
                 background: themeColors.primary,
                 borderColor: themeColors.primary,
@@ -918,7 +918,7 @@ const AttendanceManagement = () => {
                 transition: "all 0.3s",
               }}
             >
-              {loading.session ? "Creating..." : "Create Attendance Session"}
+              {loading.session ? "Creating Session..." : "Create Attendance Session"}
             </Button>
           </Space>
         }
@@ -960,7 +960,7 @@ const AttendanceManagement = () => {
                   transition: "all 0.3s",
                 }}
               >
-                Refresh Attendance Data
+                {loading.realTimeAttendance ? "Loading Data..." : "Refresh Attendance Data"}
               </Button>
             </Space>
             <Skeleton active loading={loading.realTimeAttendance}>
@@ -997,6 +997,7 @@ const AttendanceManagement = () => {
               icon={<DownloadOutlined />}
               onClick={() => downloadAttendanceReport(selectedUnit)}
               disabled={!selectedUnit}
+              loading={loading.stats}
               style={{
                 color: themeColors.primary,
                 borderColor: themeColors.primary,
@@ -1006,7 +1007,7 @@ const AttendanceManagement = () => {
                 transition: "all 0.3s",
               }}
             >
-              {screens.md ? "Download Report" : "Export"}
+              {loading.stats ? "Exporting..." : screens.md ? "Download Report" : "Export"}
             </Button>
             <Space
               wrap

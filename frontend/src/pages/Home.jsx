@@ -216,7 +216,18 @@ const Home = () => {
     return (
       <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: themeColors.background }}>
         <Spin size="large" style={{ color: themeColors.primary }} />
-        <Text style={{ marginTop: 16, color: themeColors.text, fontSize: 18 }}>Loading QRollCall...</Text>
+        <Text style={{ marginTop: 16, color: themeColors.text, fontSize: 18 }}>
+          Initializing QRollCall Dashboard...
+        </Text>
+        <Text style={{ marginTop: 8, color: themeColors.text, opacity: 0.7, fontSize: 14, animation: 'fadeInOut 1.5s infinite' }}>
+          Preparing attendance management tools
+        </Text>
+        <style>{`
+          @keyframes fadeInOut {
+            0%, 100% { opacity: 0.5; }
+            50% { opacity: 0.9; }
+          }
+        `}</style>
       </div>
     );
   }

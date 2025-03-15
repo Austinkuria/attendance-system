@@ -741,7 +741,7 @@ const ManageLecturers = () => {
     <Layout style={styles.layout}>
       <Content style={styles.content} className="ant-layout-content">
         <style>{styles.responsiveOverrides}</style>
-        <Spin spinning={loading} tip="Loading data...">
+        <Spin spinning={loading} tip="Loading lecturers data...">
           <Row
             justify="space-between"
             align="middle"
@@ -951,7 +951,7 @@ const ManageLecturers = () => {
           content: modalStyles.modalContainer
         }}
       >
-        <Spin spinning={loading} tip="Loading data...">
+        <Spin spinning={loading} tip="Processing lecturer data...">
           <Form
             form={addForm}
             layout="vertical"
@@ -1065,7 +1065,7 @@ const ManageLecturers = () => {
           content: modalStyles.modalContainer
         }}
       >
-        <Spin spinning={loading} tip="Loading data...">
+        <Spin spinning={loading} tip="Saving lecturer changes...">
           <Form
             form={editForm}
             layout="vertical"
@@ -1161,7 +1161,7 @@ const ManageLecturers = () => {
           content: modalStyles.modalContainer
         }}
       >
-        <Spin spinning={loading} tip="Loading data...">
+        <Spin spinning={loading} tip="Processing deletion request...">
           <p style={{ color: themeColors.accent }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
             Are you sure you want to delete this lecturer? This action cannot be undone.
@@ -1213,7 +1213,7 @@ const ManageLecturers = () => {
           content: modalStyles.modalContainer
         }}
       >
-        <Spin spinning={loading} tip="Loading data...">
+        <Spin spinning={loading} tip="Managing unit assignments...">
           {selectedLecturerForUnits && (
             <>
               <p style={{ color: isDarkMode ? themeColors.text : "#000" }}>

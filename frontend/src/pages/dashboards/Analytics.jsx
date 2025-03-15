@@ -233,14 +233,21 @@ const Analytics = () => {
               color: '#fff',
             }}
           >
-            {screens.md ? 'Refresh Trends' : 'Refresh'}
+            {screens.md ? (loading.trends ? 'Loading...' : 'Refresh Trends') : (loading.trends ? 'Loading' : 'Refresh')}
           </Button>
         </Space>
       }
       style={{ marginTop: 24, borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.1)', overflow: 'hidden', background: themeColors.cardBg }}
       styles={{ body: { padding: screens.md ? 24 : 16 } }}
     >
-      <Spin spinning={loading.trends} tip="Loading trends...">
+      <Spin
+        spinning={loading.trends}
+        tip={filterType === 'All'
+          ? "Loading attendance trends for all sessions..."
+          : filterType === 'Day'
+            ? "Loading attendance data for selected day..."
+            : "Loading attendance data for selected week..."}
+      >
         <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
           <Col xs={24} sm={8}><Statistic title="Total Present" value={totalPresent} prefix={<TeamOutlined style={{ color: themeColors.secondary }} />} valueStyle={{ color: themeColors.secondary }} /></Col>
           <Col xs={24} sm={8}><Statistic title="Total Absent" value={totalAbsent} prefix={<TeamOutlined style={{ color: themeColors.accent }} />} valueStyle={{ color: themeColors.accent }} /></Col>

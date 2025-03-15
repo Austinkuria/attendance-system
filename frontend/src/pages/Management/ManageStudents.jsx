@@ -782,7 +782,7 @@ const ManageStudents = () => {
     <Layout style={styles.layout}>
       <Content style={styles.content} className="ant-layout-content">
         <style>{styles.responsiveOverrides}</style>
-        <Spin spinning={loading} tip="Loading...">
+        <Spin spinning={loading} tip="Loading students data...">
           <Row
             justify="space-between"
             align="middle"
@@ -993,7 +993,7 @@ const ManageStudents = () => {
           content: modalStyles.modalContainer
         }}
       >
-        <Spin spinning={loading} tip="Adding student...">
+        <Spin spinning={loading} tip="Processing student data...">
           <Form form={addForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
             <Form.Item
               name="firstName"
@@ -1159,7 +1159,7 @@ const ManageStudents = () => {
           content: modalStyles.modalContainer
         }}
       >
-        <Spin spinning={loading} tip="Updating student...">
+        <Spin spinning={loading} tip="Saving student changes...">
           <Form form={editForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
             <Form.Item
               name="firstName"
@@ -1305,7 +1305,7 @@ const ManageStudents = () => {
           content: modalStyles.modalContainer
         }}
       >
-        <Spin spinning={loading} tip="Deleting student...">
+        <Spin spinning={loading} tip="Processing deletion request...">
           <p style={{ color: themeColors.accent }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
             Are you sure you want to delete this student? This action cannot be undone.

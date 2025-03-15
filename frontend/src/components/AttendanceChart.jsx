@@ -56,7 +56,7 @@ const AttendanceChart = ({ data }) => {
       },
       title: {
         display: true,
-        text: `Overall Attendance: ${overallRate}% (Present: ${totalPresent}/${totalPossible})`,
+        text: `Overall Attendance: ${overallRate}% (Present: ${totalPresent} of ${totalPossible})`,
         font: { size: 14 },
         padding: { top: 10, bottom: 20 },
       },
@@ -69,12 +69,22 @@ const AttendanceChart = ({ data }) => {
             if (dataset.type === 'line') {
               return `${dataset.label}: ${context.raw}%`;
             }
-            return `${dataset.label}: ${context.raw} students`;
+            if (dataset.label === 'Present') {
+              return `${dataset.label}: ${context.raw} attendance records`;
+            }
+            return `${dataset.label}: ${context.raw} absences`;
           },
           footer: (tooltipItems) => {
             const index = tooltipItems[0].dataIndex;
             const week = weeklyTrends[index];
-            return `Sessions: ${week?.sessionCount || 0}, Total Possible: ${week?.present + week?.absent || 0}`;
+            if (!week) return '';
+
+            const total = week.present + week.absent;
+            return [
+              `Sessions: ${week.sessionCount || 0}`,
+              `Weekly attendance rate: ${week.rate}%`,
+              `Total attendance records: ${total}`
+            ];
           },
         },
       },
@@ -89,7 +99,7 @@ const AttendanceChart = ({ data }) => {
         stacked: true,
         position: 'left',
         beginAtZero: true,
-        title: { display: true, text: 'Student Attendances' },
+        title: { display: true, text: 'Attendance Records' },
         ticks: { stepSize: Math.ceil(totalPossible / 10) || 1, padding: 10 },
         suggestedMax: totalPossible > 0 ? totalPossible + Math.ceil(totalPossible * 0.2) : 5,
       },

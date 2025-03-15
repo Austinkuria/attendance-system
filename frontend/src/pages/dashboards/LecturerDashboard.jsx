@@ -35,6 +35,8 @@ const LecturerDashboard = () => {
   const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
   const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [showBackToTop, setShowBackToTop] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [loadingMessage, setLoadingMessage] = useState('Loading dashboard data...');
 
   useEffect(() => {
     // Single more efficient auth check
@@ -58,8 +60,19 @@ const LecturerDashboard = () => {
     };
 
     window.addEventListener('storage', handleStorageChange);
+
+    // Simulate loading data
+    setLoading(true);
+    setLoadingMessage('Loading dashboard data...');
+
+    // Simulate data loading completion
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
+      clearTimeout(timer);
     };
   }, []);
 
@@ -261,15 +274,25 @@ const LecturerDashboard = () => {
             transition: 'margin-left 0.3s ease-in-out',
           }}
         >
-          <Spin spinning={false} tip="Loading...">
+          <Spin spinning={loading} tip={loadingMessage}>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
               <section style={{ margin: 0 }}>
-                <AttendanceManagement />
+                <AttendanceManagement
+                  onLoadingChange={(isLoading) => {
+                    setLoading(isLoading);
+                    if (isLoading) setLoadingMessage('Loading attendance records...');
+                  }}
+                />
               </section>
             </motion.div>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
               <section style={{ margin: 0 }}>
-                <Analytics />
+                <Analytics
+                  onLoadingChange={(isLoading) => {
+                    setLoading(isLoading);
+                    if (isLoading) setLoadingMessage('Processing analytics data...');
+                  }}
+                />
               </section>
             </motion.div>
             {showBackToTop && (
