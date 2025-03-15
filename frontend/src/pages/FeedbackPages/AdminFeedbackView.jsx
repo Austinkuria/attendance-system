@@ -20,9 +20,16 @@ import {
 import { Bar } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, Tooltip, Legend } from 'chart.js';
 import {
-  // FilterOutlined,
   SearchOutlined,
-  ArrowLeftOutlined
+  ArrowLeftOutlined,
+  BookOutlined,
+  ReadOutlined,
+  StarOutlined,
+  FieldTimeOutlined,
+  InteractionOutlined,
+  CheckCircleOutlined,
+  MessageOutlined,
+  IdcardOutlined
 } from '@ant-design/icons';
 import { getFeedbackSummary } from '../../services/api';
 import { css } from '@emotion/css';
@@ -243,45 +250,50 @@ const AdminFeedbackView = () => {
   };
 
   const tableColumns = [
-    { title: 'Session ID', dataIndex: 'sessionId', key: 'sessionId', fixed: 'left' },
     {
-      title: 'Unit Code',
+      title: (<><IdcardOutlined style={{ marginRight: 8, color: themeColors.accent }} />Session ID</>),
+      dataIndex: 'sessionId',
+      key: 'sessionId',
+      fixed: 'left'
+    },
+    {
+      title: (<><ReadOutlined style={{ marginRight: 8, color: themeColors.accent }} />Unit Code</>),
       dataIndex: 'unit',
       key: 'unit',
       render: (unit) => unit?.code || <span className="muted">N/A</span>
     },
     {
-      title: 'Course Code',
+      title: (<><BookOutlined style={{ marginRight: 8, color: themeColors.accent }} />Course Code</>),
       dataIndex: 'course',
       key: 'course',
       render: (course) => course?.code || <span className="muted">N/A</span>
     },
     {
-      title: 'Avg Rating',
+      title: (<><StarOutlined style={{ marginRight: 8, color: themeColors.accent }} />Avg Rating</>),
       dataIndex: 'averageRating',
       key: 'averageRating',
       render: (value) => value?.toFixed(2) || <span className="muted">N/A</span>
     },
     {
-      title: 'Avg Pace',
+      title: (<><FieldTimeOutlined style={{ marginRight: 8, color: themeColors.accent }} />Avg Pace</>),
       dataIndex: 'averagePace',
       key: 'averagePace',
       render: (value) => value?.toFixed(2) || <span className="muted">N/A</span>
     },
     {
-      title: 'Avg Interactivity',
+      title: (<><InteractionOutlined style={{ marginRight: 8, color: themeColors.accent }} />Avg Interactivity</>),
       dataIndex: 'averageInteractivity',
       key: 'averageInteractivity',
       render: (value) => value?.toFixed(2) || <span className="muted">N/A</span>
     },
     {
-      title: 'Clarity (Yes)',
+      title: (<><CheckCircleOutlined style={{ marginRight: 8, color: themeColors.accent }} />Clarity (Yes)</>),
       dataIndex: 'clarityYes',
       key: 'clarityYes',
       sorter: (a, b) => a.clarityYes - b.clarityYes
     },
     {
-      title: 'Total Feedback',
+      title: (<><MessageOutlined style={{ marginRight: 8, color: themeColors.accent }} />Total Feedback</>),
       dataIndex: 'totalFeedback',
       key: 'totalFeedback',
       sorter: (a, b) => a.totalFeedback - b.totalFeedback

@@ -1,12 +1,33 @@
 import { useState, useEffect, useCallback, useContext } from 'react';
-import { Table, Space, Card, Select, DatePicker, Tag, Skeleton, message, Button, Typography } from 'antd';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import axios from 'axios';
+import {
+  Table,
+  Select,
+  DatePicker,
+  Space,
+  Card,
+  Typography,
+  Spin,
+  Button,
+  Empty,
+  Tag,
+  message
+} from 'antd';
+import {
+  DownloadOutlined,
+  IdcardOutlined,
+  UserOutlined,
+  ScanOutlined,
+  CheckCircleOutlined,
+  CalendarOutlined,
+  BookOutlined
+} from '@ant-design/icons';
 import moment from 'moment';
-import { getDepartments, getLecturerUnits } from '../../services/api';
+import axios from 'axios';
 import { ThemeContext } from '../../context/ThemeContext';
-import ThemeToggle from '../../components/ThemeToggle';
+import { getDepartments,getLecturerUnits } from '../../services/api';
+import { useTableStyles } from '../../components/SharedTableStyles';
 
 const { Option } = Select;
 const { Text } = Typography;
@@ -149,27 +170,32 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
     if (lecturerId) fetchPastSessions();
   }, [lecturerId, fetchPastSessions]);
 
-  const pastColumns = [
+  const tableStyles = useTableStyles();
+
+  const columns = [
     {
-      title: 'Reg Number',
+      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Reg Number</>),
       dataIndex: ['student', 'regNo'],
       key: 'regNo',
       sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo),
+      render: (text) => <span style={{ color: themeColors.primary, fontWeight: 500 }}>{text}</span>,
     },
     {
-      title: 'First Name',
+      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />First Name</>),
       dataIndex: ['student', 'firstName'],
       key: 'firstName',
       sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName),
+      render: (text) => <span>{text}</span>,
     },
     {
-      title: 'Last Name',
+      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />Last Name</>),
       dataIndex: ['student', 'lastName'],
       key: 'lastName',
       sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName),
+      render: (text) => <span>{text}</span>,
     },
     {
-      title: 'Scan Time',
+      title: (<><ScanOutlined style={{ marginRight: 4, color: themeColors.accent }} />Scan Time</>),
       dataIndex: 'attendedAt',
       key: 'attendedAt',
       render: (attendedAt) =>
@@ -185,7 +211,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
       sorter: (a, b) => new Date(a.attendedAt || 0) - new Date(b.attendedAt || 0),
     },
     {
-      title: 'Status',
+      title: (<><CheckCircleOutlined style={{ marginRight: 4, color: themeColors.accent }} />Status</>),
       dataIndex: 'status',
       key: 'status',
       render: (status) => (
@@ -228,91 +254,117 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
   }
 
   return (
-    <div style={{ padding: 24, background: themeColors.background, minHeight: '100vh' }}>
-      <Card
-        title={
-          <Space>
-            <Text strong style={{ color: themeColors.primary }}>Attendance Records for Past Sessions</Text>
-          </Space>
-        }
-        size="small"
-        style={cardStyle}
-        hoverable
-        extra={
-          <Space>
-            <Button
-              type="link"
-              onClick={clearFilters}
-              disabled={!Object.values(pastFilters).some(Boolean)}
-              style={{ color: themeColors.secondary }}
+    <>
+      <Card title={<Text strong style={{ color: themeColors.text }}>Past Attendance Records</Text>} style={cardStyle}>
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Space wrap style={{ marginBottom: 16 }}>
+            <Select
+              placeholder="Select Unit"
+              style={{ width: 240 }}
+              onChange={(value) =>
+                setPastFilters((prev) => ({ ...prev, unit: value, sessionId: null }))
+              }
+              allowClear
+              value={pastFilters.unit}
             >
-              Clear Filters
-            </Button>
-            <ThemeToggle />
-          </Space>
-        }
-      >
-        <Space wrap style={{ width: '100%', marginBottom: 16 }}>
-          <Select
-            placeholder="Select Unit"
-            style={{ width: 240 }}
-            onChange={(value) => setPastFilters((prev) => ({ ...prev, unit: value, sessionId: null }))}
-            allowClear
-            value={pastFilters.unit}
-            loading={loading}
-            notFoundContent={loading ? <Skeleton.Button active size="small" /> : 'No units available'}
-          >
-            {units.length > 0 ? (
-              units.map((unit) => (
-                <Option key={unit._id} value={unit._id}>{unit.name}</Option>
-              ))
-            ) : (
-              <Option value={null} disabled>No units found</Option>
-            )}
-          </Select>
-          <DatePicker
-            defaultValue={moment()}
-            placeholder="Select Date"
-            style={{ width: 150 }}
-            onChange={(_, dateString) => setPastFilters((prev) => ({ ...prev, date: dateString, sessionId: null }))}
-            allowClear
-          />
-          <Select
-            placeholder="Select Session"
-            style={{ width: 300 }}
-            onChange={(value) => setPastFilters((prev) => ({ ...prev, sessionId: value }))}
-            allowClear
-            value={pastFilters.sessionId}
-            loading={loading}
-            notFoundContent={loading ? <Skeleton.Button active size="small" /> : 'No sessions available'}
-          >
-            {pastSessions.length > 0 ? (
-              pastSessions
-                .filter((session) => moment(session.startTime).format('YYYY-MM-DD') === pastFilters.date)
+              {units.map((unit) => (
+                <Option key={unit._id} value={unit._id}>
+                  <Space>
+                    <BookOutlined style={{ color: themeColors.primary }} />
+                    {unit.name}
+                    <Tag color={themeColors.secondary}>{unit.code}</Tag>
+                  </Space>
+                </Option>
+              ))}
+            </Select>
+            <DatePicker
+              defaultValue={moment()}
+              placeholder="Select Date"
+              style={{ width: 150 }}
+              onChange={(_, dateString) =>
+                setPastFilters((prev) => ({ ...prev, date: dateString, sessionId: null }))
+              }
+              allowClear
+            />
+            <Select
+              placeholder="Select Session"
+              style={{ width: 300 }}
+              onChange={(value) => setPastFilters((prev) => ({ ...prev, sessionId: value }))}
+              allowClear
+              value={pastFilters.sessionId}
+            >
+              {pastSessions
+                .filter(
+                  (session) =>
+                    moment(session.startTime).format('YYYY-MM-DD') === pastFilters.date
+                )
                 .map((session) => (
                   <Option key={session.sessionId} value={session.sessionId}>
-                    {`${session.unitName} - ${moment(session.startTime).format('hh:mm A')} - ${moment(session.endTime).format('hh:mm A')} (${moment(session.startTime).format('DD/MM/YYYY')})`}
+                    <Space>
+                      <CalendarOutlined style={{ color: themeColors.accent }} />
+                      {`${session.unitName} - ${moment(session.startTime).format('hh:mm A')} - ${moment(
+                        session.endTime
+                      ).format('hh:mm A')}`}
+                    </Space>
                   </Option>
-                ))
+                ))}
+            </Select>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={() => {
+                if (pastFilters.sessionId) {
+                  const token = localStorage.getItem('token');
+                  axios({
+                    url: `https://attendance-system-w70n.onrender.com/api/attendance/export/${pastFilters.sessionId}`,
+                    method: 'GET',
+                    responseType: 'blob',
+                    headers: { Authorization: `Bearer ${token}` },
+                  }).then((response) => {
+                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                    const link = document.createElement('a');
+                    link.href = url;
+                    link.setAttribute('download', `attendance-${pastFilters.sessionId}.csv`);
+                    document.body.appendChild(link);
+                    link.click();
+                    link.remove();
+                  });
+                }
+              }}
+              disabled={!pastFilters.sessionId}
+              style={{
+                background: themeColors.primary,
+                borderColor: themeColors.primary,
+                color: isDarkMode ? themeColors.text : '#fff',
+              }}
+            >
+              Download CSV
+            </Button>
+          </Space>
+
+          <Spin spinning={loading}>
+            {pastAttendance.length > 0 ? (
+              <Table
+                dataSource={pastAttendance}
+                columns={columns}
+                rowKey="_id"
+                pagination={{
+                  pageSize: 8,
+                  showSizeChanger: false,
+                  responsive: true,
+                  showTotal: (total) => `Total ${total} students`,
+                }}
+                scroll={{ x: 'max-content' }}
+                bordered
+                rowClassName={(_, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
+              />
             ) : (
-              <Option value={null} disabled>No sessions found</Option>
+              <Empty description="No attendance data found" />
             )}
-          </Select>
+          </Spin>
         </Space>
-        <Skeleton active loading={loading}>
-          <Table
-            columns={pastColumns}
-            dataSource={pastAttendance}
-            rowKey="_id"
-            scroll={{ x: true }}
-            pagination={{ pageSize: 8, responsive: true, showSizeChanger: false, showTotal: (total) => `Total ${total} students` }}
-            locale={{ emptyText: 'No past attendance records found' }}
-            bordered
-            size="middle"
-            rowClassName={(record, index) => (index % 2 === 0 ? 'table-row-light' : 'table-row-dark')}
-          />
-        </Skeleton>
       </Card>
+
       <Button
         type="primary"
         onClick={() => navigate('/lecturer-dashboard')}
@@ -322,73 +374,55 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
       </Button>
 
       <style>{`
-        .ant-card:hover {
-          transform: translateY(-4px);
-          box-shadow: 0 8px 20px rgba(0, 0, 0, 0.1);
-        }
-        .table-row-light {
-          background: ${themeColors.cardBg};
-        }
-        .table-row-dark {
-          background: ${themeColors.background};
-        }
-        .ant-table-thead > tr > th {
-          background: ${themeColors.primary};
-          color: #fff;
-          font-weight: 600;
-          border-bottom: 2px solid ${themeColors.primary};
-          padding: 16px 8px;
-        }
-        .ant-table-tbody > tr > td {
-          border-bottom: 1px solid ${themeColors.text}20;
-          padding: 12px 8px;
-          color: ${themeColors.text};
-        }
-        .ant-table-tbody > tr:hover:not(.ant-table-expanded-row) > td {
-          background: ${themeColors.text}10;
-        }
-        .ant-table {
-          border: 1px solid ${themeColors.primary};
+        .ant-select-selector, .ant-picker {
+          background: ${themeColors.inputBg || themeColors.cardBg} !important;
+          border-color: ${themeColors.inputBorder || themeColors.border} !important;
+          color: ${themeColors.text} !important;
           border-radius: 8px;
-          width: 100%;
         }
-        .ant-btn-primary {
-          background: ${themeColors.primary};
-          border-color: ${themeColors.primary};
-          color: #fff;
-        }
-        .ant-btn-primary:hover, .ant-btn-primary:focus {
-          background: ${isDarkMode ? '#8E86E5' : '#5A4FCF'};
-          border-color: ${isDarkMode ? '#8E86E5' : '#5A4FCF'};
-          color: #fff;
-        }
-        .ant-btn-link {
-          color: ${themeColors.secondary};
-        }
-        .ant-btn-link:hover, .ant-btn-link:focus {
-          color: ${isDarkMode ? '#81ECEC' : '#00A8B5'};
-        }
-        .ant-select-selector {
-          background: ${themeColors.cardBg} !important;
-          color: ${themeColors.text} !important;
+        
+        .ant-select-selector:hover, .ant-select-selector:focus,
+        .ant-picker:hover, .ant-picker-focused {
+          background: ${themeColors.inputHover || themeColors.hover} !important;
           border-color: ${themeColors.primary} !important;
-          border-radius: 6px !important;
         }
-        .ant-picker {
+        
+        .ant-select-dropdown, .ant-picker-panel-container {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
-          border-color: ${themeColors.primary} !important;
-          border-radius: 6px !important;
+          border-radius: 8px;
         }
-        .ant-select-dropdown, .ant-picker-dropdown {
-          background: ${themeColors.cardBg} !important;
-          color: ${themeColors.text} !important;
-        }
+        
         .ant-select-item-option-content {
           color: ${themeColors.text} !important;
         }
+        
+        .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+          background: ${themeColors.hover} !important;
+        }
+        
+        .ant-picker-cell-in-view.ant-picker-cell-selected .ant-picker-cell-inner {
+          background: ${themeColors.primary} !important;
+        }
+
+        .table-row-light {
+          background: ${themeColors.cardBg} !important;
+        }
+        
+        .table-row-dark {
+          background: ${themeColors.background} !important;
+        }
+        
+        /* Button hover styles */
+        .ant-btn-primary:not(.ant-btn-dangerous):hover,
+        .ant-btn-primary:not(.ant-btn-dangerous):focus {
+          background: ${themeColors.primaryHover} !important;
+          border-color: ${themeColors.primaryHover} !important;
+        }
+        
+        ${tableStyles}
       `}</style>
-    </div>
+    </>
   );
 };
 

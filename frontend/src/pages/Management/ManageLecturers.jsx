@@ -22,15 +22,17 @@ import {
   LeftOutlined,
   EditOutlined,
   DeleteOutlined,
-  IdcardOutlined,
   BookOutlined,
   UnorderedListOutlined,
   ArrowUpOutlined,
   DownloadOutlined,
   ImportOutlined,
+  UserOutlined,
+  MailOutlined,
+  ApartmentOutlined
 } from "@ant-design/icons";
-import { ThemeContext } from '../../context/ThemeContext'; // Adjust path
-import ThemeToggle from '../../components/ThemeToggle'; // Adjust path
+import { ThemeContext } from '../../context/ThemeContext';
+import ThemeToggle from '../../components/ThemeToggle';
 import {
   getLecturers,
   deleteLecturer,
@@ -42,6 +44,7 @@ import {
 } from "../../services/api";
 import api from "../../services/api";
 import { useTableStyles } from '../../components/SharedTableStyles';
+import { useModalStyles } from '../../components/SharedModalStyles';
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -317,6 +320,7 @@ const ManageLecturers = () => {
   };
 
   const tableStyles = useTableStyles();
+  const modalStyles = useModalStyles();
 
   const styles = useMemo(() => ({
     layout: {
@@ -396,10 +400,14 @@ const ManageLecturers = () => {
       display: "inline-block",
     },
     modalHeader: {
-      padding: "12px 16px",
+      textAlign: 'center',
+      padding: '16px',
       background: themeColors.primary,
-      color: themeColors.text,
-      borderRadius: "8px 8px 0 0",
+      color: themeColors.textInvert,
+      borderBottom: `1px solid ${themeColors.border}`,
+      borderRadius: '12px 12px 0 0',
+      fontWeight: 600,
+      fontSize: '18px',
     },
     modalContent: {
       padding: "16px",
@@ -628,14 +636,16 @@ const ManageLecturers = () => {
       
       ${tableStyles}
       
+      ${modalStyles.styles}
+      
     `,
-  }), [isDarkMode, themeColors, tableStyles]);
+  }), [isDarkMode, themeColors, tableStyles, modalStyles.styles]);
 
   const columns = [
     {
       title: (
         <>
-          <IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />
+          <UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />
           Name
         </>
       ),
@@ -648,14 +658,19 @@ const ManageLecturers = () => {
       ),
     },
     {
-      title: "Email",
+      title: (
+        <>
+          <MailOutlined style={{ marginRight: 4, color: themeColors.accent }} />
+          Email
+        </>
+      ),
       dataIndex: "email",
       key: "email",
     },
     {
       title: (
         <>
-          <BookOutlined style={{ marginRight: 4, color: themeColors.accent }} />
+          <ApartmentOutlined style={{ marginRight: 4, color: themeColors.accent }} />
           Department
         </>
       ),
@@ -664,7 +679,12 @@ const ManageLecturers = () => {
       render: (dept) => (dept ? dept.name : "N/A"),
     },
     {
-      title: "Assigned Units",
+      title: (
+        <>
+          <BookOutlined style={{ marginRight: 4, color: themeColors.accent }} />
+          Assigned Units
+        </>
+      ),
       key: "assignedUnits",
       render: (_, record) => (
         <Button
@@ -879,7 +899,12 @@ const ManageLecturers = () => {
       </Content>
 
       <Modal
-        title={<span style={styles.modalHeader}>Add New Lecturer</span>}
+        title={
+          <div style={modalStyles.modalTitle}>
+            <UserAddOutlined />
+            Add New Lecturer
+          </div>
+        }
         open={isAddModalVisible}
         onCancel={() => setIsAddModalVisible(false)}
         footer={[
@@ -908,7 +933,12 @@ const ManageLecturers = () => {
             Add Lecturer
           </Button>,
         ]}
-        styles={{ body: styles.modalContent }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <Spin spinning={loading} tip="Loading data...">
           <Form
@@ -983,7 +1013,12 @@ const ManageLecturers = () => {
       </Modal>
 
       <Modal
-        title={<span style={styles.modalHeader}>Edit Lecturer</span>}
+        title={
+          <div style={modalStyles.modalTitle}>
+            <EditOutlined />
+            Edit Lecturer
+          </div>
+        }
         open={isEditModalVisible}
         onCancel={() => setIsEditModalVisible(false)}
         footer={[
@@ -1012,7 +1047,12 @@ const ManageLecturers = () => {
             Save Changes
           </Button>,
         ]}
-        styles={{ body: styles.modalContent }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <Spin spinning={loading} tip="Loading data...">
           <Form
@@ -1068,7 +1108,12 @@ const ManageLecturers = () => {
       </Modal>
 
       <Modal
-        title={<span style={styles.modalHeader}>Confirm Deletion</span>}
+        title={
+          <div style={modalStyles.modalTitle}>
+            <ExclamationCircleOutlined />
+            Confirm Deletion
+          </div>
+        }
         open={isDeleteModalVisible}
         onCancel={() => setIsDeleteModalVisible(false)}
         footer={[
@@ -1098,7 +1143,12 @@ const ManageLecturers = () => {
             Delete Lecturer
           </Button>,
         ]}
-        styles={{ body: styles.modalContent }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <Spin spinning={loading} tip="Loading data...">
           <p style={{ color: themeColors.accent }}>
@@ -1110,11 +1160,12 @@ const ManageLecturers = () => {
 
       <Modal
         title={
-          <span style={styles.modalHeader}>
+          <div style={modalStyles.modalTitle}>
+            <UnorderedListOutlined />
             Assigned Units for{" "}
             {selectedLecturerForUnits &&
               `${selectedLecturerForUnits.firstName} ${selectedLecturerForUnits.lastName}`}
-          </span>
+          </div>
         }
         open={isUnitsModalVisible}
         onCancel={() => setIsUnitsModalVisible(false)}
@@ -1144,7 +1195,12 @@ const ManageLecturers = () => {
             Assign Unit
           </Button>,
         ]}
-        styles={{ body: styles.modalContent }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <Spin spinning={loading} tip="Loading data...">
           {selectedLecturerForUnits && (

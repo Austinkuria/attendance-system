@@ -38,8 +38,9 @@ import {
   getUnitsByCourse,
 } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';
-import ThemeToggle from '../../components/ThemeToggle'; // Adjust path as needed
+import ThemeToggle from '../../components/ThemeToggle';
 import { useTableStyles } from '../../components/SharedTableStyles';
+import { useModalStyles } from '../../components/SharedModalStyles';
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -223,6 +224,7 @@ const ManageCourses = () => {
   };
 
   const tableStyles = useTableStyles();
+  const modalStyles = useModalStyles();
 
   const styles = useMemo(() => ({
     layout: {
@@ -522,8 +524,9 @@ const ManageCourses = () => {
         border-radius: 8px 8px 0 0;
       }
       ${tableStyles}
+      ${modalStyles.styles}
     `,
-  }), [isDarkMode, themeColors, tableStyles]);
+  }), [isDarkMode, themeColors, tableStyles, modalStyles.styles]);
 
   const columns = [
     {
@@ -754,7 +757,12 @@ const ManageCourses = () => {
 
           <Modal
             open={showCourseModal}
-            title={<span style={styles.modalHeader}>{selectedCourse ? "Edit Course" : "Add Course"}</span>}
+            title={
+              <div style={modalStyles.modalTitle}>
+                {selectedCourse ? <EditOutlined style={{ marginRight: 8 }} /> : <PlusOutlined style={{ marginRight: 8 }} />}
+                {selectedCourse ? "Edit Course" : "Add Course"}
+              </div>
+            }
             onCancel={() => {
               setShowCourseModal(false);
               setSelectedCourse(null);
@@ -787,7 +795,12 @@ const ManageCourses = () => {
               </Button>,
             ]}
             width={{ xs: '90%', sm: '70%', md: '50%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
-            styles={{ body: styles.modalContent }}
+            styles={{
+              header: modalStyles.modalHeader,
+              body: modalStyles.modalBody,
+              footer: modalStyles.modalFooter,
+              content: modalStyles.modalContainer
+            }}
             className="responsive-modal"
           >
             <Spin spinning={loading} tip="Loading data...">
@@ -840,7 +853,12 @@ const ManageCourses = () => {
 
           <Modal
             open={showDeleteModal}
-            title={<span style={styles.modalHeader}>Confirm Delete</span>}
+            title={
+              <div style={modalStyles.modalTitle}>
+                <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+                Confirm Delete
+              </div>
+            }
             centered
             onCancel={() => setShowDeleteModal(false)}
             footer={[
@@ -871,7 +889,12 @@ const ManageCourses = () => {
               </Button>,
             ]}
             width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
-            styles={{ body: styles.modalContent }}
+            styles={{
+              header: modalStyles.modalHeader,
+              body: modalStyles.modalBody,
+              footer: modalStyles.modalFooter,
+              content: modalStyles.modalContainer
+            }}
           >
             <Spin spinning={loading} tip="Loading data...">
               <p style={{ color: themeColors.accent }}>
@@ -883,7 +906,12 @@ const ManageCourses = () => {
 
           <Modal
             open={showUnitDeleteModal}
-            title={<span style={styles.modalHeader}>Confirm Unit Removal</span>}
+            title={
+              <div style={modalStyles.modalTitle}>
+                <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+                Confirm Unit Removal
+              </div>
+            }
             onCancel={() => setShowUnitDeleteModal(false)}
             footer={[
               <Button
@@ -913,7 +941,12 @@ const ManageCourses = () => {
               </Button>,
             ]}
             width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
-            styles={{ body: styles.modalContent }}
+            styles={{
+              header: modalStyles.modalHeader,
+              body: modalStyles.modalBody,
+              footer: modalStyles.modalFooter,
+              content: modalStyles.modalContainer
+            }}
           >
             <Spin spinning={loading} tip="Loading data...">
               <p style={{ color: themeColors.accent }}>
@@ -926,16 +959,20 @@ const ManageCourses = () => {
           <Modal
             open={showUnitsModal}
             title={
-              <span style={styles.modalHeader}>
+              <div style={modalStyles.modalTitle}>
                 <UnorderedListOutlined style={{ marginRight: 8 }} />
                 Manage Units - {selectedCourseForUnits?.name}
-              </span>
+              </div>
             }
             centered
             onCancel={() => setShowUnitsModal(false)}
             width={{ xs: '95%', sm: '90%', md: '80%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
             footer={null}
-            styles={{ body: styles.modalContent }}
+            styles={{
+              header: modalStyles.modalHeader,
+              body: modalStyles.modalBody,
+              content: modalStyles.modalContainer
+            }}
             className="responsive-modal"
           >
             <Spin spinning={loading} tip="Loading data...">

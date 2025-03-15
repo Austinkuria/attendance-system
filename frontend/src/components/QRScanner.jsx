@@ -6,7 +6,7 @@ import { markAttendance, getActiveSessionForUnit, checkSessionStatus } from "../
 import { jwtDecode } from "jwt-decode";
 import FingerprintJS from "@fingerprintjs/fingerprintjs";
 import "./QrStyles.css";
-import { ThemeContext } from "../context/ThemeContext"; // Adjust path as needed
+import { ThemeContext } from "../context/ThemeContext";
 
 const { Title, Text } = Typography;
 

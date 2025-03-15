@@ -26,6 +26,11 @@ import {
   ScheduleOutlined,
   SyncOutlined,
   ClockCircleOutlined,
+  UserOutlined,
+  IdcardOutlined,
+  CheckCircleOutlined,
+  CloseCircleOutlined,
+  ScanOutlined
 } from "@ant-design/icons";
 import PropTypes from "prop-types";
 import axios from "axios";
@@ -39,6 +44,7 @@ import {
 import moment from "moment";
 import { ThemeContext } from "../context/ThemeContext";
 import { useTableStyles } from './SharedTableStyles';
+import { useModalStyles } from './SharedModalStyles';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -489,7 +495,7 @@ const AttendanceManagement = () => {
 
   const realTimeColumns = [
     {
-      title: "Reg Number",
+      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Reg Number</>),
       dataIndex: ["student", "regNo"],
       key: "regNo",
       sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo),
@@ -497,7 +503,7 @@ const AttendanceManagement = () => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: "First Name",
+      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />First Name</>),
       dataIndex: ["student", "firstName"],
       key: "firstName",
       sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName),
@@ -505,7 +511,7 @@ const AttendanceManagement = () => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: "Last Name",
+      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />Last Name</>),
       dataIndex: ["student", "lastName"],
       key: "lastName",
       sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName),
@@ -513,7 +519,7 @@ const AttendanceManagement = () => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: "Scan Time",
+      title: (<><ScanOutlined style={{ marginRight: 4, color: themeColors.accent }} />Scan Time</>),
       dataIndex: "attendedAt",
       key: "attendedAt",
       render: (attendedAt) =>
@@ -530,7 +536,7 @@ const AttendanceManagement = () => {
       width: screens.xs ? 80 : undefined,
     },
     {
-      title: "Status",
+      title: (<><CheckCircleOutlined style={{ marginRight: 4, color: themeColors.accent }} />Status</>),
       dataIndex: "status",
       key: "status",
       render: (status) => (
@@ -569,7 +575,7 @@ const AttendanceManagement = () => {
 
   const pastColumns = [
     {
-      title: "Reg Number",
+      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Reg Number</>),
       dataIndex: ["student", "regNo"],
       key: "regNo",
       sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo),
@@ -577,7 +583,7 @@ const AttendanceManagement = () => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: "First Name",
+      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />First Name</>),
       dataIndex: ["student", "firstName"],
       key: "firstName",
       sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName),
@@ -585,7 +591,7 @@ const AttendanceManagement = () => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: "Last Name",
+      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />Last Name</>),
       dataIndex: ["student", "lastName"],
       key: "lastName",
       sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName),
@@ -593,7 +599,7 @@ const AttendanceManagement = () => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: "Scan Time",
+      title: (<><ScanOutlined style={{ marginRight: 4, color: themeColors.accent }} />Scan Time</>),
       dataIndex: "attendedAt",
       key: "attendedAt",
       render: (attendedAt) =>
@@ -610,7 +616,7 @@ const AttendanceManagement = () => {
       width: screens.xs ? 80 : undefined,
     },
     {
-      title: "Status",
+      title: (<><CheckCircleOutlined style={{ marginRight: 4, color: themeColors.accent }} />Status</>),
       dataIndex: "status",
       key: "status",
       render: (status) => (
@@ -805,6 +811,7 @@ const AttendanceManagement = () => {
   };
 
   const tableStyles = useTableStyles();
+  const modalStyles = useModalStyles();
 
   return (
     <div style={{ padding: screens.xs ? 0 : 4, margin: 0, background: themeColors.background, width: "100%" }}>
@@ -1085,7 +1092,12 @@ const AttendanceManagement = () => {
       </Card>
 
       <Modal
-        title={<Text strong style={{ color: themeColors.primary }}>Class QR Code</Text>}
+        title={
+          <div style={modalStyles.modalTitle}>
+            <QrcodeOutlined style={{ marginRight: 8 }} />
+            Class QR Code
+          </div>
+        }
         open={isQRModalOpen}
         centered
         onCancel={() =>
@@ -1123,6 +1135,12 @@ const AttendanceManagement = () => {
         destroyOnClose
         maskClosable={false}
         width={screens.xs ? "100%" : 520}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <div style={{ textAlign: "center", padding: screens.xs ? 8 : 24 }}>
           {qrData ? (
@@ -1179,6 +1197,7 @@ const AttendanceManagement = () => {
         }
         
         ${tableStyles}
+        ${modalStyles.styles}
         
         .ant-btn-primary {
           background: ${themeColors.primary} !important;

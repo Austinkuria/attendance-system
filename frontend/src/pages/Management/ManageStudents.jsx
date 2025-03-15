@@ -28,13 +28,15 @@ import {
   IdcardOutlined,
   CalendarOutlined,
   BookOutlined,
-  FilterOutlined,
+  UserOutlined,
+  NumberOutlined
 } from "@ant-design/icons";
-import { ThemeContext } from '../../context/ThemeContext'; // Adjust path
-import ThemeToggle from '../../components/ThemeToggle'; // Adjust path
+import { ThemeContext } from '../../context/ThemeContext';
+import ThemeToggle from '../../components/ThemeToggle';
 import { getStudents, deleteStudent, downloadStudents } from "../../services/api";
 import api from "../../services/api";
 import { useTableStyles } from '../../components/SharedTableStyles';
+import { useModalStyles } from '../../components/SharedModalStyles';
 
 const { Content } = Layout;
 const { Option } = Select;
@@ -395,6 +397,7 @@ const ManageStudents = () => {
   }, [students, searchQuery, filter]);
 
   const tableStyles = useTableStyles();
+  const modalStyles = useModalStyles();
 
   const styles = useMemo(() => ({
     layout: {
@@ -686,8 +689,10 @@ const ManageStudents = () => {
       
       ${tableStyles}
       
+      ${modalStyles.styles}
+      
     `,
-  }), [isDarkMode, themeColors, tableStyles]);
+  }), [isDarkMode, themeColors, tableStyles, modalStyles.styles]);
 
   const columns = [
     {
@@ -697,7 +702,7 @@ const ManageStudents = () => {
       render: (text) => <span style={{ color: themeColors.primary, fontWeight: 500 }}>{text}</span>,
     },
     {
-      title: "Student Name",
+      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />Student Name</>),
       key: "name",
       render: (_, record) => `${record.firstName} ${record.lastName}`,
     },
@@ -719,7 +724,7 @@ const ManageStudents = () => {
       ),
     },
     {
-      title: (<><FilterOutlined style={{ marginRight: 4, color: themeColors.accent }} />Semester</>),
+      title: (<><NumberOutlined style={{ marginRight: 4, color: themeColors.accent }} />Semester</>),
       dataIndex: "semester",
       key: "semester",
       render: (semester) => <span style={{ background: isDarkMode ? themeColors.secondary : "#f5f5f5", padding: "2px 8px", borderRadius: 4 }}>{semester}</span>,
@@ -947,7 +952,12 @@ const ManageStudents = () => {
       </Content>
 
       <Modal
-        title={<span style={styles.modalHeader}><UserAddOutlined style={{ marginRight: 8 }} />Add New Student</span>}
+        title={
+          <div style={modalStyles.modalTitle}>
+            <UserAddOutlined style={{ marginRight: 8 }} />
+            Add New Student
+          </div>
+        }
         open={isAddModalVisible}
         onCancel={() => setIsAddModalVisible(false)}
         footer={[
@@ -976,7 +986,12 @@ const ManageStudents = () => {
             Create Student
           </Button>,
         ]}
-        styles={{ body: styles.modalContent }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <Spin spinning={loading} tip="Adding student...">
           <Form form={addForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
@@ -1103,7 +1118,12 @@ const ManageStudents = () => {
       </Modal>
 
       <Modal
-        title={<span style={styles.modalHeader}><EditOutlined style={{ marginRight: 8 }} />Edit Student</span>}
+        title={
+          <div style={modalStyles.modalTitle}>
+            <EditOutlined style={{ marginRight: 8 }} />
+            Edit Student
+          </div>
+        }
         open={isEditModalVisible}
         onCancel={() => setIsEditModalVisible(false)}
         footer={[
@@ -1132,7 +1152,12 @@ const ManageStudents = () => {
             Save Changes
           </Button>,
         ]}
-        styles={{ body: styles.modalContent }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <Spin spinning={loading} tip="Updating student...">
           <Form form={editForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
@@ -1237,7 +1262,12 @@ const ManageStudents = () => {
       </Modal>
 
       <Modal
-        title={<span style={styles.modalHeader}>Confirm Deletion</span>}
+        title={
+          <div style={modalStyles.modalTitle}>
+            <ExclamationCircleOutlined style={{ marginRight: 8 }} />
+            Confirm Deletion
+          </div>
+        }
         open={isDeleteModalVisible}
         centered
         onCancel={() => setIsDeleteModalVisible(false)}
@@ -1268,7 +1298,12 @@ const ManageStudents = () => {
             Delete Student
           </Button>,
         ]}
-        styles={{ body: styles.modalContent }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
       >
         <Spin spinning={loading} tip="Deleting student...">
           <p style={{ color: themeColors.accent }}>
