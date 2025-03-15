@@ -118,7 +118,7 @@ const AttendanceManagement = () => {
       try {
         const data = await getDepartments();
         setDepartments(data);
-      } catch (_) {
+      } catch {
         message.error("Failed to fetch departments");
       }
     };
@@ -143,7 +143,7 @@ const AttendanceManagement = () => {
         setQrData("");
         localStorage.removeItem("currentSession");
       }
-    } catch (_) {
+    } catch {
       setCurrentSession(null);
       setQrData("");
       localStorage.removeItem("currentSession");
@@ -194,7 +194,7 @@ const AttendanceManagement = () => {
         } else {
           message.info("No units assigned to your account");
         }
-      } catch (_) {
+      } catch {
         message.error("Failed to load unit data");
       } finally {
         setLoading((prev) => ({ ...prev, units: false }));
@@ -238,7 +238,7 @@ const AttendanceManagement = () => {
           setCurrentSession(null);
           setQrData("");
         }
-      } catch (_) {
+      } catch {
         setCurrentSession(null);
         setQrData("");
       } finally {
@@ -257,7 +257,7 @@ const AttendanceManagement = () => {
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       setAttendance(response.data);
-    } catch (_) {
+    } catch {
       setAttendance([]);
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
@@ -327,7 +327,7 @@ const AttendanceManagement = () => {
       } else {
         setPastAttendance([]);
       }
-    } catch (_) {
+    } catch {
       message.error("Failed to fetch past sessions");
     } finally {
       setLoading((prev) => ({ ...prev, pastAttendance: false }));
@@ -357,7 +357,7 @@ const AttendanceManagement = () => {
         ended: false,
       });
       setQrData(data.qrCode);
-    } catch (_) {
+    } catch {
       message.error("Failed to create session");
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
@@ -382,7 +382,7 @@ const AttendanceManagement = () => {
       }
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
-    } catch (_) {
+    } catch {
       message.error("Failed to generate QR code");
     } finally {
       setLoading((prev) => ({ ...prev, qr: false }));
@@ -420,14 +420,14 @@ const AttendanceManagement = () => {
               setSelectedUnit(null);
               await checkCurrentSession();
             }
-          } catch (_) {
+          } catch {
             message.error("Failed to end session");
           } finally {
             setLoading((prev) => ({ ...prev, session: false }));
           }
         },
       });
-    } catch (_) {
+    } catch {
       message.error("An unexpected error occurred");
       setLoading((prev) => ({ ...prev, session: false }));
     }
@@ -455,7 +455,7 @@ const AttendanceManagement = () => {
             prev.map((a) => (a._id === recordId ? { ...a, status: newStatus } : a))
           );
           message.success(`Marked ${record.student.regNo} as ${newStatus}`);
-        } catch (_) {
+        } catch {
           message.error("Failed to update attendance status");
         }
       },
@@ -485,7 +485,7 @@ const AttendanceManagement = () => {
       );
       setAttendance(absentRecords);
       message.success("Showing absent students");
-    } catch (_) {
+    } catch {
       message.error("Failed to fetch absent students");
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
@@ -751,7 +751,7 @@ const AttendanceManagement = () => {
       const endTime = new Date(session.endSession);
       const options = { hour: "numeric", minute: "2-digit", hour12: true };
       return `${startTime.toLocaleTimeString([], options)} - ${endTime.toLocaleTimeString([], options)}`;
-    } catch (_) {
+    } catch {
       return "Error formatting time";
     }
   };
