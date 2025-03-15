@@ -65,6 +65,7 @@ import './StudentDashboard.css';
 import { ThemeContext } from '../../context/ThemeContext';
 import { useStyles } from '../../styles/styles.js';
 import { useContext } from 'react';
+import BackToTop from '../../components/BackToTop.jsx';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -125,6 +126,9 @@ const StudentDashboard = () => {
 
   // Add a new state to track active sessions by unit ID
   const [activeSessionsByUnit, setActiveSessionsByUnit] = useState({});
+
+  // Add a new state to track countdowns for active sessions
+  const [sessionCountdowns, setSessionCountdowns] = useState({});
 
   // Split the fetchAllData into separate functions for each data type
   const fetchProfileData = useCallback(async () => {
@@ -1375,6 +1379,71 @@ const StudentDashboard = () => {
     }
   };
 
+  // Add this useEffect to handle the countdown timers
+  useEffect(() => {
+    // Create interval for countdown timers
+    const countdownIntervals = {};
+
+    // For each active session, set up a countdown timer
+    Object.entries(activeSessionsByUnit).forEach(([unitId, session]) => {
+      if (session && !session.ended) {
+        // Calculate end time - either based on duration or default 1 hour
+        const endTime = session.duration
+          ? moment(session.startTime).add(session.duration, 'minutes')
+          : moment(session.startTime).add(1, 'hour');
+
+        // Update countdown initially
+        updateCountdown(unitId, endTime);
+
+        // Set interval to update countdown every second
+        countdownIntervals[unitId] = setInterval(() => {
+          updateCountdown(unitId, endTime);
+        }, 1000);
+      }
+    });
+
+    // Cleanup function to clear all intervals
+    return () => {
+      Object.values(countdownIntervals).forEach(interval => {
+        clearInterval(interval);
+      });
+    };
+  }, [activeSessionsByUnit]);
+
+  // Helper function to update countdown for a session
+  const updateCountdown = (unitId, endTime) => {
+    const now = moment();
+    const duration = moment.duration(endTime.diff(now));
+
+    // Check if the session has ended
+    if (duration.asSeconds() <= 0) {
+      setSessionCountdowns(prev => ({
+        ...prev,
+        [unitId]: 'Ended'
+      }));
+
+      // Update the active session state
+      setActiveSessionsByUnit(prev => ({
+        ...prev,
+        [unitId]: null
+      }));
+
+      return;
+    }
+
+    // Format the countdown string
+    const hours = Math.floor(duration.asHours());
+    const minutes = duration.minutes();
+    const seconds = duration.seconds();
+
+    const countdownString = `${hours > 0 ? `${hours}h ` : ''}${minutes}m ${seconds}s`;
+
+    setSessionCountdowns(prev => ({
+      ...prev,
+      [unitId]: countdownString
+    }));
+  };
+
   // Update the loading indicator in the UI to show more specific loading states
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
@@ -1978,33 +2047,53 @@ const StudentDashboard = () => {
                             : selectedUnit.lecturer?.name || 'N/A')
                           : (selectedUnit.lecturer || 'N/A')
                       }</p>
-                      <p><strong>Description:</strong> {
-                        typeof selectedUnit.description === 'object'
-                          ? 'Complex description (see course syllabus)'
-                          : (selectedUnit.description || 'N/A')
-                      }</p>
+                      {/* Only show description if it has meaningful content */}
+                      {selectedUnit.description && selectedUnit.description !== 'N/A' && (
+                        <p><strong>Description:</strong> {
+                          typeof selectedUnit.description === 'object'
+                            ? 'See course syllabus for details'
+                            : selectedUnit.description
+                        }</p>
+                      )}
 
                       {/* Display session status */}
                       <div style={{
                         marginTop: '12px',
                         padding: '8px',
                         borderRadius: '4px',
-                        backgroundColor: activeSessionsByUnit[selectedUnit._id] ? '#52c41a20' : '#ff4d4f20',
-                        borderLeft: `4px solid ${activeSessionsByUnit[selectedUnit._id] ? '#52c41a' : '#ff4d4f'}`,
+                        backgroundColor: activeSessionsByUnit[selectedUnit._id] ? `${themeColors.secondary}20` : `${themeColors.accent}20`,
+                        borderLeft: `4px solid ${activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent}`,
                       }}>
                         <p style={{
                           margin: 0,
                           fontWeight: 'bold',
-                          color: activeSessionsByUnit[selectedUnit._id] ? '#52c41a' : '#ff4d4f'
+                          color: activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent
                         }}>
                           {activeSessionsByUnit[selectedUnit._id]
                             ? <><span style={{ marginRight: '8px' }}>●</span> Active Session Available</>
                             : <><span style={{ marginRight: '8px' }}>○</span> No Active Session</>}
                         </p>
                         {activeSessionsByUnit[selectedUnit._id] && (
-                          <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
-                            Started: {moment(activeSessionsByUnit[selectedUnit._id].startTime).format('MMM D, YYYY h:mm A')}
-                          </p>
+                          <>
+                            <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                              Started: {moment(activeSessionsByUnit[selectedUnit._id].startTime).format('MMM D, YYYY h:mm A')}
+                            </p>
+                            <p style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
+                              Ends: {activeSessionsByUnit[selectedUnit._id].duration
+                                ? moment(activeSessionsByUnit[selectedUnit._id].startTime)
+                                  .add(activeSessionsByUnit[selectedUnit._id].duration, 'minutes')
+                                  .format('MMM D, YYYY h:mm A')
+                                : 'When lecturer ends the session or by default after one hour'}
+                            </p>
+                            <p style={{
+                              margin: '4px 0 0 0',
+                              fontSize: '14px',
+                              fontWeight: 'bold',
+                              color: sessionCountdowns[selectedUnit._id] === 'Ended' ? themeColors.accent : themeColors.secondary
+                            }}>
+                              Time remaining: {sessionCountdowns[selectedUnit._id] || 'Calculating...'}
+                            </p>
+                          </>
                         )}
                         <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
                           {activeSessionsByUnit[selectedUnit._id]
@@ -2193,6 +2282,7 @@ const StudentDashboard = () => {
           }}
         />
       )}
+      <BackToTop />
     </Layout>
   );
 };
