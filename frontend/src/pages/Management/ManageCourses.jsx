@@ -673,10 +673,18 @@ const ManageCourses = () => {
               type="link"
               icon={<LeftOutlined />}
               onClick={() => navigate('/admin')}
-              style={{ color: themeColors.primary }}
+              style={{
+                color: themeColors.primary,
+                fontSize: '14px',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
             >
               Back to Admin
             </Button>
+
             <Title level={3} style={styles.headerTitle}>
               <BookOutlined style={{ marginRight: 8 }} />
               Course Management

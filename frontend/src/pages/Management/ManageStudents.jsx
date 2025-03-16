@@ -793,6 +793,14 @@ const ManageStudents = () => {
               type="link"
               icon={<LeftOutlined />}
               onClick={() => navigate("/admin")}
+              style={{
+                color: themeColors.primary,
+                fontSize: '14px',
+                padding: '4px 8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '4px'
+              }}
             >
               Back to Admin
             </Button>
