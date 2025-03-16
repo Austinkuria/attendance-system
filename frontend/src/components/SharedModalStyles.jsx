@@ -58,7 +58,6 @@ export const useModalStyles = () => {
     styles: `
       /* Reset default Ant Design Modal styling */
       .ant-modal {
-        width: auto !important;
         margin: 0 auto;
         max-width: 95%;
       }

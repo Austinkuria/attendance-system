@@ -247,30 +247,65 @@ const LecturerDashboard = () => {
     {
       key: '1',
       label: 'View Profile',
-      icon: <UserOutlined />,
-      onClick: () => (window.location.href = '/lecturer/profile'),
+      icon: <UserOutlined style={{ color: themeColors.text }} />,
+      onClick: () => navigate('/lecturer/profile'),
+      style: {
+        color: themeColors.text,
+        '&:hover': {
+          background: themeColors.hover,
+        }
+      }
     },
     {
       key: '2',
       label: 'Settings',
-      icon: <SettingOutlined />,
-      onClick: () => (window.location.href = '/lecturer/settings'),
+      icon: <SettingOutlined style={{ color: themeColors.text }} />,
+      onClick: () => navigate('/lecturer/settings'),
+      style: {
+        color: themeColors.text,
+        '&:hover': {
+          background: themeColors.hover,
+        }
+      }
     },
     { type: 'divider' },
     {
       key: '3',
       label: 'Logout',
-      icon: <LogoutOutlined />,
-      danger: true,
+      icon: <LogoutOutlined style={{ color: '#fff' }} />,
+      danger: false,
+      style: {
+        color: '#fff',
+        backgroundColor: themeColors.accent,
+        borderRadius: '4px',
+        '&:hover': {
+          opacity: 0.85,
+        }
+      },
       onClick: () =>
         Modal.confirm({
-          title: 'Confirm Logout',
-          content: 'Are you sure you want to logout?',
+          title: <span style={{ color: themeColors.text }}>Confirm Logout</span>,
+          content: <span style={{ color: themeColors.text }}>Are you sure you want to logout?</span>,
           onOk: logout,
           centered: true,
-          okButtonProps: { style: { background: themeColors.accent, border: 'none' } },
-        }),
-    },
+          width: 400, // Add width property
+          okButtonProps: {
+            style: {
+              backgroundColor: themeColors.accent,
+              borderColor: themeColors.accent,
+              color: '#fff'
+            }
+          },
+          cancelButtonProps: {
+            style: {
+              backgroundColor: themeColors.accent,
+              borderColor: themeColors.accent,
+              color: '#fff',
+              opacity: 1
+            }
+          }
+        })
+    }
   ];
 
   const cardVariants = {
@@ -280,7 +315,55 @@ const LecturerDashboard = () => {
 
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
-      <style>{styles.globalStyles}</style>
+      <style>
+        {styles.globalStyles}
+        {`
+          /* Add these styles for dropdown menu theming */
+          .ant-modal {
+            width: 400px !important;
+          }
+          
+          .ant-modal .ant-modal-content {
+            width: 100% !important;
+          }
+          
+          /* Rest of your existing styles */
+          .ant-dropdown .ant-dropdown-menu {
+            background-color: ${themeColors.cardBg} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item {
+            color: ${themeColors.text} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:hover {
+            background-color: ${themeColors.hover} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item .anticon {
+            color: ${themeColors.text} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item-divider {
+            background-color: ${themeColors.border} !important;
+          }
+          
+          /* Special styling for logout menu item */
+          .ant-dropdown .ant-dropdown-menu-item:last-child {
+            margin: 4px 8px !important;
+            border-radius: 4px !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:last-child:hover {
+            opacity: 0.85 !important;
+            background-color: ${themeColors.accent} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:last-child .anticon {
+            color: #fff !important;
+          }
+        `}
+      </style>
       <Header style={styles.header}>
         <Space>
           <Button
@@ -288,10 +371,10 @@ const LecturerDashboard = () => {
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
             style={{
+              color: isDarkMode ? themeColors.text : "#1890ff",
               fontSize: 18,
               width: 64,
               height: 64,
-              color: isDarkMode ? '#fff' : undefined
             }}
           />
         </Space>
@@ -325,7 +408,45 @@ const LecturerDashboard = () => {
         <Space>
           <ThemeToggle isDarkMode={isDarkMode} />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} />
+            <Button
+              type="text"
+              icon={
+                <UserOutlined
+                  style={{
+                    fontSize: 24,
+                    color: isDarkMode ? themeColors.primary : '#1890ff',
+                    background: isDarkMode ? `${themeColors.primary}20` : `rgba(24, 144, 255, 0.1)`,
+                    padding: isDarkMode ? '10px' : '8px',
+                    borderRadius: '50%',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              }
+              style={{
+                borderRadius: '50%',
+                marginLeft: 16, // Add margin between toggle and profile icon
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                const iconEl = e.currentTarget.querySelector('.anticon');
+                if (iconEl) {
+                  iconEl.style.background = isDarkMode
+                    ? `${themeColors.primary}40`
+                    : `rgba(24, 144, 255, 0.2)`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                const iconEl = e.currentTarget.querySelector('.anticon');
+                if (iconEl) {
+                  iconEl.style.background = isDarkMode
+                    ? `${themeColors.primary}20`
+                    : `rgba(24, 144, 255, 0.1)`;
+                }
+              }}
+            />
           </Dropdown>
         </Space>
       </Header>
@@ -380,6 +501,7 @@ const LecturerDashboard = () => {
                 />
               </section>
             </motion.div>
+
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
               <section style={{ margin: 0 }}>
                 <Row justify="center" align="middle" style={{ marginTop: 16 }}>
@@ -402,12 +524,12 @@ const LecturerDashboard = () => {
                           Analytics
                         </Typography.Title>
                       </div>
-                      <Typography.Text style={{ 
-                        color: `${themeColors.textInvert}CC`, 
-                        fontSize: '12px',
+                      <Typography.Text style={{
+                        textAlign: 'center',
                         display: 'block',
                         marginTop: 4,
-                        textAlign: 'center'
+                        fontSize: '12px',
+                        color: `${themeColors.textInvert}CC`,
                       }}>
                         View trends
                       </Typography.Text>
@@ -416,15 +538,15 @@ const LecturerDashboard = () => {
                 </Row>
               </section>
             </motion.div>
-            {/* No margin/padding below this point */}
+
             {showBackToTop && (
               <Button
-                shape="circle"
-                icon={<ArrowUpOutlined />}
-                onClick={scrollToTop}
                 style={styles.backToTopButton}
                 onMouseEnter={(e) => (e.currentTarget.style.background = isDarkMode ? '#8E86E5' : '#5A4FCF')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = themeColors.primary)}
+                onClick={scrollToTop}
+                icon={<ArrowUpOutlined />}
+                shape="circle"
               />
             )}
           </Spin>

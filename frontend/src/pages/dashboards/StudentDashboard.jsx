@@ -76,7 +76,7 @@ const { Option } = Select;
 const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
 const StudentDashboard = () => {
-  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
+  const { isDarkMode, themeColors } = useContext(ThemeContext);
   const styles = useStyles(isDarkMode, themeColors);
   const navigate = useNavigate();
 
@@ -933,13 +933,25 @@ const StudentDashboard = () => {
       key: '1',
       label: 'View Profile',
       icon: <UserOutlined style={{ color: themeColors.text }} />,
-      onClick: () => navigate('/student/profile')
+      onClick: () => navigate('/student/profile'),
+      style: {
+        color: themeColors.text,
+        '&:hover': {
+          background: themeColors.hover,
+        }
+      }
     },
     {
       key: '2',
       label: 'Settings',
       icon: <SettingOutlined style={{ color: themeColors.text }} />,
-      onClick: () => navigate('/student/settings')
+      onClick: () => navigate('/student/settings'),
+      style: {
+        color: themeColors.text,
+        '&:hover': {
+          background: themeColors.hover,
+        }
+      }
     },
     { type: 'divider' },
     {
@@ -950,7 +962,10 @@ const StudentDashboard = () => {
       style: {
         color: '#fff',
         backgroundColor: themeColors.accent,
-        borderRadius: '4px'
+        borderRadius: '4px',
+        '&:hover': {
+          opacity: 0.85,
+        }
       },
       onClick: () =>
         Modal.confirm({
@@ -960,7 +975,6 @@ const StudentDashboard = () => {
           centered: true,
           okButtonProps: {
             style: {
-              ...styles.button,
               backgroundColor: themeColors.accent,
               borderColor: themeColors.accent,
               color: '#fff'
@@ -968,7 +982,8 @@ const StudentDashboard = () => {
           },
           cancelButtonProps: {
             style: {
-              borderColor: themeColors.text
+              borderColor: themeColors.text,
+              color: themeColors.text
             }
           }
         }),
@@ -1451,6 +1466,45 @@ const StudentDashboard = () => {
       <style>
         {styles.globalStyles}
         {`
+          /* Add these styles for dropdown menu theming */
+          .ant-dropdown .ant-dropdown-menu {
+            background-color: ${themeColors.cardBg} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item {
+            color: ${themeColors.text} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:hover {
+            background-color: ${themeColors.hover} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item .anticon {
+            color: ${themeColors.text} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item-divider {
+            background-color: ${themeColors.border} !important;
+          }
+          
+          /* Special styling for logout menu item */
+          .ant-dropdown .ant-dropdown-menu-item:last-child {
+            margin: 4px 8px !important;
+            border-radius: 4px !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:last-child:hover {
+            opacity: 0.85 !important;
+            background-color: ${themeColors.accent} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:last-child .anticon {
+            color: #fff !important;
+          }
+          
+          /* Existing styles continue below */
+          ${styles.existingStyles}
+          
           /* Add custom spin size styles */
           .custom-spin.ant-spin {
             font-size: 24px;
@@ -1838,7 +1892,42 @@ const StudentDashboard = () => {
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
             <Button
               type="text"
-              icon={<UserOutlined className="header-profile-icon" style={{ fontSize: 24, color: isDarkMode ? '#fff' : undefined }} />}
+              icon={
+                <UserOutlined
+                  style={{
+                    fontSize: 24,
+                    color: isDarkMode ? themeColors.primary : '#1890ff',
+                    background: isDarkMode ? `${themeColors.primary}20` : `rgba(24, 144, 255, 0.1)`,
+                    padding: isDarkMode ? '10px' : '8px',
+                    borderRadius: '50%',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              }
+              style={{
+                borderRadius: '50%',
+                marginLeft: 16, // Add margin between toggle and profile icon
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                const iconEl = e.currentTarget.querySelector('.anticon');
+                if (iconEl) {
+                  iconEl.style.background = isDarkMode
+                    ? `${themeColors.primary}40`
+                    : `rgba(24, 144, 255, 0.2)`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                const iconEl = e.currentTarget.querySelector('.anticon');
+                if (iconEl) {
+                  iconEl.style.background = isDarkMode
+                    ? `${themeColors.primary}20`
+                    : `rgba(24, 144, 255, 0.1)`;
+                }
+              }}
             />
           </Dropdown>
         </Space>

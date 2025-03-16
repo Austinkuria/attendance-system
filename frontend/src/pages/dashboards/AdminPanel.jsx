@@ -1,4 +1,5 @@
 import { useState, useEffect, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { ThemeContext } from '../../context/ThemeContext';
 import { useStyles } from '../../styles/styles.js';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -40,6 +41,7 @@ const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
 
 const AdminPanel = () => {
+  const navigate = useNavigate();
   const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
   const styles = useStyles(isDarkMode, themeColors);
 
@@ -278,14 +280,44 @@ const AdminPanel = () => {
   ];
 
   const profileItems = [
-    { key: '1', label: 'View Profile', icon: <UserOutlined />, onClick: () => window.location.href = '/admin/profile' },
-    { key: '2', label: 'Settings', icon: <SettingOutlined />, onClick: () => window.location.href = '/admin/settings' },
+    {
+      key: '1',
+      label: 'View Profile',
+      icon: <UserOutlined style={{ color: themeColors.text }} />,
+      onClick: () => navigate('/admin/profile'),
+      style: {
+        color: themeColors.text,
+        '&:hover': {
+          background: themeColors.hover,
+        }
+      }
+    },
+    {
+      key: '2',
+      label: 'Settings',
+      icon: <SettingOutlined style={{ color: themeColors.text }} />,
+      onClick: () => navigate('/admin/settings'),
+      style: {
+        color: themeColors.text,
+        '&:hover': {
+          background: themeColors.hover,
+        }
+      }
+    },
     { type: 'divider' },
     {
       key: '3',
       label: 'Logout',
-      icon: <LogoutOutlined />,
-      danger: true,
+      icon: <LogoutOutlined style={{ color: '#fff' }} />,
+      danger: false,
+      style: {
+        color: '#fff',
+        backgroundColor: themeColors.accent,
+        borderRadius: '4px',
+        '&:hover': {
+          opacity: 0.85,
+        }
+      },
       onClick: () =>
         Modal.confirm({
           title: <span style={{ color: themeColors.text }}>Confirm Logout</span>,
@@ -294,7 +326,6 @@ const AdminPanel = () => {
           centered: true,
           okButtonProps: {
             style: {
-              ...styles.button,
               backgroundColor: themeColors.accent,
               borderColor: themeColors.accent,
               color: '#fff'
@@ -317,7 +348,49 @@ const AdminPanel = () => {
 
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
-      <style>{styles.globalStyles}</style>
+      <style>
+        {styles.globalStyles}
+        {`
+          /* Add these styles for dropdown menu theming */
+          .ant-dropdown .ant-dropdown-menu {
+            background-color: ${themeColors.cardBg} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item {
+            color: ${themeColors.text} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:hover {
+            background-color: ${themeColors.hover} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item .anticon {
+            color: ${themeColors.text} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item-divider {
+            background-color: ${themeColors.border} !important;
+          }
+          
+          /* Special styling for logout menu item */
+          .ant-dropdown .ant-dropdown-menu-item:last-child {
+            margin: 4px 8px !important;
+            border-radius: 4px !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:last-child:hover {
+            opacity: 0.85 !important;
+            background-color: ${themeColors.accent} !important;
+          }
+          
+          .ant-dropdown .ant-dropdown-menu-item:last-child .anticon {
+            color: #fff !important;
+          }
+          
+          /* Existing styles continue below */
+          ${styles.existingStyles}
+        `}
+      </style>
       <Header style={styles.header}>
         <Space>
           <Button
@@ -361,8 +434,46 @@ const AdminPanel = () => {
         </AntTitle>
         <Space>
           <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} />
+          <Dropdown menu={{ items: profileItems }} trigger={['click']} style={{ marginLeft: 8 }}>
+            <Button
+              type="text"
+              icon={
+                <UserOutlined
+                  style={{
+                    fontSize: 24,
+                    color: isDarkMode ? themeColors.primary : '#1890ff',
+                    background: isDarkMode ? `${themeColors.primary}20` : `rgba(24, 144, 255, 0.1)`,
+                    padding: isDarkMode ? '10px' : '8px',
+                    borderRadius: '50%',
+                    transition: 'all 0.3s ease'
+                  }}
+                />
+              }
+              style={{
+                borderRadius: '50%',
+                marginLeft: 16, // Add margin between toggle and profile icon
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.3s ease'
+              }}
+              onMouseEnter={(e) => {
+                const iconEl = e.currentTarget.querySelector('.anticon');
+                if (iconEl) {
+                  iconEl.style.background = isDarkMode
+                    ? `${themeColors.primary}40`
+                    : `rgba(24, 144, 255, 0.2)`;
+                }
+              }}
+              onMouseLeave={(e) => {
+                const iconEl = e.currentTarget.querySelector('.anticon');
+                if (iconEl) {
+                  iconEl.style.background = isDarkMode
+                    ? `${themeColors.primary}20`
+                    : `rgba(24, 144, 255, 0.1)`;
+                }
+              }}
+            />
           </Dropdown>
         </Space>
       </Header>

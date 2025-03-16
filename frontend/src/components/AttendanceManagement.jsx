@@ -469,6 +469,10 @@ const AttendanceManagement = () => {
             setLoading((prev) => ({ ...prev, session: false }));
           }
         },
+        onCancel: () => {
+          // Reset the loading state when the user cancels
+          setLoading((prev) => ({ ...prev, session: false }));
+        }
       });
     } catch {
       message.error("An unexpected error occurred");
@@ -699,9 +703,10 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.assignedUnits,
-            // Remove borderLeft property
+            border: 'none', // Explicitly remove all borders
             height: "100%",
             color: "#fff",
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
@@ -721,9 +726,10 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.attendanceRate,
-            // Remove borderLeft property
+            border: 'none', // Explicitly remove all borders
             height: "100%",
             color: "#fff",
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
@@ -744,9 +750,10 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.totalScans,
-            // Remove borderLeft property
+            border: 'none', // Explicitly remove all borders
             height: "100%",
             color: "#fff",
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
@@ -766,9 +773,10 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.totalEnrolled,
-            // Remove borderLeft property
+            border: 'none', // Explicitly remove all borders
             height: "100%",
             color: "#fff",
+            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
