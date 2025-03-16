@@ -833,7 +833,6 @@ const AttendanceManagement = () => {
             background: themeColors.cardGradient1,
             borderLeft: `4px solid ${themeColors.primary}`,
           }}
-          hoverable
         >
           <Row gutter={[8, 8]}>
             <Col span={24}>
@@ -923,7 +922,6 @@ const AttendanceManagement = () => {
           </Space>
         }
         style={cardStyle}
-        hoverable
       >
         <Space direction="vertical" style={{ width: "100%", margin: 0 }}>
           {summaryCards}
@@ -942,7 +940,6 @@ const AttendanceManagement = () => {
               </Button>
             }
             style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
-            hoverable
             className="no-hover"
           >
             <Space wrap style={{ marginTop: screens.xs ? 0 : 8 }}>
@@ -990,7 +987,6 @@ const AttendanceManagement = () => {
             title={<Text strong style={{ color: themeColors.text }}>Attendance Records for Past Sessions</Text>}
             size="small"
             style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
-            hoverable
             className="no-hover"
           >
             <Button
@@ -1182,14 +1178,16 @@ const AttendanceManagement = () => {
       </Modal>
 
       <style>{`
-        .ant-card:hover {
+        .ant-card.ant-card-hoverable:not(.summary-card):hover {
+          transform: none !important;
+          box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+        }
+        
+        .summary-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
-        .no-hover:hover {
-          transform: none !important;
-          box-shadow: none !important;
-        }
+        
         .table-row-light {
           background: ${themeColors.cardBg};
         }
@@ -1203,22 +1201,22 @@ const AttendanceManagement = () => {
         .ant-btn-primary {
           background: ${themeColors.primary} !important;
           border-color: ${themeColors.primary} !important;
-          color: ${themeColors.text} !important;
+          color: ${isDarkMode ? themeColors.text : "#fff"} !important;
         }
         .ant-btn-primary:hover, .ant-btn-primary:focus {
           background: ${themeColors.focus} !important;
           border-color: ${themeColors.focus} !important;
-          color: ${themeColors.text} !important;
+          color: ${isDarkMode ? themeColors.text : "#fff"} !important;
         }
         .ant-btn-danger {
           background: ${themeColors.accent} !important;
           border-color: ${themeColors.accent} !important;
-          color: ${themeColors.text} !important;
+          color: ${isDarkMode ? themeColors.text : "#fff"} !important;
         }
         .ant-btn-danger:hover, .ant-btn-danger:focus {
           background: ${themeColors.accent}CC !important;
           border-color: ${themeColors.accent}CC !important;
-          color: ${themeColors.text} !important;
+          color: ${isDarkMode ? themeColors.text : "#fff"} !important;
         }
         .ant-btn[disabled], .ant-btn[disabled]:hover {
           background: ${themeColors.disabled} !important;

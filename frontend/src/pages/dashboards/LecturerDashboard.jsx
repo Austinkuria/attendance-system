@@ -32,11 +32,146 @@ const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
 
 const LecturerDashboard = () => {
-  const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
+  const { isDarkMode, themeColors } = useContext(ThemeContext);
   const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading dashboard data...');
+
+  // Create style objects matching AdminPanel approach
+  const styles = {
+    layout: {
+      minHeight: '100vh',
+      background: themeColors.background,
+      color: themeColors.text,
+    },
+    header: {
+      padding: '0 16px',
+      background: themeColors.cardBg,
+      boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
+      position: 'fixed',
+      width: '100%',
+      zIndex: 10,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      borderBottom: `1px solid ${themeColors.border}`,
+    },
+    sider: {
+      background: themeColors.cardBg,
+      marginTop: 64,
+      position: 'fixed',
+      height: 'calc(100vh - 64px)',
+      overflow: 'auto',
+      zIndex: 11,
+      boxShadow: '2px 0 10px rgba(0, 0, 0, 0.05)',
+    },
+    content: {
+      margin: '64px 16px 16px',
+      padding: 24,
+      background: themeColors.background,
+      minHeight: 'calc(100vh - 64px)',
+      overflow: 'auto',
+      transition: 'margin-left 0.3s ease-in-out',
+    },
+    backToTopButton: {
+      position: 'fixed',
+      bottom: 32,
+      right: 32,
+      zIndex: 1000,
+      background: themeColors.primary,
+      borderColor: themeColors.primary,
+      color: '#fff !important',
+      width: 50,
+      height: 50,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+    },
+    globalStyles: `
+      .ant-layout, .ant-layout-content {
+        background: ${themeColors.background} !important;
+      }
+      .ant-menu {
+        background: ${themeColors.cardBg} !important;
+        color: ${themeColors.text} !important;
+        border: none !important;
+        padding: 8px 0;
+      }
+      .ant-menu-item {
+        color: ${themeColors.text} !important;
+        margin: 4px 8px !important;
+        border-radius: 6px;
+      }
+      .ant-menu-item:hover {
+        background: ${themeColors.hover} !important;
+        color: ${themeColors.primary} !important;
+      }
+      .ant-menu-item-selected {
+        background: ${themeColors.hover} !important;
+        color: ${themeColors.primary} !important;
+      }
+      .ant-menu-item a {
+        color: ${themeColors.text} !important;
+      }
+      .ant-menu-item-selected a {
+        color: ${themeColors.primary} !important;
+      }
+      .ant-btn-primary {
+        background: ${themeColors.primary} !important;
+        border-color: ${themeColors.primary} !important;
+        color: ${isDarkMode ? themeColors.text : "#fff"} !important;
+        border-radius: 8px;
+      }
+      .ant-btn-primary:hover, .ant-btn-primary:focus {
+        background: ${themeColors.focus} !important;
+        border-color: ${themeColors.focus} !important;
+      }
+      .ant-layout-sider-trigger {
+        background-color: ${themeColors.background} !important;
+        color: ${themeColors.text} !important;
+        border-top: 1px solid ${themeColors.border} !important;
+      }
+      .ant-layout-sider-trigger:hover {
+        background-color: ${themeColors.border} !important;
+      }
+      .lecturer-content {
+        padding: 0 16px;
+      }
+      .summary-card:hover {
+        transform: translateY(-4px);
+        box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+      }
+      .ant-card.ant-card-hoverable:not(.summary-card):hover {
+        transform: none !important;
+        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
+      }
+      @media (max-width: 992px) {
+        .ant-layout-content { margin-left: 88px !important; }
+      }
+      @media (max-width: 768px) {
+        .lecturer-content {
+          padding: 0 12px;
+        }
+      }
+      @media (max-width: 576px) {
+        .lecturer-content {
+          padding: 0 8px;
+          margin-right: 4px;
+          margin-bottom: 4px;
+        }
+        .ant-btn { padding: 4px 12px !important; }
+      }
+      @media (max-width: 400px) {
+        .lecturer-content {
+          padding: 0 4px;
+          margin-right: 0;
+          margin-bottom: 0;
+        }
+      }
+    `,
+  };
 
   useEffect(() => {
     // Single more efficient auth check
@@ -141,34 +276,20 @@ const LecturerDashboard = () => {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
-      <Header
-        style={{
-          padding: '0 16px',
-          background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.95)',
-          boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-          position: 'fixed',
-          width: '100%',
-          zIndex: 10,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          borderBottom: `1px solid ${themeColors.primary}20`,
-        }}
-      >
+    <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
+      <style>{styles.globalStyles}</style>
+      <Header style={styles.header}>
         <Space>
           <Button
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
             style={{
-              fontSize: '18px',
+              fontSize: 18,
               width: 64,
               height: 64,
-              color: themeColors.primary,
-              transition: 'all 0.3s',
+              color: isDarkMode ? '#fff' : undefined
             }}
-            ghost
           />
         </Space>
         <AntTitle
@@ -177,12 +298,12 @@ const LecturerDashboard = () => {
             margin: 0,
             flex: 1,
             textAlign: 'center',
-            color: themeColors.primary,
-            fontWeight: 600,
             position: 'absolute',
             left: '50%',
             transform: 'translateX(-50%)',
             display: window.innerWidth < 992 ? 'none' : 'block',
+            color: isDarkMode ? themeColors.text : "#1890ff",
+            fontSize: '20px',
           }}
         >
           Lecturer Dashboard
@@ -191,28 +312,22 @@ const LecturerDashboard = () => {
           level={3}
           style={{
             margin: 0,
-            color: themeColors.primary,
-            fontWeight: 600,
             display: window.innerWidth >= 992 ? 'none' : 'inline',
+            color: isDarkMode ? themeColors.text : "#1890ff",
+            fontSize: '20px',
           }}
         >
           Lecturer Dashboard
         </AntTitle>
         <Space>
-          <ThemeToggle />
+          <ThemeToggle isDarkMode={isDarkMode} />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button
-              type="text"
-              icon={<UserOutlined style={{ fontSize: 24, color: themeColors.primary }} />}
-              style={{ marginRight: 24, transition: 'all 0.3s' }}
-              onMouseEnter={(e) => (e.currentTarget.style.transform = 'scale(1.1)')}
-              onMouseLeave={(e) => (e.currentTarget.style.transform = 'scale(1)')}
-            />
+            <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} />
           </Dropdown>
         </Space>
       </Header>
 
-      <Layout style={{ background: themeColors.background }}>
+      <Layout>
         <Sider
           collapsible
           collapsed={collapsed}
@@ -220,16 +335,7 @@ const LecturerDashboard = () => {
           width={250}
           breakpoint="lg"
           collapsedWidth={80}
-          style={{
-            background: isDarkMode ? '#1F2527' : 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-            marginTop: 64,
-            position: 'fixed',
-            height: 'calc(100vh - 64px)',
-            overflow: 'auto',
-            zIndex: 11,
-            boxShadow: '2px 0 10px rgba(0, 0, 0, 0.05)',
-          }}
+          style={styles.sider}
         >
           <Menu
             mode="inline"
@@ -256,24 +362,10 @@ const LecturerDashboard = () => {
                 label: <Link to="/lecturer/feedback">Feedback</Link>,
               },
             ]}
-            style={{ background: 'transparent', border: 'none', color: themeColors.text }}
-            theme={isDarkMode ? 'dark' : 'light'}
           />
         </Sider>
 
-        <Content
-          className="lecturer-content"
-          style={{
-            marginTop: '64px',
-            marginRight: '8px',
-            marginBottom: '8px',
-            marginLeft: collapsed ? '80px' : '250px', // Match exact sidebar width
-            background: themeColors.background,
-            minHeight: 'calc(100vh - 64px)',
-            overflow: 'auto',
-            transition: 'margin-left 0.3s ease-in-out',
-          }}
-        >
+        <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
           <Spin spinning={loading} tip={loadingMessage}>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
               <section style={{ margin: 0 }}>
@@ -300,18 +392,7 @@ const LecturerDashboard = () => {
                 shape="circle"
                 icon={<ArrowUpOutlined />}
                 onClick={scrollToTop}
-                style={{
-                  position: 'fixed',
-                  bottom: 32,
-                  right: 32,
-                  zIndex: 1000,
-                  background: themeColors.primary,
-                  border: 'none',
-                  width: 50,
-                  height: 50,
-                  transition: 'all 0.3s',
-                  boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
-                }}
+                style={styles.backToTopButton}
                 onMouseEnter={(e) => (e.currentTarget.style.background = isDarkMode ? '#8E86E5' : '#5A4FCF')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = themeColors.primary)}
               />
@@ -319,41 +400,6 @@ const LecturerDashboard = () => {
           </Spin>
         </Content>
       </Layout>
-      <style>
-        {`
-          .ant-layout {
-            background: ${themeColors.background} !important;
-          }
-          .ant-layout-content {
-            background: ${themeColors.background} !important;
-          }
-          body {
-            background: ${themeColors.background} !important;
-          }
-          .lecturer-content {
-            padding: 0 16px;
-          }
-          @media (max-width: 768px) {
-            .lecturer-content {
-              padding: 0 12px;
-            }
-          }
-          @media (max-width: 576px) {
-            .lecturer-content {
-              padding: 0 8px;
-              margin-right: 4px;
-              margin-bottom: 4px;
-            }
-          }
-          @media (max-width: 400px) {
-            .lecturer-content {
-              padding: 0 4px;
-              margin-right: 0;
-              margin-bottom: 0;
-            }
-          }
-        `}
-      </style>
     </Layout>
   );
 };
