@@ -27,7 +27,6 @@ import {
   message,
   Typography,
   Spin,
-  Switch,
 } from 'antd';
 import { Line, Pie } from 'react-chartjs-2';
 import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement } from 'chart.js';
@@ -272,10 +271,10 @@ const AdminPanel = () => {
   const menuItems = [
     { key: '1', icon: <TeamOutlined />, label: 'Manage Students', onClick: () => window.location.href = '/admin/manage-students' },
     { key: '2', icon: <BookOutlined />, label: 'Manage Courses', onClick: () => window.location.href = '/admin/manage-courses' },
-    { key: '3', icon: <CheckCircleOutlined />, label: 'Manage Attendance', onClick: () => document.getElementById('attendance-overview').scrollIntoView({ behavior: 'smooth' }) },
-    { key: '4', icon: <TeamOutlined />, label: 'Manage Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
-    { key: '5', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' },
-    { key: '6', icon: <FormOutlined />, label: 'View Feedbacks', onClick: () => window.location.href = '/admin/feedback' },
+    { key: '3', icon: <TeamOutlined />, label: 'Manage Lecturers', onClick: () => window.location.href = '/admin/manage-lecturers' },
+    { key: '4', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' },
+    { key: '5', icon: <FormOutlined />, label: 'View Feedbacks', onClick: () => window.location.href = '/admin/feedback' },
+    { key: '6', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => document.getElementById('attendance-overview').scrollIntoView({ behavior: 'smooth' }) },
   ];
 
   const profileItems = [
@@ -330,7 +329,8 @@ const AdminPanel = () => {
             left: '50%',
             transform: 'translateX(-50%)',
             display: window.innerWidth < 992 ? 'none' : 'block',
-            color: themeColors.text,
+            color: isDarkMode ? themeColors.text : "#1890ff",
+            fontSize: '20px',
           }}
         >
           Admin Dashboard
@@ -340,13 +340,14 @@ const AdminPanel = () => {
           style={{
             margin: 0,
             display: window.innerWidth >= 992 ? 'none' : 'inline',
-            color: themeColors.text,
+            color: isDarkMode ? themeColors.text : "#1890ff",
+            fontSize: '20px',
           }}
         >
           Admin Dashboard
         </AntTitle>
         <Space>
-          <Switch checked={isDarkMode} onChange={() => setIsDarkMode(!isDarkMode)} checkedChildren="Dark" unCheckedChildren="Light" />
+          <ThemeToggle isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
           <Dropdown menu={{ items: profileItems }} trigger={['click']}>
             <Button type="text" icon={<UserOutlined style={{ fontSize: 24 }} />} />
           </Dropdown>
@@ -355,7 +356,7 @@ const AdminPanel = () => {
 
       <Layout>
         <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={styles.sider}>
-          <Menu mode="inline" defaultSelectedKeys={['1']} items={menuItems} />
+          <Menu mode="inline" defaultSelectedKeys={[]} items={menuItems} />
         </Sider>
 
         <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
@@ -411,9 +412,18 @@ const AdminPanel = () => {
 
             <AntTitle
               level={2}
-              style={{ margin: '32px 0 16px', textAlign: 'center', color: themeColors.text }}
+              style={{
+                margin: '32px 0 16px',
+                textAlign: 'center',
+                color: isDarkMode ? themeColors.text : "#1890ff",
+                fontSize: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
               id="attendance-overview"
             >
+              <CheckCircleOutlined style={{ marginRight: 8 }} />
               Attendance Overview
             </AntTitle>
             <Card style={styles.card}>
@@ -448,8 +458,17 @@ const AdminPanel = () => {
 
             <AntTitle
               level={2}
-              style={{ margin: '32px 0 16px', textAlign: 'center', color: themeColors.text }}
+              style={{
+                margin: '32px 0 16px',
+                textAlign: 'center',
+                color: isDarkMode ? themeColors.text : "#1890ff",
+                fontSize: '24px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+              }}
             >
+              <LineChartOutlined style={{ marginRight: 8 }} />
               Quick Stats
             </AntTitle>
             <Card style={styles.card}>

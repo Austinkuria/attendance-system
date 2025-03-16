@@ -804,10 +804,18 @@ const ManageStudents = () => {
             >
               Back to Admin
             </Button>
-            <h2 style={styles.headerTitle}>
+
+            <h2 style={{
+              color: isDarkMode ? themeColors.text : "#1890ff",
+              margin: 0,
+              fontSize: '20px',
+              display: 'flex',
+              alignItems: 'center',
+            }}>
               <TeamOutlined style={{ marginRight: 8 }} />
               Student Management
             </h2>
+
             {/* <ThemeToggle /> */}
             <Button
               type="primary"
@@ -926,7 +934,7 @@ const ManageStudents = () => {
                       type="primary"
                       icon={<ImportOutlined />}
                       disabled={!file}
-                      style={{ background: themeColors.primary, borderColor: themeColors.primary,margin: '8px' }}
+                      style={{ background: themeColors.primary, borderColor: themeColors.primary, margin: '8px' }}
                       onClick={handleImport}
                     >
                       {file ? `Import ${file.name}` : "CSV Import"}

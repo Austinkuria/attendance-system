@@ -2,9 +2,10 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../services/api';
 import { Layout, Card, Typography, Button, Form, Input, message, Spin, Space, Breadcrumb } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined, SettingOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { theme } from 'antd';
+import { ThemeContext } from '../../context/ThemeContext';
 
 const { Header, Content } = Layout;
 const { Title } = Typography;
@@ -89,7 +90,16 @@ const AdminSettings = () => {
             onClick={() => navigate('/admin/profile')}
             style={{ fontSize: '16px', width: 64, height: 64 }}
           />
-          <Title level={3} style={{ margin: 0, color: '#1890ff' }}>Settings</Title>
+          <Title level={3} style={{
+            margin: 0,
+            color: isDarkMode ? themeColors.text : "#1890ff",
+            fontSize: '20px',
+            display: 'flex',
+            alignItems: 'center',
+          }}>
+            <SettingOutlined style={{ marginRight: 8 }} />
+            Settings
+          </Title>
         </Space>
       </Header>
       <Content style={{ padding: '88px 24px 24px', maxWidth: '1200px', margin: '0 auto' }}>
