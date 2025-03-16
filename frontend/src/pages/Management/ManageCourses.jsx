@@ -756,7 +756,7 @@ const ManageCourses = () => {
           <Modal
             open={showCourseModal}
             title={
-              <div style={modalStyles.modalTitle}>
+              <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
                 {selectedCourse ? <EditOutlined style={{ marginRight: 8 }} /> : <PlusOutlined style={{ marginRight: 8 }} />}
                 {selectedCourse ? "Edit Course" : "Add Course"}
               </div>
@@ -799,7 +799,7 @@ const ManageCourses = () => {
               footer: modalStyles.modalFooter,
               content: modalStyles.modalContainer
             }}
-            className="responsive-modal"
+            className={selectedCourse ? "edit-modal" : "form-modal"}
           >
             <Spin spinning={loading} tip={selectedCourse ? "Updating course details..." : "Creating new course..."}>
               <Form
@@ -852,7 +852,7 @@ const ManageCourses = () => {
           <Modal
             open={showDeleteModal}
             title={
-              <div style={modalStyles.modalTitle}>
+              <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
                 <ExclamationCircleOutlined style={{ marginRight: 8 }} />
                 Confirm Delete
               </div>
@@ -886,13 +886,14 @@ const ManageCourses = () => {
                 Delete Course
               </Button>,
             ]}
-            width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
+            width={{ xs: '90%', sm: '60%', md: '450px' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
             styles={{
               header: modalStyles.modalHeader,
               body: modalStyles.modalBody,
               footer: modalStyles.modalFooter,
               content: modalStyles.modalContainer
             }}
+            className="confirmation-modal"
           >
             <Spin spinning={loading} tip="Deleting course...">
               <p style={{ color: themeColors.accent }}>
@@ -905,7 +906,7 @@ const ManageCourses = () => {
           <Modal
             open={showUnitDeleteModal}
             title={
-              <div style={modalStyles.modalTitle}>
+              <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
                 <ExclamationCircleOutlined style={{ marginRight: 8 }} />
                 Confirm Unit Removal
               </div>
@@ -938,13 +939,14 @@ const ManageCourses = () => {
                 Remove Unit
               </Button>,
             ]}
-            width={{ xs: '90%', sm: '50%' }[window.innerWidth < 576 ? 'xs' : 'sm']}
+            width={{ xs: '90%', sm: '60%', md: '450px' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
             styles={{
               header: modalStyles.modalHeader,
               body: modalStyles.modalBody,
               footer: modalStyles.modalFooter,
               content: modalStyles.modalContainer
             }}
+            className="confirmation-modal"
           >
             <Spin spinning={loading} tip="Removing unit...">
               <p style={{ color: themeColors.accent }}>
@@ -957,21 +959,21 @@ const ManageCourses = () => {
           <Modal
             open={showUnitsModal}
             title={
-              <div style={modalStyles.modalTitle}>
+              <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
                 <UnorderedListOutlined style={{ marginRight: 8 }} />
                 Manage Units - {selectedCourseForUnits?.name}
               </div>
             }
             centered
             onCancel={() => setShowUnitsModal(false)}
-            width={{ xs: '95%', sm: '90%', md: '80%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : 'md']}
+            width={{ xs: '98%', sm: '95%', md: '90%', lg: '85%' }[window.innerWidth < 576 ? 'xs' : window.innerWidth < 768 ? 'sm' : window.innerWidth < 992 ? 'md' : 'lg']}
             footer={null}
             styles={{
               header: modalStyles.modalHeader,
               body: modalStyles.modalBody,
               content: modalStyles.modalContainer
             }}
-            className="responsive-modal"
+            className="large-modal"
           >
             <Spin spinning={loading} tip={units.length ? "Managing course units..." : "Loading course units..."}>
               <Form

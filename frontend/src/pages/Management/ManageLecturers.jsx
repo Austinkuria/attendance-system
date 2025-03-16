@@ -911,7 +911,7 @@ const ManageLecturers = () => {
 
       <Modal
         title={
-          <div style={modalStyles.modalTitle}>
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
             <UserAddOutlined />
             Add New Lecturer
           </div>
@@ -950,6 +950,7 @@ const ManageLecturers = () => {
           footer: modalStyles.modalFooter,
           content: modalStyles.modalContainer
         }}
+        className="form-modal"
       >
         <Spin spinning={loading} tip="Processing lecturer data...">
           <Form
@@ -1025,7 +1026,7 @@ const ManageLecturers = () => {
 
       <Modal
         title={
-          <div style={modalStyles.modalTitle}>
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
             <EditOutlined />
             Edit Lecturer
           </div>
@@ -1064,6 +1065,7 @@ const ManageLecturers = () => {
           footer: modalStyles.modalFooter,
           content: modalStyles.modalContainer
         }}
+        className="edit-modal"
       >
         <Spin spinning={loading} tip="Saving lecturer changes...">
           <Form
@@ -1120,7 +1122,7 @@ const ManageLecturers = () => {
 
       <Modal
         title={
-          <div style={modalStyles.modalTitle}>
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
             <ExclamationCircleOutlined />
             Confirm Deletion
           </div>
@@ -1160,6 +1162,7 @@ const ManageLecturers = () => {
           footer: modalStyles.modalFooter,
           content: modalStyles.modalContainer
         }}
+        className="confirmation-modal"
       >
         <Spin spinning={loading} tip="Processing deletion request...">
           <p style={{ color: themeColors.accent }}>
@@ -1171,7 +1174,7 @@ const ManageLecturers = () => {
 
       <Modal
         title={
-          <div style={modalStyles.modalTitle}>
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
             <UnorderedListOutlined />
             Assigned Units for{" "}
             {selectedLecturerForUnits &&

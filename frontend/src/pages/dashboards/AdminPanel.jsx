@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { ThemeContext } from '../../context/ThemeContext';
 import { useStyles } from '../../styles/styles.js';
+import ThemeToggle from '../../components/ThemeToggle';
 import {
   UserOutlined,
   BookOutlined,

@@ -32,7 +32,7 @@ import {
   NumberOutlined
 } from "@ant-design/icons";
 import { ThemeContext } from '../../context/ThemeContext';
-import ThemeToggle from '../../components/ThemeToggle';
+// import ThemeToggle from '../../components/ThemeToggle';
 import { getStudents, deleteStudent, downloadStudents } from "../../services/api";
 import api from "../../services/api";
 import { useTableStyles } from '../../components/SharedTableStyles';
@@ -800,7 +800,7 @@ const ManageStudents = () => {
               <TeamOutlined style={{ marginRight: 8 }} />
               Student Management
             </h2>
-            <ThemeToggle />
+            {/* <ThemeToggle /> */}
             <Button
               type="primary"
               icon={<UserAddOutlined />}
@@ -953,7 +953,7 @@ const ManageStudents = () => {
 
       <Modal
         title={
-          <div style={modalStyles.modalTitle}>
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
             <UserAddOutlined style={{ marginRight: 8 }} />
             Add New Student
           </div>
@@ -992,6 +992,7 @@ const ManageStudents = () => {
           footer: modalStyles.modalFooter,
           content: modalStyles.modalContainer
         }}
+        className="form-modal"
       >
         <Spin spinning={loading} tip="Processing student data...">
           <Form form={addForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
@@ -1119,7 +1120,7 @@ const ManageStudents = () => {
 
       <Modal
         title={
-          <div style={modalStyles.modalTitle}>
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
             <EditOutlined style={{ marginRight: 8 }} />
             Edit Student
           </div>
@@ -1158,6 +1159,7 @@ const ManageStudents = () => {
           footer: modalStyles.modalFooter,
           content: modalStyles.modalContainer
         }}
+        className="edit-modal"
       >
         <Spin spinning={loading} tip="Saving student changes...">
           <Form form={editForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
@@ -1263,7 +1265,7 @@ const ManageStudents = () => {
 
       <Modal
         title={
-          <div style={modalStyles.modalTitle}>
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
             <ExclamationCircleOutlined style={{ marginRight: 8 }} />
             Confirm Deletion
           </div>
@@ -1304,6 +1306,7 @@ const ManageStudents = () => {
           footer: modalStyles.modalFooter,
           content: modalStyles.modalContainer
         }}
+        className="confirmation-modal"
       >
         <Spin spinning={loading} tip="Processing deletion request...">
           <p style={{ color: themeColors.accent }}>
