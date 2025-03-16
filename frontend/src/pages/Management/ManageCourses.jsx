@@ -685,10 +685,17 @@ const ManageCourses = () => {
               Back to Admin
             </Button>
 
-            <Title level={3} style={styles.headerTitle}>
+            <h2 style={{
+              color: isDarkMode ? themeColors.text : "#1890ff",
+              margin: 0,
+              fontSize: '20px',
+              display: 'flex',
+              alignItems: 'center',
+            }}>
               <BookOutlined style={{ marginRight: 8 }} />
               Course Management
-            </Title>
+            </h2>
+
             <Button
               type="primary"
               icon={<PlusOutlined />}

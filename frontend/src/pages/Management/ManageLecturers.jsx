@@ -764,7 +764,17 @@ const ManageLecturers = () => {
               Back to Admin
             </Button>
 
-            <h2 style={styles.headerTitle}>Lecturer Management</h2>
+            <h2 style={{
+              color: isDarkMode ? themeColors.text : "#1890ff",
+              margin: 0,
+              fontSize: '20px',
+              display: 'flex',
+              alignItems: 'center',
+            }}>
+              <UserOutlined style={{ marginRight: 8 }} />
+              Lecturer Management
+            </h2>
+
             <Button
               type="primary"
               icon={<UserAddOutlined />}
