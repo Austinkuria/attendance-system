@@ -926,7 +926,7 @@ const ManageStudents = () => {
                       type="primary"
                       icon={<ImportOutlined />}
                       disabled={!file}
-                      style={{ background: themeColors.primary, borderColor: themeColors.primary }}
+                      style={{ background: themeColors.primary, borderColor: themeColors.primary,margin: '8px' }}
                       onClick={handleImport}
                     >
                       {file ? `Import ${file.name}` : "CSV Import"}
