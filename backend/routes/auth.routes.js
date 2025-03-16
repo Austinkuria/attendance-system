@@ -5,7 +5,7 @@ const { loginLimiter,  signupLimiter,sendResetLinkLimiter,resetPasswordLimiter }
 
 // Apply rate limiter to login route
 router.post('/login', loginLimiter, login);
-router.post('/signup', signup, signupLimiter);
+router.post('/signup', signupLimiter, signup);
 router.post('/send-reset-link', sendResetLinkLimiter, sendResetLink);
 router.post('/reset-password', resetPasswordLimiter, resetPassword);
 
