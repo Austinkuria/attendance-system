@@ -31,7 +31,7 @@ const authLimiter = rateLimit({
 // This also improves performance by preventing excessive login requests
 const loginLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 10, // Limit each IP to 10 login requests per window
+  max: 15, // Limit each IP to 10 login requests per window
   standardHeaders: true, // Return rate limit info in the `RateLimit-*` headers
   message: {
     status: 429,
@@ -44,7 +44,7 @@ const loginLimiter = rateLimit({
 // It also prevents excessive resource usage from attackers
 const signupLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each IP to 5 signup requests per window
+  max: 15, // Limit each IP to 5 signup requests per window
   standardHeaders: true,
   message: {
     status: 429,
@@ -57,7 +57,7 @@ const signupLimiter = rateLimit({
 // It also prevents excessive resource usage from attackers
 const resetPasswordLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each IP to 5 password reset requests per window
+  max: 15, // Limit each IP to 5 password reset requests per window
   standardHeaders: true,
   message: {
     status: 429,
@@ -70,7 +70,7 @@ const resetPasswordLimiter = rateLimit({
 // It also prevents excessive resource usage from attackers
 const sendResetLinkLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5, // Limit each IP to 5 password reset requests per window
+  max: 15, // Limit each IP to 5 password reset requests per window
   standardHeaders: true,
   message: {
     status: 429,
@@ -81,7 +81,7 @@ const sendResetLinkLimiter = rateLimit({
 // Rate limiter for attendance marking
 const attendanceMarkLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
-  max: 5, // 5 requests per minute
+  max: 15, // 5 requests per minute
   standardHeaders: true,
   message: {
     status: 429,
