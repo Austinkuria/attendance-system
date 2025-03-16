@@ -39,6 +39,45 @@ const loginLimiter = rateLimit({
   }
 });
 
+// signupLimiter: rate limiter for signup attempts
+// This prevents bots from spamming signup requests
+// It also prevents excessive resource usage from attackers
+const signupLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 signup requests per window
+  standardHeaders: true,
+  message: {
+    status: 429,
+    message: "Too many signup attempts. Please try again after an hour."
+  }
+});
+
+// resetPasswordLimiter: rate limiter for password reset requests
+// This prevents attackers from spamming password reset emails
+// It also prevents excessive resource usage from attackers
+const resetPasswordLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 password reset requests per window
+  standardHeaders: true,
+  message: {
+    status: 429,
+    message: "Too many password reset requests. Please try again after an hour."
+  }
+});
+
+// sendResetLinkLimiter: rate limiter for sending password reset emails
+// This prevents attackers from spamming password reset emails
+// It also prevents excessive resource usage from attackers
+const sendResetLinkLimiter = rateLimit({
+  windowMs: 60 * 60 * 1000, // 1 hour
+  max: 5, // Limit each IP to 5 password reset requests per window
+  standardHeaders: true,
+  message: {
+    status: 429,
+    message: "Too many password reset requests. Please try again after an hour."
+  }
+});
+
 // Rate limiter for attendance marking
 const attendanceMarkLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -55,5 +94,8 @@ module.exports = {
   sensitiveLimiter,
   authLimiter,
   loginLimiter,
-  attendanceMarkLimiter
+  signupLimiter,
+  resetPasswordLimiter,
+  sendResetLinkLimiter,
+  attendanceMarkLimiter,
 };

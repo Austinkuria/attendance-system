@@ -159,21 +159,47 @@ const AdminAnalytics = () => {
 
   return (
     <Layout style={{ minHeight: '100vh', background: themeColors.background, margin: 0, padding: 0, overflowX: 'hidden' }}>
-      <Header style={{ padding: '0 16px', background: themeColors.cardBg, position: 'fixed', width: '100%', zIndex: 10 }}>
-        <Row align="middle">
-          <Col flex="auto">
-            <Button type="text" icon={<LeftOutlined />} onClick={() => navigate('/admin')} style={{ fontSize: 16, color: themeColors.text }} />
-            <AntTitle level={3} style={{ display: 'inline', margin: '0 16px', color: themeColors.text }}>Analytics</AntTitle>
-          </Col>
-          <Col>
-            <ThemeToggle />
-          </Col>
-        </Row>
+      <Header style={{
+        padding: '0 24px',
+        background: themeColors.cardBg,
+        position: 'fixed',
+        width: '100%',
+        zIndex: 10,
+        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+        height: '64px',
+        lineHeight: '64px',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center' }}>
+          <Button
+            type="primary"
+            icon={<LeftOutlined />}
+            onClick={() => navigate('/admin')}
+            style={{ marginRight: 16 }}
+          >
+            Back to Admin
+          </Button>
+          <AntTitle level={3} style={{ margin: 0, color: themeColors.primary, display: 'inline-block', verticalAlign: 'middle' }}>Analytics</AntTitle>
+        </div>
+        <div>
+          <ThemeToggle />
+        </div>
       </Header>
 
-      <Content style={{ marginTop: 64, padding: '24px 12px 24px 12px', background: themeColors.background }}>
+      <Content style={{
+        marginTop: 64,
+        padding: 0,
+        background: themeColors.background
+      }}>
         <Spin spinning={loading} tip={loadingMessage}>
-          <Card style={{ marginBottom: 24, borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}>
+          <Card style={{
+            marginBottom: 16,
+            borderRadius: 0,
+            background: themeColors.cardBg,
+            borderColor: themeColors.primary
+          }}>
             {/* Added wrapper for filters */}
             <div className="filter-container">
               <Space direction="horizontal" style={{ width: '100%', justifyContent: 'space-between', flexWrap: 'wrap' }}>
@@ -222,12 +248,16 @@ const AdminAnalytics = () => {
             </div>
           </Card>
 
-          <Row gutter={[16, 16]}>
+          <Row gutter={[0, 16]}>
             {selectedCourse && (
               <Col span={24}>
                 <Card
                   title={`${courses.find(c => c._id === selectedCourse)?.name || 'Selected Course'} (Year ${courses.find(c => c._id === selectedCourse)?.year || 'N/A'}, Sem ${courses.find(c => c._id === selectedCourse)?.semester || 'N/A'})`}
-                  style={{ borderRadius: 10, background: themeColors.cardBg, borderColor: themeColors.primary }}
+                  style={{
+                    borderRadius: 0,
+                    background: themeColors.cardBg,
+                    borderColor: themeColors.primary
+                  }}
                   styles={{ header: { color: themeColors.text } }} // Updated headStyle to styles
                 >
                   <div style={{ height: 400 }} className="chart-container">
@@ -260,64 +290,80 @@ const AdminAnalytics = () => {
       </Content>
 
       <style>{`
-        /* Global resets and component styles */
+        /* Global resets and core styles only */
         html, body {
           margin: 0;
           padding: 0;
+          width: 100%;
+          overflow-x: hidden;
         }
-        body { overflow-x: hidden; }
+        
+        /* Direct styling for main components only */
+        .ant-layout {
+          background: ${themeColors.background};
+          min-width: 100%;
+          width: 100vw;
+          overflow-x: hidden;
+        }
+        
+        .ant-layout-header {
+          background: ${themeColors.cardBg};
+          padding: 0 24px;
+          height: 64px;
+          line-height: 64px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+          width: 100%;
+        }
+        
+        .ant-layout-content {
+          margin-top: 64px;
+          padding: 0;
+          background: ${themeColors.background};
+          width: 100%;
+          overflow-x: hidden;
+        }
+        
+        /* Card styles */
+        .ant-card {
+          background: ${themeColors.cardBg};
+          border-color: ${themeColors.primary};
+          border-radius: 0;
+          margin: 0;
+          width: 100%;
+        }
+        
+        /* Form elements */
         .ant-select-selector, .ant-picker {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
           border-color: ${themeColors.primary} !important;
         }
-        .ant-select-dropdown, .ant-picker-dropdown {
-          background: ${themeColors.cardBg} !important;
-        }
-        .ant-select-item-option-content {
-          color: ${themeColors.text} !important;
-        }
+        
+        /* Table styling */
         .ant-table {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
         }
+        
         .ant-table-thead > tr > th {
           background: ${themeColors.primary} !important;
           color: #fff !important;
         }
-        .ant-table-tbody > tr > td {
-          border-bottom: 1px solid ${themeColors.text}20 !important;
-          color: ${themeColors.text} !important;
+        
+        /* Chart container */
+        .chart-container {
+          height: 400px;
+          width: 100%;
         }
-        .table-row-light {
-          background: ${themeColors.cardBg} !important;
-        }
-        .table-row-dark {
-          background: ${themeColors.background} !important;
-        }
-        .ant-modal-header {
-          background: ${themeColors.cardBg} !important;
-          border-bottom: 1px solid ${themeColors.text}20 !important;
-        }
-        .ant-modal-title {
-          color: ${themeColors.text} !important;
-        }
-        /* Media queries for small screens */
-        @media (max-width: 768px) {
-          .ant-layout-content { padding: 12px !important; }
-          .ant-card { margin-left: 0 !important; margin-right: 0 !important; }
-          .filter-container {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 12px;
+        
+        /* Override default Ant Design mobile styles */
+        @media (max-width: 576px) {
+          .ant-layout-content {
+            margin: 64px 0 0 0 !important;
+            padding: 0 !important;
+            width: 100vw !important;
           }
         }
-        /* Debug only the chart container */
-        .chart-container { 
-          border: 1px dashed red !important;
-        }
-        .ant-card { border: 1px dashed blue !important; }
       `}</style>
     </Layout>
   );
