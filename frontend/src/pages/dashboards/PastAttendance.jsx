@@ -254,7 +254,27 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
   }
 
   return (
-    <>
+    <div style={{
+      padding: '24px',
+      background: themeColors.background,
+      minHeight: '100vh',
+      width: '100%',
+      transition: 'all 0.3s ease'
+    }}>
+      <Button
+        type="primary"
+        onClick={() => navigate('/lecturer-dashboard')}
+        style={{
+          background: themeColors.primary,
+          borderColor: themeColors.primary,
+          borderRadius: 8,
+          color: isDarkMode ? themeColors.text : '#fff',
+          marginBottom: 16
+        }}
+      >
+        Back to Lecturer Dashboard
+      </Button>
+
       <Card
         title={
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -273,6 +293,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
               }
               allowClear
               value={pastFilters.unit}
+              className="themed-select"
             >
               {units.map((unit) => (
                 <Option key={unit._id} value={unit._id}>
@@ -292,6 +313,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
                 setPastFilters((prev) => ({ ...prev, date: dateString, sessionId: null }))
               }
               allowClear
+              className="themed-datepicker"
             />
             <Select
               placeholder="Select Session"
@@ -299,6 +321,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
               onChange={(value) => setPastFilters((prev) => ({ ...prev, sessionId: value }))}
               allowClear
               value={pastFilters.sessionId}
+              className="themed-select"
             >
               {pastSessions
                 .filter(
@@ -363,25 +386,23 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
                   showSizeChanger: false,
                   responsive: true,
                   showTotal: (total) => `Total ${total} students`,
+                  itemRender: (page, type, originalElement) => {
+                    if (type === 'prev' || type === 'next' || type === 'jump-prev' || type === 'jump-next') {
+                      return <div style={{ color: themeColors.primary }}>{originalElement}</div>;
+                    }
+                    return originalElement;
+                  }
                 }}
                 scroll={{ x: 'max-content' }}
                 bordered
                 rowClassName={(_, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
               />
             ) : (
-              <Empty description="No attendance data found" />
+              <Empty description={<span style={{ color: themeColors.text }}>No attendance data found</span>} />
             )}
           </Spin>
         </Space>
       </Card>
-
-      <Button
-        type="primary"
-        onClick={() => navigate('/lecturer-dashboard')}
-        style={{ background: themeColors.primary, borderColor: themeColors.primary, borderRadius: 8 }}
-      >
-        Back to Attendance Management
-      </Button>
 
       <style>{`
         .ant-select-selector, .ant-picker {
@@ -430,9 +451,145 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
           border-color: ${themeColors.primaryHover} !important;
         }
         
+        /* Add these new styles for placeholders and icons */
+        .ant-select-selection-placeholder {
+          color: ${themeColors.placeholder || themeColors.textSecondary || '#A0AEC0'} !important;
+          opacity: 0.8 !important;
+        }
+        
+        .ant-picker-input > input::placeholder {
+          color: ${themeColors.placeholder || themeColors.textSecondary || '#A0AEC0'} !important;
+          opacity: 0.8 !important;
+        }
+        
+        /* Calendar icon in date picker */
+        .ant-picker-suffix .anticon {
+          color: ${themeColors.primary} !important;
+          opacity: 0.8 !important;
+        }
+        
+        /* Clear icon in date picker and select */
+        .ant-picker-clear,
+        .ant-select-clear {
+          background: ${themeColors.inputBg || themeColors.cardBg} !important;
+          color: ${themeColors.textSecondary || '#A0AEC0'} !important;
+        }
+        
+        /* Arrow in select dropdown */
+        .ant-select-arrow {
+          color: ${themeColors.primary} !important;
+          opacity: 0.8 !important;
+        }
+        
+        /* Input text color for date picker */
+        .ant-picker-input > input {
+          color: ${themeColors.text} !important;
+        }
+        
+        /* Dropdown styling for better visibility */
+        .ant-select-dropdown {
+          background: ${themeColors.cardBg} !important;
+          box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+          border: 1px solid ${themeColors.border} !important;
+        }
+        
+        .ant-select-dropdown .ant-select-item {
+          color: ${themeColors.text} !important;
+        }
+        
+        /* Date picker panel styling for visibility */
+        .ant-picker-panel-container {
+          background: ${themeColors.cardBg} !important;
+          border: 1px solid ${themeColors.border} !important;
+          box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+        }
+        
+        .ant-picker-panel {
+          background: ${themeColors.cardBg} !important;
+        }
+        
+        .ant-picker-header {
+          border-bottom: 1px solid ${themeColors.border} !important;
+        }
+        
+        .ant-picker-header button {
+          color: ${themeColors.text} !important;
+        }
+        
+        .ant-picker-content th {
+          color: ${themeColors.textSecondary || '#A0AEC0'} !important;
+        }
+        
+        .ant-picker-cell-in-view {
+          color: ${themeColors.text} !important;
+        }
+        
+        .ant-picker-cell-in-view.ant-picker-cell-today .ant-picker-cell-inner::before {
+          border-color: ${themeColors.primary} !important;
+        }
+        
         ${tableStyles}
+        
+        /* Pagination styling - ensuring visibility in dark mode */
+        .ant-pagination-item {
+          background: ${themeColors.cardBg} !important;
+          border-color: ${themeColors.border} !important;
+        }
+        
+        .ant-pagination-item a {
+          color: ${themeColors.text} !important;
+        }
+        
+        .ant-pagination-item-active {
+          background: ${themeColors.primary} !important;
+          border-color: ${themeColors.primary} !important;
+        }
+        
+        .ant-pagination-item-active a {
+          color: ${themeColors.textInvert || '#fff'} !important;
+        }
+        
+        .ant-pagination-prev .ant-pagination-item-link, 
+        .ant-pagination-next .ant-pagination-item-link {
+          background: ${themeColors.cardBg} !important;
+          color: ${themeColors.text} !important;
+          border-color: ${themeColors.border} !important;
+        }
+        
+        .ant-pagination-disabled .ant-pagination-item-link {
+          color: ${themeColors.disabled} !important;
+          border-color: ${themeColors.border} !important;
+        }
+        
+        /* Total students text */
+        .ant-pagination-total-text {
+          color: ${themeColors.text} !important;
+          font-weight: 500;
+        }
+        
+        /* Empty state */
+        .ant-empty-description {
+          color: ${themeColors.text} !important;
+        }
+        
+        /* Spin component */
+        .ant-spin-text {
+          color: ${themeColors.text} !important;
+        }
+        
+        /* Ensure button in empty state has correct colors */
+        .ant-empty-footer button {
+          background: ${themeColors.primary} !important;
+          border-color: ${themeColors.primary} !important;
+          color: ${isDarkMode ? themeColors.text : '#fff'} !important;
+        }
+        
+        /* Global background */
+        body {
+          background: ${themeColors.background} !important;
+        }
       `}</style>
-    </>
+    </div>
   );
 };
 

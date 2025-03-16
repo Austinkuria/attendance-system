@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useContext } from "react";
+import { useState, useEffect, useCallback, useMemo, useContext, useRef } from "react";
 import {
   Button,
   Table,
@@ -248,6 +248,21 @@ const AttendanceManagement = () => {
     fetchCurrentSession();
   }, [selectedUnit, units, currentSession?.ended]);
 
+  const [tableContainerHeight, setTableContainerHeight] = useState(400); // Default height
+  const tableContainerRef = useRef(null);
+
+  // Add this useEffect to set the initial height based on screen size
+  useEffect(() => {
+    if (screens.xs) {
+      setTableContainerHeight(300);
+    } else if (screens.sm) {
+      setTableContainerHeight(350);
+    } else {
+      setTableContainerHeight(400);
+    }
+  }, [screens]);
+
+  // Modify the handleViewAttendance function for smoother updates
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
     try {
@@ -256,13 +271,19 @@ const AttendanceManagement = () => {
         `https://attendance-system-w70n.onrender.com/api/attendance/realtime-lecturer/${currentSession._id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
-      setAttendance(response.data);
+
+      // Keep scroll position by not changing state if data is identical
+      if (JSON.stringify(response.data) !== JSON.stringify(attendance)) {
+        // Highlight new entries logic could be added here
+        setAttendance(response.data);
+      }
     } catch {
-      setAttendance([]);
+      // Don't clear attendance on error to maintain UI stability
+      message.error("Failed to refresh attendance data");
     } finally {
       setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
     }
-  }, [selectedUnit, currentSession]);
+  }, [selectedUnit, currentSession, attendance]);
 
   useEffect(() => {
     let intervalId;
@@ -930,56 +951,70 @@ const AttendanceManagement = () => {
             title={<Text strong style={{ color: themeColors.text }}>Real-time Unit Attendance</Text>}
             size="small"
             extra={
-              <Button
-                type="link"
-                onClick={clearFilters}
-                disabled={!Object.values(unitFilters).some(Boolean)}
-                style={{ color: themeColors.secondary }}
-              >
-                Clear Filters
-              </Button>
+              <Space>
+                <Button
+                  type="link"
+                  onClick={clearFilters}
+                  disabled={!Object.values(unitFilters).some(Boolean)}
+                  style={{ color: themeColors.secondary }}
+                >
+                  Clear Filters
+                </Button>
+                <Button
+                  onClick={handleViewAttendance}
+                  loading={loading.realTimeAttendance}
+                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                  type="primary"
+                  icon={<SyncOutlined spin={loading.realTimeAttendance} />}
+                  size="small"
+                  style={{
+                    background: themeColors.primary,
+                    borderColor: themeColors.primary,
+                    color: themeColors.text,
+                    borderRadius: 8,
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {loading.realTimeAttendance ? "Refreshing..." : "Refresh"}
+                </Button>
+              </Space>
             }
             style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
             className="no-hover"
           >
-            <Space wrap style={{ marginTop: screens.xs ? 0 : 8 }}>
-              <Button
-                onClick={handleViewAttendance}
-                loading={loading.realTimeAttendance}
-                disabled={!selectedUnit || !currentSession || currentSession?.ended}
-                type="primary"
-                style={{
-                  background: themeColors.primary,
-                  borderColor: themeColors.primary,
-                  color: themeColors.text,
-                  width: screens.xs ? "100%" : "auto",
-                  borderRadius: 8,
-                  transition: "all 0.3s",
-                }}
-              >
-                {loading.realTimeAttendance ? "Loading Data..." : "Refresh Attendance Data"}
-              </Button>
-            </Space>
-            <Skeleton active loading={loading.realTimeAttendance}>
-              <Table
-                columns={realTimeColumns}
-                dataSource={attendance}
-                rowKey="_id"
-                scroll={{ x: true }}
-                pagination={{
-                  pageSize: screens.xs ? 5 : 8,
-                  responsive: true,
-                  showSizeChanger: false,
-                  showTotal: (total) => `Total ${total} students`,
-                }}
-                locale={{ emptyText: "No active session attendance records found" }}
-                bordered
-                size={screens.xs ? "small" : "middle"}
-                rowClassName={(record, index) =>
-                  index % 2 === 0 ? "table-row-light" : "table-row-dark"
-                }
-              />
-            </Skeleton>
+            <div
+              ref={tableContainerRef}
+              style={{
+                height: tableContainerHeight,
+                overflow: "auto",
+                position: "relative",
+                transition: "none", // Prevent transition animations
+              }}
+              className="attendance-table-container"
+            >
+              {loading.realTimeAttendance && !attendance.length ? (
+                <Skeleton active />
+              ) : (
+                <Table
+                  columns={realTimeColumns}
+                  dataSource={attendance}
+                  rowKey="_id"
+                  scroll={{ x: true }}
+                  pagination={{
+                    pageSize: screens.xs ? 5 : 8,
+                    responsive: true,
+                    showSizeChanger: false,
+                    showTotal: (total) => `Total ${total} students`,
+                  }}
+                  locale={{ emptyText: "No active session attendance records found" }}
+                  bordered
+                  size={screens.xs ? "small" : "middle"}
+                  rowClassName={(record, index) =>
+                    index % 2 === 0 ? "table-row-light" : "table-row-dark"
+                  }
+                />
+              )}
+            </div>
           </Card>
 
           {/* Report Attendance Card */}
@@ -1018,6 +1053,7 @@ const AttendanceManagement = () => {
                 }
                 allowClear
                 value={pastFilters.unit}
+                className="themed-select"
               >
                 {units.map((unit) => (
                   <Option key={unit._id} value={unit._id}>
@@ -1037,6 +1073,7 @@ const AttendanceManagement = () => {
                   }))
                 }
                 allowClear
+                className="themed-datepicker"
               />
               <Select
                 placeholder="Select Session"
@@ -1046,6 +1083,7 @@ const AttendanceManagement = () => {
                 }
                 allowClear
                 value={pastFilters.sessionId}
+                className="themed-select"
               >
                 {pastSessions
                   .filter(
@@ -1259,6 +1297,91 @@ const AttendanceManagement = () => {
           border-radius: 16px 16px 0 0;
         }
         .ant-modal-title {
+          color: ${themeColors.text} !important;
+        }
+
+        .attendance-table-container {
+          transition: none !important;
+          min-height: ${tableContainerHeight}px;
+        }
+        
+        .attendance-table-container .ant-table-wrapper,
+        .attendance-table-container .ant-spin-nested-loading,
+        .attendance-table-container .ant-spin-container,
+        .attendance-table-container .ant-table {
+          transition: none !important;
+        }
+        
+        .attendance-table-container .ant-table-body {
+          transition: none !important;
+          overflow-y: auto !important;
+        }
+        
+        @keyframes highlight-fade {
+          0% {
+            background-color: ${themeColors.primary}30;
+          }
+          100% {
+            background-color: transparent;
+          }
+        }
+        
+        .highlight-new-row {
+          animation: highlight-fade 2s ease-out;
+        }
+        
+        .ant-select-selection-placeholder,
+        .ant-picker-input > input::placeholder {
+          color: ${themeColors.placeholder || themeColors.textSecondary} !important;
+          opacity: 0.8;
+        }
+        
+        /* Calendar icon in date picker */
+        .ant-picker-suffix .anticon-calendar,
+        .ant-picker-suffix .anticon-clock-circle {
+          color: ${themeColors.primary} !important;
+          opacity: 0.8;
+        }
+        
+        /* Clear icon in date picker and select */
+        .ant-picker-clear,
+        .ant-select-clear {
+          background: ${themeColors.inputBg} !important;
+          color: ${themeColors.textSecondary} !important;
+        }
+        
+        /* Arrow in select dropdown */
+        .ant-select-arrow {
+          color: ${themeColors.primary} !important;
+          opacity: 0.8;
+        }
+        
+        /* Input color for date picker */
+        .ant-picker-input > input {
+          color: ${themeColors.text} !important;
+        }
+        
+        /* Focus states */
+        .themed-select .ant-select-selector:focus,
+        .themed-datepicker:focus {
+          border-color: ${themeColors.primary} !important;
+          box-shadow: 0 0 0 2px ${themeColors.primary}33 !important;
+        }
+        
+        /* Selection background for options */
+        .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
+          background: ${themeColors.hover} !important;
+          font-weight: 600;
+        }
+        
+        /* Dropdown styling */
+        .ant-select-dropdown {
+          background: ${themeColors.cardBg} !important;
+          box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
+          border: 1px solid ${themeColors.border} !important;
+        }
+        
+        .ant-select-dropdown .ant-select-item {
           color: ${themeColors.text} !important;
         }
       `}</style>

@@ -20,10 +20,12 @@ import {
   message,
   Typography,
   Spin,
+  Row,
+  Col,
+  Card,
 } from 'antd';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AttendanceManagement from '../../components/AttendanceManagement';
-import Analytics from './Analytics';
 import { ThemeContext } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -37,6 +39,7 @@ const LecturerDashboard = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading dashboard data...');
+  const navigate = useNavigate();
 
   // Create style objects matching AdminPanel approach
   const styles = {
@@ -379,12 +382,36 @@ const LecturerDashboard = () => {
             </motion.div>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
               <section style={{ margin: 0 }}>
-                <Analytics
-                  onLoadingChange={(isLoading) => {
-                    setLoading(isLoading);
-                    if (isLoading) setLoadingMessage('Processing analytics data...');
-                  }}
-                />
+                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
+                  <Col xs={12} sm={8} md={6} lg={4}>
+                    <Card
+                      hoverable
+                      onClick={() => navigate('/lecturer/analytics')}
+                      style={{
+                        background: themeColors.cardGradient1,
+                        borderRadius: 12,
+                        overflow: 'hidden',
+                        height: '100%' // Ensure consistent height
+                      }}
+                      bodyStyle={{ padding: '12px' }} // Reduce padding inside card
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                        <LineChartOutlined style={{ fontSize: 20, color: themeColors.textInvert, marginRight: 8 }} />
+                        <Typography.Title level={5} style={{ margin: 0, color: themeColors.textInvert, fontSize: '14px' }}>
+                          Analytics
+                        </Typography.Title>
+                      </div>
+                      <Typography.Text style={{
+                        color: `${themeColors.textInvert}CC`,
+                        fontSize: '12px',
+                        display: 'block',
+                        marginTop: 4
+                      }}>
+                        View trends
+                      </Typography.Text>
+                    </Card>
+                  </Col>
+                </Row>
               </section>
             </motion.div>
             {showBackToTop && (
