@@ -1770,6 +1770,30 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-slider-mark-text-active {
             color: rgba(255, 255, 255, 0.88) !important;
           }
+
+          /* Calendar weekday header specific fixes for both themes */
+          .ant-picker-content th {
+            color: ${isDarkMode ? themeColors.primary : 'rgba(0, 0, 0, 0.85)'} !important;
+            font-weight: bold !important;
+            padding: 5px 0 !important;
+          }
+          
+          /* Make sure the content inside calendar cells is visible */
+          .ant-picker-content th, .ant-picker-content td {
+            text-align: center !important;
+          }
+          
+          /* Light mode weekday headers */
+          [data-theme='light'] .ant-picker-content th {
+            color: rgba(0, 0, 0, 0.85) !important;
+            font-weight: bold !important;
+          }
+          
+          /* Dark mode weekday headers - more contrast */
+          [data-theme='dark'] .ant-picker-content th {
+            color: ${themeColors.primary} !important;
+            font-weight: bold !important;
+          }
         `}
       </style>
       <Header style={styles.header}>

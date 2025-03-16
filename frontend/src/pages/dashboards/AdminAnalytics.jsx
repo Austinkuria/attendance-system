@@ -296,6 +296,8 @@ const AdminAnalytics = () => {
           padding: 0;
           width: 100%;
           overflow-x: hidden;
+          color: ${themeColors.text};
+          background: ${themeColors.background};
         }
         
         /* Direct styling for main components only */
@@ -304,6 +306,7 @@ const AdminAnalytics = () => {
           min-width: 100%;
           width: 100vw;
           overflow-x: hidden;
+          color: ${themeColors.text};
         }
         
         .ant-layout-header {
@@ -313,6 +316,7 @@ const AdminAnalytics = () => {
           line-height: 64px;
           box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
           width: 100%;
+          color: ${themeColors.text};
         }
         
         .ant-layout-content {
@@ -321,6 +325,7 @@ const AdminAnalytics = () => {
           background: ${themeColors.background};
           width: 100%;
           overflow-x: hidden;
+          color: ${themeColors.text};
         }
         
         /* Card styles */
@@ -330,6 +335,18 @@ const AdminAnalytics = () => {
           border-radius: 0;
           margin: 0;
           width: 100%;
+          color: ${themeColors.text};
+        }
+        
+        .ant-card-head {
+          color: ${themeColors.text};
+          background: ${themeColors.cardBg};
+          border-bottom: 1px solid ${themeColors.primary};
+        }
+        
+        .ant-card-body {
+          background: ${themeColors.cardBg};
+          color: ${themeColors.text};
         }
         
         /* Form elements */
@@ -337,6 +354,149 @@ const AdminAnalytics = () => {
           background: ${themeColors.cardBg} !important;
           color: ${themeColors.text} !important;
           border-color: ${themeColors.primary} !important;
+        }
+        
+        /* Fix for dark mode placeholders */
+        .ant-select-selection-placeholder,
+        .ant-picker-input > input::placeholder {
+          color: ${isDarkMode ? 'rgba(255, 255, 255, 0.5)' : 'rgba(0, 0, 0, 0.4)'} !important;
+        }
+        
+        /* Make input text more visible */
+        .ant-select-selection-item,
+        .ant-picker-input > input {
+          color: ${themeColors.text} !important;
+        }
+        
+        /* Dropdown styling */
+        .ant-select-dropdown {
+          background: ${themeColors.cardBg} !important;
+          border: 1px solid ${themeColors.primary} !important;
+        }
+        
+        .ant-select-item {
+          color: ${themeColors.text} !important;
+          background: ${themeColors.cardBg} !important;
+        }
+        
+        .ant-select-item-option-selected {
+          background: ${themeColors.primary}33 !important;
+          color: ${themeColors.text} !important;
+          font-weight: bold;
+        }
+        
+        .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
+          background: ${themeColors.primary}22 !important;
+          color: ${themeColors.text} !important;
+        }
+        
+        /* DatePicker dropdown */
+        .ant-picker-dropdown {
+          background: ${themeColors.cardBg} !important;
+          border: 1px solid ${themeColors.primary} !important;
+        }
+        
+        /* Calendar styling */
+        .ant-picker-panel {
+          background: ${themeColors.cardBg} !important;
+          border: none !important;
+        }
+        
+        .ant-picker-panel-container {
+          background: ${themeColors.cardBg} !important;
+        }
+        
+        /* Calendar weekday header (Su Mo Tu We Th Fr Sa) */
+        .ant-picker-content th {
+          color: ${themeColors.primary} !important;
+          font-weight: bold !important;
+          padding: 5px 0 !important;
+        }
+        
+        /* Make sure the content inside cell is visible */
+        .ant-picker-content th, .ant-picker-content td {
+          text-align: center !important;
+        }
+        
+        /* Calendar cells */
+        .ant-picker-cell {
+          color: ${isDarkMode ? 'rgba(255, 255, 255, 0.7)' : 'rgba(0, 0, 0, 0.7)'} !important;
+        }
+        
+        .ant-picker-cell-in-view {
+          color: ${themeColors.text} !important;
+        }
+        
+        .ant-picker-cell-disabled {
+          color: ${isDarkMode ? 'rgba(255, 255, 255, 0.25)' : 'rgba(0, 0, 0, 0.25)'} !important;
+          background: ${isDarkMode ? 'rgba(0, 0, 0, 0.1)' : 'rgba(0, 0, 0, 0.04)'} !important;
+        }
+        
+        /* Calendar hover and selected states */
+        .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-disabled) .ant-picker-cell-inner {
+          background: ${themeColors.primary}33 !important;
+        }
+        
+        .ant-picker-cell-selected .ant-picker-cell-inner,
+        .ant-picker-cell-range-start .ant-picker-cell-inner,
+        .ant-picker-cell-range-end .ant-picker-cell-inner {
+          background: ${themeColors.primary} !important;
+          color: #fff !important;
+        }
+        
+        /* Calendar header */
+        .ant-picker-header {
+          color: ${themeColors.text} !important;
+          border-bottom: 1px solid ${themeColors.primary}33 !important;
+        }
+        
+        .ant-picker-header button {
+          color: ${themeColors.text} !important;
+        }
+        
+        .ant-picker-header-view {
+          color: ${themeColors.primary} !important;
+          font-weight: bold;
+        }
+        
+        /* Footer and today button */
+        .ant-picker-footer {
+          border-top: 1px solid ${themeColors.primary}33 !important;
+        }
+        
+        .ant-picker-today-btn {
+          color: ${themeColors.primary} !important;
+        }
+        
+        /* Week selection specific styling */
+        .ant-picker-week-panel-row:hover td {
+          background: ${themeColors.primary}22 !important;
+        }
+        
+        .ant-picker-week-panel-row-selected td,
+        .ant-picker-week-panel-row-selected:hover td {
+          background: ${themeColors.primary}44 !important;
+        }
+        
+        .ant-picker-week-panel-row-selected .ant-picker-cell-inner,
+        .ant-picker-week-panel-row-selected:hover .ant-picker-cell-inner {
+          color: ${themeColors.text} !important;
+        }
+        
+        .ant-picker-week-panel-row-selected .ant-picker-cell-today .ant-picker-cell-inner {
+          color: ${themeColors.primary} !important;
+          font-weight: bold;
+        }
+        
+        /* Button styling */
+        .ant-btn-primary {
+          background: ${themeColors.primary};
+          border-color: ${themeColors.primary};
+        }
+        
+        .ant-btn-primary:hover {
+          background: ${themeColors.primary}dd;
+          border-color: ${themeColors.primary};
         }
         
         /* Table styling */
@@ -350,10 +510,36 @@ const AdminAnalytics = () => {
           color: #fff !important;
         }
         
+        .ant-table-tbody > tr > td {
+          color: ${themeColors.text};
+          border-bottom: 1px solid ${themeColors.primary}33;
+        }
+        
+        /* Modal styling */
+        .ant-modal-content, 
+        .ant-modal-header {
+          background: ${themeColors.cardBg};
+          color: ${themeColors.text};
+        }
+        
+        .ant-modal-title {
+          color: ${themeColors.text};
+        }
+        
+        .ant-modal-close {
+          color: ${themeColors.text};
+        }
+        
         /* Chart container */
         .chart-container {
           height: 400px;
           width: 100%;
+          background: ${themeColors.cardBg};
+        }
+        
+        /* Spin component */
+        .ant-spin-text {
+          color: ${themeColors.primary};
         }
         
         /* Override default Ant Design mobile styles */

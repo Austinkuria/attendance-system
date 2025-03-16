@@ -288,11 +288,24 @@ const AdminPanel = () => {
       danger: true,
       onClick: () =>
         Modal.confirm({
-          title: 'Confirm Logout',
-          content: 'Are you sure you want to logout?',
+          title: <span style={{ color: themeColors.text }}>Confirm Logout</span>,
+          content: <span style={{ color: themeColors.text }}>Are you sure you want to logout?</span>,
           onOk: logout,
           centered: true,
-          okButtonProps: { style: styles.button },
+          okButtonProps: {
+            style: {
+              ...styles.button,
+              backgroundColor: themeColors.accent,
+              borderColor: themeColors.accent,
+              color: '#fff'
+            }
+          },
+          cancelButtonProps: {
+            style: {
+              borderColor: themeColors.text,
+              color: themeColors.text
+            }
+          }
         }),
     },
   ];
