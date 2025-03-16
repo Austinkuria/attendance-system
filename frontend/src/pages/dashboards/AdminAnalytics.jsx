@@ -61,10 +61,15 @@ const AdminAnalytics = () => {
   // Add new filters for year and semester
   const [selectedYear, setSelectedYear] = useState(null);
   const [selectedSemester, setSelectedSemester] = useState(null);
-  const [availableYears, setAvailableYears] = useState([]);
-  const [availableSemesters, setAvailableSemesters] = useState([]);
   const [noDataMessage, setNoDataMessage] = useState('');
   const [unitAttendanceData, setUnitAttendanceData] = useState(null);
+
+  // Use predefined values for years and semesters
+  const predefinedYears = [1, 2, 3, 4];
+  const predefinedSemesters = [1, 2, 3];
+
+  const [availableYears, setAvailableYears] = useState(predefinedYears);
+  const [availableSemesters, setAvailableSemesters] = useState(predefinedSemesters);
 
   const fetchData = useCallback(async () => {
     try {
@@ -72,30 +77,14 @@ const AdminAnalytics = () => {
       setLoadingMessage('Fetching available courses...');
       const coursesRes = await getCourses();
 
-      // Get unique years and semesters from all courses/units
-      const years = new Set();
-      const semesters = new Set();
-
-      const enrichedCourses = await Promise.all(coursesRes.map(async (course) => {
-        const units = await getUnitsByCourse(course._id);
-        units.forEach(unit => {
-          if (unit.year) years.add(unit.year);
-          if (unit.semester) semesters.add(unit.semester);
-        });
-
-        // Set first unit data as fallback
-        const firstUnit = units[0] || {};
-        return {
-          ...course,
-          year: firstUnit.year || 'N/A',
-          semester: firstUnit.semester || 'N/A',
-          units: units
-        };
+      const enrichedCourses = coursesRes.map(course => ({
+        ...course,
+        year: 'N/A',
+        semester: 'N/A',
+        units: []
       }));
 
       setCourses(enrichedCourses);
-      setAvailableYears(Array.from(years).sort((a, b) => a - b));
-      setAvailableSemesters(Array.from(semesters).sort((a, b) => a - b));
 
       // Reset selected values when data changes
       if (!selectedCourse && enrichedCourses.length > 0) {
@@ -171,32 +160,24 @@ const AdminAnalytics = () => {
     if (selectedCourse) {
       setLoading(true);
       setLoadingMessage('Fetching course units...');
-      const course = courses.find(c => c._id === selectedCourse);
 
-      // If we already have the units in our enriched course data
-      if (course?.units) {
-        // Filter units by year and semester if selected
-        let filteredUnits = course.units;
-        if (selectedYear) {
-          filteredUnits = filteredUnits.filter(u => u.year === parseInt(selectedYear));
-        }
-        if (selectedSemester) {
-          filteredUnits = filteredUnits.filter(u => u.semester === parseInt(selectedSemester));
-        }
-        setCourseUnits(filteredUnits.filter(u => u && u._id && u.name));
-        setLoading(false);
-      } else {
-        // Fetch units if not already in our data
+      const course = courses.find(c => c._id === selectedCourse);
+      let filteredUnits = [];
+
+      if (course) {
         getUnitsByCourse(selectedCourse)
           .then(units => {
             // Filter units by year and semester if selected
-            let filteredUnits = units;
+            filteredUnits = units;
+
             if (selectedYear) {
               filteredUnits = filteredUnits.filter(u => u.year === parseInt(selectedYear));
             }
+
             if (selectedSemester) {
               filteredUnits = filteredUnits.filter(u => u.semester === parseInt(selectedSemester));
             }
+
             setCourseUnits(filteredUnits.filter(u => u && u._id && u.name));
           })
           .catch(() => {
@@ -204,6 +185,9 @@ const AdminAnalytics = () => {
             setCourseUnits([]);
           })
           .finally(() => setLoading(false));
+      } else {
+        setCourseUnits([]);
+        setLoading(false);
       }
     } else {
       setCourseUnits([]);
@@ -232,9 +216,26 @@ const AdminAnalytics = () => {
     if (selectedUnit && unitAttendanceData) {
       return unitAttendanceData;
     }
+
     if (!selectedCourse) return { totalPresent: 0, totalPossible: 0, weeklyTrends: [], dailyTrends: [] };
+
+    // Check if there is any data available after applying filters
+    if (Object.keys(attendanceRates).length === 0) {
+      return { totalPresent: 0, totalPossible: 0, weeklyTrends: [], dailyTrends: [] };
+    }
+
     return attendanceRates[selectedCourse] || { totalPresent: 0, totalPossible: 0, weeklyTrends: [], dailyTrends: [] };
   }, [selectedCourse, selectedUnit, attendanceRates, unitAttendanceData]);
+
+  useEffect(() => {
+    if (!selectedCourse) {
+      setNoDataMessage("Please select a course.");
+    } else if (filteredData && filteredData.totalPossible === 0 && filteredData.totalPresent === 0 && (!filteredData.weeklyTrends || filteredData.weeklyTrends.length === 0) && (!filteredData.dailyTrends || filteredData.dailyTrends.length === 0)) {
+      setNoDataMessage("No attendance data available for the selected filters.");
+    } else {
+      setNoDataMessage("");
+    }
+  }, [filteredData, selectedCourse, selectedUnit, selectedYear, selectedSemester]);
 
   const trends = selectedDate
     ? (viewMode === 'weekly'
@@ -323,7 +324,27 @@ const AdminAnalytics = () => {
       },
     },
     scales: {
-      // ...existing scales...
+      x: {
+        stacked: true,
+        title: { display: true, text: 'Week' },
+        grid: { display: false },
+      },
+      'y-count': {
+        stacked: true,
+        position: 'left',
+        beginAtZero: true,
+        title: { display: true, text: 'Attendance Records' },
+        ticks: { stepSize: Math.ceil(filteredData.totalPossible / 10) || 1, padding: 10 },
+        suggestedMax: filteredData.totalPossible > 0 ? filteredData.totalPossible + Math.ceil(filteredData.totalPossible * 0.2) : 5,
+      },
+      'y-rate': {
+        position: 'right',
+        min: 0,
+        max: 100,
+        title: { display: true, text: 'Attendance Rate (%)' },
+        ticks: { callback: value => `${value}%`, padding: 10 },
+        grid: { drawOnChartArea: false },
+      },
     },
     onClick: (event, elements) => {
       if (elements.length && trends.length > 0) {
@@ -527,9 +548,20 @@ const AdminAnalytics = () => {
                   styles={{ header: { color: themeColors.text } }}
                 >
                   <div style={{ height: 400 }} className="chart-container">
-                    {noDataMessage || (!trends.length && !loading) ? (
+                    {noDataMessage ? (
                       <Empty
-                        description={noDataMessage || "No attendance data available for the selected filters"}
+                        description={noDataMessage}
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          color: themeColors.text
+                        }}
+                      />
+                    ) : (!trends.length && !loading) ? (
+                      <Empty
+                        description="No attendance data available for the selected filters"
                         style={{
                           position: 'absolute',
                           top: '50%',
