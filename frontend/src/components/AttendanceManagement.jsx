@@ -272,12 +272,34 @@ const AttendanceManagement = () => {
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
 
-      // Keep scroll position by not changing state if data is identical
-      if (JSON.stringify(response.data) !== JSON.stringify(attendance)) {
-        // Highlight new entries logic could be added here
-        setAttendance(response.data);
+      // Find new or updated entries to animate them
+      const existingRecordsMap = new Map(attendance.map(item => [item._id, item]));
+      const newOrUpdatedRecords = [];
+
+      if (response.data?.length) {
+        response.data.forEach(record => {
+          const existingRecord = existingRecordsMap.get(record._id);
+          if (!existingRecord || existingRecord.status !== record.status ||
+            existingRecord.attendedAt !== record.attendedAt) {
+            newOrUpdatedRecords.push(record._id);
+          }
+        });
+
+        // Update state with animation flags for changed records
+        setAttendance(response.data.map(record => ({
+          ...record,
+          _isUpdated: newOrUpdatedRecords.includes(record._id)
+        })));
+
+        // Clear animation flags after animation completes
+        setTimeout(() => {
+          setAttendance(prev => prev.map(record => ({
+            ...record,
+            _isUpdated: false
+          })));
+        }, 2000);
       }
-    } catch {
+    } catch (error) {
       // Don't clear attendance on error to maintain UI stability
       message.error("Failed to refresh attendance data");
     } finally {
@@ -677,7 +699,7 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.assignedUnits,
-            borderLeft: `4px solid ${themeColors.primary}`,
+            // Remove borderLeft property
             height: "100%",
             color: "#fff",
           }}
@@ -699,7 +721,7 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.attendanceRate,
-            borderLeft: `4px solid ${themeColors.secondary}`,
+            // Remove borderLeft property
             height: "100%",
             color: "#fff",
           }}
@@ -722,7 +744,7 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.totalScans,
-            borderLeft: `4px solid ${themeColors.accent}`,
+            // Remove borderLeft property
             height: "100%",
             color: "#fff",
           }}
@@ -744,7 +766,7 @@ const AttendanceManagement = () => {
           style={{
             ...cardStyle,
             background: summaryCardGradients.totalEnrolled,
-            borderLeft: `4px solid ${themeColors.primary}`,
+            // Remove borderLeft property
             height: "100%",
             color: "#fff",
           }}
@@ -833,6 +855,15 @@ const AttendanceManagement = () => {
   const tableStyles = useTableStyles();
   const modalStyles = useModalStyles();
 
+  // Add this function to generate row class based on updated status
+  const getRowClassName = (record, index) => {
+    let classes = index % 2 === 0 ? 'table-row-light' : 'table-row-dark';
+    if (record._isUpdated) {
+      classes += ' highlight-new-row';
+    }
+    return classes;
+  };
+
   return (
     <div style={{ padding: screens.xs ? 0 : 4, margin: 0, background: themeColors.background, width: "100%" }}>
       {loadingSessionData ? (
@@ -853,6 +884,7 @@ const AttendanceManagement = () => {
             ...cardStyle,
             background: themeColors.cardGradient1,
             borderLeft: `4px solid ${themeColors.primary}`,
+            marginBottom: 24, // Add margin below session card
           }}
         >
           <Row gutter={[8, 8]}>
@@ -942,9 +974,12 @@ const AttendanceManagement = () => {
             </Button>
           </Space>
         }
-        style={cardStyle}
+        style={{
+          ...cardStyle,
+          marginBottom: 24, // Add margin below main card
+        }}
       >
-        <Space direction="vertical" style={{ width: "100%", margin: 0 }}>
+        <Space direction="vertical" style={{ width: "100%", margin: 0 }} size={24}>
           {summaryCards}
           {/* Real-time Attendance Card */}
           <Card
@@ -979,7 +1014,11 @@ const AttendanceManagement = () => {
                 </Button>
               </Space>
             }
-            style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
+            style={{
+              ...cardStyle,
+              borderTop: `3px solid ${themeColors.primary}`,
+              marginTop: 16 // Add margin above real-time attendance card
+            }}
             className="no-hover"
           >
             <div
@@ -1005,13 +1044,22 @@ const AttendanceManagement = () => {
                     responsive: true,
                     showSizeChanger: false,
                     showTotal: (total) => `Total ${total} students`,
+                    preserveSelectedRowKeys: true,
                   }}
                   locale={{ emptyText: "No active session attendance records found" }}
                   bordered
                   size={screens.xs ? "small" : "middle"}
-                  rowClassName={(record, index) =>
-                    index % 2 === 0 ? "table-row-light" : "table-row-dark"
-                  }
+                  rowClassName={getRowClassName}
+                  components={{
+                    body: {
+                      wrapper: ({ children, ...props }) => (
+                        <tbody {...props}>{children}</tbody>
+                      ),
+                      row: ({ children, className, ...props }) => (
+                        <tr {...props} className={className}>{children}</tr>
+                      ),
+                    },
+                  }}
                 />
               )}
             </div>
@@ -1021,7 +1069,11 @@ const AttendanceManagement = () => {
           <Card
             title={<Text strong style={{ color: themeColors.text }}>Attendance Records for Past Sessions</Text>}
             size="small"
-            style={{ ...cardStyle, borderTop: `3px solid ${themeColors.primary}` }}
+            style={{
+              ...cardStyle,
+              borderTop: `3px solid ${themeColors.primary}`,
+              marginTop: 16 // Add margin above past sessions card
+            }}
             className="no-hover"
           >
             <Button
@@ -1328,6 +1380,33 @@ const AttendanceManagement = () => {
         
         .highlight-new-row {
           animation: highlight-fade 2s ease-out;
+        }
+        
+        /* Optimize table rendering */
+        .attendance-table-container .ant-table-container {
+          will-change: transform;
+          transform: translateZ(0);
+        }
+        
+        /* Prevent header jittering on updates */
+        .attendance-table-container .ant-table-header {
+          position: sticky;
+          top: 0;
+          z-index: 2;
+          background: ${themeColors.tableHeaderBg || themeColors.cardBg};
+        }
+        
+        .attendance-table-container .ant-table-thead > tr > th {
+          background: ${themeColors.tableHeaderBg || themeColors.cardBg} !important;
+          color: ${themeColors.tableHeaderText || themeColors.text} !important;
+          font-weight: 600;
+        }
+        
+        /* Hardware acceleration for smoother animations */
+        .table-row-light, .table-row-dark, .highlight-new-row {
+          transform: translateZ(0);
+          will-change: background-color;
+          transition: background-color 0.3s ease;
         }
         
         .ant-select-selection-placeholder,
