@@ -5,7 +5,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, BarElement, LineElement, 
 import { Chart } from 'react-chartjs-2';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { useNavigate } from 'react-router-dom';
-import { getCourses, getUnitsByCourse, getCourseAttendanceRate } from '../../services/api';
+import { getCourses, getUnitsByCourse, getCourseAttendanceRate, getUnitAttendanceRate } from '../../services/api';
 import dayjs from 'dayjs'; // Use dayjs instead of moment
 import { ThemeContext } from '../../context/ThemeContext';
 import ThemeToggle from '../../components/ThemeToggle';
@@ -15,6 +15,34 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointEleme
 const { Header, Content } = Layout;
 const { Option } = Select;
 const { Title: AntTitle } = Typography;
+
+const modalColumns = [
+  {
+    title: 'Session',
+    dataIndex: 'sessionId',
+    key: 'sessionId',
+    render: (sessionId) => <span>Session {sessionId.toString().substr(-6)}</span>,
+  },
+  {
+    title: 'Present',
+    dataIndex: 'present',
+    key: 'present',
+    sorter: (a, b) => a.present - b.present,
+  },
+  {
+    title: 'Absent',
+    dataIndex: 'absent',
+    key: 'absent',
+    sorter: (a, b) => a.absent - b.absent,
+  },
+  {
+    title: 'Rate',
+    dataIndex: 'rate',
+    key: 'rate',
+    render: (rate) => <span>{rate}%</span>,
+    sorter: (a, b) => a.rate - b.rate,
+  },
+];
 
 const AdminAnalytics = () => {
   const navigate = useNavigate();
@@ -36,6 +64,7 @@ const AdminAnalytics = () => {
   const [availableYears, setAvailableYears] = useState([]);
   const [availableSemesters, setAvailableSemesters] = useState([]);
   const [noDataMessage, setNoDataMessage] = useState('');
+  const [unitAttendanceData, setUnitAttendanceData] = useState(null);
 
   const fetchData = useCallback(async () => {
     try {
@@ -72,7 +101,6 @@ const AdminAnalytics = () => {
       if (!selectedCourse && enrichedCourses.length > 0) {
         setSelectedCourse(enrichedCourses[0]._id);
       }
-
     } catch (error) {
       console.error("Error loading course data:", error);
       message.error('Error loading course data');
@@ -88,8 +116,6 @@ const AdminAnalytics = () => {
       setLoading(true);
       setLoadingMessage('Calculating attendance statistics...');
       setNoDataMessage('');
-
-      // If we have a specific course selected, fetch only that one
       const attendanceData = await getCourseAttendanceRate(selectedCourse);
 
       // Update the attendance rates with new data
@@ -97,7 +123,6 @@ const AdminAnalytics = () => {
         ...prev,
         [selectedCourse]: attendanceData
       }));
-
     } catch (error) {
       console.error("Error loading attendance data:", error);
       message.error('Error loading attendance data');
@@ -106,6 +131,31 @@ const AdminAnalytics = () => {
       setLoading(false);
     }
   }, [selectedCourse]);
+
+  const fetchUnitAttendanceData = useCallback(async () => {
+    if (!selectedUnit) return;
+
+    try {
+      setLoading(true);
+      setLoadingMessage('Fetching unit-specific attendance data...');
+      setUnitAttendanceData(null);
+      setNoDataMessage('');
+      const unitData = await getUnitAttendanceRate(selectedUnit);
+      if (unitData && (unitData.weeklyTrends.length > 0 || unitData.dailyTrends.length > 0)) {
+        setUnitAttendanceData(unitData);
+        setNoDataMessage('');
+      } else {
+        setUnitAttendanceData(null);
+        setNoDataMessage('No attendance data available for this unit');
+      }
+    } catch (error) {
+      console.error("Error in unit data processing:", error);
+      setUnitAttendanceData(null);
+      setNoDataMessage('No attendance data available for this unit');
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedUnit]);
 
   useEffect(() => {
     fetchData();
@@ -121,22 +171,18 @@ const AdminAnalytics = () => {
     if (selectedCourse) {
       setLoading(true);
       setLoadingMessage('Fetching course units...');
-
       const course = courses.find(c => c._id === selectedCourse);
 
       // If we already have the units in our enriched course data
       if (course?.units) {
         // Filter units by year and semester if selected
         let filteredUnits = course.units;
-
         if (selectedYear) {
           filteredUnits = filteredUnits.filter(u => u.year === parseInt(selectedYear));
         }
-
         if (selectedSemester) {
           filteredUnits = filteredUnits.filter(u => u.semester === parseInt(selectedSemester));
         }
-
         setCourseUnits(filteredUnits.filter(u => u && u._id && u.name));
         setLoading(false);
       } else {
@@ -145,15 +191,12 @@ const AdminAnalytics = () => {
           .then(units => {
             // Filter units by year and semester if selected
             let filteredUnits = units;
-
             if (selectedYear) {
               filteredUnits = filteredUnits.filter(u => u.year === parseInt(selectedYear));
             }
-
             if (selectedSemester) {
               filteredUnits = filteredUnits.filter(u => u.semester === parseInt(selectedSemester));
             }
-
             setCourseUnits(filteredUnits.filter(u => u && u._id && u.name));
           })
           .catch(() => {
@@ -175,82 +218,29 @@ const AdminAnalytics = () => {
     }
   }, [courseUnits, selectedUnit]);
 
+  // Add effect to call our new function
+  useEffect(() => {
+    if (selectedUnit) {
+      fetchUnitAttendanceData();
+    } else {
+      setUnitAttendanceData(null);
+    }
+  }, [selectedUnit, fetchUnitAttendanceData]);
+
   // Get filtered data for charting
   const filteredData = useMemo(() => {
+    if (selectedUnit && unitAttendanceData) {
+      return unitAttendanceData;
+    }
     if (!selectedCourse) return { totalPresent: 0, totalPossible: 0, weeklyTrends: [], dailyTrends: [] };
-
-    const courseData = attendanceRates[selectedCourse] || { totalPresent: 0, totalPossible: 0, weeklyTrends: [], dailyTrends: [] };
-
-    // If no specific unit is selected, return all course data
-    if (!selectedUnit) return courseData;
-
-    // For a specific unit, filter sessions that include this unit
-    const weeklyTrends = courseData.weeklyTrends
-      .map(trend => {
-        const unitSessions = trend.sessions.filter(s => s.unit === selectedUnit);
-        if (unitSessions.length === 0) return null;
-
-        // Calculate unit-specific metrics
-        const present = unitSessions.reduce((sum, s) => sum + (s.present || 0), 0);
-        const absent = unitSessions.reduce((sum, s) => sum + (s.absent || 0), 0);
-        const total = present + absent;
-
-        return {
-          ...trend,
-          present,
-          absent,
-          rate: total > 0 ? Math.round((present / total) * 100) : 0,
-          sessions: unitSessions,
-          sessionCount: unitSessions.length
-        };
-      })
-      .filter(Boolean); // Remove null entries
-
-    // Same for daily trends
-    const dailyTrends = courseData.dailyTrends
-      .map(trend => {
-        const unitSessions = trend.sessions.filter(s => s.unit === selectedUnit);
-        if (unitSessions.length === 0) return null;
-
-        const present = unitSessions.reduce((sum, s) => sum + (s.present || 0), 0);
-        const absent = unitSessions.reduce((sum, s) => sum + (s.absent || 0), 0);
-        const total = present + absent;
-
-        return {
-          ...trend,
-          present,
-          absent,
-          rate: total > 0 ? Math.round((present / total) * 100) : 0,
-          sessions: unitSessions,
-          sessionCount: unitSessions.length
-        };
-      })
-      .filter(Boolean);
-
-    // Calculate unit totals
-    const unitPresent = weeklyTrends.reduce((sum, t) => sum + t.present, 0);
-    const unitPossible = weeklyTrends.reduce((sum, t) => sum + (t.present + t.absent), 0);
-
-    return {
-      totalPresent: unitPresent,
-      totalPossible: unitPossible,
-      weeklyTrends,
-      dailyTrends
-    };
-  }, [selectedCourse, selectedUnit, attendanceRates]);
-
-  // Rest of your component logic
-  const totalPresent = filteredData.totalPresent || 0;
-  const totalPossible = filteredData.totalPossible || 0;
-  const overallRate = totalPossible > 0 ? Math.round((totalPresent / totalPossible) * 100) : 0;
-  const weeklyTrends = filteredData.weeklyTrends || [];
-  const dailyTrends = filteredData.dailyTrends || [];
+    return attendanceRates[selectedCourse] || { totalPresent: 0, totalPossible: 0, weeklyTrends: [], dailyTrends: [] };
+  }, [selectedCourse, selectedUnit, attendanceRates, unitAttendanceData]);
 
   const trends = selectedDate
     ? (viewMode === 'weekly'
-      ? weeklyTrends.filter(w => w.week === dayjs(selectedDate).format('MMM D - MMM D, YYYY'))
-      : dailyTrends.filter(d => d.date === dayjs(selectedDate).format('YYYY-MM-DD')))
-    : (viewMode === 'weekly' ? weeklyTrends : dailyTrends);
+      ? filteredData.weeklyTrends.filter(w => w.week === dayjs(selectedDate).format('MMM D - MMM D, YYYY'))
+      : filteredData.dailyTrends.filter(d => d.date === dayjs(selectedDate).format('YYYY-MM-DD')))
+    : (viewMode === 'weekly' ? filteredData.weeklyTrends : filteredData.dailyTrends);
 
   // Handle reset filters
   const handleResetFilters = () => {
@@ -305,14 +295,13 @@ const AdminAnalytics = () => {
   };
 
   const options = {
-    // ...existing options...
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { position: 'top', labels: { font: { size: 12 }, padding: 10, color: themeColors.text } },
       title: {
         display: true,
-        text: `Overall Attendance: ${overallRate}% (Present: ${totalPresent}/${totalPossible})`,
+        text: `Overall Attendance: ${filteredData.totalPossible > 0 ? Math.round((filteredData.totalPresent / filteredData.totalPossible) * 100) : 0}% (Present: ${filteredData.totalPresent}/${filteredData.totalPossible})`,
         font: { size: 14 },
         padding: { top: 10, bottom: 20 },
         color: themeColors.text
@@ -400,7 +389,7 @@ const AdminAnalytics = () => {
       <Content style={{
         marginTop: 64,
         padding: 0,
-        background: themeColors.background
+        background: themeColors.background,
       }}>
         <Spin spinning={loading} tip={loadingMessage}>
           <Card style={{
@@ -464,7 +453,6 @@ const AdminAnalytics = () => {
                     </Select>
                   </Col>
                 </Row>
-
                 {/* Second row: Unit, View Mode, Date */}
                 <Row gutter={[16, 16]}>
                   <Col xs={24} sm={8}>
@@ -511,7 +499,6 @@ const AdminAnalytics = () => {
                     />
                   </Col>
                 </Row>
-
                 {/* Reset Filters button */}
                 <Row justify="end">
                   <Col>
@@ -560,31 +547,32 @@ const AdminAnalytics = () => {
             )}
           </Row>
 
-          <Modal
-            title="Session Details"
-            open={modalVisible}
-            onCancel={() => setModalVisible(false)}
-            footer={null}
-            width={800}
-            style={{ background: themeColors.cardBg }}
-            styles={{ body: { background: themeColors.cardBg, color: themeColors.text } }}
-          >
-            {modalData.length > 0 ? (
-              <Table
-                dataSource={modalData}
-                columns={modalColumns}
-                rowKey={(record, index) => `session-${index}`}
-                pagination={false}
-                style={{ background: themeColors.cardBg }}
-                rowClassName={(_, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
-              />
-            ) : (
-              <Empty description="No session details available" />
-            )}
-          </Modal>
+          {selectedCourse && (
+            <Modal
+              title="Session Details"
+              open={modalVisible}
+              onCancel={() => setModalVisible(false)}
+              footer={null}
+              width={800}
+              style={{ background: themeColors.cardBg }}
+              styles={{ body: { background: themeColors.cardBg, color: themeColors.text } }}
+            >
+              {modalData.length > 0 ? (
+                <Table
+                  dataSource={modalData}
+                  columns={modalColumns}
+                  rowKey={(record, index) => `session-${index}`}
+                  pagination={false}
+                  style={{ background: themeColors.cardBg }}
+                  rowClassName={(_, index) => index % 2 === 0 ? 'table-row-light' : 'table-row-dark'}
+                />
+              ) : (
+                <Empty description="No session details available" />
+              )}
+            </Modal>
+          )}
         </Spin>
       </Content>
-
       <style>{`
         /* Global resets and core styles only */
         html, body {
@@ -595,7 +583,7 @@ const AdminAnalytics = () => {
           color: ${themeColors.text};
           background: ${themeColors.background};
         }
-        
+
         /* Direct styling for main components only */
         .ant-layout {
           background: ${themeColors.background};
@@ -604,7 +592,7 @@ const AdminAnalytics = () => {
           overflow-x: hidden;
           color: ${themeColors.text};
         }
-        
+
         .ant-layout-header {
           background: ${themeColors.cardBg};
           padding: 0 24px;
@@ -614,7 +602,7 @@ const AdminAnalytics = () => {
           width: 100%;
           color: ${themeColors.text};
         }
-        
+
         .ant-layout-content {
           margin-top: 64px;
           padding: 0;
@@ -623,7 +611,7 @@ const AdminAnalytics = () => {
           overflow-x: hidden;
           color: ${themeColors.text};
         }
-        
+
         /* Card styles */
         .ant-card {
           background: ${themeColors.cardBg};
@@ -633,7 +621,7 @@ const AdminAnalytics = () => {
           width: 100%;
           color: ${themeColors.text};
         }
-        
+
         .ant-card-head {
           color: ${themeColors.text};
           background: ${themeColors.cardBg};
@@ -757,6 +745,7 @@ const AdminAnalytics = () => {
         
         /* Footer and today button */
         .ant-picker-footer {
+          background: ${themeColors.cardBg} !important;
           border-top: 1px solid ${themeColors.primary}33 !important;
         }
         
@@ -812,7 +801,7 @@ const AdminAnalytics = () => {
         }
         
         /* Modal styling */
-        .ant-modal-content, 
+        .ant-modal-content,
         .ant-modal-header {
           background: ${themeColors.cardBg};
           color: ${themeColors.text};

@@ -11,12 +11,15 @@ router.get('/session/:sessionId', authenticate, attendanceController.getSessionA
 router.put('/:attendanceId', authenticate, attendanceController.updateAttendanceStatus);
 router.get('/student/:studentId/filter', attendanceController.getStudentAttendanceByFilter);
 router.get('/trends/:unitId', authenticate, (req, res) => {
-    console.log('Trends route hit with unitId:', req.params.unitId);
-    attendanceController.getAttendanceTrends(req, res);
-  });
-  router.get('/course-rate/:courseId', authenticate, attendanceController.getCourseAttendanceRate);
+  console.log('Trends route hit with unitId:', req.params.unitId);
+  attendanceController.getAttendanceTrends(req, res);
+});
+router.get('/course-rate/:courseId', authenticate, attendanceController.getCourseAttendanceRate);
 
-  // Error-handling middleware
+// New route for unit-specific attendance data
+router.get('/unit-rate/:unitId', authenticate, attendanceController.getUnitAttendanceRate);
+
+// Error-handling middleware
 router.use((err, req, res, next) => {
   console.error("Error:", err);
   res.status(500).json({
@@ -29,7 +32,7 @@ router.use((err, req, res, next) => {
 router.get('/attendance/realtime/:sessionId', authenticate, attendanceController.getRealTimeAttendance);
 router.get('/pending-feedback', authenticate, attendanceController.getPendingFeedbackAttendance);
 router.get('/feedback/status/:sessionId', authenticate, attendanceController.checkFeedbackStatus);
-router.get('/unit/attendance', authenticate,attendanceController.getLecturerUnitAttendance);
+router.get('/unit/attendance', authenticate, attendanceController.getLecturerUnitAttendance);
 router.get('/realtime-lecturer/:sessionId', authenticate, attendanceController.getLecturerRealTimeAttendance);
 router.get('/past-lecturer', authenticate, attendanceController.getLecturerPastAttendance);
 module.exports = router;

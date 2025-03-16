@@ -837,3 +837,196 @@ exports.getLecturerPastAttendance = async (req, res) => {
     res.status(500).json({ message: "Error fetching past attendance records", error: error.message });
   }
 };
+
+// New controller method to get attendance rate for a specific unit
+exports.getUnitAttendanceRate = async (req, res) => {
+  try {
+    const { unitId } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(unitId)) {
+      return res.status(400).json({ message: "Invalid unit ID format" });
+    }
+
+    // Fetch the unit to check if it exists
+    const unit = await Unit.findById(unitId);
+    if (!unit) {
+      return res.status(404).json({ message: "Unit not found" });
+    }
+
+    // Find sessions for this unit
+    const sessions = await Session.find({ unit: unitId }).select('_id');
+    if (!sessions.length) {
+      return res.status(200).json({
+        totalPresent: 0,
+        totalPossible: 0,
+        weeklyTrends: [],
+        dailyTrends: []
+      });
+    }
+
+    const sessionIds = sessions.map(s => s._id);
+
+    // Get all attendance records for these sessions
+    const attendanceRecords = await Attendance.find({
+      session: { $in: sessionIds }
+    }).populate({
+      path: 'session',
+      select: 'startTime _id unit',
+    });
+
+    if (!attendanceRecords.length) {
+      return res.status(200).json({
+        totalPresent: 0,
+        totalPossible: 0,
+        weeklyTrends: [],
+        dailyTrends: []
+      });
+    }
+
+    // Group attendance by session
+    const sessionAttendance = {};
+    attendanceRecords.forEach(record => {
+      const sessionId = record.session._id.toString();
+      if (!sessionAttendance[sessionId]) {
+        sessionAttendance[sessionId] = {
+          session: record.session,
+          present: 0,
+          absent: 0,
+          startTime: record.session.startTime
+        };
+      }
+
+      if (record.status === 'Present') {
+        sessionAttendance[sessionId].present += 1;
+      } else if (record.status === 'Absent') {
+        sessionAttendance[sessionId].absent += 1;
+      }
+    });
+
+    // Convert to array and sort by startTime
+    const sessionsArray = Object.values(sessionAttendance).sort((a, b) =>
+      new Date(a.startTime) - new Date(b.startTime)
+    );
+
+    // Calculate totals
+    const totalPresent = sessionsArray.reduce((sum, s) => sum + s.present, 0);
+    const totalPossible = sessionsArray.reduce((sum, s) => sum + s.present + s.absent, 0);
+
+    // Group by day
+    const dailyTrends = {};
+    sessionsArray.forEach(s => {
+      const date = new Date(s.startTime).toISOString().split('T')[0]; // YYYY-MM-DD
+
+      if (!dailyTrends[date]) {
+        dailyTrends[date] = {
+          date,
+          present: 0,
+          absent: 0,
+          sessions: [],
+          sessionCount: 0
+        };
+      }
+
+      dailyTrends[date].present += s.present;
+      dailyTrends[date].absent += s.absent;
+      dailyTrends[date].sessions.push({
+        sessionId: s.session._id,
+        unit: unitId,
+        present: s.present,
+        absent: s.absent,
+        rate: s.present + s.absent > 0 ? Math.round((s.present / (s.present + s.absent)) * 100) : 0
+      });
+      dailyTrends[date].sessionCount += 1;
+    });
+
+    // Calculate daily rates
+    Object.values(dailyTrends).forEach(day => {
+      day.rate = day.present + day.absent > 0 ?
+        Math.round((day.present / (day.present + day.absent)) * 100) : 0;
+    });
+
+    // Group by week
+    const weeklyTrends = {};
+    sessionsArray.forEach(s => {
+      const date = new Date(s.startTime);
+      const year = date.getFullYear();
+      const weekNumber = getISOWeek(date);
+      const weekStart = getStartOfWeek(date);
+      const weekEnd = getEndOfWeek(date);
+      const weekKey = `${year}-W${weekNumber}`;
+
+      const formattedWeek = `${formatDate(weekStart, 'MMM D')} - ${formatDate(weekEnd, 'MMM D, YYYY')}`;
+
+      if (!weeklyTrends[weekKey]) {
+        weeklyTrends[weekKey] = {
+          week: formattedWeek,
+          present: 0,
+          absent: 0,
+          sessions: [],
+          sessionCount: 0
+        };
+      }
+
+      weeklyTrends[weekKey].present += s.present;
+      weeklyTrends[weekKey].absent += s.absent;
+      weeklyTrends[weekKey].sessions.push({
+        sessionId: s.session._id,
+        unit: unitId,
+        present: s.present,
+        absent: s.absent,
+        rate: s.present + s.absent > 0 ? Math.round((s.present / (s.present + s.absent)) * 100) : 0
+      });
+      weeklyTrends[weekKey].sessionCount += 1;
+    });
+
+    // Calculate weekly rates
+    Object.values(weeklyTrends).forEach(week => {
+      week.rate = week.present + week.absent > 0 ?
+        Math.round((week.present / (week.present + week.absent)) * 100) : 0;
+    });
+
+    // Format response
+    res.status(200).json({
+      totalPresent,
+      totalPossible,
+      weeklyTrends: Object.values(weeklyTrends).sort((a, b) => a.week.localeCompare(b.week)),
+      dailyTrends: Object.values(dailyTrends).sort((a, b) => a.date.localeCompare(b.date))
+    });
+  } catch (error) {
+    console.error("Error fetching unit attendance rate:", error);
+    res.status(500).json({ message: "Error fetching unit attendance rate", error: error.message });
+  }
+};
+
+// Helper functions for date manipulation
+function getISOWeek(date) {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() + 3 - (d.getDay() + 6) % 7);
+  const week1 = new Date(d.getFullYear(), 0, 4);
+  return 1 + Math.round(((d - week1) / 86400000 - 3 + (week1.getDay() + 6) % 7) / 7);
+}
+
+function getStartOfWeek(date) {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+  return new Date(d.setDate(diff));
+}
+
+function getEndOfWeek(date) {
+  const d = new Date(getStartOfWeek(date));
+  d.setDate(d.getDate() + 6);
+  return d;
+}
+
+function formatDate(date, format) {
+  const d = new Date(date);
+  const year = d.getFullYear();
+  const month = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][d.getMonth()];
+  const day = d.getDate();
+
+  return format
+    .replace('YYYY', year)
+    .replace('MMM', month)
+    .replace('D', day);
+}

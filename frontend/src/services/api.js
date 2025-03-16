@@ -1392,4 +1392,18 @@ export const getEnrolledStudents = async (unitId) => {
   return response.data; // Expecting an array of student objects
 };
 
+// New function to get unit-specific attendance rate
+export const getUnitAttendanceRate = async (unitId) => {
+  const token = localStorage.getItem("token");
+  try {
+    const response = await axios.get(`${API_URL}/attendance/unit-rate/${unitId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching unit attendance rate:", error);
+    throw error;
+  }
+};
+
 export default api;
