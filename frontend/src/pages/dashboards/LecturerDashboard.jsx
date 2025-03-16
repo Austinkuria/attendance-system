@@ -382,8 +382,8 @@ const LecturerDashboard = () => {
             </motion.div>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
               <section style={{ margin: 0 }}>
-                <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
-                  <Col xs={12} sm={8} md={6} lg={4}>
+                <Row justify="center" align="middle" style={{ marginTop: 16 }}>
+                  <Col xs={12} sm={10} md={8} lg={6}>
                     <Card
                       hoverable
                       onClick={() => navigate('/lecturer/analytics')}
@@ -391,21 +391,23 @@ const LecturerDashboard = () => {
                         background: themeColors.cardGradient1,
                         borderRadius: 12,
                         overflow: 'hidden',
-                        height: '100%' // Ensure consistent height
+                        height: '100%', // Ensure consistent height
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
                       }}
                       bodyStyle={{ padding: '12px' }} // Reduce padding inside card
                     >
-                      <div style={{ display: 'flex', alignItems: 'center' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <LineChartOutlined style={{ fontSize: 20, color: themeColors.textInvert, marginRight: 8 }} />
                         <Typography.Title level={5} style={{ margin: 0, color: themeColors.textInvert, fontSize: '14px' }}>
                           Analytics
                         </Typography.Title>
                       </div>
-                      <Typography.Text style={{
-                        color: `${themeColors.textInvert}CC`,
+                      <Typography.Text style={{ 
+                        color: `${themeColors.textInvert}CC`, 
                         fontSize: '12px',
                         display: 'block',
-                        marginTop: 4
+                        marginTop: 4,
+                        textAlign: 'center'
                       }}>
                         View trends
                       </Typography.Text>
@@ -414,6 +416,7 @@ const LecturerDashboard = () => {
                 </Row>
               </section>
             </motion.div>
+            {/* No margin/padding below this point */}
             {showBackToTop && (
               <Button
                 shape="circle"
