@@ -172,10 +172,16 @@ const QRScanner = () => {
       } else {
         switch (response.code) {
           case "SESSION_INACTIVE":
+          case "INVALID_ID_FORMAT":
+          case "NO_TOKEN_PROVIDED":
+          case "TOKEN_MISMATCH":
+          case "SESSION_NOT_FOUND":
+          case "INVALID_QR_CODE":
+          case "ATTENDANCE_ALREADY_MARKED":
+          case "DEVICE_CONFLICT":
             message.error("This session has ended.");
             navigate("/student-dashboard");
             break;
-          // ...existing error cases...
           default:
             message.error("An unexpected error occurred. Please try again.");
         }

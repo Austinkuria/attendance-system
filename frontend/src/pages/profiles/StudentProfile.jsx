@@ -255,16 +255,12 @@ const StudentProfile = () => {
         .profile-card-wrapper {
           margin-top: 10px !important;
         }
-        
-        // ...existing tablet breakpoint code...
       }
       
       @media (max-width: 480px) {
         .profile-card-wrapper {
           margin-top: 8px !important;
         }
-        
-        // ...existing mobile breakpoint code...
       }
       
       @media (max-width: 576px) {
@@ -280,8 +276,6 @@ const StudentProfile = () => {
           max-height: 90vh !important;
           overflow-y: auto !important;
         }
-        
-        // ...existing mobile breakpoint code...
       }
     `,
   };
