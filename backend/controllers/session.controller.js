@@ -100,7 +100,7 @@ exports.createSession = async (req, res) => {
 
 exports.regenerateQR = async (req, res) => {
   try {
-    const { sessionId } = req.body;
+    const { sessionId, autoRotate } = req.body;
     if (!mongoose.isValidObjectId(sessionId)) {
       return res.status(400).json({ message: "Invalid session ID format" });
     }
@@ -113,12 +113,20 @@ exports.regenerateQR = async (req, res) => {
       return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
     }
 
-    const { qrToken, qrCode } = await generateQRToken(session);
+    // Check if we're in auto-rotation mode and need to add expiration
+    const expiresIn = autoRotate ? 35 : 60; // 35 seconds for auto, 60 seconds for manual
+
+    const { qrToken, qrCode } = await generateQRToken(session, expiresIn);
     session.qrToken = qrToken;
     session.qrCode = qrCode;
+    session.qrExpiresAt = new Date(Date.now() + (expiresIn * 1000)); // Store expiration time
     await session.save();
 
-    res.status(200).json({ message: "QR code regenerated successfully", qrCode: session.qrCode });
+    res.status(200).json({
+      message: "QR code regenerated successfully",
+      qrCode: session.qrCode,
+      expiresAt: session.qrExpiresAt
+    });
   } catch (error) {
     console.error("Error regenerating QR code:", error);
     res.status(500).json({ message: "Error regenerating QR code", error: error.message });

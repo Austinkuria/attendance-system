@@ -7,6 +7,7 @@ const sessionSchema = new mongoose.Schema({
   endTime: { type: Date, required: true },
   qrCode: { type: String }, // PNG for display
   qrToken: { type: String }, // Raw base64 JSON for validation
+  qrExpiresAt: { type: Date }, // Add this field to track QR expiration
   ended: { type: Boolean, default: false },
   attendees: [{ // New field to track students who marked attendance
     student: { type: mongoose.Schema.Types.ObjectId, ref: "User" },

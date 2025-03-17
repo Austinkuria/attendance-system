@@ -9,6 +9,38 @@ exports.markAttendance = async (req, res) => {
   try {
     const { sessionId, studentId, deviceId, qrToken, compositeFingerprint } = req.body;
 
+    // Decode the QR token
+    let decodedToken;
+    try {
+      const jsonData = Buffer.from(qrToken, 'base64').toString();
+      decodedToken = JSON.parse(jsonData);
+    } catch (error) {
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_QR_CODE",
+        message: "QR code is invalid or corrupted"
+      });
+    }
+
+    // Check if QR code has expired
+    const currentTimestamp = Math.floor(Date.now() / 1000);
+    if (decodedToken.e && decodedToken.e < currentTimestamp) {
+      return res.status(400).json({
+        success: false,
+        code: "QR_CODE_EXPIRED",
+        message: "This QR code has expired. Please request a new one."
+      });
+    }
+
+    // Verify the session ID in the token matches the requested session
+    if (decodedToken.s !== sessionId) {
+      return res.status(400).json({
+        success: false,
+        code: "TOKEN_MISMATCH",
+        message: "QR code does not match this session"
+      });
+    }
+
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({
         success: false,
