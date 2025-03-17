@@ -679,14 +679,40 @@ const AttendanceManagement = () => {
             );
             if (response.data.session.ended) {
               message.success("Session ended successfully");
+              
+              // Properly reset all session-related state
               setCurrentSession(null);
               setQrData("");
               setAttendance([]);
               localStorage.removeItem("currentSession");
+              
+              // Clear the selected unit to force UI refresh
+              const prevSelectedUnit = selectedUnit;
               setSelectedUnit(null);
-              await checkCurrentSession();
+              
+              // Refetch past sessions to update the list
+              await fetchPastSessions();
+              
+              // Add a small delay before checking for other current sessions
+              setTimeout(async () => {
+                try {
+                  // Check if there are any other active sessions
+                  const verifyStatus = await axios.get(
+                    `https://attendance-system-w70n.onrender.com/api/sessions/status/${currentSession._id}`,
+                    { headers: { Authorization: `Bearer ${token}` } }
+                  );
+                  
+                  // Only if session is verified as ended, check for other sessions
+                  if (verifyStatus.data.ended) {
+                    await checkCurrentSession();
+                  }
+                } catch (error) {
+                  console.error("Error verifying session status:", error);
+                }
+              }, 500);
             }
-          } catch {
+          } catch (error) {
+            console.error("Error ending session:", error);
             message.error("Failed to end session");
           } finally {
             setLoading((prev) => ({ ...prev, session: false }));
@@ -697,7 +723,8 @@ const AttendanceManagement = () => {
           setLoading((prev) => ({ ...prev, session: false }));
         }
       });
-    } catch {
+    } catch (error) {
+      console.error("Error in handleEndSession:", error);
       message.error("An unexpected error occurred");
       setLoading((prev) => ({ ...prev, session: false }));
     }

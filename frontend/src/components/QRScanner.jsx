@@ -153,8 +153,9 @@ const QRScanner = () => {
     try {
       // First check if session is still active
       const sessionStatus = await checkSessionStatus(sessionId);
-      if (!sessionStatus.active || sessionStatus.ended) {
+      if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
         message.error("Session has ended. Attendance cannot be marked.");
+        setSessionEnded(true);
         navigate("/student-dashboard");
         return;
       }
@@ -170,33 +171,38 @@ const QRScanner = () => {
         message.success(response.message || "Attendance marked successfully!");
         navigate("/student-dashboard");
       } else {
-        switch (response.code) {
-          case "SESSION_INACTIVE":
-          case "INVALID_ID_FORMAT":
-          case "NO_TOKEN_PROVIDED":
-          case "TOKEN_MISMATCH":
-          case "SESSION_NOT_FOUND":
-          case "INVALID_QR_CODE":
-          case "ATTENDANCE_ALREADY_MARKED":
-          case "DEVICE_CONFLICT":
-            message.error("This session has ended.");
-            navigate("/student-dashboard");
-            break;
-          default:
-            message.error("An unexpected error occurred. Please try again.");
+        // Check specific error codes
+        if (response.code === "QR_CODE_EXPIRED") {
+          message.error("QR code has expired. Please ask your lecturer to regenerate it.");
+          setSessionEnded(true);
+        } else if (["SESSION_INACTIVE", "INVALID_QR_CODE", "ATTENDANCE_ALREADY_MARKED", "DEVICE_CONFLICT"].includes(response.code)) {
+          message.error(response.message || "Could not mark attendance.");
+        } else {
+          message.error("An unexpected error occurred. Please try again.");
         }
+        navigate("/student-dashboard");
       }
     } catch (err) {
-      if (err.message && err.message.includes("Session")) {
-        message.error("This session is no longer active.");
-        navigate("/student-dashboard");
+      console.error("Attendance marking error:", err);
+      if (err.message && typeof err.message === 'string') {
+        if (err.message.includes("Session") ||
+          (err.code && ["SESSION_INACTIVE", "QR_CODE_EXPIRED", "INVALID_QR_CODE"].includes(err.code))) {
+          message.error(err.message || "This session is no longer active.");
+        } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
+          message.warning("You've already marked attendance for this session.");
+        } else if (err.code === "DEVICE_CONFLICT") {
+          message.error("Another student has already used this device for attendance.");
+        } else {
+          message.error(err.message || "An unexpected error occurred. Please try again.");
+        }
       } else {
-        message.error(err.message || "An unexpected error occurred. Please try again.");
+        message.error("Failed to mark attendance. Please try again.");
       }
+      navigate("/student-dashboard");
     } finally {
       setLoading(false);
     }
-  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
+  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint, stopScanner]);
 
   const startScanner = useCallback(() => {
     if (!videoEl.current || sessionEnded || !sessionId) return;
