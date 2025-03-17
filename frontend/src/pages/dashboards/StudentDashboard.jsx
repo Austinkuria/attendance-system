@@ -485,12 +485,17 @@ const StudentDashboard = () => {
     }));
     setAttendanceRates(rates);
 
+    // Check if the low attendance alert has already been shown
     if (!hasShownLowAttendanceAlert && rates.some(rate => rate.value !== null && parseFloat(rate.value) < 75)) {
-      message.warning({
-        content: 'Low attendance(<75%) in some units may risk not attaining the required average attendance rate for your semester!',
-        duration: 5,
-      });
-      setHasShownLowAttendanceAlert(true);
+      // Check if there are any existing messages on the screen
+      const existingMessages = document.querySelectorAll('.ant-message-notice');
+      if (existingMessages.length === 0) {
+        message.warning({
+          content: 'Low attendance(<75%) in some units may risk not attaining the required average attendance rate for your semester!',
+          duration: 5,
+        });
+        setHasShownLowAttendanceAlert(true);
+      }
     }
   }, [units, attendanceData, calculateAttendanceRate, hasShownLowAttendanceAlert]);
 
