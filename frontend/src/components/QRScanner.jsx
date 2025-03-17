@@ -23,6 +23,7 @@ const QRScanner = () => {
   const [deviceId, setDeviceId] = useState(null);
   const [compositeFingerprint, setCompositeFingerprint] = useState(null);
   const [componentMounted, setComponentMounted] = useState(false); // Track if component is mounted
+  const [errorMessage, setErrorMessage] = useState(null);
 
   const { selectedUnit } = useParams();
   const navigate = useNavigate();
@@ -152,8 +153,7 @@ const QRScanner = () => {
 
   const onScanSuccess = useCallback(async (result) => {
     if (!sessionId || sessionEnded) {
-      message.error("Session has ended. Attendance cannot be marked.");
-      navigate("/student-dashboard");
+      setErrorMessage("Session has ended. Attendance cannot be marked.");
       return;
     }
     stopScanner();
@@ -165,17 +165,15 @@ const QRScanner = () => {
       // Get authentication token first and verify it's available
       const token = localStorage.getItem("token");
       if (!token) {
-        message.error("Authentication failed. Please log in again.");
-        navigate("/auth/login");
+        setErrorMessage("Authentication failed. Please log in again.");
         return;
       }
 
       // First check if session is still active
       const sessionStatus = await checkSessionStatus(sessionId);
       if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
-        message.error("Session has ended. Attendance cannot be marked.");
+        setErrorMessage("Session has ended. Attendance cannot be marked.");
         setSessionEnded(true);
-        navigate("/student-dashboard");
         return;
       }
 
@@ -183,8 +181,7 @@ const QRScanner = () => {
       const decoded = jwtDecode(token);
       const studentId = decoded.userId;
       if (!studentId) {
-        message.error("Invalid user information. Please log in again.");
-        navigate("/auth/login");
+        setErrorMessage("Invalid user information. Please log in again.");
         return;
       }
 
@@ -205,41 +202,35 @@ const QRScanner = () => {
       } else {
         // Check specific error codes
         if (response.code === "QR_CODE_EXPIRED") {
-          message.error("QR code has expired. Please ask your lecturer to regenerate it.");
+          setErrorMessage("QR code has expired. Please ask your lecturer to regenerate it.");
           setSessionEnded(true);
         } else if (["SESSION_INACTIVE", "INVALID_QR_CODE", "ATTENDANCE_ALREADY_MARKED", "DEVICE_CONFLICT"].includes(response.code)) {
-          message.error(response.message || "Could not mark attendance.");
+          setErrorMessage(response.message || "Could not mark attendance.");
         } else {
-          message.error("An unexpected error occurred. Please try again.");
+          setErrorMessage("An unexpected error occurred. Please try again.");
         }
-        navigate("/student-dashboard");
       }
     } catch (err) {
       console.error("Attendance marking error:", err);
 
       // Check for authentication errors specifically
       if (err.response?.status === 401 || err.message?.includes("unauthorized")) {
-        message.error("Your session has expired. Please log in again.");
+        setErrorMessage("Your session has expired. Please log in again.");
         localStorage.removeItem("token"); // Clear the invalid token
-        navigate("/auth/login");
-        return;
-      }
-
-      if (err.message && typeof err.message === 'string') {
+      } else if (err.message && typeof err.message === 'string') {
         if (err.message.includes("Session") ||
           (err.code && ["SESSION_INACTIVE", "QR_CODE_EXPIRED", "INVALID_QR_CODE"].includes(err.code))) {
-          message.error(err.message || "This session is no longer active.");
+          setErrorMessage(err.message || "This session is no longer active.");
         } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
-          message.warning("You've already marked attendance for this session.");
+          setErrorMessage("You've already marked attendance for this session.");
         } else if (err.code === "DEVICE_CONFLICT") {
-          message.error("Another student has already used this device for attendance.");
+          setErrorMessage("Another student has already used this device for attendance.");
         } else {
-          message.error(err.message || "An unexpected error occurred. Please try again.");
+          setErrorMessage(err.message || "An unexpected error occurred. Please try again.");
         }
       } else {
-        message.error("Failed to mark attendance. Please try again.");
+        setErrorMessage("Failed to mark attendance. Please try again.");
       }
-      navigate("/student-dashboard");
     } finally {
       setLoading(false);
     }
@@ -293,6 +284,7 @@ const QRScanner = () => {
     setScannedResult("");
     setLoading(false);
     startScanner();
+    setErrorMessage(null);
   };
 
   useEffect(() => {
@@ -400,6 +392,15 @@ const QRScanner = () => {
                 </div>
               )}
             </div>
+            {errorMessage && (
+              <Alert
+                message="Error"
+                description={errorMessage}
+                type="error"
+                showIcon
+                style={{ marginBottom: 16 }}
+              />
+            )}
             <div className="scanning-status">
               <Text type={isDarkMode ? undefined : "secondary"} style={{ color: isDarkMode ? '#fff' : undefined }}>
                 Camera active - awaiting QR code
