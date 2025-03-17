@@ -1194,7 +1194,7 @@ export const regenerateQR = async (sessionId, token) => {
   try {
     const response = await axios.post(
       `${API_URL}/sessions/regenerate-qr`,
-      { sessionId },
+      { sessionId, autoRotate: true },  // Added autoRotate parameter
       { headers: { Authorization: `Bearer ${token}` } }
     );
     return response.data;
@@ -1206,7 +1206,7 @@ export const regenerateQR = async (sessionId, token) => {
 // ✅ End Session (Lecturer Ends the Attendance Session)
 export const endSession = async (sessionId) => {
   try {
-    setLoading((prev) => ({ ...prev, session: true }));
+    // Remove the setLoading call that's causing the error
     const token = localStorage.getItem("token");
     const response = await axios.post(
       `${API_URL}/sessions/end`,

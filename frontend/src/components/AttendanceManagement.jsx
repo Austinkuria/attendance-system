@@ -318,6 +318,10 @@ const AttendanceManagement = () => {
   // Modify the handleViewAttendance function for smoother updates
   const handleViewAttendance = useCallback(async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
+    
+    // Add isMounted check to prevent state updates after unmount
+    let isMounted = true;
+    
     try {
       setLoading((prev) => ({ ...prev, realTimeAttendance: true }));
       const response = await axios.get(
@@ -325,48 +329,77 @@ const AttendanceManagement = () => {
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
 
-      // Find new or updated entries to animate them
-      const existingRecordsMap = new Map(attendance.map(item => [item._id, item]));
-      const newOrUpdatedRecords = [];
+      // Only update state if component is still mounted
+      if (isMounted) {
+        const existingRecordsMap = new Map(attendance.map(item => [item._id, item]));
+        const newOrUpdatedRecords = [];
 
-      if (response.data?.length) {
-        response.data.forEach(record => {
-          const existingRecord = existingRecordsMap.get(record._id);
-          if (!existingRecord || existingRecord.status !== record.status ||
-            existingRecord.attendedAt !== record.attendedAt) {
-            newOrUpdatedRecords.push(record._id);
-          }
-        });
+        if (response.data?.length) {
+          response.data.forEach(record => {
+            const existingRecord = existingRecordsMap.get(record._id);
+            if (!existingRecord || existingRecord.status !== record.status ||
+              existingRecord.attendedAt !== record.attendedAt) {
+              newOrUpdatedRecords.push(record._id);
+            }
+          });
 
-        // Update state with animation flags for changed records
-        setAttendance(response.data.map(record => ({
-          ...record,
-          _isUpdated: newOrUpdatedRecords.includes(record._id)
-        })));
-
-        // Clear animation flags after animation completes
-        setTimeout(() => {
-          setAttendance(prev => prev.map(record => ({
+          setAttendance(response.data.map(record => ({
             ...record,
-            _isUpdated: false
+            _isUpdated: newOrUpdatedRecords.includes(record._id)
           })));
-        }, 2000);
+          
+          if (newOrUpdatedRecords.length > 0) {
+            setTimeout(() => {
+              if (isMounted) {
+                setAttendance(prev => prev.map(record => ({
+                  ...record,
+                  _isUpdated: false
+                })));
+              }
+            }, 2000);
+          }
+        }
       }
     } catch (error) {
-      // Don't clear attendance on error to maintain UI stability
-      message.error("Failed to refresh attendance data");
+      if (isMounted) {
+        message.error("Failed to refresh attendance data");
+      }
     } finally {
-      setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
+      if (isMounted) {
+        setLoading((prev) => ({ ...prev, realTimeAttendance: false }));
+      }
     }
+
+    return () => {
+      isMounted = false;
+    };
   }, [selectedUnit, currentSession, attendance]);
 
+  // Modify the refresh interval
   useEffect(() => {
     let intervalId;
-    if (currentSession && selectedUnit && !currentSession.ended) {
-      handleViewAttendance();
-      intervalId = setInterval(handleViewAttendance, 10000);
-    }
-    return () => clearInterval(intervalId);
+    let isMounted = true;
+
+    const startPolling = () => {
+      if (currentSession && selectedUnit && !currentSession.ended) {
+        handleViewAttendance();
+        // Change interval to 30 seconds instead of 10 seconds
+        intervalId = setInterval(() => {
+          if (isMounted && !currentSession.ended) {
+            handleViewAttendance();
+          }
+        }, 30000); // 30 seconds
+      }
+    };
+
+    startPolling();
+
+    return () => {
+      isMounted = false;
+      if (intervalId) {
+        clearInterval(intervalId);
+      }
+    };
   }, [currentSession, selectedUnit, handleViewAttendance]);
 
   const fetchPastSessions = useCallback(async () => {
@@ -546,11 +579,73 @@ const AttendanceManagement = () => {
       }
       setQrData(data.qrCode);
       setIsQRModalOpen(true);
+
+      // Start QR rotation when modal opens
+      startQrRotation(currentSession._id);
     } catch {
       message.error("Failed to generate QR code");
     } finally {
       setLoading((prev) => ({ ...prev, qr: false }));
     }
+  };
+
+  // Add these new functions and state for QR rotation
+  const [qrRotationInterval, setQrRotationInterval] = useState(null);
+
+  const startQrRotation = (sessionId) => {
+    // Clear any existing rotation interval
+    if (qrRotationInterval) {
+      clearInterval(qrRotationInterval);
+    }
+
+    // Create a rotation interval - rotate every 30 seconds
+    const interval = setInterval(async () => {
+      if (!isQRModalOpen) return;
+
+      try {
+        const token = localStorage.getItem("token");
+        // Fix: Import the regenerateQR function or use axios directly
+        const response = await axios.post(
+          `https://attendance-system-w70n.onrender.com/api/sessions/regenerate-qr`,
+          { sessionId, autoRotate: true },
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+        if (response && response.data && response.data.qrCode) {
+          setQrData(response.data.qrCode);
+        }
+      } catch (error) {
+        console.error("Error refreshing QR code:", error);
+        // Don't show error message to avoid disrupting user experience
+        // Only log to console
+      }
+    }, 30000); // 30 seconds interval
+
+    setQrRotationInterval(interval);
+  };
+
+  // Add cleanup for the rotation interval
+  useEffect(() => {
+    return () => {
+      if (qrRotationInterval) {
+        clearInterval(qrRotationInterval);
+      }
+    };
+  }, [qrRotationInterval]);
+
+  // Modify the modal close handler to clean up the interval
+  const handleModalClose = () => {
+    if (qrRotationInterval) {
+      clearInterval(qrRotationInterval);
+      setQrRotationInterval(null);
+    }
+
+    Modal.confirm({
+      title: "Are you sure you want to close?",
+      content: "The QR code will no longer be accessible.",
+      okText: "Yes",
+      cancelText: "No",
+      onOk: () => setIsQRModalOpen(false),
+    });
   };
 
   const handleEndSession = async () => {
@@ -1390,27 +1485,11 @@ const AttendanceManagement = () => {
         }
         open={isQRModalOpen}
         centered
-        onCancel={() =>
-          Modal.confirm({
-            title: "Are you sure you want to close?",
-            content: "The QR code will no longer be accessible.",
-            okText: "Yes",
-            cancelText: "No",
-            onOk: () => setIsQRModalOpen(false),
-          })
-        }
+        onCancel={handleModalClose}
         footer={[
           <Button
             key="close"
-            onClick={() =>
-              Modal.confirm({
-                title: "Are you sure you want to close?",
-                content: "The QR code will no longer be accessible.",
-                okText: "Yes",
-                cancelText: "No",
-                onOk: () => setIsQRModalOpen(false),
-              })
-            }
+            onClick={handleModalClose}
             style={{
               color: themeColors.primary,
               borderColor: themeColors.primary,
@@ -1448,7 +1527,14 @@ const AttendanceManagement = () => {
                 }}
               />
               {currentSession && !currentSession.ended && (
-                <SessionTimer end={currentSession.endSession} />
+                <>
+                  <SessionTimer end={currentSession.endSession} />
+                  <div style={{ marginTop: 8 }}>
+                    <Tag color={themeColors.primary} icon={<SyncOutlined spin />}>
+                      QR Code refreshes automatically
+                    </Tag>
+                  </div>
+                </>
               )}
               <Typography.Text
                 type="secondary"
