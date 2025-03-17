@@ -53,47 +53,40 @@ exports.createSession = async (req, res) => {
   try {
     const { unitId, lecturerId, startTime, endTime } = req.body;
 
-    if (!unitId || !lecturerId || !startTime || !endTime) {
-      return res.status(400).json({ message: "Missing required fields" });
+    // Validate inputs
+    if (!mongoose.Types.ObjectId.isValid(unitId) || !mongoose.Types.ObjectId.isValid(lecturerId)) {
+      return res.status(400).json({ message: "Invalid unit or lecturer ID format" });
     }
 
-    const start = new Date(startTime);
-    const end = new Date(endTime);
-
-    if (isNaN(start.getTime()) || isNaN(end.getTime())) {
-      return res.status(400).json({ message: "Invalid startTime or endTime format" });
-    }
-
-    if (start >= end) {
-      return res.status(400).json({ message: "startTime must be before endTime" });
-    }
-
-    const session = new Session({ unit: unitId, lecturer: lecturerId, startTime: start, endTime: end });
-    const { qrToken, qrCode } = await generateQRToken(session);
-    session.qrToken = qrToken;
-    session.qrCode = qrCode;
-    await session.save();
-
-    schedule.scheduleJob(`end-session-${session._id}`, end, async () => {
-      try {
-        const updatedSession = await Session.findById(session._id).populate('unit');
-        if (!updatedSession.ended) {
-          updatedSession.ended = true;
-          updatedSession.feedbackEnabled = true;
-          await updatedSession.save();
-
-          await markAbsentees(session._id);
-
-          console.log(`Automatically ended session: ${session._id}`);
-        }
-      } catch (error) {
-        console.error(`Failed to auto-end session ${session._id}:`, error);
-      }
+    const session = new Session({
+      unit: unitId,
+      lecturer: lecturerId,
+      startTime: new Date(startTime),
+      endTime: new Date(endTime),
+      ended: false,
+      feedbackEnabled: false
     });
 
-    res.status(201).json({ message: "Session created successfully", session, qrCode: session.qrCode });
+    const { qrToken, qrCode } = await generateQRToken(session);
+    session.qrCode = qrCode;
+    session.qrToken = qrToken;
+
+    await session.save();
+
+    res.status(201).json({
+      session: {
+        _id: session._id,
+        unit: session.unit,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        ended: session.ended,
+        qrCode: session.qrCode,
+        qrToken: session.qrToken
+      },
+      message: "Session created successfully"
+    });
   } catch (error) {
-    console.error("Error in createSession:", error);
+    console.error("Error creating session:", error);
     res.status(500).json({ message: "Error creating session", error: error.message });
   }
 };
@@ -101,7 +94,7 @@ exports.createSession = async (req, res) => {
 exports.regenerateQR = async (req, res) => {
   try {
     const { sessionId, autoRotate } = req.body;
-    if (!mongoose.isValidObjectId(sessionId)) {
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
       return res.status(400).json({ message: "Invalid session ID format" });
     }
 

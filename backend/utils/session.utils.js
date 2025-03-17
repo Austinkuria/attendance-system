@@ -1,6 +1,6 @@
 const QRCode = require('qrcode');
 
-const generateQRToken = async (session, expiresInSeconds = 180) => {
+const generateQRToken = async (session, expiresInSeconds = 300) => { // Increased expiration time to 5 minutes
   try {
     const timestamp = Math.floor(Date.now() / 1000);
     const expiresAt = timestamp + expiresInSeconds;

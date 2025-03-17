@@ -22,6 +22,7 @@ const QRScanner = () => {
   const [sessionEnded, setSessionEnded] = useState(false);
   const [deviceId, setDeviceId] = useState(null);
   const [compositeFingerprint, setCompositeFingerprint] = useState(null);
+  const [componentMounted, setComponentMounted] = useState(false); // Track if component is mounted
 
   const { selectedUnit } = useParams();
   const navigate = useNavigate();
@@ -245,7 +246,7 @@ const QRScanner = () => {
   }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
 
   const startScanner = useCallback(() => {
-    if (!videoEl.current || sessionEnded || !sessionId) return;
+    if (!videoEl.current || sessionEnded || !sessionId || !componentMounted) return; // Ensure component is mounted
     if (scanner.current) scanner.current.destroy();
 
     scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
@@ -264,10 +265,10 @@ const QRScanner = () => {
       stopScanner();
       message.error("Scanning timed out. Please try again.");
     }, 30000);
-  }, [onScanSuccess, sessionEnded, sessionId]);
+  }, [onScanSuccess, sessionEnded, sessionId, componentMounted]);
 
   useEffect(() => {
-    if (!loading && !sessionEnded && sessionId) startScanner();
+    if (!loading && !sessionEnded && sessionId && componentMounted) startScanner(); // Ensure component is mounted
     return () => {
       clearTimeout(scanTimeoutRef.current);
       if (scanner.current) {
@@ -275,7 +276,14 @@ const QRScanner = () => {
         scanner.current.destroy();
       }
     };
-  }, [startScanner, loading, sessionEnded, sessionId]);
+  }, [startScanner, loading, sessionEnded, sessionId, componentMounted]);
+
+  useEffect(() => {
+    setComponentMounted(true); // Set componentMounted to true when component is mounted
+    return () => {
+      setComponentMounted(false); // Clean up on unmount
+    };
+  }, []);
 
   const handleRescan = () => {
     if (sessionEnded) {
