@@ -66,16 +66,18 @@ const LecturerDashboard = () => {
       position: 'fixed',
       height: 'calc(100vh - 64px)',
       overflow: 'auto',
-      zIndex: 11,
+      zIndex: 5,  // Lower z-index than header
       boxShadow: '2px 0 10px rgba(0, 0, 0, 0.05)',
     },
     content: {
-      margin: '64px 16px 16px',
-      padding: 24,
+      margin: '64px 0 0',
+      padding: 0,
       background: themeColors.background,
       minHeight: 'calc(100vh - 64px)',
       overflow: 'auto',
       transition: 'margin-left 0.3s ease-in-out',
+      position: 'relative', // Add position relative
+      zIndex: 1, // Lower z-index than sider
     },
     backToTopButton: {
       position: 'fixed',
@@ -95,6 +97,7 @@ const LecturerDashboard = () => {
     globalStyles: `
       .ant-layout, .ant-layout-content {
         background: ${themeColors.background} !important;
+        padding: 0 !important;
       }
       .ant-menu {
         background: ${themeColors.cardBg} !important;
@@ -151,24 +154,29 @@ const LecturerDashboard = () => {
         box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
       }
       @media (max-width: 992px) {
-        .ant-layout-content { margin-left: 88px !important; }
+        .ant-layout-content { margin-left: 48px !important; } /* Update to match new collapsedWidth */
       }
       @media (max-width: 768px) {
         .lecturer-content {
-          padding: 0 12px;
+          padding: 0;
         }
       }
       @media (max-width: 576px) {
         .lecturer-content {
-          padding: 0 8px;
-          margin-right: 4px;
-          margin-bottom: 4px;
+          padding: 0;
+          margin: 0;
+        }
+        .ant-layout-content {
+          padding: 0 !important;
+          margin: 64px 0 0 0 !important;
+          width: 100vw !important;
+          overflow-x: hidden !important;
         }
         .ant-btn { padding: 4px 12px !important; }
       }
       @media (max-width: 400px) {
         .lecturer-content {
-          padding: 0 4px;
+          padding: 0 0px;
           margin-right: 0;
           margin-bottom: 0;
         }
@@ -458,7 +466,7 @@ const LecturerDashboard = () => {
           onCollapse={setCollapsed}
           width={250}
           breakpoint="lg"
-          collapsedWidth={80}
+          collapsedWidth={48} // Reduced from 80 to 48
           style={styles.sider}
         >
           <Menu
@@ -489,10 +497,18 @@ const LecturerDashboard = () => {
           />
         </Sider>
 
-        <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
+        <Content style={{
+          ...styles.content,
+          marginLeft: collapsed ? 48 : 250,
+          padding: 0,
+          margin: '64px 0 0',
+          width: '100%',
+          background: 'rgb(247, 249, 252)',
+          overflowX: 'hidden'  // Prevent horizontal scroll
+        }}>
           <Spin spinning={loading} tip={loadingMessage}>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
-              <section style={{ margin: 0 }}>
+              <section style={{ margin: 0, padding: 0 }}>
                 <AttendanceManagement
                   onLoadingChange={(isLoading) => {
                     setLoading(isLoading);

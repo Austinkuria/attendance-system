@@ -1012,7 +1012,13 @@ const AttendanceManagement = () => {
   };
 
   return (
-    <div style={{ padding: screens.xs ? 0 : 4, margin: 0, background: themeColors.background, width: "100%" }}>
+    <div style={{
+      padding: 0,
+      margin: '16px 0 0 0',  // Add top margin
+      background: 'rgb(247, 249, 252)',
+      width: '100%',
+      overflowX: 'hidden'  // Prevent horizontal scroll
+    }}>
       {loadingSessionData ? (
         <Card style={cardStyle} loading>
           <Skeleton active />
@@ -1040,6 +1046,7 @@ const AttendanceManagement = () => {
             borderLeft: currentSession && !currentSession.ended
               ? `4px solid ${themeColors.primary}`
               : `4px solid ${themeColors.border}`,
+            marginTop: 0,  // Reset top margin since we added it to parent
             marginBottom: 24,
           }}
         >
