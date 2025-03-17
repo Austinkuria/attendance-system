@@ -27,6 +27,16 @@ const QRScanner = () => {
   const navigate = useNavigate();
   const scanTimeoutRef = useRef(null);
 
+  // Move stopScanner declaration here, before it's used in onScanSuccess
+  const stopScanner = () => {
+    if (scanner.current) {
+      scanner.current.stop();
+      scanner.current.destroy();
+      scanner.current = null;
+    }
+    if (videoEl.current?.srcObject) videoEl.current.srcObject.getTracks().forEach(track => track.stop());
+  };
+
   // Fingerprint generation and other useEffect hooks remain unchanged
   const generateDeviceFingerprint = async () => {
     try {
@@ -202,7 +212,7 @@ const QRScanner = () => {
     } finally {
       setLoading(false);
     }
-  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint, stopScanner]);
+  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
 
   const startScanner = useCallback(() => {
     if (!videoEl.current || sessionEnded || !sessionId) return;
@@ -236,15 +246,6 @@ const QRScanner = () => {
       }
     };
   }, [startScanner, loading, sessionEnded, sessionId]);
-
-  const stopScanner = () => {
-    if (scanner.current) {
-      scanner.current.stop();
-      scanner.current.destroy();
-      scanner.current = null;
-    }
-    if (videoEl.current?.srcObject) videoEl.current.srcObject.getTracks().forEach(track => track.stop());
-  };
 
   const handleRescan = () => {
     if (sessionEnded) {
