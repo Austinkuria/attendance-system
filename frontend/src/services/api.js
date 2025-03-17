@@ -1206,12 +1206,25 @@ export const regenerateQR = async (sessionId, token) => {
 // ✅ End Session (Lecturer Ends the Attendance Session)
 export const endSession = async (sessionId) => {
   try {
-    const response = await axios.post(`${API_URL}/sessions/end`, {
-      sessionId
-    });
+    setLoading((prev) => ({ ...prev, session: true }));
+    const token = localStorage.getItem("token");
+    const response = await axios.post(
+      `${API_URL}/sessions/end`,
+      { sessionId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
+    // Add call to mark absentees after ending session
+    await axios.post(
+      `${API_URL}/attendance/mark-absentees`,
+      { sessionId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+
     return response.data;
   } catch (error) {
-    throw error.response ? error.response.data : new Error("Network error");
+    console.error("Error ending session:", error);
+    throw error;
   }
 };
 

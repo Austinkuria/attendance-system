@@ -128,46 +128,58 @@ exports.markAttendance = async (req, res) => {
 
 exports.markAbsentees = async (sessionId) => {
   try {
+    console.log(`Starting markAbsentees for session ${sessionId}`);
+
     const session = await Session.findById(sessionId).populate({
       path: 'unit',
       populate: { path: 'studentsEnrolled', model: 'User' }
     });
+
     if (!session || !session.unit) {
       console.error("Session or unit not found for sessionId:", sessionId);
-      return;
+      throw new Error("Session or unit not found");
     }
 
     const enrolledStudents = session.unit.studentsEnrolled.map(student => student._id.toString());
+    console.log(`Found ${enrolledStudents.length} enrolled students`);
+
     if (enrolledStudents.length === 0) {
       console.log("No students enrolled in unit for session:", sessionId);
       return;
     }
 
+    // Get existing attendance records
     const existingAttendance = await Attendance.find({ session: sessionId }).select('student');
     const markedStudents = new Set(existingAttendance.map(record => record.student.toString()));
+    console.log(`Found ${markedStudents.size} existing attendance records`);
 
+    // Find students who haven't marked attendance
     const absentees = enrolledStudents.filter(studentId => !markedStudents.has(studentId));
+    console.log(`Found ${absentees.length} absentees to mark`);
+
     if (absentees.length === 0) {
       console.log("All enrolled students marked attendance for session:", sessionId);
       return;
     }
 
-    await Attendance.insertMany(
-      absentees.map(studentId => ({
-        session: sessionId,
-        student: studentId,
-        status: "Absent",
-        deviceId: "system-generated",
-        compositeFingerprint: "system-generated",
-        qrToken: "system-generated",
-        timestamp: new Date(),
-        feedbackSubmitted: false
-      }))
-    );
+    // Create attendance records for absentees
+    const absenteeRecords = absentees.map(studentId => ({
+      session: sessionId,
+      student: studentId,
+      status: "Absent",
+      deviceId: "system-generated",
+      compositeFingerprint: "system-generated",
+      qrToken: "system-generated",
+      timestamp: new Date(),
+      feedbackSubmitted: false
+    }));
 
-    console.log(`Marked ${absentees.length} students as absent for session:`, sessionId);
+    await Attendance.insertMany(absenteeRecords);
+    console.log(`Successfully marked ${absentees.length} students as absent for session:`, sessionId);
+
+    return absentees.length; // Return number of marked absentees
   } catch (error) {
-    console.error("Error marking absentees:", error.message);
+    console.error("Error in markAbsentees:", error);
     throw error;
   }
 };

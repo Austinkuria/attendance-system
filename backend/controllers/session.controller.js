@@ -148,17 +148,27 @@ exports.endSession = async (req, res) => {
       return res.status(500).json({ message: "Failed to update session status" });
     }
 
+    // Cancel any scheduled jobs for this session
     const jobName = `end-session-${sessionId}`;
     if (schedule.scheduledJobs[jobName]) {
       schedule.cancelJob(jobName);
       console.log(`Cancelled scheduled job for session: ${sessionId}`);
     }
 
+    // Ensure markAbsentees is called and awaited
     console.log(`Calling markAbsentees for session ${sessionId}...`); // Debug
-    await markAbsentees(sessionId);
-    console.log(`markAbsentees completed for session ${sessionId}`); // Debug
+    try {
+      await markAbsentees(sessionId);
+      console.log(`Successfully marked absentees for session ${sessionId}`);
+    } catch (absentError) {
+      console.error(`Error marking absentees: ${absentError}`);
+      // Continue with session end even if marking absentees fails
+    }
 
-    res.status(200).json({ message: "Session ended and absentees marked successfully", session: updatedSession });
+    res.status(200).json({
+      message: "Session ended and absentees marked successfully",
+      session: updatedSession
+    });
   } catch (error) {
     console.error(`Error ending session ${req.body.sessionId}:`, error);
     res.status(500).json({ message: "Error ending session", error: error.message });
