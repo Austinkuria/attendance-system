@@ -28,7 +28,7 @@ exports.markAttendance = async (req, res) => {
       return res.status(400).json({
         success: false,
         code: "QR_CODE_EXPIRED",
-        message: "This QR code has expired. Please request a new one."
+        message: "This QR code has expired. A new code is generated periodically for security. Please use the current QR code."
       });
     }
 
