@@ -59,7 +59,16 @@ const AttendanceManagement = () => {
   const [qrData, setQrData] = useState("");
   const [currentSession, setCurrentSession] = useState(() => {
     const savedSession = localStorage.getItem("currentSession");
-    return savedSession ? JSON.parse(savedSession) : null;
+    try {
+      const parsedSession = savedSession ? JSON.parse(savedSession) : null;
+      // Only restore if session hasn't ended and is still valid
+      if (parsedSession && !parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
+        return parsedSession;
+      }
+    } catch {
+      localStorage.removeItem("currentSession");
+    }
+    return null;
   });
   const [departments, setDepartments] = useState([]);
   const lecturerId = localStorage.getItem("userId");
@@ -125,62 +134,57 @@ const AttendanceManagement = () => {
     if (departments.length === 0) fetchDepartments();
   }, [departments]);
 
+  // Modify checkCurrentSession to handle both localStorage and API checks
   const checkCurrentSession = useCallback(async () => {
     try {
       setLoading((prev) => ({ ...prev, session: true }));
       setLoadingSessionData(true);
+
+      // First check localStorage
+      const savedSession = localStorage.getItem("currentSession");
+      if (savedSession) {
+        const parsedSession = JSON.parse(savedSession);
+        if (!parsedSession.ended && new Date(parsedSession.endSession) > new Date()) {
+          setCurrentSession(parsedSession);
+          setQrData(parsedSession.qrCode);
+          setSelectedUnit(parsedSession.unit?._id || parsedSession.unit);
+          setLoadingSessionData(false);
+          setLoading((prev) => ({ ...prev, session: false }));
+          return; // Exit early if we have a valid session
+        }
+      }
+
+      // Only check server if no valid session in localStorage
       const { data } = await detectCurrentSession(lecturerId);
       if (data && !data.ended && new Date(data.endTime) > new Date()) {
-        setCurrentSession({
+        const sessionData = {
           ...data,
           startSession: new Date(data.startTime),
           endSession: new Date(data.endTime),
-        });
+        };
+        setCurrentSession(sessionData);
         setQrData(data.qrCode);
-        setSelectedUnit(data.unit && data.unit._id ? data.unit._id : data.unit);
+        setSelectedUnit(data.unit?._id || data.unit);
+        localStorage.setItem("currentSession", JSON.stringify(sessionData));
       } else {
         setCurrentSession(null);
         setQrData("");
         localStorage.removeItem("currentSession");
       }
-    } catch {
+    } catch (error) {
+      console.error("Session check error:", error);
       setCurrentSession(null);
       setQrData("");
       localStorage.removeItem("currentSession");
-      message.error("Failed to detect current session");
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
       setLoadingSessionData(false);
     }
   }, [lecturerId]);
 
+  // Initial unit load effect
   useEffect(() => {
-    checkCurrentSession();
-  }, [checkCurrentSession]);
-
-  useEffect(() => {
-    let intervalId;
-    if (
-      currentSession &&
-      currentSession.startSession &&
-      currentSession.endSession &&
-      !currentSession.ended
-    ) {
-      intervalId = setInterval(() => {
-        const now = new Date();
-        if (now > new Date(currentSession.endSession)) {
-          setCurrentSession(null);
-          setQrData("");
-          localStorage.removeItem("currentSession");
-          clearInterval(intervalId);
-        }
-      }, 60000);
-    }
-    return () => clearInterval(intervalId);
-  }, [currentSession]);
-
-  useEffect(() => {
-    const fetchData = async () => {
+    const fetchUnits = async () => {
       try {
         if (!lecturerId) {
           message.error("User session expired");
@@ -190,7 +194,6 @@ const AttendanceManagement = () => {
         const unitsData = await getLecturerUnits(lecturerId);
         if (unitsData?.length > 0) {
           setUnits(unitsData);
-          if (!selectedUnit && !currentSession) setSelectedUnit(unitsData[0]._id);
         } else {
           message.info("No units assigned to your account");
         }
@@ -200,8 +203,93 @@ const AttendanceManagement = () => {
         setLoading((prev) => ({ ...prev, units: false }));
       }
     };
-    if (lecturerId && units.length === 0) fetchData();
-  }, [lecturerId, selectedUnit, currentSession, units]);
+
+    if (lecturerId && units.length === 0) fetchUnits();
+  }, [lecturerId, units.length]);
+
+  // Consolidate session-related effects into one initial check
+  useEffect(() => {
+    // Only check for active sessions on initial load
+    checkCurrentSession();
+
+    // Set up session expiry check
+    const intervalId = setInterval(() => {
+      const session = JSON.parse(localStorage.getItem("currentSession"));
+      if (session && new Date(session.endSession) < new Date()) {
+        setCurrentSession(null);
+        setQrData("");
+        localStorage.removeItem("currentSession");
+      }
+    }, 60000);
+
+    return () => clearInterval(intervalId);
+  }, [checkCurrentSession]);
+
+  // This effect will only run when user manually selects a unit
+  useEffect(() => {
+    const checkSelectedUnitSession = async () => {
+      // Skip unnecessary checks
+      if (!selectedUnit || loading.session) return;
+
+      try {
+        setLoading((prev) => ({ ...prev, session: true }));
+        setLoadingSessionData(true);
+
+        // First check localStorage for this unit
+        const savedSession = localStorage.getItem("currentSession");
+        if (savedSession) {
+          const parsedSession = JSON.parse(savedSession);
+          if (parsedSession.unit?._id === selectedUnit &&
+            !parsedSession.ended &&
+            new Date(parsedSession.endSession) > new Date()) {
+            setCurrentSession(parsedSession);
+            setQrData(parsedSession.qrCode);
+            setLoadingSessionData(false);
+            setLoading((prev) => ({ ...prev, session: false }));
+            return;
+          }
+        }
+
+        // Only make API call if no valid session in localStorage
+        const token = localStorage.getItem("token");
+        if (!token) return;
+
+        const response = await axios.get(
+          `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+
+        if (response.data && response.data._id && !response.data.ended) {
+          const unitName = units.find((u) => u._id === response.data.unit)?.name || "Unknown Unit";
+          const sessionData = {
+            ...response.data,
+            unit: { name: unitName, _id: selectedUnit },
+            startSession: new Date(response.data.startTime),
+            endSession: new Date(response.data.endTime),
+          };
+          setCurrentSession(sessionData);
+          setQrData(response.data.qrCode);
+          localStorage.setItem("currentSession", JSON.stringify(sessionData));
+        } else {
+          // Clear session state but don't trigger another check
+          setCurrentSession(null);
+          setQrData("");
+          localStorage.removeItem("currentSession");
+        }
+      } catch (error) {
+        console.error("Error checking unit session:", error);
+        setCurrentSession(null);
+        setQrData("");
+        localStorage.removeItem("currentSession");
+      } finally {
+        setLoading((prev) => ({ ...prev, session: false }));
+        setLoadingSessionData(false);
+      }
+    };
+
+    // Only check for session if unit is manually selected
+    checkSelectedUnitSession();
+  }, [selectedUnit, units]); // Remove dependencies that cause unnecessary reruns
 
   useEffect(() => {
     if (!selectedUnit || currentSession?.ended) {
@@ -210,43 +298,8 @@ const AttendanceManagement = () => {
         setCurrentSession(null);
         setQrData("");
       }
-      return;
     }
-
-    const fetchCurrentSession = async () => {
-      const token = localStorage.getItem("token");
-      if (!token || !selectedUnit) return;
-      try {
-        setLoadingSessionData(true);
-        const response = await axios.get(
-          `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (response.data && response.data._id && !response.data.ended) {
-          const unitName =
-            response.data.unit?.name ||
-            units.find((u) => u._id === response.data.unit)?.name ||
-            "Unknown Unit";
-          setCurrentSession({
-            ...response.data,
-            unit: { name: unitName },
-            startSession: new Date(response.data.startTime),
-            endSession: new Date(response.data.endTime),
-          });
-          setQrData(response.data.qrCode);
-        } else {
-          setCurrentSession(null);
-          setQrData("");
-        }
-      } catch {
-        setCurrentSession(null);
-        setQrData("");
-      } finally {
-        setLoadingSessionData(false);
-      }
-    };
-    fetchCurrentSession();
-  }, [selectedUnit, units, currentSession?.ended]);
+  }, [selectedUnit, currentSession?.ended]);
 
   const [tableContainerHeight, setTableContainerHeight] = useState(400); // Default height
   const tableContainerRef = useRef(null);
@@ -370,8 +423,21 @@ const AttendanceManagement = () => {
       } else {
         setPastAttendance([]);
       }
-    } catch {
-      message.error("Failed to fetch past sessions");
+    } catch (error) {
+      console.error("Error fetching past sessions:", error);
+      if (error.response?.status === 404) {
+        message.info("No past sessions found for the selected criteria");
+      } else if (error.response?.status === 401) {
+        message.error("Session expired. Please log in again");
+        // Optionally redirect to login
+        window.location.href = '/auth/login';
+      } else if (error.code === 'ECONNABORTED') {
+        message.error("Request timed out. Please try again");
+      } else if (!navigator.onLine) {
+        message.error("No internet connection. Please check your network");
+      } else {
+        message.error("Unable to load past sessions. Please try again later");
+      }
     } finally {
       setLoading((prev) => ({ ...prev, pastAttendance: false }));
     }
@@ -386,22 +452,77 @@ const AttendanceManagement = () => {
       message.error("Please select a unit first");
       return;
     }
+
     try {
       setLoading((prev) => ({ ...prev, session: true }));
       setLoadingSessionData(true);
-      const startTime = new Date().toISOString();
-      const endTime = new Date(Date.now() + 60 * 60 * 1000).toISOString();
-      const data = await createSession({ unitId: selectedUnit, lecturerId, startTime, endTime });
-      message.success("Session created successfully");
-      setCurrentSession({
-        ...data,
-        startSession: new Date(data.startTime),
-        endSession: new Date(data.endTime),
-        ended: false,
+
+      // Create dates in UTC
+      const now = new Date();
+      const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+
+      if (!lecturerId) {
+        throw new Error('Lecturer ID is missing');
+      }
+
+      console.log('Creating session with:', {
+        unitId: selectedUnit,
+        lecturerId,
+        startTime: now,
+        endTime: oneHourLater
       });
-      setQrData(data.qrCode);
-    } catch {
-      message.error("Failed to create session");
+
+      const sessionData = await createSession({
+        unitId: selectedUnit,
+        lecturerId,
+        startTime: now,
+        endTime: oneHourLater
+      });
+
+      // Validate session data
+      if (!sessionData || !sessionData.startTime || !sessionData.endTime) {
+        throw new Error('Invalid session data received');
+      }
+
+      // Create complete session object
+      const completeSessionData = {
+        ...sessionData,
+        unit: {
+          name: units.find(u => u._id === selectedUnit)?.name || "Unknown Unit",
+          _id: selectedUnit
+        },
+        startSession: new Date(sessionData.startTime),
+        endSession: new Date(sessionData.endTime)
+      };
+
+      // Validate complete session data
+      if (!completeSessionData.unit.name ||
+        !completeSessionData.startSession ||
+        !completeSessionData.endSession) {
+        throw new Error('Invalid session data structure');
+      }
+
+      setCurrentSession(completeSessionData);
+      setQrData(sessionData.qrCode);
+      localStorage.setItem("currentSession", JSON.stringify(completeSessionData));
+      message.success("Session created successfully");
+
+      // Log successful creation
+      console.log('Session created successfully:', completeSessionData);
+
+    } catch (error) {
+      console.error("Error creating session:", error);
+
+      if (error.message.includes('Rate limit')) {
+        message.error("Too many requests. Please wait a moment before trying again.");
+      } else if (error.message.includes('Network error')) {
+        message.error("Unable to create session due to network issues. Please check your connection.");
+      } else if (error.message.includes('Authentication')) {
+        message.error("Session expired. Please log in again.");
+        setTimeout(() => window.location.href = '/auth/login', 2000);
+      } else {
+        message.error(error.message || "Failed to create session. Please try again.");
+      }
     } finally {
       setLoading((prev) => ({ ...prev, session: false }));
       setLoadingSessionData(false);
@@ -795,14 +916,28 @@ const AttendanceManagement = () => {
   );
 
   const formatSessionTime = (session) => {
-    if (!session || !session.startSession || !session.endSession)
+    if (!session || !session.startTime || !session.endTime) {
       return "No session time available";
+    }
     try {
-      const startTime = new Date(session.startSession);
-      const endTime = new Date(session.endSession);
-      const options = { hour: "numeric", minute: "2-digit", hour12: true };
+      const startTime = new Date(session.startTime);
+      const endTime = new Date(session.endTime);
+
+      if (isNaN(startTime.getTime()) || isNaN(endTime.getTime())) {
+        console.error("Invalid date values:", { startTime: session.startTime, endTime: session.endTime });
+        return "Invalid session time";
+      }
+
+      const options = {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+        timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone // Use local timezone
+      };
+
       return `${startTime.toLocaleTimeString([], options)} - ${endTime.toLocaleTimeString([], options)}`;
-    } catch {
+    } catch (error) {
+      console.error("Error formatting session time:", error);
       return "Error formatting time";
     }
   };
@@ -820,19 +955,23 @@ const AttendanceManagement = () => {
 
   const SessionTimer = ({ end }) => {
     const [timeLeft, setTimeLeft] = useState(() => {
-      const endTime = new Date(end).getTime();
-      return isNaN(endTime) ? 0 : Math.max(0, endTime - Date.now());
+      const endTime = new Date(end);
+      return isNaN(endTime.getTime()) ? 0 : Math.max(0, endTime.getTime() - Date.now());
     });
 
     useEffect(() => {
-      if (isNaN(new Date(end).getTime())) {
+      const endTime = new Date(end);
+      if (isNaN(endTime.getTime())) {
+        console.error("Invalid end time provided to SessionTimer:", end);
         setTimeLeft(0);
         return;
       }
+
       const timer = setInterval(() => {
-        const endTime = new Date(end).getTime();
-        if (!isNaN(endTime)) setTimeLeft(Math.max(0, endTime - Date.now()));
+        const remaining = Math.max(0, endTime.getTime() - Date.now());
+        setTimeLeft(remaining);
       }, 1000);
+
       return () => clearInterval(timer);
     }, [end]);
 
@@ -878,53 +1017,102 @@ const AttendanceManagement = () => {
         <Card style={cardStyle} loading>
           <Skeleton active />
         </Card>
-      ) : currentSession && !currentSession.ended ? (
+      ) : (
         <Card
           title={
             <Space>
-              <ClockCircleOutlined style={{ color: themeColors.primary }} />
+              <ClockCircleOutlined style={{ color: currentSession && !currentSession.ended ? themeColors.primary : themeColors.textSecondary }} />
               <Text strong style={{ color: themeColors.text }}>
-                Active Session: {currentSession.unit?.name || "Unknown Unit"}
+                {currentSession && !currentSession.ended
+                  ? `Active Session: ${currentSession.unit?.name || "Unknown Unit"}`
+                  : selectedUnit
+                    ? `No Active Session for ${units.find(u => u._id === selectedUnit)?.name || "Selected Unit"}`
+                    : "No Active Session"
+                }
               </Text>
             </Space>
           }
           style={{
             ...cardStyle,
-            background: themeColors.cardGradient1,
-            borderLeft: `4px solid ${themeColors.primary}`,
-            marginBottom: 24, // Add margin below session card
+            background: currentSession && !currentSession.ended
+              ? themeColors.cardGradient1
+              : themeColors.cardBg,
+            borderLeft: currentSession && !currentSession.ended
+              ? `4px solid ${themeColors.primary}`
+              : `4px solid ${themeColors.border}`,
+            marginBottom: 24,
           }}
         >
-          <Row gutter={[8, 8]}>
-            <Col span={24}>
-              <Text strong style={{ color: themeColors.text }}>
-                Time:{" "}
-              </Text>
-              <span style={{ color: themeColors.text }}>{formatSessionTime(currentSession)}</span>
-            </Col>
-            <Col span={24}>
-              <SessionTimer end={currentSession.endSession} />
-            </Col>
-            <Col span={24}>
-              <Button
-                danger
-                onClick={handleEndSession}
-                loading={loading.session}
-                style={{
-                  background: themeColors.accent,
-                  borderColor: themeColors.accent,
-                  color: themeColors.text,
-                  width: screens.xs ? "100%" : "auto",
-                  borderRadius: 8,
-                  transition: "all 0.3s",
-                }}
-              >
-                {loading.session ? "Ending Session..." : "End Session Early"}
-              </Button>
-            </Col>
-          </Row>
+          {currentSession && !currentSession.ended ? (
+            <Row gutter={[8, 8]}>
+              <Col span={24}>
+                <Text strong style={{ color: themeColors.text }}>
+                  Time:{" "}
+                </Text>
+                <span style={{ color: themeColors.text }}>{formatSessionTime(currentSession)}</span>
+              </Col>
+              <Col span={24}>
+                <SessionTimer end={currentSession.endSession} />
+              </Col>
+              <Col span={24}>
+                <Button
+                  danger
+                  onClick={handleEndSession}
+                  loading={loading.session}
+                  style={{
+                    background: themeColors.accent,
+                    borderColor: themeColors.accent,
+                    color: themeColors.text,
+                    width: screens.xs ? "100%" : "auto",
+                    borderRadius: 8,
+                    transition: "all 0.3s",
+                  }}
+                >
+                  {loading.session ? "Ending Session..." : "End Session Early"}
+                </Button>
+              </Col>
+            </Row>
+          ) : (
+            <Row gutter={[8, 8]}>
+              <Col span={24}>
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  marginBottom: 8
+                }}>
+                  <Text style={{ color: themeColors.text }}>
+                    {selectedUnit
+                      ? `No active session found for ${units.find(u => u._id === selectedUnit)?.name || "selected unit"}.`
+                      : `Please select a unit to check for active sessions.`
+                    }
+                  </Text>
+                  {selectedUnit && (
+                    <Button
+                      type="primary"
+                      icon={<CalendarOutlined />}
+                      onClick={handleCreateSession}
+                      disabled={loading.session}
+                      loading={loading.session}
+                      style={{
+                        background: themeColors.primary,
+                        borderColor: themeColors.primary,
+                        color: themeColors.text,
+                        borderRadius: 8,
+                        transition: "all 0.3s",
+                        marginLeft: 8,
+                      }}
+                    >
+                      {loading.session ? "Creating..." : "Create Session"}
+                    </Button>
+                  )}
+                </div>
+              </Col>
+            </Row>
+          )}
         </Card>
-      ) : null}
+      )}
 
       <Card
         extra={

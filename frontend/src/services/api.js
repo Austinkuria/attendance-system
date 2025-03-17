@@ -3,8 +3,10 @@ import axios from "axios";
 // Use environment variable for base URL, with fallback
 const API_URL = import.meta.env.VITE_API_URL || "https://attendance-system-w70n.onrender.com/api";
 
+// Add a timeout to axios instance
 const api = axios.create({
   baseURL: API_URL, // Use baseURL instead of API_URL as a property
+  timeout: 15000, // 15 second timeout
 });
 
 // Function to get token from local storage
@@ -65,6 +67,49 @@ api.interceptors.response.use(
       }
     }
 
+    return Promise.reject(error);
+  }
+);
+
+// Add error interceptor to transform error messages
+api.interceptors.response.use(
+  response => response,
+  error => {
+    let errorMessage = 'An unexpected error occurred';
+
+    if (error.response) {
+      // Server responded with error
+      switch (error.response.status) {
+        case 404:
+          errorMessage = 'No records found for the selected criteria';
+          break;
+        case 401:
+          errorMessage = 'Your session has expired. Please log in again';
+          break;
+        case 403:
+          errorMessage = 'You do not have permission to access this resource';
+          break;
+        case 429:
+          errorMessage = 'Too many requests. Please try again in a moment';
+          break;
+        case 500:
+          errorMessage = 'Internal server error. Please try again later';
+          break;
+        default:
+          errorMessage = error.response.data?.message || 'Server error occurred';
+      }
+    } else if (error.request) {
+      // No response received
+      if (error.code === 'ECONNABORTED') {
+        errorMessage = 'Request timed out. Please try again';
+      } else if (!navigator.onLine) {
+        errorMessage = 'No internet connection. Please check your network';
+      } else {
+        errorMessage = 'Unable to reach the server. Please try again later';
+      }
+    }
+
+    error.userMessage = errorMessage;
     return Promise.reject(error);
   }
 );
@@ -971,35 +1016,84 @@ export const submitQuizAnswers = async (quizSubmissionData) => {
 
 // Session related endpoints
 export const createSession = async ({ unitId, lecturerId, startTime, endTime }) => {
-  const maxRetries = 3; // Maximum number of retries
-  const delay = (retryCount) => Math.pow(2, retryCount) * 1000; // Exponential backoff delay
+  if (!unitId || !lecturerId || !startTime || !endTime) {
+    throw new Error('Missing required fields for session creation');
+  }
+
+  const maxRetries = 3;
+  const delay = (retryCount) => Math.pow(2, retryCount) * 1000;
+
+  // Format dates in UTC to avoid timezone issues
+  const formattedStartTime = new Date(startTime).toISOString();
+  const formattedEndTime = new Date(endTime).toISOString();
+
+  console.log('Creating session with payload:', {
+    unitId,
+    lecturerId,
+    startTime: formattedStartTime,
+    endTime: formattedEndTime
+  });
 
   for (let attempt = 0; attempt < maxRetries; attempt++) {
     try {
       const token = localStorage.getItem('token');
-
-      // Log the request payload before making the API call
-      console.log("API Call - Creating session with:", { unitId, lecturerId, startTime, endTime });
+      if (!token) throw new Error('Authentication token missing');
 
       const response = await axios.post(
         `${API_URL}/sessions/create`,
-        { unitId, lecturerId, startTime, endTime },  // Ensure correct payload
-        { headers: { Authorization: `Bearer ${token}` } }
+        {
+          unitId,
+          lecturerId,
+          startTime: formattedStartTime,
+          endTime: formattedEndTime
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        }
       );
 
-      console.log("API Response:", response.data);
-      return response.data;
-    } catch (error) {
-      if (error.response && error.response.status === 429) {
-        console.warn(`Attempt ${attempt + 1} failed: Too many requests. Retrying in ${delay(attempt) / 1000} seconds...`);
-        await new Promise(resolve => setTimeout(resolve, delay(attempt))); // Wait before retrying
-      } else {
-        console.error("Error in API Call - createSession:", error.response ? error.response.data : error.message);
-        throw error; // Re-throw the error if it's not a 429
+      // Validate response structure
+      if (!response.data || !response.data.session) {
+        throw new Error('Invalid response format from server');
       }
+
+      const { session } = response.data;
+
+      // Validate required session fields
+      if (!session.startTime || !session.endTime || !session.qrCode) {
+        throw new Error('Missing required session data');
+      }
+
+      // Return properly formatted session data
+      return {
+        _id: session._id,
+        unit: session.unit,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        ended: false,
+        qrCode: session.qrCode,
+        qrToken: session.qrToken
+      };
+    } catch (error) {
+      console.error(`Session creation attempt ${attempt + 1} failed:`, error);
+
+      if (error.response?.status === 429 && attempt < maxRetries - 1) {
+        await new Promise(resolve => setTimeout(resolve, delay(attempt)));
+        continue;
+      }
+
+      if (error.response?.data?.message) {
+        throw new Error(error.response.data.message);
+      }
+
+      throw error;
     }
   }
-  throw new Error("Max retries reached. Unable to create session.");
+
+  throw new Error('Failed to create session after multiple attempts');
 };
 
 export const getSession = async (sessionId) => {
