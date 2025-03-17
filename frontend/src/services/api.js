@@ -90,7 +90,7 @@ api.interceptors.response.use(
           errorMessage = 'You do not have permission to access this resource';
           break;
         case 429:
-          errorMessage = 'Too many requests. Please try again in a moment';
+          errorMessage = 'Too many requests. Please wait a moment before trying again.';
           break;
         case 500:
           errorMessage = 'Internal server error. Please try again later';

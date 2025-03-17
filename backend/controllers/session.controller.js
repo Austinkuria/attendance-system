@@ -113,13 +113,13 @@ exports.regenerateQR = async (req, res) => {
       return res.status(400).json({ message: "Cannot regenerate QR for an ended session" });
     }
 
-    // Check if we're in auto-rotation mode and need to add expiration
-    const expiresIn = autoRotate ? 35 : 60; // 35 seconds for auto, 60 seconds for manual
+    // Increase expiration time to ensure enough time for scanning
+    const expiresIn = autoRotate ? 45 : 60; // 45 seconds for auto, 60 seconds for manual
 
     const { qrToken, qrCode } = await generateQRToken(session, expiresIn);
     session.qrToken = qrToken;
     session.qrCode = qrCode;
-    session.qrExpiresAt = new Date(Date.now() + (expiresIn * 1000)); // Store expiration time
+    session.qrExpiresAt = new Date(Date.now() + (expiresIn * 1000));
     await session.save();
 
     res.status(200).json({

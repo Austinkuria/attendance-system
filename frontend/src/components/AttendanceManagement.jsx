@@ -316,12 +316,11 @@ const AttendanceManagement = () => {
   }, [screens]);
 
   // Modify the handleViewAttendance function for smoother updates
-  const handleViewAttendance = useCallback(async () => {
+  const handleViewAttendance = useCallback(async (attempt = 0) => {
     if (!selectedUnit || !currentSession || currentSession.ended) return;
-    
-    // Add isMounted check to prevent state updates after unmount
+
     let isMounted = true;
-    
+
     try {
       setLoading((prev) => ({ ...prev, realTimeAttendance: true }));
       const response = await axios.get(
@@ -329,7 +328,6 @@ const AttendanceManagement = () => {
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
 
-      // Only update state if component is still mounted
       if (isMounted) {
         const existingRecordsMap = new Map(attendance.map(item => [item._id, item]));
         const newOrUpdatedRecords = [];
@@ -347,7 +345,7 @@ const AttendanceManagement = () => {
             ...record,
             _isUpdated: newOrUpdatedRecords.includes(record._id)
           })));
-          
+
           if (newOrUpdatedRecords.length > 0) {
             setTimeout(() => {
               if (isMounted) {
@@ -361,8 +359,19 @@ const AttendanceManagement = () => {
         }
       }
     } catch (error) {
-      if (isMounted) {
-        message.error("Failed to refresh attendance data");
+      if (error.response?.status === 429 && attempt < 3) {
+        // Retry with exponential backoff
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Rate limit hit on real-time attendance. Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        await handleViewAttendance(attempt + 1); // Recursive call
+      } else if (isMounted) {
+        // Show appropriate error message based on the error type
+        if (error.response?.status === 429) {
+          message.error("Too many requests. Please wait a moment before trying again.");
+        } else {
+          message.error("Failed to refresh attendance data");
+        }
       }
     } finally {
       if (isMounted) {
@@ -375,34 +384,7 @@ const AttendanceManagement = () => {
     };
   }, [selectedUnit, currentSession, attendance]);
 
-  // Modify the refresh interval
-  useEffect(() => {
-    let intervalId;
-    let isMounted = true;
-
-    const startPolling = () => {
-      if (currentSession && selectedUnit && !currentSession.ended) {
-        handleViewAttendance();
-        // Change interval to 30 seconds instead of 10 seconds
-        intervalId = setInterval(() => {
-          if (isMounted && !currentSession.ended) {
-            handleViewAttendance();
-          }
-        }, 30000); // 30 seconds
-      }
-    };
-
-    startPolling();
-
-    return () => {
-      isMounted = false;
-      if (intervalId) {
-        clearInterval(intervalId);
-      }
-    };
-  }, [currentSession, selectedUnit, handleViewAttendance]);
-
-  const fetchPastSessions = useCallback(async () => {
+  const fetchPastSessions = useCallback(async (attempt = 0) => {
     try {
       setLoading((prev) => ({ ...prev, pastAttendance: true }));
       const params = {
@@ -427,6 +409,7 @@ const AttendanceManagement = () => {
           params,
         }
       );
+
       const sessions = response.data.map((session) => ({
         ...session,
         unitName:
@@ -457,19 +440,27 @@ const AttendanceManagement = () => {
         setPastAttendance([]);
       }
     } catch (error) {
-      console.error("Error fetching past sessions:", error);
-      if (error.response?.status === 404) {
-        message.info("No past sessions found for the selected criteria");
-      } else if (error.response?.status === 401) {
-        message.error("Session expired. Please log in again");
-        // Optionally redirect to login
-        window.location.href = '/auth/login';
-      } else if (error.code === 'ECONNABORTED') {
-        message.error("Request timed out. Please try again");
-      } else if (!navigator.onLine) {
-        message.error("No internet connection. Please check your network");
+      if (error.response?.status === 429 && attempt < 3) {
+        // Retry with exponential backoff
+        const delay = Math.pow(2, attempt) * 1000;
+        console.log(`Rate limit hit on past sessions. Retrying in ${delay}ms...`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        await fetchPastSessions(attempt + 1); // Recursive call
       } else {
-        message.error("Unable to load past sessions. Please try again later");
+        console.error("Error fetching past sessions:", error);
+        if (error.response?.status === 404) {
+          message.info("No past sessions found for the selected criteria");
+        } else if (error.response?.status === 401) {
+          message.error("Session expired. Please log in again");
+          // Optionally redirect to login
+          window.location.href = '/auth/login';
+        } else if (error.code === 'ECONNABORTED') {
+          message.error("Request timed out. Please try again");
+        } else if (!navigator.onLine) {
+          message.error("No internet connection. Please check your network");
+        } else {
+          message.error("Unable to load past sessions. Please try again later");
+        }
       }
     } finally {
       setLoading((prev) => ({ ...prev, pastAttendance: false }));
@@ -591,36 +582,52 @@ const AttendanceManagement = () => {
 
   // Add these new functions and state for QR rotation
   const [qrRotationInterval, setQrRotationInterval] = useState(null);
+  const [isQrRotating, setIsQrRotating] = useState(false); // New loading state
 
-  const startQrRotation = (sessionId) => {
-    // Clear any existing rotation interval
+  const regenerateQrCode = async (sessionId, attempt = 0) => {
+    if (!isQRModalOpen) return;
+
+    try {
+      setIsQrRotating(true);
+      const token = localStorage.getItem("token");
+      const response = await axios.post(
+        `https://attendance-system-w70n.onrender.com/api/sessions/regenerate-qr`,
+        { sessionId, autoRotate: true },
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+
+      if (response?.data?.qrCode) {
+        setQrData(response.data.qrCode);
+        // Start the next rotation slightly before expiration
+        const nextRotation = 40000; // 40 seconds - rotate before expiration
+        if (qrRotationInterval) {
+          clearInterval(qrRotationInterval);
+        }
+        const newInterval = setInterval(async () => {
+          if (isQRModalOpen && !isQrRotating) {
+            await regenerateQrCode(sessionId);
+          }
+        }, nextRotation);
+        setQrRotationInterval(newInterval);
+      }
+    } catch (error) {
+      console.error("Error refreshing QR code:", error);
+      if (error.response?.status === 429 && attempt < 3) {
+        const delay = Math.pow(2, attempt) * 1000;
+        await new Promise(resolve => setTimeout(resolve, delay));
+        await regenerateQrCode(sessionId, attempt + 1);
+      }
+    } finally {
+      setIsQrRotating(false);
+    }
+  };
+
+  const startQrRotation = async (sessionId) => {
     if (qrRotationInterval) {
       clearInterval(qrRotationInterval);
     }
-
-    // Create a rotation interval - rotate every 30 seconds
-    const interval = setInterval(async () => {
-      if (!isQRModalOpen) return;
-
-      try {
-        const token = localStorage.getItem("token");
-        // Fix: Import the regenerateQR function or use axios directly
-        const response = await axios.post(
-          `https://attendance-system-w70n.onrender.com/api/sessions/regenerate-qr`,
-          { sessionId, autoRotate: true },
-          { headers: { Authorization: `Bearer ${token}` } }
-        );
-        if (response && response.data && response.data.qrCode) {
-          setQrData(response.data.qrCode);
-        }
-      } catch (error) {
-        console.error("Error refreshing QR code:", error);
-        // Don't show error message to avoid disrupting user experience
-        // Only log to console
-      }
-    }, 30000); // 30 seconds interval
-
-    setQrRotationInterval(interval);
+    // Initial QR generation
+    await regenerateQrCode(sessionId);
   };
 
   // Add cleanup for the rotation interval
@@ -1530,8 +1537,8 @@ const AttendanceManagement = () => {
                 <>
                   <SessionTimer end={currentSession.endSession} />
                   <div style={{ marginTop: 8 }}>
-                    <Tag color={themeColors.primary} icon={<SyncOutlined spin />}>
-                      QR Code refreshes automatically
+                    <Tag color={themeColors.primary} icon={<SyncOutlined spin={isQrRotating} />}>
+                      {isQrRotating ? "Refreshing QR Code..." : "QR Code refreshes automatically"}
                     </Tag>
                   </div>
                 </>
@@ -1540,7 +1547,7 @@ const AttendanceManagement = () => {
                 type="secondary"
                 style={{ marginTop: 8, display: "block", fontSize: screens.xs ? 12 : 16, color: themeColors.text }}
               >
-                Scan this QR code to mark attendance.
+                Scan this QR code to mark attendance
               </Typography.Text>
             </>
           ) : (
@@ -1561,22 +1568,22 @@ const AttendanceManagement = () => {
           transform: none !important;
           box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05) !important;
         }
-        
+
         .summary-card:hover {
           transform: translateY(-4px);
           box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
         }
-        
+
         .table-row-light {
           background: ${themeColors.cardBg};
         }
         .table-row-dark {
           background: ${themeColors.background};
         }
-        
+
         ${tableStyles}
         ${modalStyles.styles}
-        
+
         .ant-btn-primary {
           background: ${themeColors.primary} !important;
           border-color: ${themeColors.primary} !important;
@@ -1645,19 +1652,19 @@ const AttendanceManagement = () => {
           transition: none !important;
           min-height: ${tableContainerHeight}px;
         }
-        
+
         .attendance-table-container .ant-table-wrapper,
         .attendance-table-container .ant-spin-nested-loading,
         .attendance-table-container .ant-spin-container,
         .attendance-table-container .ant-table {
           transition: none !important;
         }
-        
+
         .attendance-table-container .ant-table-body {
           transition: none !important;
           overflow-y: auto !important;
         }
-        
+
         @keyframes highlight-fade {
           0% {
             background-color: ${themeColors.primary}30;
@@ -1666,17 +1673,17 @@ const AttendanceManagement = () => {
             background-color: transparent;
           }
         }
-        
+
         .highlight-new-row {
           animation: highlight-fade 2s ease-out;
         }
-        
+
         /* Optimize table rendering */
         .attendance-table-container .ant-table-container {
           will-change: transform;
           transform: translateZ(0);
         }
-        
+
         /* Prevent header jittering on updates */
         .attendance-table-container .ant-table-header {
           position: sticky;
@@ -1690,65 +1697,65 @@ const AttendanceManagement = () => {
           color: ${themeColors.tableHeaderText || themeColors.text} !important;
           font-weight: 600;
         }
-        
+
         /* Hardware acceleration for smoother animations */
         .table-row-light, .table-row-dark, .highlight-new-row {
           transform: translateZ(0);
           will-change: background-color;
           transition: background-color 0.3s ease;
         }
-        
+
         .ant-select-selection-placeholder,
         .ant-picker-input > input::placeholder {
           color: ${themeColors.placeholder || themeColors.textSecondary} !important;
           opacity: 0.8;
         }
-        
+
         /* Calendar icon in date picker */
         .ant-picker-suffix .anticon-calendar,
         .ant-picker-suffix .anticon-clock-circle {
           color: ${themeColors.primary} !important;
           opacity: 0.8;
         }
-        
+
         /* Clear icon in date picker and select */
         .ant-picker-clear,
         .ant-select-clear {
           background: ${themeColors.inputBg} !important;
           color: ${themeColors.textSecondary} !important;
         }
-        
+
         /* Arrow in select dropdown */
         .ant-select-arrow {
           color: ${themeColors.primary} !important;
           opacity: 0.8;
         }
-        
+
         /* Input color for date picker */
         .ant-picker-input > input {
           color: ${themeColors.text} !important;
         }
-        
+
         /* Focus states */
         .themed-select .ant-select-selector:focus,
         .themed-datepicker:focus {
           border-color: ${themeColors.primary} !important;
           box-shadow: 0 0 0 2px ${themeColors.primary}33 !important;
         }
-        
+
         /* Selection background for options */
         .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
           background: ${themeColors.hover} !important;
           font-weight: 600;
         }
-        
+
         /* Dropdown styling */
         .ant-select-dropdown {
           background: ${themeColors.cardBg} !important;
           box-shadow: 0 3px 6px rgba(0,0,0,0.15) !important;
           border: 1px solid ${themeColors.border} !important;
         }
-        
+
         .ant-select-dropdown .ant-select-item {
           color: ${themeColors.text} !important;
         }
