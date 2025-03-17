@@ -24,6 +24,7 @@ exports.markAttendance = async (req, res) => {
 
     // Check if QR code has expired
     const currentTimestamp = Math.floor(Date.now() / 1000);
+    console.log(`Current timestamp: ${currentTimestamp}, Expires at: ${decodedToken.e}`); // Debugging
     if (decodedToken.e && decodedToken.e < currentTimestamp) {
       return res.status(400).json({
         success: false,
