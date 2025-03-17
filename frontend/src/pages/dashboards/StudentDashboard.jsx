@@ -131,6 +131,14 @@ const StudentDashboard = () => {
   // Add a new state to track countdowns for active sessions
   const [sessionCountdowns, setSessionCountdowns] = useState({});
 
+  // Add these new states after the existing state declarations
+  const [loadingErrors, setLoadingErrors] = useState({
+    profile: false,
+    units: false,
+    attendance: false,
+    feedback: false
+  });
+
   // Split the fetchAllData into separate functions for each data type
   const fetchProfileData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -151,10 +159,26 @@ const StudentDashboard = () => {
         expiry: Date.now() + (24 * 60 * 60 * 1000)
       };
       localStorage.setItem('cachedProfileData', JSON.stringify(profileData));
-
+      setLoadingErrors(prev => ({ ...prev, profile: false }));
       return profileRes;
     } catch (error) {
       console.error("Error fetching profile data:", error);
+      setLoadingErrors(prev => ({ ...prev, profile: true }));
+      // Try to use cached data as fallback
+      try {
+        const cachedProfile = localStorage.getItem('cachedProfileData');
+        if (cachedProfile) {
+          const parsedProfile = JSON.parse(cachedProfile);
+          if (parsedProfile.expiry > Date.now()) {
+            if (parsedProfile.data?.firstName) {
+              setUsername(parsedProfile.data.firstName);
+            }
+            return parsedProfile.data;
+          }
+        }
+      } catch (e) {
+        console.error("Error loading cached profile:", e);
+      }
       throw error;
     } finally {
       setLoadingStates(prev => ({ ...prev, profile: false }));
@@ -1972,176 +1996,251 @@ const StudentDashboard = () => {
               </div>
             ) : (
               <>
-                {username && (
-                  <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                    <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-                      Welcome, {username}! 👋
-                    </AntTitle>
-                  </motion.div>
-                )}
-
-                <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                  <Col xs={24} sm={12}>
-                    <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                      <Card hoverable className="summary-card-1" style={styles.summaryCard1}>
-                        <Space direction="vertical">
-                          <BookOutlined style={{ fontSize: 28, color: '#fff' }} />
-                          <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Total Units</h3>
-                          <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>{units.length}</h1>
-                        </Space>
-                      </Card>
+                <Space direction="vertical" size="large" style={{ width: '100%' }}>
+                  {/* Welcome Section */}
+                  {(!loadingErrors.profile || username) && (
+                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
+                      <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+                        {loadingStates.profile ? (
+                          <Spin size="small" />
+                        ) : (
+                          `Welcome, ${username || 'Student'}! 👋`
+                        )}
+                      </AntTitle>
                     </motion.div>
-                  </Col>
-                  <Col xs={24} sm={12}>
-                    <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                      <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
-                        <Space direction="vertical">
-                          <PieChartOutlined style={{ fontSize: 28, color: '#fff' }} />
-                          <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Attendance Rate</h3>
-                          <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
-                            {attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%
-                          </h1>
-                        </Space>
-                      </Card>
-                    </motion.div>
-                  </Col>
-                </Row>
+                  )}
 
-                <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-                  My Units
-                </AntTitle>
-                <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                  {units.map((unit) => unit && unit._id ? (
-                    <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
+                  {/* Units Overview Cards */}
+                  <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                    <Col xs={24} sm={12}>
                       <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                        <Card
-                          title={<span style={{ color: themeColors.text, fontWeight: 600 }}>{unit.name || 'Untitled Unit'}</span>}
-                          extra={<span style={{ color: `${themeColors.text}80` }}>{unit.code || 'N/A'}</span>}
-                          hoverable
-                          style={styles.card}
-                          styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
-                          onClick={(e) => {
-                            e.preventDefault(); // Prevent default behavior
-                            try {
-                              // Only set selected unit if it's a valid object
-                              if (unit && typeof unit === 'object' && unit._id) {
-                                // Check if there's an active session for this unit
-                                checkActiveSessionForUnit(unit._id);
-
-                                // Create a safe copy of the unit object to avoid rendering issues
-                                const safeUnit = {
-                                  _id: unit._id,
-                                  name: unit.name || 'Unnamed Unit',
-                                  code: unit.code || 'N/A',
-                                  // Format lecturer properly based on its type
-                                  lecturer: typeof unit.lecturer === 'object'
-                                    ? (unit.lecturer?.firstName && unit.lecturer?.lastName
-                                      ? `${unit.lecturer.firstName} ${unit.lecturer.lastName}`
-                                      : unit.lecturer?.name || 'N/A')
-                                    : (unit.lecturer || 'N/A'),
-                                  // Handle description that might be an object
-                                  description: typeof unit.description === 'object'
-                                    ? 'See course syllabus for details'
-                                    : (unit.description || 'N/A')
-                                };
-                                setSelectedUnit(safeUnit);
-                              }
-                            } catch (error) {
-                              console.error("Error selecting unit:", error);
-                              message.error("Failed to select unit. Please try again.");
-                            }
-                          }}
-                        >
-                          <Space direction="vertical" style={{ width: '100%' }} size={16}>
-                            {(() => {
-                              const rate = calculateAttendanceRate(unit._id);
-                              return rate === null ? (
-                                <div style={{ color: `${themeColors.text}80` }}>No sessions</div>
-                              ) : (
-                                <div style={{ background: `${themeColors.text}20`, borderRadius: 6, overflow: 'hidden', height: 20 }}>
-                                  <div style={{
-                                    width: `${rate}%`,
-                                    minWidth: rate === '0.00' ? '20px' : '0',
-                                    background: getAttendanceColor(rate),
-                                    color: '#fff',
-                                    textAlign: 'center',
-                                    padding: '2px 0',
-                                    transition: 'width 0.5s ease',
-                                  }}>
-                                    {rate}%
-                                  </div>
-                                </div>
-                              );
-                            })()}
-                            <Row gutter={[8, 8]} justify="space-between">
-                              <Col span={24}>
-                                <Button
-                                  type="primary"
-                                  icon={<QrcodeOutlined style={{ color: '#fff' }} />}
-                                  block
-                                  onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
-                                  style={{ ...styles.button, color: '#fff !important' }}
-                                  className="attend-button"
-                                >
-                                  <span style={{ color: '#fff' }}>Attend</span>
-                                </Button>
-                              </Col>
-                              <Col span={24}>
-                                <Button
-                                  block
-                                  onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
-                                  disabled={
-                                    !attendanceData.attendanceRecords.some((rec) =>
-                                      rec.session.unit._id.toString() === unit._id.toString() &&
-                                      rec.status === 'Present'
-                                    )
-                                  }
-                                >
-                                  {(() => {
-                                    const latestRecord = attendanceData.attendanceRecords
-                                      .filter(rec => rec.session.unit._id.toString() === unit._id.toString())
-                                      .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime))[0];
-
-                                    if (!latestRecord) return 'Feedback';
-                                    if (latestRecord.feedbackSubmitted) return 'Feedback Submitted';
-                                    if (latestRecord.session.ended) return 'Feedback Available';
-                                    return 'Feedback';
-                                  })()}
-                                </Button>
-                              </Col>
-                            </Row>
+                        <Card hoverable className="summary-card-1" style={styles.summaryCard1}>
+                          <Space direction="vertical">
+                            <BookOutlined style={{ fontSize: 28, color: '#fff' }} />
+                            <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Total Units</h3>
+                            <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
+                              {loadingErrors.units ? '?' : units.length}
+                            </h1>
+                            {loadingErrors.units && (
+                              <Button size="small" onClick={() => fetchUnitsData()} style={{ marginTop: 8 }}>
+                                Retry
+                              </Button>
+                            )}
                           </Space>
                         </Card>
                       </motion.div>
                     </Col>
-                  ) : null)}
-                </Row>
+                    <Col xs={24} sm={12}>
+                      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+                        <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
+                          <Space direction="vertical">
+                            <PieChartOutlined style={{ fontSize: 28, color: '#fff' }} />
+                            <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Attendance Rate</h3>
+                            <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
+                              {loadingErrors.attendance ? '?' : (
+                                attendanceRates.length ?
+                                  Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length)
+                                  : 0
+                              )}%
+                            </h1>
+                            {loadingErrors.attendance && (
+                              <Button size="small" onClick={() => fetchAttendanceData()} style={{ marginTop: 8 }}>
+                                Retry
+                              </Button>
+                            )}
+                          </Space>
+                        </Card>
+                      </motion.div>
+                    </Col>
+                  </Row>
 
-                <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                  <Col xs={24} md={12}>
-                    {renderNotifications()}
-                  </Col>
-                  <Col xs={24} md={12}>
-                    {renderCalendarEvents()}
-                  </Col>
-                </Row>
+                  {/* Units Section */}
+                  <section>
+                    <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+                      My Units
+                    </AntTitle>
+                    {loadingErrors.units ? (
+                      <Card style={styles.card}>
+                        <div style={{ textAlign: 'center', padding: '20px' }}>
+                          <p>Unable to load units. Please check your connection and try again.</p>
+                          <Button type="primary" onClick={() => fetchUnitsData()}>
+                            Retry Loading Units
+                          </Button>
+                        </div>
+                      </Card>
+                    ) : (
+                      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                        {units.map((unit) => unit && unit._id ? (
+                          <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
+                            <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
+                              <Card
+                                title={<span style={{ color: themeColors.text, fontWeight: 600 }}>{unit.name || 'Untitled Unit'}</span>}
+                                extra={<span style={{ color: `${themeColors.text}80` }}>{unit.code || 'N/A'}</span>}
+                                hoverable
+                                style={styles.card}
+                                styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
+                                onClick={(e) => {
+                                  e.preventDefault(); // Prevent default behavior
+                                  try {
+                                    // Only set selected unit if it's a valid object
+                                    if (unit && typeof unit === 'object' && unit._id) {
+                                      // Check if there's an active session for this unit
+                                      checkActiveSessionForUnit(unit._id);
 
-                <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-                  Attendance Overview
-                </AntTitle>
-                <Card style={styles.card}>
-                  <div style={{ height: '400px' }}>
-                    <Bar data={chartData} options={chartOptions} />
-                  </div>
-                  <Button
-                    type="primary"
-                    style={{ ...styles.button, color: '#fff !important' }}
-                    onClick={exportAttendanceData}
-                    className="export-button"
-                  >
-                    <span style={{ color: '#fff' }}>Export Data</span>
-                  </Button>
-                </Card>
+                                      // Create a safe copy of the unit object to avoid rendering issues
+                                      const safeUnit = {
+                                        _id: unit._id,
+                                        name: unit.name || 'Unnamed Unit',
+                                        code: unit.code || 'N/A',
+                                        // Format lecturer properly based on its type
+                                        lecturer: typeof unit.lecturer === 'object'
+                                          ? (unit.lecturer?.firstName && unit.lecturer?.lastName
+                                            ? `${unit.lecturer.firstName} ${unit.lecturer.lastName}`
+                                            : unit.lecturer?.name || 'N/A')
+                                          : (unit.lecturer || 'N/A'),
+                                        // Handle description that might be an object
+                                        description: typeof unit.description === 'object'
+                                          ? 'See course syllabus for details'
+                                          : (unit.description || 'N/A')
+                                      };
+                                      setSelectedUnit(safeUnit);
+                                    }
+                                  } catch (error) {
+                                    console.error("Error selecting unit:", error);
+                                    message.error("Failed to select unit. Please try again.");
+                                  }
+                                }}
+                              >
+                                <Space direction="vertical" style={{ width: '100%' }} size={16}>
+                                  {(() => {
+                                    const rate = calculateAttendanceRate(unit._id);
+                                    return rate === null ? (
+                                      <div style={{ color: `${themeColors.text}80` }}>No sessions</div>
+                                    ) : (
+                                      <div style={{ background: `${themeColors.text}20`, borderRadius: 6, overflow: 'hidden', height: 20 }}>
+                                        <div style={{
+                                          width: `${rate}%`,
+                                          minWidth: rate === '0.00' ? '20px' : '0',
+                                          background: getAttendanceColor(rate),
+                                          color: '#fff',
+                                          textAlign: 'center',
+                                          padding: '2px 0',
+                                          transition: 'width 0.5s ease',
+                                        }}>
+                                          {rate}%
+                                        </div>
+                                      </div>
+                                    );
+                                  })()}
+                                  <Row gutter={[8, 8]} justify="space-between">
+                                    <Col span={24}>
+                                      <Button
+                                        type="primary"
+                                        icon={<QrcodeOutlined style={{ color: '#fff' }} />}
+                                        block
+                                        onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
+                                        style={{ ...styles.button, color: '#fff !important' }}
+                                        className="attend-button"
+                                      >
+                                        <span style={{ color: '#fff' }}>Attend</span>
+                                      </Button>
+                                    </Col>
+                                    <Col span={24}>
+                                      <Button
+                                        block
+                                        onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
+                                        disabled={
+                                          !attendanceData.attendanceRecords.some((rec) =>
+                                            rec.session.unit._id.toString() === unit._id.toString() &&
+                                            rec.status === 'Present'
+                                          )
+                                        }
+                                      >
+                                        {(() => {
+                                          const latestRecord = attendanceData.attendanceRecords
+                                            .filter(rec => rec.session.unit._id.toString() === unit._id.toString())
+                                            .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime))[0];
+
+                                          if (!latestRecord) return 'Feedback';
+                                          if (latestRecord.feedbackSubmitted) return 'Feedback Submitted';
+                                          if (latestRecord.session.ended) return 'Feedback Available';
+                                          return 'Feedback';
+                                        })()}
+                                      </Button>
+                                    </Col>
+                                  </Row>
+                                </Space>
+                              </Card>
+                            </motion.div>
+                          </Col>
+                        ) : null)}
+                      </Row>
+                    )}
+                  </section>
+
+                  {/* Notifications and Calendar Section */}
+                  <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
+                    <Col xs={24} md={12}>
+                      {loadingErrors.feedback ? (
+                        <Card style={styles.card}>
+                          <div style={{ textAlign: 'center', padding: '20px' }}>
+                            <p>Unable to load notifications.</p>
+                            <Button type="link" onClick={() => fetchFeedbackData()}>
+                              Retry
+                            </Button>
+                          </div>
+                        </Card>
+                      ) : (
+                        renderNotifications()
+                      )}
+                    </Col>
+                    <Col xs={24} md={12}>
+                      {loadingErrors.attendance ? (
+                        <Card style={styles.card}>
+                          <div style={{ textAlign: 'center', padding: '20px' }}>
+                            <p>Unable to load attendance events.</p>
+                            <Button type="link" onClick={() => fetchAttendanceData()}>
+                              Retry
+                            </Button>
+                          </div>
+                        </Card>
+                      ) : (
+                        renderCalendarEvents()
+                      )}
+                    </Col>
+                  </Row>
+
+                  {/* Attendance Overview Section */}
+                  <section>
+                    <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
+                      Attendance Overview
+                    </AntTitle>
+                    <Card style={styles.card}>
+                      {loadingErrors.attendance ? (
+                        <div style={{ textAlign: 'center', padding: '20px' }}>
+                          <p>Unable to load attendance data.</p>
+                          <Button type="primary" onClick={() => fetchAttendanceData()}>
+                            Retry Loading Data
+                          </Button>
+                        </div>
+                      ) : (
+                        <>
+                          <div style={{ height: '400px' }}>
+                            <Bar data={chartData} options={chartOptions} />
+                          </div>
+                          <Button
+                            type="primary"
+                            style={{ ...styles.button, color: '#fff !important' }}
+                            onClick={exportAttendanceData}
+                            className="export-button"
+                          >
+                            <span style={{ color: '#fff' }}>Export Data</span>
+                          </Button>
+                        </>
+                      )}
+                    </Card>
+                  </section>
+                </Space>
 
                 <Modal
                   open={!!selectedUnit}
