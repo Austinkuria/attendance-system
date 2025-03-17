@@ -721,23 +721,58 @@ export const getCourseByDepartment = async (departmentId, courseName) => {
 // Mark attendance for a student
 export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken, compositeFingerprint) => {
   try {
+    // Validate inputs to help with debugging
+    if (!sessionId || !studentId || !token || !deviceId || !qrToken) {
+      console.error("Missing required parameters for markAttendance:", {
+        hasSessionId: !!sessionId,
+        hasStudentId: !!studentId,
+        hasToken: !!token,
+        hasDeviceId: !!deviceId,
+        hasQrToken: !!qrToken
+      });
+      throw new Error("Missing required parameters for attendance marking");
+    }
+
+    console.log("Sending attendance request to:", `${API_URL}/attendance/mark`);
+
     const response = await axios.post(
       `${API_URL}/attendance/mark`,
-      { sessionId, studentId, deviceId, qrToken, compositeFingerprint },
+      {
+        sessionId,
+        studentId,
+        deviceId,
+        qrToken,
+        compositeFingerprint
+      },
       {
         headers: {
-          Authorization: `Bearer ${token}`,
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json",
+          "Accept": "application/json"
         },
+        // Add timeout to prevent hanging requests
+        timeout: 10000
       }
     );
+
+    console.log("Attendance API response:", response.status, response.data);
     return response.data;
   } catch (error) {
+    // Enhanced error logging
+    console.error("Attendance API error:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message
+    });
+
     if (error.response) {
       // Backend error with response
       throw {
-        message: error.response.data.message,
-        code: error.response.data.code,
-        success: error.response.data.success
+        message: error.response.data.message || "Server returned an error",
+        code: error.response.data.code || `ERROR_${error.response.status}`,
+        success: error.response.data.success || false,
+        status: error.response.status
       };
     } else {
       // Network or unexpected error
@@ -986,7 +1021,15 @@ export const getActiveSessionForUnit = async (unitId) => {
 
 export const checkSessionStatus = async (sessionId) => {
   try {
-    const response = await axios.get(`${API_URL}/sessions/status/${sessionId}`);
+    // Add token for authentication to prevent 401 errors
+    const token = localStorage.getItem("token");
+    const response = await axios.get(
+      `${API_URL}/sessions/status/${sessionId}`,
+      {
+        headers: token ? { Authorization: `Bearer ${token}` } : {}
+      }
+    );
+    console.log("Session status response:", response.data);
     return response.data;
   } catch (error) {
     console.error("Error checking session status:", error);

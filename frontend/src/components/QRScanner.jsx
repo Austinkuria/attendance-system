@@ -161,6 +161,14 @@ const QRScanner = () => {
     clearTimeout(scanTimeoutRef.current);
 
     try {
+      // Get authentication token first and verify it's available
+      const token = localStorage.getItem("token");
+      if (!token) {
+        message.error("Authentication failed. Please log in again.");
+        navigate("/auth/login");
+        return;
+      }
+
       // First check if session is still active
       const sessionStatus = await checkSessionStatus(sessionId);
       if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
@@ -170,13 +178,26 @@ const QRScanner = () => {
         return;
       }
 
-      const token = localStorage.getItem("token");
-      if (!token) throw new Error("Authentication failed. Please log in again.");
+      // Decode the token to get student ID
       const decoded = jwtDecode(token);
       const studentId = decoded.userId;
+      if (!studentId) {
+        message.error("Invalid user information. Please log in again.");
+        navigate("/auth/login");
+        return;
+      }
+
       const base64Data = result.data;
 
+      console.log("Marking attendance with params:", {
+        sessionId,
+        studentId,
+        deviceId,
+        qrData: base64Data.substring(0, 20) + "..." // Log truncated QR data for debugging
+      });
+
       const response = await markAttendance(sessionId, studentId, token, deviceId, base64Data, compositeFingerprint);
+
       if (response.success) {
         message.success(response.message || "Attendance marked successfully!");
         navigate("/student-dashboard");
@@ -194,6 +215,15 @@ const QRScanner = () => {
       }
     } catch (err) {
       console.error("Attendance marking error:", err);
+
+      // Check for authentication errors specifically
+      if (err.response?.status === 401 || err.message?.includes("unauthorized")) {
+        message.error("Your session has expired. Please log in again.");
+        localStorage.removeItem("token"); // Clear the invalid token
+        navigate("/auth/login");
+        return;
+      }
+
       if (err.message && typeof err.message === 'string') {
         if (err.message.includes("Session") ||
           (err.code && ["SESSION_INACTIVE", "QR_CODE_EXPIRED", "INVALID_QR_CODE"].includes(err.code))) {
