@@ -1513,4 +1513,33 @@ export const getUnitAttendanceRate = async (unitId) => {
   }
 };
 
+export const getLecturerPastAttendance = async (date = null) => {
+  try {
+    const token = localStorage.getItem('token');
+    if (!token) throw new Error("Authentication token missing");
+
+    let url = `${API_URL}/attendance/past-lecturer`;
+
+    // If date is provided, add it as a query parameter
+    // Convert date to ISO string and handle timezone offset
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      url += `?startDate=${startDate.toISOString()}&endDate=${endDate.toISOString()}`;
+    }
+
+    const response = await axios.get(url, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Error fetching past attendance:", error);
+    throw error;
+  }
+};
+
 export default api;

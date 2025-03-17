@@ -771,18 +771,22 @@ exports.getLecturerRealTimeAttendance = async (req, res) => {
 
 exports.getLecturerPastAttendance = async (req, res) => {
   try {
-    const lecturerId = req.user.userId; // From authenticated middleware
-    const { unitId, startDate, endDate, sessionId, year, semester, course } = req.query;
+    const lecturerId = req.user.userId;
+    const { startDate, endDate, unitId } = req.query;
+
+    console.log('Query params:', { startDate, endDate, unitId }); // Debug log
 
     if (!mongoose.Types.ObjectId.isValid(lecturerId)) {
       return res.status(400).json({ message: "Invalid lecturer ID format" });
     }
 
-    // Fetch lecturer's units
+    // Build unit query
     const unitQuery = { lecturer: lecturerId };
     if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
       unitQuery._id = unitId;
     }
+
+    // Get lecturer's units
     const units = await Unit.find(unitQuery).select('_id name');
     const unitIds = units.map(unit => unit._id);
 
@@ -790,35 +794,74 @@ exports.getLecturerPastAttendance = async (req, res) => {
       return res.status(200).json([]);
     }
 
-    // Fetch sessions with populated unit
-    const sessionQuery = { unit: { $in: unitIds }, ended: true }; // Only past (ended) sessions
-    if (startDate && endDate) {
-      sessionQuery.startTime = { $gte: new Date(startDate), $lte: new Date(endDate) };
+    // Build session query with proper date handling
+    const sessionQuery = {
+      unit: { $in: unitIds },
+      ended: true
+    };
+
+    if (startDate || endDate) {
+      sessionQuery.$or = [
+        // Check session start/end times
+        {
+          startTime: {
+            ...(startDate && { $gte: new Date(startDate) }),
+            ...(endDate && { $lte: new Date(endDate) })
+          }
+        },
+        // Check session creation/update times
+        {
+          createdAt: {
+            ...(startDate && { $gte: new Date(startDate) }),
+            ...(endDate && { $lte: new Date(endDate) })
+          }
+        }
+      ];
     }
-    if (sessionId && mongoose.Types.ObjectId.isValid(sessionId)) {
-      sessionQuery._id = sessionId;
-    }
+
+    console.log('Session Query:', JSON.stringify(sessionQuery, null, 2)); // Debug log
+
     const sessions = await Session.find(sessionQuery)
       .populate('unit', 'name')
-      .select('_id unit startTime endTime');
-    const sessionIds = sessions.map(session => session._id);
+      .select('_id unit startTime endTime')
+      .sort({ startTime: -1 });
 
-    if (!sessionIds.length) {
+    console.log(`Found ${sessions.length} sessions`); // Debug log
+
+    if (!sessions.length) {
       return res.status(200).json([]);
     }
 
-    // Fetch attendance records with student filters
-    const attendanceQuery = { session: { $in: sessionIds } };
-    const userQuery = { role: 'student' };
-    if (year) userQuery.year = Number(year);
-    if (semester) userQuery.semester = Number(semester);
-    if (course && mongoose.Types.ObjectId.isValid(course)) userQuery.course = course;
+    // Build attendance query with proper date handling
+    const sessionIds = sessions.map(session => session._id);
+    const attendanceQuery = {
+      session: { $in: sessionIds }
+    };
 
-    const students = await User.find(userQuery).select('_id');
-    const studentIds = students.map(student => student._id);
-    if (studentIds.length > 0) {
-      attendanceQuery.student = { $in: studentIds };
+    if (startDate || endDate) {
+      attendanceQuery.$or = [
+        {
+          attendedAt: {
+            ...(startDate && { $gte: new Date(startDate) }),
+            ...(endDate && { $lte: new Date(endDate) })
+          }
+        },
+        {
+          timestamp: {
+            ...(startDate && { $gte: new Date(startDate) }),
+            ...(endDate && { $lte: new Date(endDate) })
+          }
+        },
+        {
+          createdAt: {
+            ...(startDate && { $gte: new Date(startDate) }),
+            ...(endDate && { $lte: new Date(endDate) })
+          }
+        }
+      ];
     }
+
+    console.log('Attendance Query:', JSON.stringify(attendanceQuery, null, 2)); // Debug log
 
     const attendanceRecords = await Attendance.find(attendanceQuery)
       .populate({
@@ -831,22 +874,32 @@ exports.getLecturerPastAttendance = async (req, res) => {
         select: 'unit startTime endTime',
         populate: { path: 'unit', select: 'name' }
       })
-      .select('session status attendedAt');
+      .select('session status attendedAt timestamp createdAt');
 
-    // Structure response with session details
-    const response = sessions.map(session => ({
-      sessionId: session._id,
-      unitName: session.unit.name,
-      unit: session.unit._id,
-      startTime: session.startTime,
-      endTime: session.endTime,
-      attendance: attendanceRecords.filter(record => record.session._id.toString() === session._id.toString())
-    }));
+    console.log(`Found ${attendanceRecords.length} attendance records`); // Debug log
 
-    res.status(200).json(response);
+    // Group attendance records by session with additional metadata
+    const sessionsWithAttendance = sessions.map(session => {
+      const sessionAttendance = attendanceRecords.filter(
+        record => record.session._id.toString() === session._id.toString()
+      );
+
+      return {
+        sessionId: session._id,
+        unitName: session.unit.name,
+        unit: session.unit._id,
+        startTime: session.startTime,
+        endTime: session.endTime,
+        attendance: sessionAttendance,
+        totalPresent: sessionAttendance.filter(r => r.status === 'Present').length,
+        totalAbsent: sessionAttendance.filter(r => r.status === 'Absent').length
+      };
+    });
+
+    res.status(200).json(sessionsWithAttendance);
   } catch (error) {
     console.error("Error fetching lecturer past attendance:", error);
-    res.status(500).json({ message: "Error fetching past attendance records", error: error.message });
+    res.status(500).json({ message: "Error fetching attendance records", error: error.message });
   }
 };
 
