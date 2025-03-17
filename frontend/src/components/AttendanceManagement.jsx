@@ -598,8 +598,8 @@ const AttendanceManagement = () => {
 
       if (response?.data?.qrCode) {
         setQrData(response.data.qrCode);
-        // Start the next rotation slightly before expiration
-        const nextRotation = 40000; // 40 seconds - rotate before expiration
+        // Start the next rotation slightly before expiration (170 seconds)
+        const nextRotation = 170000; // 170 seconds - rotate before 3-minute expiration
         if (qrRotationInterval) {
           clearInterval(qrRotationInterval);
         }
