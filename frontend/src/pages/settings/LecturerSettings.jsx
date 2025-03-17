@@ -1,7 +1,7 @@
 import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../services/api';
-import { Layout, Card, Typography, Button, Form, Input, message, Spin, Space, Breadcrumb } from 'antd';
+import { Layout, Card, Typography, Button, Form, Input, message, Spin, Space } from 'antd';
 import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -65,15 +65,15 @@ const LecturerSettings = () => {
       setLoading(false);
     }
   };
-  
+
   return (
     <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
-      <Header style={{ 
-        padding: '0 16px', 
+      <Header style={{
+        padding: '0 16px',
         background: themeColors.cardBg,
-        position: 'fixed', 
-        width: '100%', 
-        zIndex: 1, 
+        position: 'fixed',
+        width: '100%',
+        zIndex: 1,
         display: 'flex',
         alignItems: 'center',
         boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
@@ -89,17 +89,10 @@ const LecturerSettings = () => {
           Account Settings
         </Title>
       </Header>
-      
+
       <Content style={{ padding: '24px', marginTop: 64 }}>
-        <Breadcrumb style={{ margin: '16px 0', color: themeColors.text }}>
-          <Breadcrumb.Item>
-            <a onClick={() => navigate('/lecturer-dashboard')} style={{ color: themeColors.primary }}>
-              Dashboard
-            </a>
-          </Breadcrumb.Item>
-          <Breadcrumb.Item style={{ color: themeColors.text }}>Settings</Breadcrumb.Item>
-        </Breadcrumb>
-        
+
+
         <SettingsCard theme={themeColors}>
           <Spin spinning={loadingProfile} tip="Loading profile data...">
             <Form
@@ -113,10 +106,10 @@ const LecturerSettings = () => {
                 label={<span style={{ color: themeColors.text }}>First Name</span>}
                 rules={[{ required: true, message: 'Please enter your first name' }]}
               >
-                <Input 
-                  prefix={<UserOutlined style={{ color: themeColors.placeholder }} />} 
-                  placeholder="First Name" 
-                  style={{ 
+                <Input
+                  prefix={<UserOutlined style={{ color: themeColors.placeholder }} />}
+                  placeholder="First Name"
+                  style={{
                     background: themeColors.inputBg,
                     color: themeColors.text,
                     borderColor: themeColors.inputBorder,
@@ -124,16 +117,16 @@ const LecturerSettings = () => {
                   }}
                 />
               </Form.Item>
-              
+
               <Form.Item
                 name="lastName"
                 label={<span style={{ color: themeColors.text }}>Last Name</span>}
                 rules={[{ required: true, message: 'Please enter your last name' }]}
               >
-                <Input 
-                  prefix={<UserOutlined style={{ color: themeColors.placeholder }} />} 
-                  placeholder="Last Name" 
-                  style={{ 
+                <Input
+                  prefix={<UserOutlined style={{ color: themeColors.placeholder }} />}
+                  placeholder="Last Name"
+                  style={{
                     background: themeColors.inputBg,
                     color: themeColors.text,
                     borderColor: themeColors.inputBorder,
@@ -141,7 +134,7 @@ const LecturerSettings = () => {
                   }}
                 />
               </Form.Item>
-              
+
               <Form.Item
                 name="email"
                 label={<span style={{ color: themeColors.text }}>Email</span>}
@@ -150,10 +143,10 @@ const LecturerSettings = () => {
                   { type: 'email', message: 'Please enter a valid email' }
                 ]}
               >
-                <Input 
-                  prefix={<MailOutlined style={{ color: themeColors.placeholder }} />} 
-                  placeholder="Email" 
-                  style={{ 
+                <Input
+                  prefix={<MailOutlined style={{ color: themeColors.placeholder }} />}
+                  placeholder="Email"
+                  style={{
                     background: themeColors.inputBg,
                     color: themeColors.text,
                     borderColor: themeColors.inputBorder,
@@ -166,9 +159,9 @@ const LecturerSettings = () => {
                 name="department"
                 label={<span style={{ color: themeColors.text }}>Department</span>}
               >
-                <Input 
-                  placeholder="Department" 
-                  style={{ 
+                <Input
+                  placeholder="Department"
+                  style={{
                     background: themeColors.inputBg,
                     color: themeColors.text,
                     borderColor: themeColors.inputBorder,
@@ -177,15 +170,15 @@ const LecturerSettings = () => {
                   disabled
                 />
               </Form.Item>
-              
+
               <Form.Item
                 name="password"
                 label={<span style={{ color: themeColors.text }}>Change Password</span>}
               >
-                <Input.Password 
-                  prefix={<LockOutlined style={{ color: themeColors.placeholder }} />} 
-                  placeholder="Leave blank to keep current password" 
-                  style={{ 
+                <Input.Password
+                  prefix={<LockOutlined style={{ color: themeColors.placeholder }} />}
+                  placeholder="Leave blank to keep current password"
+                  style={{
                     background: themeColors.inputBg,
                     color: themeColors.text,
                     borderColor: themeColors.inputBorder,
@@ -193,7 +186,7 @@ const LecturerSettings = () => {
                   }}
                 />
               </Form.Item>
-              
+
               <Form.Item
                 name="confirmPassword"
                 label={<span style={{ color: themeColors.text }}>Confirm Password</span>}
@@ -209,10 +202,10 @@ const LecturerSettings = () => {
                   }),
                 ]}
               >
-                <Input.Password 
-                  prefix={<LockOutlined style={{ color: themeColors.placeholder }} />} 
-                  placeholder="Confirm your new password" 
-                  style={{ 
+                <Input.Password
+                  prefix={<LockOutlined style={{ color: themeColors.placeholder }} />}
+                  placeholder="Confirm your new password"
+                  style={{
                     background: themeColors.inputBg,
                     color: themeColors.text,
                     borderColor: themeColors.inputBorder,
@@ -223,9 +216,9 @@ const LecturerSettings = () => {
 
               <Form.Item>
                 <Space>
-                  <Button 
-                    type="primary" 
-                    htmlType="submit" 
+                  <Button
+                    type="primary"
+                    htmlType="submit"
                     loading={loading}
                     style={{
                       background: themeColors.primary,
@@ -236,7 +229,7 @@ const LecturerSettings = () => {
                   >
                     {loading ? 'Saving Changes...' : 'Save Changes'}
                   </Button>
-                  <Button 
+                  <Button
                     onClick={() => navigate('/lecturer-dashboard')}
                     style={{
                       borderColor: themeColors.border,

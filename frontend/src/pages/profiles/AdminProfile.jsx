@@ -411,7 +411,7 @@ const AdminProfile = () => {
             padding: 0,
             margin: 0
           } : {}),
-          marginTop: window.innerWidth > 991 ? '0' : '5px',  // Adjusted margin for different screen sizes
+          marginTop: window.innerWidth > 991 ? '0' : '45px',  // Adjusted margin for different screen sizes
         }}>
           <ProfileCard
             background={themeColors.cardBg}

@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile } from '../../services/api';
-import { Layout, Card, Typography, Button, Spin, Row, Col, Space, Avatar, Breadcrumb, message } from 'antd';
+import { Layout, Card, Typography, Button, Spin, Row, Col, Space, Avatar, message } from 'antd';
 import { ArrowLeftOutlined, MailOutlined, IdcardOutlined, EditOutlined, LogoutOutlined, BookOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { theme } from 'antd';
@@ -128,11 +128,12 @@ const LecturerProfile = () => {
           <Title level={3} style={{ margin: 0, color: '#1890ff' }}>Profile</Title>
         </Space>
       </Header>
-      <Content style={{ padding: '88px 24px 24px', maxWidth: '1200px', margin: '0 auto' }}>
-        <Breadcrumb style={{ marginBottom: 16 }}>
-          <Breadcrumb.Item><a onClick={() => navigate('/lecturer-dashboard')}>Dashboard</a></Breadcrumb.Item>
-          <Breadcrumb.Item>Profile</Breadcrumb.Item>
-        </Breadcrumb>
+      <Content style={{
+        padding: '88px 24px 24px',
+        maxWidth: '1200px',
+        margin: '0 auto',
+        marginTop: window.innerWidth > 768 ? '45px' : '0',
+      }}>
         <ProfileCard>
           <Space direction="vertical" size="large" style={{ width: '100%' }}>
             <ActionBar>

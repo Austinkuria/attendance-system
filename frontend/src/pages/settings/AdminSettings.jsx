@@ -496,7 +496,7 @@ const AdminSettings = () => {
                   />
                 </Form.Item>
                 <Form.Item
-                  label={<span style={{ color: themeColors.text }}>New Password (optional)</span>}
+                  label={<span style={{ color: themeColors.text }}>Password (optional)</span>}
                   name="password"
                   rules={[
                     { min: 6, message: 'Password must be at least 6 characters long!' }
@@ -504,7 +504,7 @@ const AdminSettings = () => {
                 >
                   <Input.Password
                     prefix={<LockOutlined style={{ color: themeColors.primary }} />}
-                    placeholder="Enter new password"
+                    placeholder="Enter new password (leave blank to keep current)"
                     style={{ background: themeColors.inputBg, color: themeColors.text }}
                   />
                 </Form.Item>
