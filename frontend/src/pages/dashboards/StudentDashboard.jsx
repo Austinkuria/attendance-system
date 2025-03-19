@@ -76,6 +76,7 @@ const { Option } = Select;
 const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
 const StudentDashboard = () => {
+  // Removed unused dashboardData state
   const { isDarkMode, themeColors } = useContext(ThemeContext);
   const styles = useStyles(isDarkMode, themeColors);
   const navigate = useNavigate();
@@ -86,6 +87,7 @@ const StudentDashboard = () => {
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [dashboardData, setDashboardData] = useState(null); // Add this state
   // Add separate loading states for different data types
   const [loadingStates, setLoadingStates] = useState({
     profile: false,
@@ -139,7 +141,7 @@ const StudentDashboard = () => {
     feedback: false
   });
 
-  // Split the fetchAllData into separate functions for each data type
+  // Split the fetchAllData into separate functions for each data typerate functions for each data type
   const fetchProfileData = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
@@ -197,7 +199,8 @@ const StudentDashboard = () => {
         if (parsedCache.expiry > Date.now()) {
           // Cache is still valid
           const sanitizedUnits = parsedCache.data.filter((unit) =>
-            unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
+            unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== ''
+          );
           setUnits(sanitizedUnits);
           return sanitizedUnits;
         }
@@ -213,7 +216,8 @@ const StudentDashboard = () => {
 
       const unitsData = Array.isArray(unitsRes) ? unitsRes : (unitsRes?.enrolledUnits || []);
       const sanitizedUnits = unitsData.filter((unit) =>
-        unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
+        unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== ''
+      );
       setUnits(sanitizedUnits);
 
       // Cache units data with expiration (1 day)
@@ -453,7 +457,8 @@ const StudentDashboard = () => {
             const parsedUnits = JSON.parse(cachedUnits);
             if (parsedUnits.expiry > Date.now()) {
               const sanitizedUnits = parsedUnits.data.filter((unit) =>
-                unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== '');
+                unit && unit._id && typeof unit._id === 'string' && unit._id.trim() !== ''
+              );
               setUnits(sanitizedUnits);
             } else {
               needFullRefresh = true;
@@ -1489,6 +1494,57 @@ const StudentDashboard = () => {
     }));
   };
 
+  // Add the loadData function
+  const loadData = async () => {
+    try {
+      setLoading(true);
+
+      // Attempt to load cached data first
+      const cachedData = localStorage.getItem('dashboardCache');
+      if (cachedData && !navigator.onLine) {
+        const parsed = JSON.parse(cachedData);
+        setDashboardData(parsed);
+        message.info('You are offline. Showing last known data.');
+        return;
+      }
+
+      // Fetch fresh data when online
+      const profileData = await fetchProfileData();
+      const unitsData = await fetchUnitsData();
+      const attendanceData = profileData._id ? await fetchAttendanceData(profileData._id) : null;
+
+      const freshData = {
+        profile: profileData,
+        units: unitsData,
+        attendance: attendanceData
+      };
+
+      // Cache the fresh data
+      localStorage.setItem('dashboardCache', JSON.stringify(freshData));
+      setDashboardData(freshData);
+
+    } catch {
+      const msg = !navigator.onLine
+        ? 'You are offline. Please check your connection to see the latest data.'
+        : 'Failed to load data. Please try again.';
+
+      message.error(msg);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Add online/offline listener
+  useEffect(() => {
+    const handleOnline = () => {
+      message.success('Back online. Refreshing data...');
+      loadData();
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, []);
+
   // Update the loading indicator in the UI to show more specific loading states
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
@@ -1503,19 +1559,15 @@ const StudentDashboard = () => {
           .ant-dropdown .ant-dropdown-menu-item {
             color: ${themeColors.text} !important;
           }
-          
           .ant-dropdown .ant-dropdown-menu-item:hover {
             background-color: ${themeColors.hover} !important;
           }
-          
           .ant-dropdown .ant-dropdown-menu-item .anticon {
             color: ${themeColors.text} !important;
           }
-          
           .ant-dropdown .ant-dropdown-menu-item-divider {
             background-color: ${themeColors.border} !important;
           }
-          
           /* Special styling for logout menu item */
           .ant-dropdown .ant-dropdown-menu-item:last-child {
             margin: 4px 8px !important;
@@ -1530,10 +1582,8 @@ const StudentDashboard = () => {
           .ant-dropdown .ant-dropdown-menu-item:last-child .anticon {
             color: #fff !important;
           }
-          
           /* Existing styles continue below */
           ${styles.existingStyles}
-          
           /* Add custom spin size styles */
           .custom-spin.ant-spin {
             font-size: 24px;
@@ -1573,15 +1623,12 @@ const StudentDashboard = () => {
           [data-theme='light'] .ant-pagination-item:hover a {
             color: #000 !important; /* Keep black on hover */
           }
-          
           [data-theme='light'] .ant-pagination-item-active a {
             color: #fff !important; /* Active item remains white */
           }
-          
           [data-theme='light'] .ant-pagination-item-link .anticon {
             color: #000 !important; /* Black arrows in light mode */
           }
-          
           [data-theme='light'] .ant-pagination-prev:hover .ant-pagination-item-link,
           [data-theme='light'] .ant-pagination-next:hover .ant-pagination-item-link {
             color: #000 !important; /* Keep arrows black on hover */
@@ -1601,15 +1648,12 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-pagination-item:hover a {
             color: #fff !important; /* Stay white on hover */
           }
-          
           [data-theme='dark'] .ant-pagination-item-active a {
             color: #fff !important; /* Active item is white */
           }
-          
           [data-theme='dark'] .ant-pagination-item-link .anticon {
             color: #fff !important; /* White arrows */
           }
-          
           [data-theme='dark'] .ant-pagination-prev:hover .ant-pagination-item-link,
           [data-theme='dark'] .ant-pagination-next:hover .ant-pagination-item-link {
             color: #fff !important; /* Keep arrows white on hover */
@@ -1645,7 +1689,6 @@ const StudentDashboard = () => {
           .ant-modal-footer .ant-btn:hover {
             opacity: 0.8;
           }
-
           .ant-btn-primary span,
           .ant-modal-footer .ant-btn span {
             color: #fff !important;
@@ -1682,19 +1725,15 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-select-selection-item {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-select-dropdown {
             background-color: ${themeColors.background} !important;
           }
-
           [data-theme='dark'] .ant-select-item {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
             background-color: ${themeColors.border} !important;
           }
-
           [data-theme='dark'] .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
             background-color: ${themeColors.primary}40 !important;
             color: ${themeColors.text} !important;
@@ -1703,7 +1742,6 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-select-arrow {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-select-dropdown .ant-select-item {
             background-color: ${themeColors.background} !important;
             color: ${themeColors.text} !important;
@@ -1712,23 +1750,18 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-content {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-active {
             background-color: ${themeColors.border} !important;
           }
-
           [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-selected {
             background-color: ${themeColors.primary}40 !important;
           }
-
           [data-theme='dark'] .ant-select-dropdown .ant-select-item:hover {
             background-color: ${themeColors.border} !important;
           }
-
           [data-theme='dark'] .ant-select-selection-item {
             color: ${themeColors.text} !important;
           }
-
           /* Dark mode calendar and datepicker styles */
           [data-theme='dark'] .ant-picker {
             background-color: ${themeColors.background} !important;
@@ -1738,19 +1771,15 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-picker-suffix {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-input > input {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-dropdown {
             background-color: ${themeColors.background} !important;
           }
-
           [data-theme='dark'] .ant-picker-content th {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-header {
             color: ${themeColors.text} !important;
             border-bottom-color: ${themeColors.border} !important;
@@ -1759,43 +1788,33 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-picker-header button {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-header-view {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-cell {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-cell-disabled {
             color: ${themeColors.text}40 !important;
           }
-
           [data-theme='dark'] .ant-picker-cell-in-view {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-content {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-range-start):not(.ant-picker-cell-range-end):not(.ant-picker-cell-range-hover-start):not(.ant-picker-cell-range-hover-end) .ant-picker-cell-inner {
             background: ${themeColors.border} !important;
           }
-
           [data-theme='dark'] .ant-picker-cell-inner {
             color: ${themeColors.text} !important;
           }
-
           [data-theme='dark'] .ant-picker-cell-today .ant-picker-cell-inner::before {
             border-color: ${themeColors.primary} !important;
           }
-
           [data-theme='dark'] .ant-picker-cell-selected .ant-picker-cell-inner {
             background: ${themeColors.primary} !important;
           }
-
           /* Fix profile icon color in dark mode */
           [data-theme='dark'] .header-profile-icon {
             color: #fff !important;
@@ -1804,7 +1823,6 @@ const StudentDashboard = () => {
           [data-theme='light'] .header-profile-icon {
             color: #000 !important;
           }
-
           /* Rate component styles for both themes */
           .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
           .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
@@ -1844,7 +1862,6 @@ const StudentDashboard = () => {
           [data-theme='light'] .ant-slider-mark-text-active {
             color: rgba(0, 0, 0, 0.88) !important;
           }
-
           /* Dark mode specific adjustments */
           [data-theme='dark'] .ant-slider-mark-text {
             color: rgba(255, 255, 255, 0.65) !important;
@@ -1853,7 +1870,6 @@ const StudentDashboard = () => {
           [data-theme='dark'] .ant-slider-mark-text-active {
             color: rgba(255, 255, 255, 0.88) !important;
           }
-
           /* Calendar weekday header specific fixes for both themes */
           .ant-picker-content th {
             color: ${isDarkMode ? themeColors.primary : 'rgba(0, 0, 0, 0.85)'} !important;
@@ -1961,7 +1977,6 @@ const StudentDashboard = () => {
           </Dropdown>
         </Space>
       </Header>
-
       <Layout>
         <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={styles.sider}>
           <Menu
@@ -2160,7 +2175,6 @@ const StudentDashboard = () => {
                                           const latestRecord = attendanceData.attendanceRecords
                                             .filter(rec => rec.session.unit._id.toString() === unit._id.toString())
                                             .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime))[0];
-
                                           if (!latestRecord) return 'Feedback';
                                           if (latestRecord.feedbackSubmitted) return 'Feedback Submitted';
                                           if (latestRecord.session.ended) return 'Feedback Available';
@@ -2360,7 +2374,7 @@ const StudentDashboard = () => {
                         opacity: 0.8,
                         backgroundColor: `${themeColors.accent} !important`,
                         borderColor: `${themeColors.accent} !important`,
-                        color: '#fff !important'
+                        color: '#fff !important',
                       }
                     }
                   }}
@@ -2442,7 +2456,7 @@ const StudentDashboard = () => {
                       onClick={handleDeviceModalCancel}
                       style={{
                         borderColor: themeColors.accent,
-                        color: themeColors.accent
+                        color: themeColors.accent,
                       }}
                     >
                       Cancel
@@ -2458,7 +2472,7 @@ const StudentDashboard = () => {
                   ]}
                   destroyOnClose={true}
                   maskClosable={false}
-                  centered
+                  centered={false}
                 >
                   <p style={{ color: themeColors.text }}>
                     We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.

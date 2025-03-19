@@ -1,4 +1,5 @@
 import axios from "axios";
+import { openDB } from 'idb';
 
 // Use environment variable for base URL, with fallback
 const API_URL = import.meta.env.VITE_API_URL || "https://attendance-system-w70n.onrender.com/api";
@@ -8,6 +9,36 @@ const api = axios.create({
   baseURL: API_URL, // Use baseURL instead of API_URL as a property
   timeout: 15000, // 15 second timeout
 });
+
+// Initialize IndexedDB
+const initDB = async () => {
+  return openDB('attendance-db', 1, {
+    upgrade(db) {
+      // Create stores for different data types
+      if (!db.objectStoreNames.contains('profile')) {
+        db.createObjectStore('profile');
+      }
+      if (!db.objectStoreNames.contains('attendance')) {
+        db.createObjectStore('attendance');
+      }
+      if (!db.objectStoreNames.contains('units')) {
+        db.createObjectStore('units');
+      }
+    }
+  });
+};
+
+// Helper to store data in IndexedDB
+const storeInIndexedDB = async (storeName, key, data) => {
+  const db = await initDB();
+  await db.put(storeName, data, key);
+};
+
+// Helper to get data from IndexedDB
+const getFromIndexedDB = async (storeName, key) => {
+  const db = await initDB();
+  return await db.get(storeName, key);
+};
 
 // Function to get token from local storage
 const getToken = () => {
@@ -73,11 +104,46 @@ api.interceptors.response.use(
 
 // Add error interceptor to transform error messages
 api.interceptors.response.use(
-  response => response,
-  error => {
+  async (response) => {
+    // Cache successful GET responses
+    if (response.config.method === 'get') {
+      try {
+        const url = response.config.url;
+        const storeName = url.includes('profile') ? 'profile' :
+          url.includes('attendance') ? 'attendance' :
+            url.includes('units') ? 'units' : null;
+
+        if (storeName) {
+          await storeInIndexedDB(storeName, url, response.data);
+        }
+      } catch (err) {
+        console.warn('Error caching response:', err);
+      }
+    }
+    return response;
+  },
+  async (error) => {
     let errorMessage = 'An unexpected error occurred';
 
-    if (error.response) {
+    if (!navigator.onLine) {
+      try {
+        const url = error.config.url;
+        const storeName = url.includes('profile') ? 'profile' :
+          url.includes('attendance') ? 'attendance' :
+            url.includes('units') ? 'units' : null;
+
+        if (storeName) {
+          const cachedData = await getFromIndexedDB(storeName, url);
+          if (cachedData) {
+            return Promise.resolve({ data: cachedData, _fromCache: true });
+          }
+        }
+        errorMessage = 'You are offline. Some data may not be up to date.';
+      } catch (err) {
+        console.log( err)
+        errorMessage = 'No cached data available offline';
+      }
+    } else if (error.response) {
       // Server responded with error
       switch (error.response.status) {
         case 404:
@@ -127,15 +193,32 @@ export const getUserProfile = async () => {
     throw new Error('No token found');
   }
   try {
+    if (!navigator.onLine) {
+      const cachedProfile = await getFromIndexedDB('profile', 'userProfile');
+      if (cachedProfile) {
+        return cachedProfile;
+      }
+      throw new Error('No cached profile data available offline');
+    }
+
     const response = await axios.get(`${API_URL}/users/profile`, {
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json"
       }
     });
+
+    // Cache the profile data
+    await storeInIndexedDB('profile', 'userProfile', response.data);
     return response.data;
   } catch (error) {
-    console.error("Error fetching student profile:", error.response?.data || error.message);
+    if (!navigator.onLine) {
+      const cachedData = await getFromIndexedDB('profile', 'userProfile');
+      if (cachedData) {
+        return cachedData;
+      }
+    }
+    console.error("Error fetching profile:", error.response?.data || error.message);
     throw error;
   }
 };
