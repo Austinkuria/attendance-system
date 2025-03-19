@@ -63,7 +63,7 @@ QRollCall is a comprehensive web-based attendance tracking application designed 
 - **Routing**: React Router
 - **HTTP Client**: Axios
 - **PWA Support**: VitePWA
-- **Data Visualization**: Chart.js
+- **Data Visualization**: Chart.js with React-Chartjs-2
 - **QR Code Handling**: react-qr-code, react-qr-reader
 - **Build Tool**: Vite
 
@@ -72,7 +72,7 @@ QRollCall is a comprehensive web-based attendance tracking application designed 
 - **Framework**: Express.js
 - **Database**: MongoDB with Mongoose ODM
 - **Authentication**: JWT (JSON Web Tokens)
-- **API Documentation**: Swagger
+- **API Documentation**: Express-based documentation (Swagger integration planned)
 - **File Handling**: Multer
 - **Email Services**: Nodemailer
 - **Data Validation**: Express-validator
@@ -87,13 +87,13 @@ The application follows a client-server architecture:
 - **Frontend**: Single-page application built with React
 - **Backend**: RESTful API service built with Express.js
 - **Database**: MongoDB document database
-- **Authentication**: JWT token-based auth with refresh tokens
+- **Authentication**: JWT token-based auth (single token strategy)
 - **Caching**: Service worker and IndexedDB for offline capabilities
 
 ## Installation
 
 ### Prerequisites
-- Node.js (v16+)
+- Node.js (v14+)
 - npm or yarn
 - MongoDB (local or Atlas connection)
 - Git
@@ -266,13 +266,12 @@ The backend API is organized into the following main routes:
 
 ## PWA Support
 
-QRollCall includes full Progressive Web App (PWA) support:
+QRollCall includes Progressive Web App (PWA) support:
 
 - Installable on mobile and desktop devices
-- Works offline with cached data
-- Push notifications for important events
-- Background sync for offline actions
-- App-like experience with full-screen mode
+- Basic offline access to previously viewed content
+- Online/offline status indicators
+- Service worker for asset caching
 
 To install the PWA:
 1. Open the application in a supported browser
@@ -300,14 +299,13 @@ The system implements several security measures:
 - Input validation and sanitization
 - CORS protection against unauthorized domains
 - Rate limiting to prevent brute force attacks
-- QR codes that expire after use to prevent replay attacks
-- Geolocation validation (optional feature)
+- QR codes that expire quickly to prevent sharing
 
 ## Contributors
 
-- https://github.com/Austinkuria
-- 
+- [Austin Kuria](https://github.com/Austinkuria)
 
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+````
