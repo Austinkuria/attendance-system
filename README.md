@@ -284,10 +284,11 @@ To install the PWA:
 The application implements a robust offline strategy:
 
 - Session data is cached for offline viewing
-- Students can queue attendance marking when offline
-- Data synchronizes automatically when connection is restored
+- Attendance marking requires an internet connection to validate QR codes
+- Previously loaded profile and course data is available offline
 - IndexedDB stores user profile and relevant course information
 - Clear visual indicators show online/offline status
+- Automatic reconnection and synchronization when connection is restored
 
 ## Security
 
