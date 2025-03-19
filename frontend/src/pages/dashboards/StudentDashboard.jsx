@@ -2099,9 +2099,6 @@ const StudentDashboard = () => {
                                   try {
                                     // Only set selected unit if it's a valid object
                                     if (unit && typeof unit === 'object' && unit._id) {
-                                      // Check if there's an active session for this unit
-                                      checkActiveSessionForUnit(unit._id);
-
                                       // Create a safe copy of the unit object to avoid rendering issues
                                       const safeUnit = {
                                         _id: unit._id,
@@ -2118,7 +2115,18 @@ const StudentDashboard = () => {
                                           ? 'See course syllabus for details'
                                           : (unit.description || 'N/A')
                                       };
+
+                                      // Set loading state for this unit before checking active session
+                                      setActiveSessionsByUnit(prev => ({
+                                        ...prev,
+                                        [unit._id]: { loading: true }
+                                      }));
+
+                                      // Set selected unit immediately to show modal
                                       setSelectedUnit(safeUnit);
+
+                                      // Then check for active session
+                                      checkActiveSessionForUnit(unit._id);
                                     }
                                   } catch (error) {
                                     console.error("Error selecting unit:", error);
@@ -2283,50 +2291,65 @@ const StudentDashboard = () => {
                         }</p>
                       )}
 
-                      {/* Display session status */}
+                      {/* Display session status with improved loading state handling */}
                       <div style={{
                         marginTop: '12px',
                         padding: '8px',
                         borderRadius: '4px',
-                        backgroundColor: activeSessionsByUnit[selectedUnit._id] ? `${themeColors.secondary}20` : `${themeColors.accent}20`,
-                        borderLeft: `4px solid ${activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent}`,
+                        backgroundColor: activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id].loading
+                          ? `${themeColors.secondary}20`
+                          : `${themeColors.accent}20`,
+                        borderLeft: `4px solid ${activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id].loading
+                          ? themeColors.secondary
+                          : themeColors.accent}`,
                       }}>
-                        <p style={{
-                          margin: 0,
-                          fontWeight: 'bold',
-                          color: activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent
-                        }}>
-                          {activeSessionsByUnit[selectedUnit._id]
-                            ? <><span style={{ marginRight: '8px' }}>●</span> Active Session Available</>
-                            : <><span style={{ marginRight: '8px' }}>○</span> No Active Session</>}
-                        </p>
-                        {activeSessionsByUnit[selectedUnit._id] && (
+                        {activeSessionsByUnit[selectedUnit._id]?.loading ? (
+                          // Show loading state
+                          <div style={{ display: 'flex', alignItems: 'center' }}>
+                            <Spin size="small" style={{ marginRight: '10px' }} />
+                            <p style={{ margin: 0 }}>Checking session status...</p>
+                          </div>
+                        ) : (
+                          // Show session status after loading completes
                           <>
-                            <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
-                              Started: {moment(activeSessionsByUnit[selectedUnit._id].startTime).format('MMM D, YYYY h:mm A')}
-                            </p>
-                            <p style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
-                              Ends: {activeSessionsByUnit[selectedUnit._id].duration
-                                ? moment(activeSessionsByUnit[selectedUnit._id].startTime)
-                                  .add(activeSessionsByUnit[selectedUnit._id].duration, 'minutes')
-                                  .format('MMM D, YYYY h:mm A')
-                                : 'When lecturer ends the session or by default after one hour'}
-                            </p>
                             <p style={{
-                              margin: '4px 0 0 0',
-                              fontSize: '14px',
+                              margin: 0,
                               fontWeight: 'bold',
-                              color: sessionCountdowns[selectedUnit._id] === 'Ended' ? themeColors.accent : themeColors.secondary
+                              color: activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent
                             }}>
-                              Time remaining: {sessionCountdowns[selectedUnit._id] || 'Calculating...'}
+                              {activeSessionsByUnit[selectedUnit._id]
+                                ? <><span style={{ marginRight: '8px' }}>●</span> Active Session Available</>
+                                : <><span style={{ marginRight: '8px' }}>○</span> No Active Session</>}
+                            </p>
+                            {activeSessionsByUnit[selectedUnit._id] && (
+                              <>
+                                <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                                  Started: {moment(activeSessionsByUnit[selectedUnit._id].startTime).format('MMM D, YYYY h:mm A')}
+                                </p>
+                                <p style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
+                                  Ends: {activeSessionsByUnit[selectedUnit._id].duration
+                                    ? moment(activeSessionsByUnit[selectedUnit._id].startTime)
+                                      .add(activeSessionsByUnit[selectedUnit._id].duration, 'minutes')
+                                      .format('MMM D, YYYY h:mm A')
+                                    : 'When lecturer ends the session or by default after one hour'}
+                                </p>
+                                <p style={{
+                                  margin: '4px 0 0 0',
+                                  fontSize: '14px',
+                                  fontWeight: 'bold',
+                                  color: sessionCountdowns[selectedUnit._id] === 'Ended' ? themeColors.accent : themeColors.secondary
+                                }}>
+                                  Time remaining: {sessionCountdowns[selectedUnit._id] || 'Calculating...'}
+                                </p>
+                              </>
+                            )}
+                            <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                              {activeSessionsByUnit[selectedUnit._id]
+                                ? 'You can mark attendance for this session now.'
+                                : 'Check back later for the next available session.'}
                             </p>
                           </>
                         )}
-                        <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
-                          {activeSessionsByUnit[selectedUnit._id]
-                            ? 'You can mark attendance for this session now.'
-                            : 'Check back later for the next available session.'}
-                        </p>
                       </div>
 
                       <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
@@ -2334,11 +2357,11 @@ const StudentDashboard = () => {
                           type="primary"
                           icon={<QrcodeOutlined style={{ color: '#fff' }} />}
                           onClick={() => { handleAttendClick(selectedUnit._id); }}
-                          disabled={!activeSessionsByUnit[selectedUnit._id]}
+                          disabled={!activeSessionsByUnit[selectedUnit._id] || activeSessionsByUnit[selectedUnit._id]?.loading}
                           style={{
                             ...styles.button,
                             color: '#fff',
-                            opacity: activeSessionsByUnit[selectedUnit._id] ? 1 : 0.6
+                            opacity: activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id]?.loading ? 1 : 0.6
                           }}
                         >
                           <span style={{ color: '#fff' }}>Attend Session</span>
