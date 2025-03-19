@@ -17,13 +17,32 @@ self.addEventListener('install', event => {
         // Check if workbox loaded properly
         if (self.workbox) {
           console.log('Workbox loaded successfully');
-          
+
           // Initialize workbox
           self.workbox.setConfig({ debug: false });
-          
+
           // Set up routes after workbox is ready
           const { strategies, routing, cacheableResponse, expiration, backgroundSync } = self.workbox;
-          
+
+          // Cache static assets
+          routing.registerRoute(
+            ({ request }) => request.destination === 'style' ||
+              request.destination === 'script' ||
+              request.destination === 'image',
+            new strategies.StaleWhileRevalidate({
+              cacheName: 'static-resources',
+              plugins: [
+                new cacheableResponse.CacheableResponsePlugin({
+                  statuses: [0, 200],
+                }),
+                new expiration.ExpirationPlugin({
+                  maxEntries: 60,
+                  maxAgeSeconds: 30 * 24 * 60 * 60, // 30 Days
+                }),
+              ],
+            })
+          );
+
           // API cache route
           routing.registerRoute(
             /^https:\/\/attendance-system-w70n\.onrender\.com\/api\/.*/,
@@ -41,7 +60,7 @@ self.addEventListener('install', event => {
               networkTimeoutSeconds: 3,
             })
           );
-          
+
           // Background sync for POST requests
           routing.registerRoute(
             /^https:\/\/attendance-system-w70n\.onrender\.com\/api\/.*/,
@@ -54,7 +73,7 @@ self.addEventListener('install', event => {
             }),
             'POST'
           );
-          
+
           resolve();
         } else {
           reject(new Error('Workbox failed to load'));
