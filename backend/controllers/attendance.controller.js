@@ -112,20 +112,45 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    const existingDeviceRecord = await Attendance.findOne({
+    // Enhanced device conflict detection
+    const existingDeviceRecords = await Attendance.find({
       session: sessionId,
-      $or: [
-        { deviceId: deviceId, compositeFingerprint: compositeFingerprint },
-        { deviceId: deviceId },
-        { compositeFingerprint: compositeFingerprint }
-      ],
       status: "Present"
     });
-    if (existingDeviceRecord) {
+
+    // Device collision detection
+    let deviceConflict = false;
+    let conflictType = "";
+
+    // Check for exact matches first (highest confidence)
+    if (existingDeviceRecords.some(record => record.deviceId === deviceId || record.compositeFingerprint === compositeFingerprint)) {
+      deviceConflict = true;
+      conflictType = "exact";
+    }
+
+    // If no exact match, check for partial fingerprint similarity
+    if (!deviceConflict && compositeFingerprint && compositeFingerprint.length > 20) {
+      for (const record of existingDeviceRecords) {
+        if (record.compositeFingerprint && record.compositeFingerprint.length > 20) {
+          // Calculate similarity score between fingerprints
+          const similarityScore = calculateFingerprintSimilarity(compositeFingerprint, record.compositeFingerprint);
+
+          // If similarity is above threshold, consider it a match
+          if (similarityScore > 0.7) { // 70% similarity is considered the same device
+            deviceConflict = true;
+            conflictType = "similar";
+            break;
+          }
+        }
+      }
+    }
+
+    if (deviceConflict) {
       return res.status(403).json({
         success: false,
         code: "DEVICE_CONFLICT",
-        message: "This device or fingerprint has already marked attendance for this session."
+        message: "This device has already been used to mark attendance for this session.",
+        conflictType: conflictType
       });
     }
 
@@ -158,6 +183,66 @@ exports.markAttendance = async (req, res) => {
     });
   }
 };
+
+/**
+ * Calculate similarity between two fingerprints
+ * Uses Jaccard similarity for string comparison
+ */
+function calculateFingerprintSimilarity(fp1, fp2) {
+  // Handle null or empty cases
+  if (!fp1 || !fp2 || fp1.length < 10 || fp2.length < 10) {
+    return 0;
+  }
+
+  try {
+    // For hex fingerprints, compare character by character
+    if (/^[0-9a-f]+$/i.test(fp1) && /^[0-9a-f]+$/i.test(fp2)) {
+      // Take character chunks for comparison
+      const chunkSize = 2;
+      const set1 = new Set();
+      const set2 = new Set();
+
+      // Create sets of chunks from fingerprints
+      for (let i = 0; i < fp1.length - chunkSize + 1; i++) {
+        set1.add(fp1.substring(i, i + chunkSize));
+      }
+
+      for (let i = 0; i < fp2.length - chunkSize + 1; i++) {
+        set2.add(fp2.substring(i, i + chunkSize));
+      }
+
+      // Calculate Jaccard similarity: intersection size / union size
+      const intersection = new Set([...set1].filter(x => set2.has(x)));
+      const union = new Set([...set1, ...set2]);
+
+      return intersection.size / union.size;
+    }
+    // For non-hex fingerprints, compare more directly
+    else {
+      // Split strings and find common substrings
+      const parts1 = fp1.split(/[-,_\s]/);
+      const parts2 = fp2.split(/[-,_\s]/);
+
+      // Count matching parts
+      let matches = 0;
+      for (const part1 of parts1) {
+        if (part1.length < 3) continue; // Skip very short parts
+
+        if (parts2.some(part2 =>
+          part2.length >= 3 &&
+          (part1.includes(part2) || part2.includes(part1))
+        )) {
+          matches++;
+        }
+      }
+
+      return matches / Math.max(parts1.length, parts2.length);
+    }
+  } catch (error) {
+    console.error("Error calculating fingerprint similarity:", error);
+    return 0; // Return no similarity on error
+  }
+}
 
 exports.markAbsentees = async (sessionId) => {
   try {

@@ -54,18 +54,41 @@ const QRScanner = () => {
       }
 
       setTimeout(async () => {
+        // Using FingerprintJS for the main visitor ID
         const fp = await FingerprintJS.load();
         const result = await fp.get();
         const visitorId = result.visitorId;
         setDeviceId(visitorId);
         localStorage.setItem('deviceFingerprint', visitorId);
 
+        // Enhanced device attributes collection
         const attributes = {
+          // Basic screen properties
           screen: `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`,
+          // Timezone and language
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
           language: navigator.language || 'unknown',
+          // Hardware info
+          hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+          deviceMemory: navigator.deviceMemory || 'unknown',
+          platform: navigator.platform || 'unknown',
+          // Connection info if available
+          connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
+          // GPU info if available
+          gpu: getGPUInfo(),
+          // Canvas fingerprint
+          canvas: await generateCanvasFingerprint(),
+          // Audio context fingerprint
+          audio: await generateAudioFingerprint(),
+          // WebGL fingerprint
+          webgl: getWebGLFingerprint(),
+          // Font detection fingerprint
+          fonts: detectCommonFonts(),
+          // User agent normalized components
+          userAgentData: getUserAgentComponents()
         };
 
+        // Generate a composite fingerprint from all attributes
         const encoder = new TextEncoder();
         const data = encoder.encode(JSON.stringify(attributes));
         const hashBuffer = await crypto.subtle.digest('SHA-256', data);
@@ -82,6 +105,201 @@ const QRScanner = () => {
       setDeviceId(fallbackFingerprint);
       setCompositeFingerprint(fallbackFingerprint);
     }
+  };
+
+  // Canvas fingerprinting to detect same device across browsers
+  const generateCanvasFingerprint = async () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      canvas.width = 200;
+      canvas.height = 200;
+
+      // Text with different fonts, colors and transformations
+      ctx.textBaseline = 'top';
+      ctx.font = '14px Arial';
+      ctx.fillStyle = '#F72585';
+      ctx.fillText('Canvas Fingerprint', 10, 50);
+      ctx.font = '18px Times New Roman';
+      ctx.fillStyle = '#4361EE';
+      ctx.fillText('Attendance System', 10, 70);
+
+      // Add some shapes with gradients
+      const gradient = ctx.createLinearGradient(0, 0, 200, 0);
+      gradient.addColorStop(0, '#3A0CA3');
+      gradient.addColorStop(1, '#4CC9F0');
+      ctx.fillStyle = gradient;
+      ctx.fillRect(10, 90, 160, 40);
+
+      // Some arcs and curves that depend on device rendering
+      ctx.beginPath();
+      ctx.arc(100, 150, 30, 0, Math.PI * 2);
+      ctx.closePath();
+      ctx.fillStyle = 'rgba(255, 140, 0, 0.5)';
+      ctx.fill();
+
+      // Get the canvas data URL and hash it
+      const dataURL = canvas.toDataURL();
+      const encoder = new TextEncoder();
+      const data = encoder.encode(dataURL);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', data);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    } catch (error) {
+      console.error('Canvas fingerprinting error:', error);
+      return 'canvas-unavailable';
+    }
+  };
+
+  // Audio fingerprinting (detects audio processing characteristics)
+  const generateAudioFingerprint = async () => {
+    try {
+      if (!window.AudioContext && !window.webkitAudioContext) {
+        return 'audio-unsupported';
+      }
+
+      const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      const oscillator = audioContext.createOscillator();
+      const analyser = audioContext.createAnalyser();
+      const gain = audioContext.createGain();
+
+      analyser.fftSize = 1024;
+      gain.gain.value = 0; // Mute the sound
+
+      oscillator.type = 'triangle';
+      oscillator.frequency.value = 440; // A4 note
+
+      oscillator.connect(analyser);
+      analyser.connect(gain);
+      gain.connect(audioContext.destination);
+
+      oscillator.start(0);
+
+      const dataArray = new Uint8Array(analyser.frequencyBinCount);
+      analyser.getByteFrequencyData(dataArray);
+
+      oscillator.stop();
+      audioContext.close();
+
+      // Use first 20 frequency bins as fingerprint
+      const limitedArray = Array.from(dataArray.slice(0, 20));
+      return limitedArray.join(',');
+    } catch (error) {
+      console.error('Audio fingerprinting error:', error);
+      return 'audio-error';
+    }
+  };
+
+  // WebGL fingerprinting
+  const getWebGLFingerprint = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+      if (!gl) {
+        return 'webgl-unsupported';
+      }
+
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (!debugInfo) {
+        return 'webgl-no-debug-info';
+      }
+
+      const vendor = gl.getParameter(debugInfo.UNMASKED_VENDOR_WEBGL);
+      const renderer = gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+
+      return `${vendor}-${renderer}`;
+    } catch (error) {
+      console.error('WebGL fingerprinting error:', error);
+      return 'webgl-error';
+    }
+  };
+
+  // Get GPU info
+  const getGPUInfo = () => {
+    try {
+      const canvas = document.createElement('canvas');
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+
+      if (!gl) {
+        return 'gpu-info-unavailable';
+      }
+
+      const debugInfo = gl.getExtension('WEBGL_debug_renderer_info');
+      if (!debugInfo) {
+        return 'gpu-debug-info-unavailable';
+      }
+
+      return gl.getParameter(debugInfo.UNMASKED_RENDERER_WEBGL);
+    } catch (error) {
+      console.error('GPU info error:', error);
+      return 'gpu-error';
+    }
+  };
+
+  // Font detection
+  const detectCommonFonts = () => {
+    const baseFonts = ['monospace', 'sans-serif', 'serif'];
+    const fontList = [
+      'Arial', 'Courier New', 'Georgia', 'Times New Roman',
+      'Verdana', 'Tahoma', 'Trebuchet MS'
+    ];
+
+    const testString = 'mmmmmmmmmmlli';
+    const testSize = '72px';
+    const h = document.createElement('span');
+    h.style.fontSize = testSize;
+    h.innerHTML = testString;
+    const body = document.body;
+    body.appendChild(h);
+
+    const result = [];
+
+    for (const font of fontList) {
+      let detected = true;
+      for (const baseFont of baseFonts) {
+        h.style.fontFamily = `'${font}', ${baseFont}`;
+        const defaultWidth = h.offsetWidth;
+        const defaultHeight = h.offsetHeight;
+
+        h.style.fontFamily = baseFont;
+        const baseWidth = h.offsetWidth;
+        const baseHeight = h.offsetHeight;
+
+        if (defaultWidth !== baseWidth || defaultHeight !== baseHeight) {
+          detected = true;
+          break;
+        } else {
+          detected = false;
+        }
+      }
+
+      if (detected) {
+        result.push(font);
+      }
+    }
+
+    body.removeChild(h);
+    return result.join(',');
+  };
+
+  // Extract consistent user agent components
+  const getUserAgentComponents = () => {
+    const ua = navigator.userAgent;
+    // Extract OS info
+    let os = 'unknown';
+    if (ua.includes('Windows')) os = 'Windows';
+    else if (ua.includes('Mac OS')) os = 'Mac';
+    else if (ua.includes('Linux')) os = 'Linux';
+    else if (ua.includes('Android')) os = 'Android';
+    else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+
+    // Extract device type
+    let deviceType = 'desktop';
+    if (ua.includes('Mobile')) deviceType = 'mobile';
+    else if (ua.includes('Tablet') || ua.includes('iPad')) deviceType = 'tablet';
+
+    return `${os}-${deviceType}`;
   };
 
   useEffect(() => {
