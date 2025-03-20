@@ -35,7 +35,7 @@ const { Title: AntTitle } = Typography;
 
 const LecturerDashboard = () => {
   const { isDarkMode, themeColors } = useContext(ThemeContext);
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
+  const [collapsed, setCollapsed] = useState(window.innerWidth < 768); // Collapse by default on smaller screens
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading dashboard data...');
@@ -59,6 +59,7 @@ const LecturerDashboard = () => {
       alignItems: 'center',
       justifyContent: 'space-between',
       borderBottom: `1px solid ${themeColors.border}`,
+      height: '64px', // Fixed height for header
     },
     sider: {
       background: themeColors.cardBg,
@@ -74,7 +75,7 @@ const LecturerDashboard = () => {
       padding: 0,
       background: themeColors.background,
       minHeight: 'calc(100vh - 64px)',
-      overflow: 'auto',
+      overflow: 'initial', // Changed from 'auto' to prevent nested scrollbars
       transition: 'margin-left 0.3s ease-in-out',
       position: 'relative', // Add position relative
       zIndex: 1, // Lower z-index than sider
@@ -181,6 +182,53 @@ const LecturerDashboard = () => {
           margin-bottom: 0;
         }
       }
+      /* Fix content area on small screens */
+      @media (max-width: 767px) {
+        .ant-layout-sider {
+          position: fixed !important;
+          z-index: 1001 !important; /* Above everything else */
+          height: calc(100vh - 64px) !important;
+          overflow-y: auto !important;
+          transition: all 0.3s ease !important;
+          top: 64px !important;
+          left: 0 !important;
+        }
+        
+        .ant-layout-sider-collapsed {
+          transform: translateX(-100%) !important;
+          box-shadow: none !important;
+        }
+        
+        .ant-layout-content {
+          margin-left: 0 !important;
+          padding: 0 !important;
+          width: 100% !important;
+        }
+        
+        /* Hamburger menu always visible on mobile */
+        .mobile-menu-button {
+          display: block !important;
+          position: fixed !important;
+          z-index: 1001 !important;
+          top: 12px !important;
+          left: 12px !important;
+        }
+      }
+      
+      /* Optimize for very small screens */
+      @media (max-width: 359px) {
+        .ant-layout-header {
+          padding: 0 8px !important;
+        }
+        
+        .ant-typography {
+          font-size: 16px !important;
+        }
+        
+        .ant-btn {
+          padding: 0 8px !important;
+        }
+      }
     `,
   };
 
@@ -222,10 +270,16 @@ const LecturerDashboard = () => {
     };
   }, []);
 
+  // Optimize resize handler
   useEffect(() => {
     const handleResize = () => {
-      setCollapsed(window.innerWidth < 992);
+      if (window.innerWidth < 768) {
+        setCollapsed(true);
+      } else if (window.innerWidth > 1200) {
+        setCollapsed(false);
+      }
     };
+
     window.addEventListener('resize', handleResize);
     return () => window.removeEventListener('resize', handleResize);
   }, []);
@@ -321,6 +375,17 @@ const LecturerDashboard = () => {
     visible: { opacity: 1, y: 0, transition: { duration: 0.5, ease: 'easeOut' } },
   };
 
+  // Handle loading state from AttendanceManagement component
+  const handleAttendanceLoadingChange = (isLoading) => {
+    setLoading(isLoading);
+    if (isLoading) {
+      setLoadingMessage('Loading attendance records...');
+    }
+  };
+
+  // Calculate correct sider width for content position
+  const contentMarginLeft = window.innerWidth < 768 ? 0 : (collapsed ? 48 : 250);
+
   return (
     <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
       <style>
@@ -370,6 +435,54 @@ const LecturerDashboard = () => {
           .ant-dropdown .ant-dropdown-menu-item:last-child .anticon {
             color: #fff !important;
           }
+
+          /* Mobile overlay when menu is open */
+          .menu-overlay {
+            position: fixed;
+            top: 64px;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0,0,0,0.5);
+            z-index: 1000;
+            display: none;
+          }
+          
+          @media (max-width: 767px) {
+            .menu-overlay.visible {
+              display: block;
+            }
+          }
+
+          /* Fix content area on small screens */
+          @media (max-width: 767px) {
+            .ant-layout-content {
+              margin-left: 0 !important;
+              width: 100vw !important;
+            }
+          }
+
+          /* Improved responsive styles for summary cards */
+          @media (max-width: 575px) {
+            .ant-card .ant-statistic-title {
+              margin-bottom: 2px !important;
+            }
+            
+            .ant-row .ant-col {
+              padding: 4px !important;
+            }
+            
+            .ant-card {
+              border-radius: 8px !important;
+            }
+            
+            .ant-statistic {
+              min-height: 40px !important;
+              display: flex !important;
+              flex-direction: column !important;
+              justify-content: center !important;
+            }
+          }
         `}
       </style>
       <Header style={styles.header}>
@@ -381,9 +494,13 @@ const LecturerDashboard = () => {
             style={{
               color: isDarkMode ? themeColors.text : "#1890ff",
               fontSize: 18,
-              width: 64,
-              height: 64,
+              width: 40,
+              height: 40,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
+            className="mobile-menu-button"
           />
         </Space>
         <AntTitle
@@ -459,6 +576,14 @@ const LecturerDashboard = () => {
         </Space>
       </Header>
 
+      {/* Add overlay div for mobile that closes menu when clicked */}
+      {!collapsed && window.innerWidth < 768 && (
+        <div
+          className="menu-overlay visible"
+          onClick={() => setCollapsed(true)}
+        />
+      )}
+
       <Layout>
         <Sider
           collapsible
@@ -466,8 +591,12 @@ const LecturerDashboard = () => {
           onCollapse={setCollapsed}
           width={250}
           breakpoint="lg"
-          collapsedWidth={48} // Reduced from 80 to 48
-          style={styles.sider}
+          collapsedWidth={window.innerWidth < 768 ? 0 : 48} // Zero width on mobile when collapsed
+          style={{
+            ...styles.sider,
+            display: window.innerWidth < 768 && collapsed ? 'none' : 'block'
+          }}
+          trigger={null} // Remove the default trigger
         >
           <Menu
             mode="inline"
@@ -499,21 +628,17 @@ const LecturerDashboard = () => {
 
         <Content style={{
           ...styles.content,
-          marginLeft: collapsed ? 48 : 250,
-          padding: 0,
-          margin: '64px 0 0',
-          width: '100%',
+          marginLeft: contentMarginLeft,
+          width: `calc(100% - ${contentMarginLeft}px)`,
           background: 'rgb(247, 249, 252)',
-          overflowX: 'hidden'  // Prevent horizontal scroll
+          overflowX: 'hidden',  // Prevent horizontal scroll
+          padding: window.innerWidth < 576 ? '0' : '0 8px', // Add slight padding on larger screens
         }}>
           <Spin spinning={loading} tip={loadingMessage}>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>
               <section style={{ margin: 0, padding: 0 }}>
                 <AttendanceManagement
-                  onLoadingChange={(isLoading) => {
-                    setLoading(isLoading);
-                    if (isLoading) setLoadingMessage('Loading attendance records...');
-                  }}
+                  onLoadingChange={handleAttendanceLoadingChange}
                 />
               </section>
             </motion.div>

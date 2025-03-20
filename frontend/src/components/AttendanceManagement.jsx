@@ -49,7 +49,7 @@ const { Option } = Select;
 const { useBreakpoint } = Grid;
 const { Text } = Typography;
 
-const AttendanceManagement = () => {
+const AttendanceManagement = ({ onLoadingChange }) => {
   const { themeColors, isDarkMode } = useContext(ThemeContext);
   const screens = useBreakpoint();
   const [attendance, setAttendance] = useState([]);
@@ -97,7 +97,7 @@ const AttendanceManagement = () => {
   });
 
   const cardStyle = {
-    borderRadius: "16px",
+    borderRadius: screens.xs ? "12px" : "16px",
     boxShadow: "0 4px 15px rgba(0, 0, 0, 0.05)",
     background: themeColors.cardBg,
     border: `1px solid ${themeColors.border}`,
@@ -105,6 +105,8 @@ const AttendanceManagement = () => {
     transition: "transform 0.3s ease, box-shadow 0.3s ease",
     width: "100%",
     margin: 0,
+    // Reduce padding on mobile
+    padding: screens.xs ? "8px" : undefined,
   };
 
   const summaryCardGradients = {
@@ -307,13 +309,21 @@ const AttendanceManagement = () => {
   // Add this useEffect to set the initial height based on screen size
   useEffect(() => {
     if (screens.xs) {
-      setTableContainerHeight(300);
+      setTableContainerHeight(280); // Even smaller on xs screens
     } else if (screens.sm) {
       setTableContainerHeight(350);
     } else {
       setTableContainerHeight(400);
     }
   }, [screens]);
+
+  // Update loading state changes to propagate to parent component
+  useEffect(() => {
+    const isAnyLoading = Object.values(loading).some(Boolean) || loadingSessionData;
+    if (onLoadingChange) {
+      onLoadingChange(isAnyLoading);
+    }
+  }, [loading, loadingSessionData, onLoadingChange]);
 
   // Modify the handleViewAttendance function for smoother updates
   const handleViewAttendance = useCallback(async (attempt = 0) => {
@@ -679,20 +689,20 @@ const AttendanceManagement = () => {
             );
             if (response.data.session.ended) {
               message.success("Session ended successfully");
-              
+
               // Properly reset all session-related state
               setCurrentSession(null);
               setQrData("");
               setAttendance([]);
               localStorage.removeItem("currentSession");
-              
+
               // Clear the selected unit to force UI refresh
               const prevSelectedUnit = selectedUnit;
               setSelectedUnit(null);
-              
+
               // Refetch past sessions to update the list
               await fetchPastSessions();
-              
+
               // Add a small delay before checking for other current sessions
               setTimeout(async () => {
                 try {
@@ -701,7 +711,7 @@ const AttendanceManagement = () => {
                     `https://attendance-system-w70n.onrender.com/api/sessions/status/${currentSession._id}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                   );
-                  
+
                   // Only if session is verified as ended, check for other sessions
                   if (verifyStatus.data.ended) {
                     await checkCurrentSession();
@@ -947,7 +957,7 @@ const AttendanceManagement = () => {
   }, [attendance, enrolledStudents]);
 
   const summaryCards = (
-    <Row gutter={[screens.xs ? 0 : 8, screens.xs ? 0 : 8]} justify="space-between" style={{ margin: 0 }}>
+    <Row gutter={[screens.xs ? 8 : 16, screens.xs ? 8 : 16]} justify="space-between" style={{ margin: 0 }}>
       <Col xs={12} sm={12} md={6} lg={6}>
         <Card
           style={{
@@ -957,17 +967,25 @@ const AttendanceManagement = () => {
             height: "100%",
             color: "#fff",
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
+            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
+          }}
+          bodyStyle={{
+            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
           onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Assigned Units</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Assigned Units</Text>}
             value={totalAssignedUnits}
-            prefix={<TeamOutlined />}
+            prefix={<TeamOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
             loading={loading.units}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
           />
         </Card>
       </Col>
@@ -980,18 +998,26 @@ const AttendanceManagement = () => {
             height: "100%",
             color: "#fff",
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
+            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
+          }}
+          bodyStyle={{
+            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
           onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Attendance Rate</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Attendance Rate</Text>}
             value={attendanceRate}
             suffix="%"
-            prefix={<PercentageOutlined />}
+            prefix={<PercentageOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
             loading={loading.realTimeAttendance}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
           />
         </Card>
       </Col>
@@ -1004,17 +1030,25 @@ const AttendanceManagement = () => {
             height: "100%",
             color: "#fff",
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
+            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
+          }}
+          bodyStyle={{
+            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
           onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Total Scans</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Total Scans</Text>}
             value={totalScans}
-            prefix={<ScheduleOutlined />}
+            prefix={<ScheduleOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
             loading={loading.realTimeAttendance}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
           />
         </Card>
       </Col>
@@ -1027,22 +1061,38 @@ const AttendanceManagement = () => {
             height: "100%",
             color: "#fff",
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
+            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
+          }}
+          bodyStyle={{
+            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
           }}
           hoverable
           onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
           onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
         >
           <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 12 : 14 }}>Total Enrolled</Text>}
+            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Total Enrolled</Text>}
             value={enrolledStudents}
-            prefix={<ScheduleOutlined />}
+            prefix={<ScheduleOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
             loading={loading.units}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 14 : 20 }}
+            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
           />
         </Card>
       </Col>
     </Row>
   );
+
+  useEffect(() => {
+    if (currentSession) {
+      localStorage.setItem("currentSession", JSON.stringify(currentSession));
+    } else {
+      localStorage.removeItem("currentSession");
+    }
+  }, [currentSession]);
 
   const formatSessionTime = (session) => {
     if (!session || !session.startTime || !session.endTime) {
@@ -1143,7 +1193,7 @@ const AttendanceManagement = () => {
   return (
     <div style={{
       padding: 0,
-      margin: '16px 0 0 0',  // Add top margin
+      margin: screens.xs ? '8px 0 0 0' : '16px 0 0 0',  // Smaller margin on mobile
       background: 'rgb(247, 249, 252)',
       width: '100%',
       overflowX: 'hidden'  // Prevent horizontal scroll
@@ -1252,13 +1302,14 @@ const AttendanceManagement = () => {
 
       <Card
         extra={
-          <Space wrap size={screens.xs ? "small" : "middle"}>
+          <Space wrap size={screens.xs ? "small" : "middle"} style={{ justifyContent: screens.xs ? 'center' : 'flex-end' }}>
             <Select
               placeholder="Select Unit"
               style={{ width: screens.xs ? "100%" : 300 }}
               onChange={setSelectedUnit}
               value={selectedUnit}
               loading={loading.units}
+              dropdownMatchSelectWidth={false} // Prevents dropdown from being too wide on small screens
             >
               {units.map((unit) => (
                 <Option key={unit._id} value={unit._id}>
@@ -1270,40 +1321,82 @@ const AttendanceManagement = () => {
                 </Option>
               ))}
             </Select>
-            <Button
-              type="primary"
-              icon={<QrcodeOutlined />}
-              onClick={handleGenerateQR}
-              disabled={!selectedUnit || !currentSession || currentSession?.ended}
-              loading={loading.qr}
-              style={{
-                background: themeColors.primary,
-                borderColor: themeColors.primary,
-                color: isDarkMode ? themeColors.text : "#fff",
-                width: screens.xs ? "100%" : "auto",
-                borderRadius: 8,
-                transition: "all 0.3s",
-              }}
-            >
-              {loading.qr ? "Generating..." : screens.md ? "Generate QR Code" : "QR Code"}
-            </Button>
-            <Button
-              type="primary"
-              icon={<CalendarOutlined />}
-              onClick={handleCreateSession}
-              disabled={loading.session || (currentSession && !currentSession.ended)}
-              loading={loading.session}
-              style={{
-                background: themeColors.primary,
-                borderColor: themeColors.primary,
-                color: themeColors.text,
-                width: screens.xs ? "100%" : "auto",
-                borderRadius: 8,
-                transition: "all 0.3s",
-              }}
-            >
-              {loading.session ? "Creating Session..." : "Create Attendance Session"}
-            </Button>
+            {/* Conditionally render buttons based on screen size */}
+            {screens.xs ? (
+              <Space direction="vertical" style={{ width: '100%' }}>
+                <Button
+                  type="primary"
+                  icon={<QrcodeOutlined />}
+                  onClick={handleGenerateQR}
+                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                  loading={loading.qr}
+                  style={{
+                    background: themeColors.primary,
+                    borderColor: themeColors.primary,
+                    color: isDarkMode ? themeColors.text : "#fff",
+                    width: "100%",
+                    borderRadius: 8,
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  {loading.qr ? "Generating..." : "QR Code"}
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<CalendarOutlined />}
+                  onClick={handleCreateSession}
+                  disabled={loading.session || (currentSession && !currentSession.ended)}
+                  loading={loading.session}
+                  style={{
+                    background: themeColors.primary,
+                    borderColor: themeColors.primary,
+                    color: themeColors.text,
+                    width: "100%",
+                    borderRadius: 8,
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  {loading.session ? "Creating..." : "Create Session"}
+                </Button>
+              </Space>
+            ) : (
+              <>
+                <Button
+                  type="primary"
+                  icon={<QrcodeOutlined />}
+                  onClick={handleGenerateQR}
+                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                  loading={loading.qr}
+                  style={{
+                    background: themeColors.primary,
+                    borderColor: themeColors.primary,
+                    color: isDarkMode ? themeColors.text : "#fff",
+                    width: screens.xs ? "100%" : "auto",
+                    borderRadius: 8,
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  {loading.qr ? "Generating..." : screens.md ? "Generate QR Code" : "QR Code"}
+                </Button>
+                <Button
+                  type="primary"
+                  icon={<CalendarOutlined />}
+                  onClick={handleCreateSession}
+                  disabled={loading.session || (currentSession && !currentSession.ended)}
+                  loading={loading.session}
+                  style={{
+                    background: themeColors.primary,
+                    borderColor: themeColors.primary,
+                    color: themeColors.text,
+                    width: screens.xs ? "100%" : "auto",
+                    borderRadius: 8,
+                    transition: "all 0.3s ease",
+                  }}
+                >
+                  {loading.session ? "Creating..." : "Create Session"}
+                </Button>
+              </>
+            )}
           </Space>
         }
         style={{
@@ -1370,13 +1463,14 @@ const AttendanceManagement = () => {
                   columns={realTimeColumns}
                   dataSource={attendance}
                   rowKey="_id"
-                  scroll={{ x: true }}
+                  scroll={{ x: 'max-content' }} // Better mobile scrolling
                   pagination={{
                     pageSize: screens.xs ? 5 : 8,
                     responsive: true,
                     showSizeChanger: false,
                     showTotal: (total) => `Total ${total} students`,
-                    preserveSelectedRowKeys: true,
+                    size: screens.xs ? "small" : "default",
+                    simple: screens.xs, // Use simple pagination on mobile
                   }}
                   locale={{ emptyText: "No active session attendance records found" }}
                   bordered
@@ -1529,7 +1623,7 @@ const AttendanceManagement = () => {
               borderColor: themeColors.primary,
               width: screens.xs ? "100%" : "auto",
               borderRadius: 8,
-              transition: "all 0.3s",
+              transition: "all 0.3s ease",
             }}
           >
             Close
@@ -1537,12 +1631,16 @@ const AttendanceManagement = () => {
         ]}
         destroyOnClose
         maskClosable={false}
-        width={screens.xs ? "100%" : 520}
+        width={screens.xs ? "95%" : 520} // Use percentage width on mobile
         styles={{
           header: modalStyles.modalHeader,
           body: modalStyles.modalBody,
           footer: modalStyles.modalFooter,
-          content: modalStyles.modalContainer
+          content: {
+            ...modalStyles.modalContainer,
+            margin: screens.xs ? '0 auto' : undefined, // Center on mobile
+            maxWidth: '100%', // Ensure doesn't overflow
+          }
         }}
       >
         <div style={{ textAlign: "center", padding: screens.xs ? 8 : 24 }}>
@@ -1786,9 +1884,142 @@ const AttendanceManagement = () => {
         .ant-select-dropdown .ant-select-item {
           color: ${themeColors.text} !important;
         }
+
+        /* Additional responsive styles */
+        @media (max-width: 575px) {
+          .ant-card-head-title {
+            font-size: 14px !important;
+            padding: 8px 0 !important;
+          }
+          
+          .ant-card-head {
+            min-height: 40px !important;
+            padding: 0 12px !important;
+          }
+          
+          .ant-card-body {
+            padding: 12px !important;
+          }
+          
+          .ant-table-thead > tr > th {
+            padding: 8px 4px !important;
+            font-size: 12px !important;
+          }
+          
+          .ant-table-tbody > tr > td {
+            padding: 8px 4px !important;
+            font-size: 12px !important;
+          }
+          
+          .ant-tag {
+            margin: 0 !important;
+            font-size: 10px !important;
+            padding: 0 4px !important;
+          }
+          
+          .ant-btn {
+            font-size: 12px !important;
+            height: 32px !important;
+            padding: 0 8px !important;
+          }
+          
+          .ant-statistic-title {
+            font-size: 10px !important;
+            margin-bottom: 0 !important;
+          }
+          
+          .ant-statistic-content {
+            font-size: 14px !important;
+          }
+        }
+        
+        /* Ensure modal fits on small screens */
+        @media (max-width: 380px) {
+          .ant-modal {
+            max-width: 95vw !important;
+            margin: 0 auto !important;
+          }
+          
+          .ant-modal-content {
+            padding: 12px !important;
+          }
+          
+          .ant-modal-body {
+            padding: 8px !important;
+          }
+          
+          .ant-modal-footer {
+            padding: 8px !important;
+          }
+        }
+        
+        /* Fix horizontal scrolling issues */
+        .attendance-table-container .ant-table {
+          width: 100% !important;
+          overflow-x: auto !important;
+        }
+        
+        /* Ensure button text wrapping on very small screens */
+        .ant-btn {
+          white-space: normal !important;
+          height: auto !important;
+          min-height: 32px !important;
+        }
+
+        /* Additional responsive styles for summary cards */
+        @media (max-width: 359px) {
+          .ant-statistic-title {
+            font-size: 9px !important;
+            margin-bottom: 0 !important;
+          }
+          
+          .ant-statistic-content {
+            font-size: 11px !important;
+            line-height: 1 !important;
+          }
+          
+          .ant-statistic-content-value {
+            font-size: 11px !important;
+          }
+          
+          .ant-statistic-content-prefix,
+          .ant-statistic-content-suffix {
+            font-size: 10px !important;
+          }
+
+          .ant-card-body {
+            padding: 6px 4px !important;
+          }
+        }
+
+        /* Ensure consistent height for summary cards */
+        .ant-row .ant-col .ant-card {
+          height: 100%;
+        }
+
+        /* Fix spacing inside statistic components */
+        .ant-statistic-title {
+          margin-bottom: 4px !important;
+        }
+
+        /* Fix alignment on super small devices */
+        @media (max-width: 320px) {
+          .ant-row {
+            margin-left: -4px !important;
+            margin-right: -4px !important;
+          }
+          .ant-col {
+            padding-left: 4px !important;
+            padding-right: 4px !important;
+          }
+        }
       `}</style>
     </div>
   );
+};
+
+AttendanceManagement.propTypes = {
+  onLoadingChange: PropTypes.func,
 };
 
 export default AttendanceManagement;
