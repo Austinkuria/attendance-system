@@ -60,15 +60,19 @@ const LecturerDashboard = () => {
       justifyContent: 'space-between',
       borderBottom: `1px solid ${themeColors.border}`,
       height: '64px', // Fixed height for header
+      left: 0, // Ensure header is aligned to the left edge
+      top: 0, // Ensure header is at the top
     },
     sider: {
       background: themeColors.cardBg,
-      marginTop: 64,
       position: 'fixed',
       height: 'calc(100vh - 64px)',
       overflow: 'auto',
       zIndex: 5,  // Lower z-index than header
       boxShadow: '2px 0 10px rgba(0, 0, 0, 0.05)',
+      top: 64, // Position exactly below header
+      left: 0, // Align to left edge
+      marginTop: 0, // Remove any margin
     },
     content: {
       margin: '64px 0 0',
@@ -227,6 +231,32 @@ const LecturerDashboard = () => {
         
         .ant-btn {
           padding: 0 8px !important;
+        }
+      }
+      /* Fix margin between header and sidebar */
+      .ant-layout {
+        background: ${themeColors.background} !important;
+      }
+      
+      .ant-layout-sider {
+        margin-top: 0 !important;  /* Remove any margin from the sider */
+      }
+      
+      .ant-layout-header {
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+      }
+      
+      /* Fix for sidebar positioning on mobile/tablet */
+      @media (max-width: 767px) {
+        .ant-layout-sider {
+          position: fixed !important;
+          z-index: 1001 !important;
+          height: calc(100vh - 64px) !important;
+          top: 64px !important;
+          left: 0 !important;
+          margin: 0 !important;
+          border-top: none !important;
         }
       }
     `,
@@ -483,6 +513,37 @@ const LecturerDashboard = () => {
               justify-content: center !important;
             }
           }
+          /* Fix layout and alignment issues */
+          .ant-layout {
+            min-height: 100vh !important;
+          }
+          
+          .ant-layout-header {
+            padding: 0 16px !important;
+            width: 100% !important;
+            left: 0 !important;
+            top: 0 !important;
+          }
+          
+          .ant-layout-sider {
+            top: 64px !important;
+            left: 0 !important;
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          /* Remove any unwanted margins */
+          .ant-layout-sider-children {
+            margin: 0 !important;
+            padding: 0 !important;
+          }
+          
+          /* Fix content positioning */
+          .ant-layout-content {
+            margin-top: 64px !important;
+            margin-left: ${contentMarginLeft}px !important;
+            background: ${themeColors.background} !important;
+          }
         `}
       </style>
       <Header style={styles.header}>
@@ -594,7 +655,8 @@ const LecturerDashboard = () => {
           collapsedWidth={window.innerWidth < 768 ? 0 : 48} // Zero width on mobile when collapsed
           style={{
             ...styles.sider,
-            display: window.innerWidth < 768 && collapsed ? 'none' : 'block'
+            display: window.innerWidth < 768 && collapsed ? 'none' : 'block',
+            marginTop: 0, // Explicitly remove margin
           }}
           trigger={null} // Remove the default trigger
         >
@@ -629,10 +691,10 @@ const LecturerDashboard = () => {
         <Content style={{
           ...styles.content,
           marginLeft: contentMarginLeft,
+          marginTop: 64, // Fixed top margin to account for header
+          padding: window.innerWidth < 576 ? '0' : '0 8px',
           width: `calc(100% - ${contentMarginLeft}px)`,
-          background: 'rgb(247, 249, 252)',
           overflowX: 'hidden',  // Prevent horizontal scroll
-          padding: window.innerWidth < 576 ? '0' : '0 8px', // Add slight padding on larger screens
         }}>
           <Spin spinning={loading} tip={loadingMessage}>
             <motion.div initial="hidden" animate="visible" variants={cardVariants}>

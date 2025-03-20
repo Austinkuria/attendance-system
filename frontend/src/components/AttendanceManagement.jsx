@@ -1193,7 +1193,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
   return (
     <div style={{
       padding: 0,
-      margin: screens.xs ? '8px 0 0 0' : '16px 0 0 0',  // Smaller margin on mobile
+      margin: screens.xs ? '0' : '0',  // Remove all top margin
       background: 'rgb(247, 249, 252)',
       width: '100%',
       overflowX: 'hidden'  // Prevent horizontal scroll
@@ -1975,6 +1975,29 @@ const AttendanceManagement = ({ onLoadingChange }) => {
           .ant-col {
             padding-left: 4px !important;
             padding-right: 4px !important;
+          }
+        }
+
+        /* Fix vertical margins in cards */
+        .ant-card {
+          margin-bottom: 16px !important;
+        }
+        
+        .ant-card:first-child {
+          margin-top: 0 !important;
+        }
+        
+        /* Fix for body padding in cards */
+        .ant-card-body {
+          padding: ${screens.xs ? '12px 8px' : '16px'} !important;
+        }
+        
+        /* Properly align with parent container */
+        @media (max-width: 767px) {
+          .ant-layout-content {
+            padding: 0 !important;
+            margin-left: 0 !important;
+            margin-top: 64px !important;
           }
         }
       `}</style>
