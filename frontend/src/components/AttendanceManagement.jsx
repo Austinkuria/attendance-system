@@ -1321,82 +1321,46 @@ const AttendanceManagement = ({ onLoadingChange }) => {
                 </Option>
               ))}
             </Select>
-            {/* Conditionally render buttons based on screen size */}
-            {screens.xs ? (
-              <Space direction="vertical" style={{ width: '100%' }}>
-                <Button
-                  type="primary"
-                  icon={<QrcodeOutlined />}
-                  onClick={handleGenerateQR}
-                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
-                  loading={loading.qr}
-                  style={{
-                    background: themeColors.primary,
-                    borderColor: themeColors.primary,
-                    color: isDarkMode ? themeColors.text : "#fff",
-                    width: "100%",
-                    borderRadius: 8,
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  {loading.qr ? "Generating..." : "QR Code"}
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<CalendarOutlined />}
-                  onClick={handleCreateSession}
-                  disabled={loading.session || (currentSession && !currentSession.ended)}
-                  loading={loading.session}
-                  style={{
-                    background: themeColors.primary,
-                    borderColor: themeColors.primary,
-                    color: themeColors.text,
-                    width: "100%",
-                    borderRadius: 8,
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  {loading.session ? "Creating..." : "Create Session"}
-                </Button>
-              </Space>
-            ) : (
-              <>
-                <Button
-                  type="primary"
-                  icon={<QrcodeOutlined />}
-                  onClick={handleGenerateQR}
-                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
-                  loading={loading.qr}
-                  style={{
-                    background: themeColors.primary,
-                    borderColor: themeColors.primary,
-                    color: isDarkMode ? themeColors.text : "#fff",
-                    width: screens.xs ? "100%" : "auto",
-                    borderRadius: 8,
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  {loading.qr ? "Generating..." : screens.md ? "Generate QR Code" : "QR Code"}
-                </Button>
-                <Button
-                  type="primary"
-                  icon={<CalendarOutlined />}
-                  onClick={handleCreateSession}
-                  disabled={loading.session || (currentSession && !currentSession.ended)}
-                  loading={loading.session}
-                  style={{
-                    background: themeColors.primary,
-                    borderColor: themeColors.primary,
-                    color: themeColors.text,
-                    width: screens.xs ? "100%" : "auto",
-                    borderRadius: 8,
-                    transition: "all 0.3s ease",
-                  }}
-                >
-                  {loading.session ? "Creating..." : "Create Session"}
-                </Button>
-              </>
-            )}
+
+            {/* Place buttons on same line with responsive space between */}
+            <Space size={screens.xs ? "small" : "middle"} style={{ display: 'flex', flexWrap: 'nowrap' }}>
+              <Button
+                type="primary"
+                icon={<QrcodeOutlined />}
+                onClick={handleGenerateQR}
+                disabled={!selectedUnit || !currentSession || currentSession?.ended}
+                loading={loading.qr}
+                style={{
+                  background: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  color: isDarkMode ? themeColors.text : "#fff",
+                  borderRadius: 8,
+                  transition: "all 0.3s ease",
+                  padding: screens.xs ? "0 8px" : undefined,
+                  minWidth: screens.xs ? 0 : undefined,
+                }}
+              >
+                {loading.qr ? "..." : screens.xs ? "QR" : (screens.md ? "Generate QR Code" : "QR Code")}
+              </Button>
+              <Button
+                type="primary"
+                icon={<CalendarOutlined />}
+                onClick={handleCreateSession}
+                disabled={loading.session || (currentSession && !currentSession.ended)}
+                loading={loading.session}
+                style={{
+                  background: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  color: themeColors.text,
+                  borderRadius: 8,
+                  transition: "all 0.3s ease",
+                  padding: screens.xs ? "0 8px" : undefined,
+                  minWidth: screens.xs ? 0 : undefined,
+                }}
+              >
+                {loading.session ? "..." : screens.xs ? "Create" : "Create Session"}
+              </Button>
+            </Space>
           </Space>
         }
         style={{
