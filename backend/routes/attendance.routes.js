@@ -19,9 +19,10 @@ router.get('/course-rate/:courseId', authenticate, attendanceController.getCours
 // New route for unit-specific attendance data
 router.get('/unit-rate/:unitId', authenticate, attendanceController.getUnitAttendanceRate);
 
-// Add these export routes
-router.get('/export/unit/:unitId', authenticate, exportUnitAttendance);
-router.get('/export/session/:sessionId', authenticate, exportSessionAttendance);
+// Add these export routes with proper controller references
+router.get('/export/unit/:unitId', authenticate, attendanceController.exportUnitAttendance);
+router.get('/export/session/:sessionId', authenticate, attendanceController.exportSessionAttendance);
+router.get('/export-all-sessions', authenticate, attendanceController.exportAllSessionsAttendance);
 
 // Error-handling middleware
 router.use((err, req, res, next) => {

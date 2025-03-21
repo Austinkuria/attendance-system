@@ -1497,3 +1497,206 @@ exports.exportSessionAttendance = async (req, res) => {
     res.status(500).json({ message: "Error exporting attendance data", error: error.message });
   }
 };
+
+// Export attendance data for all sessions of a lecturer
+exports.exportAllSessionsAttendance = async (req, res) => {
+  try {
+    const lecturerId = req.user.userId;
+
+    if (!mongoose.Types.ObjectId.isValid(lecturerId)) {
+      return res.status(400).json({ message: "Invalid lecturer ID format" });
+    }
+
+    // Get all units taught by this lecturer
+    const units = await Unit.find({ lecturer: lecturerId }).select('_id name code');
+
+    if (!units.length) {
+      return res.status(404).json({ message: "No units found for this lecturer" });
+    }
+
+    const unitIds = units.map(unit => unit._id);
+
+    // Get all sessions for these units
+    const sessions = await Session.find({
+      unit: { $in: unitIds },
+      ended: true
+    }).sort({ startTime: -1 });
+
+    if (!sessions.length) {
+      return res.status(404).json({ message: "No sessions found" });
+    }
+
+    const sessionIds = sessions.map(session => session._id);
+
+    // Get attendance records for all these sessions
+    const attendanceRecords = await Attendance.find({ session: { $in: sessionIds } })
+      .populate({
+        path: 'student',
+        select: 'regNo firstName lastName'
+      })
+      .populate({
+        path: 'session',
+        select: 'startTime endTime unit'
+      });
+
+    if (!attendanceRecords.length) {
+      return res.status(404).json({ message: "No attendance records found" });
+    }
+
+    // Create a map of unit IDs to unit details for easier lookup
+    const unitMap = new Map(units.map(unit => [unit._id.toString(), unit]));
+
+    // Process data for export - Include unit details
+    const exportData = attendanceRecords.map(record => {
+      // Look up the unit details for this session
+      const unitId = record.session.unit.toString();
+      const unit = unitMap.get(unitId) || { name: 'Unknown Unit', code: 'N/A' };
+
+      return {
+        'Unit Code': unit.code,
+        'Unit Name': unit.name,
+        'Session Date': new Date(record.session.startTime).toLocaleDateString(),
+        'Session Time': `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
+        'Registration Number': record.student.regNo,
+        'First Name': record.student.firstName,
+        'Last Name': record.student.lastName,
+        'Status': record.status,
+        'Attendance Time': record.attendedAt ? new Date(record.attendedAt).toLocaleTimeString() : 'N/A'
+      };
+    });
+
+    // Determine export format based on request headers
+    const acceptHeader = req.headers.accept || '';
+    if (acceptHeader.includes('application/json')) {
+      return res.json(exportData);
+    }
+
+    // Default to Excel export with enhanced formatting
+    const workbook = new excel.Workbook();
+    const worksheet = workbook.addWorksheet('Attendance');
+
+    // Add headers
+    worksheet.columns = [
+      { header: 'Unit Code', key: 'Unit Code', width: 12 },
+      { header: 'Unit Name', key: 'Unit Name', width: 18 },
+      { header: 'Session Date', key: 'Session Date', width: 15 },
+      { header: 'Session Time', key: 'Session Time', width: 25 },
+      { header: 'Registration Number', key: 'Registration Number', width: 20 },
+      { header: 'First Name', key: 'First Name', width: 15 },
+      { header: 'Last Name', key: 'Last Name', width: 15 },
+      { header: 'Status', key: 'Status', width: 12 },
+      { header: 'Attendance Time', key: 'Attendance Time', width: 18 }
+    ];
+
+    // Add title
+    worksheet.mergeCells('A1:I1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = 'Comprehensive Attendance Report';
+    titleCell.font = { size: 16, bold: true };
+    titleCell.alignment = { horizontal: 'center' };
+
+    // Add metadata
+    worksheet.mergeCells('A2:I2');
+    const metaCell = worksheet.getCell('A2');
+    metaCell.value = `Generated on ${new Date().toLocaleString()} | All Units`;
+    metaCell.font = { size: 12, italic: true };
+    metaCell.alignment = { horizontal: 'center' };
+
+    // Add empty row
+    worksheet.addRow({});
+
+    // Style header row
+    worksheet.getRow(4).font = { bold: true };
+    worksheet.getRow(4).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    worksheet.getRow(4).font = { color: { argb: 'FFFFFF' }, bold: true };
+
+    // Add data with alternating row colors and conditional formatting
+    let rowIndex = 5;
+    exportData.forEach(record => {
+      const row = worksheet.addRow(record);
+
+      // Apply alternating row colors
+      if (rowIndex % 2 === 0) {
+        row.eachCell({ includeEmpty: true }, cell => {
+          cell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'F5F5F5' }
+          };
+        });
+      }
+
+      // Color code status cell
+      const statusCell = row.getCell(8); // Status column
+      if (record.Status === 'Present') {
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'C6EFCE' }
+        };
+        statusCell.font = { color: { argb: '006100' } };
+      } else {
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFC7CE' }
+        };
+        statusCell.font = { color: { argb: '9C0006' } };
+      }
+
+      rowIndex++;
+    });
+
+    // Add summary section
+    worksheet.addRow({});
+    const summaryTitleRow = worksheet.addRow(['Summary Statistics']);
+    summaryTitleRow.getCell(1).font = { bold: true, size: 14 };
+    worksheet.mergeCells(`A${rowIndex + 1}:I${rowIndex + 1}`);
+    rowIndex++;
+
+    // Calculate statistics
+    const totalRecords = attendanceRecords.length;
+    const presentCount = attendanceRecords.filter(r => r.status === 'Present').length;
+    const absentCount = attendanceRecords.filter(r => r.status === 'Absent').length;
+    const attendanceRate = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
+    const uniqueStudents = new Set(attendanceRecords.map(r => r.student._id.toString())).size;
+    const uniqueSessions = new Set(attendanceRecords.map(r => r.session._id.toString())).size;
+
+    // Add statistics rows
+    worksheet.addRow(['Total Records', totalRecords]);
+    worksheet.addRow(['Present Records', presentCount]);
+    worksheet.addRow(['Absent Records', absentCount]);
+    worksheet.addRow(['Overall Attendance Rate', `${attendanceRate.toFixed(1)}%`]);
+    worksheet.addRow(['Unique Students', uniqueStudents]);
+    worksheet.addRow(['Total Sessions', uniqueSessions]);
+    worksheet.addRow(['Total Units', units.length]);
+
+    // Format summary section
+    for (let i = rowIndex + 1; i <= rowIndex + 7; i++) {
+      worksheet.getCell(`A${i}`).font = { bold: true };
+    }
+
+    // Generate filename
+    const today = new Date().toISOString().split('T')[0];
+    const filename = `complete_attendance_report_${today}.xlsx`;
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Send workbook
+    await workbook.xlsx.write(res);
+    res.end();
+
+    logger.info(`Complete attendance report exported by user ${req.user.userId}`);
+
+  } catch (error) {
+    logger.error(`Error exporting all sessions attendance: ${error.message}`);
+    console.error("Error exporting all sessions attendance:", error);
+    res.status(500).json({ message: "Error exporting attendance data", error: error.message });
+  }
+};
