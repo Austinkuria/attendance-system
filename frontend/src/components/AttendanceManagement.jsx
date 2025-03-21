@@ -98,14 +98,15 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
   const cardStyle = {
     borderRadius: screens.xs ? "12px" : "16px",
-    boxShadow: "0 4px 15px rgba(0, 0, 0, 0.05)",
+    boxShadow: isDarkMode
+      ? "0 4px 15px rgba(0, 0, 0, 0.2)"
+      : "0 4px 15px rgba(0, 0, 0, 0.05)",
     background: themeColors.cardBg,
     border: `1px solid ${themeColors.border}`,
     overflow: "hidden",
     transition: "transform 0.3s ease, box-shadow 0.3s ease",
     width: "100%",
     margin: 0,
-    // Reduce padding on mobile
     padding: screens.xs ? "8px" : undefined,
   };
 
@@ -1194,7 +1195,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     <div style={{
       padding: 0,
       margin: 0,
-      background: 'rgb(247, 249, 252)',
+      background: isDarkMode ? themeColors.background : 'rgb(247, 249, 252)',
       width: '100%',
       overflowX: 'hidden',
       paddingLeft: screens.xs ? '8px' : screens.md ? '16px' : 0,
@@ -1202,7 +1203,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       paddingTop: screens.xs ? '8px' : screens.md ? '16px' : 0, // Add top padding
     }}>
       {loadingSessionData ? (
-        <Card style={{...cardStyle, marginBottom: 24}} loading>
+        <Card style={{ ...cardStyle, marginBottom: 24 }} loading>
           <Skeleton active />
         </Card>
       ) : (
@@ -1223,13 +1224,16 @@ const AttendanceManagement = ({ onLoadingChange }) => {
           style={{
             ...cardStyle,
             background: currentSession && !currentSession.ended
-              ? themeColors.cardGradient1
+              ? isDarkMode ? `${themeColors.cardGradient1}E6` : themeColors.cardGradient1
               : themeColors.cardBg,
             borderLeft: currentSession && !currentSession.ended
-              ? `4px solid ${themeColors.primary}`
+              ? `4px solid ${isDarkMode ? `${themeColors.primary}E6` : themeColors.primary}`
               : `4px solid ${themeColors.border}`,
             marginBottom: 24,
             padding: '16px',
+            boxShadow: isDarkMode
+              ? "0 4px 15px rgba(0, 0, 0, 0.3)"
+              : "0 4px 15px rgba(0, 0, 0, 0.05)",
           }}
           bodyStyle={{
             padding: screens.xs ? '12px' : '16px',  // Responsive padding
