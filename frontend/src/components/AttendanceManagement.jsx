@@ -1193,13 +1193,16 @@ const AttendanceManagement = ({ onLoadingChange }) => {
   return (
     <div style={{
       padding: 0,
-      margin: screens.xs ? '0' : '0',  // Remove all top margin
+      margin: 0,
       background: 'rgb(247, 249, 252)',
       width: '100%',
-      overflowX: 'hidden'  // Prevent horizontal scroll
+      overflowX: 'hidden',
+      paddingLeft: screens.xs ? '8px' : screens.md ? '16px' : 0,
+      paddingRight: screens.xs ? '8px' : screens.md ? '16px' : 0,
+      paddingTop: screens.xs ? '8px' : screens.md ? '16px' : 0, // Add top padding
     }}>
       {loadingSessionData ? (
-        <Card style={cardStyle} loading>
+        <Card style={{...cardStyle, marginBottom: 24}} loading>
           <Skeleton active />
         </Card>
       ) : (
@@ -1225,19 +1228,22 @@ const AttendanceManagement = ({ onLoadingChange }) => {
             borderLeft: currentSession && !currentSession.ended
               ? `4px solid ${themeColors.primary}`
               : `4px solid ${themeColors.border}`,
-            marginTop: 0,  // Reset top margin since we added it to parent
             marginBottom: 24,
+            padding: '16px',
+          }}
+          bodyStyle={{
+            padding: screens.xs ? '12px' : '16px',  // Responsive padding
           }}
         >
           {currentSession && !currentSession.ended ? (
-            <Row gutter={[8, 8]}>
-              <Col span={24}>
-                <Text strong style={{ color: themeColors.text }}>
+            <Row gutter={[8, 16]}>  {/* Increase vertical spacing */}
+              <Col span={24} style={{ marginBottom: 8 }}>  {/* Add margin bottom */}
+                <Text strong style={{ color: themeColors.text, marginRight: 8 }}>  {/* Add margin right */}
                   Time:{" "}
                 </Text>
                 <span style={{ color: themeColors.text }}>{formatSessionTime(currentSession)}</span>
               </Col>
-              <Col span={24}>
+              <Col span={24} style={{ marginBottom: 16 }}>  {/* Add margin bottom */}
                 <SessionTimer end={currentSession.endSession} />
               </Col>
               <Col span={24}>
@@ -1252,6 +1258,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
                     width: screens.xs ? "100%" : "auto",
                     borderRadius: 8,
                     transition: "all 0.3s",
+                    marginTop: 8,  // Add margin top
                   }}
                 >
                   {loading.session ? "Ending Session..." : "End Session Early"}
@@ -1266,7 +1273,8 @@ const AttendanceManagement = ({ onLoadingChange }) => {
                   alignItems: 'center',
                   justifyContent: 'space-between',
                   flexWrap: 'wrap',
-                  marginBottom: 8
+                  margin: '8px 0',  // Add vertical margins
+                  padding: '0 8px',  // Add horizontal padding
                 }}>
                   <Text style={{ color: themeColors.text }}>
                     {selectedUnit
