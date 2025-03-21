@@ -1530,14 +1530,18 @@ exports.exportAllSessionsAttendance = async (req, res) => {
         $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))  // Include entire end date
       };
 
-      console.log(`Filtering sessions between ${startDate} and ${endDate}`);
+      logger.info(`Filtering sessions between ${startDate} and ${endDate} for lecturer ${lecturerId}`);
     }
 
     // Get all sessions for these units with optional date filtering
     const sessions = await Session.find(sessionQuery).sort({ startTime: -1 });
 
     if (!sessions.length) {
-      return res.status(404).json({ message: "No sessions found for the selected criteria" });
+      logger.info(`No sessions found for the selected criteria for lecturer ${lecturerId}`);
+      return res.status(404).json({
+        message: "No sessions found for the selected date range. Please try a different date range.",
+        code: "NO_DATA_FOUND"
+      });
     }
 
     const sessionIds = sessions.map(session => session._id);
@@ -1554,7 +1558,11 @@ exports.exportAllSessionsAttendance = async (req, res) => {
       });
 
     if (!attendanceRecords.length) {
-      return res.status(404).json({ message: "No attendance records found" });
+      logger.info(`No attendance records found for the selected sessions for lecturer ${lecturerId}`);
+      return res.status(404).json({
+        message: "No attendance records found for the selected date range. Please try a different date range.",
+        code: "NO_DATA_FOUND"
+      });
     }
 
     // Create a map of unit IDs to unit details for easier lookup

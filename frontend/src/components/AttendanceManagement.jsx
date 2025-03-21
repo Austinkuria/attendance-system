@@ -1275,38 +1275,73 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       const endDate = dateRange[1].format('YYYY-MM-DD');
 
       const token = localStorage.getItem('token');
-      const response = await axios({
-        url: `https://attendance-system-w70n.onrender.com/api/attendance/export-all-sessions`,
-        method: 'GET',
-        responseType: 'blob',
-        headers: { Authorization: `Bearer ${token}` },
-        params: { startDate, endDate }
-      });
 
-      const contentType = response.headers['content-type'];
-      let fileExtension = 'csv';
-      let fileType = 'text/csv';
+      try {
+        const response = await axios({
+          url: `https://attendance-system-w70n.onrender.com/api/attendance/export-all-sessions`,
+          method: 'GET',
+          responseType: 'blob',
+          headers: { Authorization: `Bearer ${token}` },
+          params: { startDate, endDate }
+        });
 
-      if (contentType && (contentType.includes('excel') || contentType.includes('spreadsheetml'))) {
-        fileExtension = 'xlsx';
-        fileType = contentType;
+        // Check if response is a JSON error instead of a file
+        // Usually error responses are smaller than valid files
+        if (response.data.size < 100) {
+          try {
+            // Try to interpret small responses as potential JSON errors
+            const errorText = await new Response(response.data).text();
+            const errorData = JSON.parse(errorText);
+
+            if (errorData && errorData.code === 'NO_DATA_FOUND') {
+              message.warning(errorData.message || 'No data found for the selected date range');
+              return;
+            }
+          } catch (e) {
+            // If it's not a JSON error, continue with normal processing
+            console.log('Small file but not an error message, continuing with download');
+          }
+        }
+
+        const contentType = response.headers['content-type'];
+        let fileExtension = 'csv';
+        let fileType = 'text/csv';
+
+        if (contentType && (contentType.includes('excel') || contentType.includes('spreadsheetml'))) {
+          fileExtension = 'xlsx';
+          fileType = contentType;
+        }
+
+        const blob = new Blob([response.data], { type: fileType });
+
+        // Check if the blob is empty or too small to be a valid report
+        if (blob.size < 50) {
+          message.warning("No data found for the selected date range. Please try a different range.");
+          return;
+        }
+
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+
+        // Create a more informative filename with date range
+        const fileName = `attendance_full_report_${startDate}_to_${endDate}.${fileExtension}`;
+        link.setAttribute('download', fileName);
+
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        window.URL.revokeObjectURL(url);
+
+        message.success(`Full attendance report downloaded successfully as ${fileExtension.toUpperCase()}`);
+      } catch (error) {
+        if (error.response && error.response.status === 404) {
+          const errorData = error.response.data;
+          message.warning(errorData.message || 'No data found for the selected date range');
+        } else {
+          throw error; // Re-throw to be caught by the outer catch
+        }
       }
-
-      const blob = new Blob([response.data], { type: fileType });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-
-      // Create a more informative filename with date range
-      const fileName = `attendance_full_report_${startDate}_to_${endDate}.${fileExtension}`;
-      link.setAttribute('download', fileName);
-
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.URL.revokeObjectURL(url);
-
-      message.success(`Full attendance report downloaded successfully as ${fileExtension.toUpperCase()}`);
     } catch (error) {
       console.error('Download error:', error);
       message.error('Failed to download full report. Please try again later.');
