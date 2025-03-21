@@ -346,7 +346,8 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
                 if (pastFilters.sessionId) {
                   const token = localStorage.getItem('token');
                   setLoading(true);
-                  // Use the correct endpoint for exporting session attendance data
+
+                  // Use the correct endpoint path for session export
                   axios({
                     url: `https://attendance-system-w70n.onrender.com/api/attendance/export/session/${pastFilters.sessionId}`,
                     method: 'GET',
@@ -390,8 +391,13 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
                     setLoading(false);
                   }).catch((error) => {
                     console.error("Download error:", error);
+
+                    // Better error handling
                     if (error.response?.status === 404) {
-                      message.error("Export feature is currently unavailable. Please try again later.");
+                      message.error("Export endpoint not found. Please check if the API is updated.");
+                    } else if (error.response?.status === 401) {
+                      message.error("Session expired. Please log in again.");
+                      setTimeout(() => navigate('/login'), 2000);
                     } else {
                       message.error("Failed to download report. Please try again later.");
                     }

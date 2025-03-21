@@ -1199,7 +1199,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
       const token = localStorage.getItem('token');
 
-      // Try a different endpoint format - based on the error we need to adjust the path
+      // Use the correct endpoint path for unit export
       const response = await axios({
         url: `https://attendance-system-w70n.onrender.com/api/attendance/export/unit/${unit}`,
         method: 'GET',
