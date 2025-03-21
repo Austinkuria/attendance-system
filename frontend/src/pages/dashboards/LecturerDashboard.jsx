@@ -92,12 +92,16 @@ const LecturerDashboard = () => {
       background: themeColors.primary,
       borderColor: themeColors.primary,
       color: '#fff !important',
-      width: 50,
-      height: 50,
+      width: 40,  // Fixed width
+      height: 40, // Fixed height to match width
+      minWidth: 40, // Prevent resizing
+      minHeight: 40,
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       boxShadow: '0 4px 10px rgba(0, 0, 0, 0.2)',
+      padding: 0, // Remove padding that might affect shape
+      borderRadius: '50%', // Ensure perfect circle
     },
     globalStyles: `
       .ant-layout, .ant-layout-content {
@@ -748,7 +752,7 @@ const LecturerDashboard = () => {
                 onMouseEnter={(e) => (e.currentTarget.style.background = isDarkMode ? '#8E86E5' : '#5A4FCF')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = themeColors.primary)}
                 onClick={scrollToTop}
-                icon={<ArrowUpOutlined />}
+                icon={<ArrowUpOutlined style={{ fontSize: 16 }} />} // Control icon size
                 shape="circle"
               />
             )}
