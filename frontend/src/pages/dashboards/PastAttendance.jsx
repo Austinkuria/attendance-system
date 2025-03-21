@@ -234,6 +234,50 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
     setPastFilters({ unit: null, date: moment().format('YYYY-MM-DD'), sessionId: null, year: null, semester: null });
   };
 
+  const handleDownloadFullReport = async () => {
+    try {
+      setLoading(true);
+
+      const token = localStorage.getItem('token');
+      const response = await axios({
+        url: `https://attendance-system-w70n.onrender.com/api/attendance/export-all-sessions`,
+        method: 'GET',
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const contentType = response.headers['content-type'];
+      let fileExtension = 'csv';
+      let fileType = 'text/csv';
+
+      if (contentType && (contentType.includes('excel') || contentType.includes('spreadsheetml'))) {
+        fileExtension = 'xlsx';
+        fileType = contentType;
+      }
+
+      const blob = new Blob([response.data], { type: fileType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const date = new Date().toISOString().split('T')[0];
+      const fileName = `attendance_full_report_${date}.${fileExtension}`;
+      link.setAttribute('download', fileName);
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      message.success(`Full attendance report downloaded successfully as ${fileExtension.toUpperCase()}`);
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error('Failed to download full report. Please try again later.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!lecturerId) {
     return (
       <div style={{ padding: 24, background: themeColors.background, minHeight: '100vh' }}>
@@ -416,6 +460,19 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
               }}
             >
               Download Excel Report
+            </Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadFullReport}
+              loading={loading}
+              style={{
+                background: themeColors.primary,
+                borderColor: themeColors.primary,
+                color: isDarkMode ? themeColors.text : '#fff',
+              }}
+            >
+              Download Full Report
             </Button>
           </Space>
 

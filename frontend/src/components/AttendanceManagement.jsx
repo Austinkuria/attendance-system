@@ -1257,6 +1257,50 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     }
   };
 
+  const handleDownloadFullReport = async () => {
+    try {
+      setLoading((prev) => ({ ...prev, stats: true }));
+
+      const token = localStorage.getItem('token');
+      const response = await axios({
+        url: `https://attendance-system-w70n.onrender.com/api/attendance/export-all-sessions`,
+        method: 'GET',
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      const contentType = response.headers['content-type'];
+      let fileExtension = 'csv';
+      let fileType = 'text/csv';
+
+      if (contentType && (contentType.includes('excel') || contentType.includes('spreadsheetml'))) {
+        fileExtension = 'xlsx';
+        fileType = contentType;
+      }
+
+      const blob = new Blob([response.data], { type: fileType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      const date = new Date().toISOString().split('T')[0];
+      const fileName = `attendance_full_report_${date}.${fileExtension}`;
+      link.setAttribute('download', fileName);
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      message.success(`Full attendance report downloaded successfully as ${fileExtension.toUpperCase()}`);
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error('Failed to download full report. Please try again later.');
+    } finally {
+      setLoading((prev) => ({ ...prev, stats: false }));
+    }
+  };
+
   return (
     <div style={{
       padding: 0,
@@ -1559,6 +1603,21 @@ const AttendanceManagement = ({ onLoadingChange }) => {
               }}
             >
               {loading.stats ? "Exporting..." : screens.md ? "Download Excel Report" : "Export"}
+            </Button>
+            <Button
+              icon={<DownloadOutlined />}
+              onClick={handleDownloadFullReport}
+              loading={loading.stats}
+              style={{
+                color: themeColors.primary,
+                borderColor: themeColors.primary,
+                width: screens.xs ? "100%" : "auto",
+                marginBottom: screens.xs ? 0 : 4,
+                borderRadius: 8,
+                transition: "all 0.3s",
+              }}
+            >
+              {loading.stats ? "Exporting..." : "Download Full Report"}
             </Button>
             <Space
               wrap
