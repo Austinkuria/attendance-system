@@ -345,30 +345,71 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
               onClick={() => {
                 if (pastFilters.sessionId) {
                   const token = localStorage.getItem('token');
+                  setLoading(true);
+                  // Use the correct endpoint for exporting session attendance data
                   axios({
-                    url: `https://attendance-system-w70n.onrender.com/api/attendance/export/${pastFilters.sessionId}`,
+                    url: `https://attendance-system-w70n.onrender.com/api/attendance/export/session/${pastFilters.sessionId}`,
                     method: 'GET',
                     responseType: 'blob',
                     headers: { Authorization: `Bearer ${token}` },
                   }).then((response) => {
-                    const url = window.URL.createObjectURL(new Blob([response.data]));
+                    // Determine file type from content-type header
+                    const contentType = response.headers['content-type'];
+                    let fileExtension = 'csv'; // Default extension
+                    let fileType = 'text/csv'; // Default type
+
+                    // Allow Excel format if available
+                    if (contentType && contentType.includes('excel') ||
+                      contentType.includes('spreadsheetml')) {
+                      fileExtension = 'xlsx';
+                      fileType = contentType;
+                    }
+
+                    // Create a blob with proper MIME type
+                    const blob = new Blob([response.data], { type: fileType });
+                    const url = window.URL.createObjectURL(blob);
                     const link = document.createElement('a');
                     link.href = url;
-                    link.setAttribute('download', `attendance-${pastFilters.sessionId}.csv`);
+
+                    // Get unit name for better filename
+                    const selectedSession = pastSessions.find(s => s.sessionId === pastFilters.sessionId);
+                    const unitName = selectedSession?.unitName || 'unknown';
+                    const sessionDate = selectedSession ? moment(selectedSession.startTime).format('YYYY-MM-DD') : '';
+                    const sessionTime = selectedSession ? moment(selectedSession.startTime).format('HH-mm') : '';
+
+                    // Create informative filename
+                    const fileName = `attendance_${unitName.replace(/\s+/g, '_')}_${sessionDate}_${sessionTime}.${fileExtension}`;
+                    link.setAttribute('download', fileName);
+
                     document.body.appendChild(link);
                     link.click();
                     link.remove();
+                    window.URL.revokeObjectURL(url);
+
+                    message.success(`Report downloaded successfully as ${fileExtension.toUpperCase()}`);
+                    setLoading(false);
+                  }).catch((error) => {
+                    console.error("Download error:", error);
+                    if (error.response?.status === 404) {
+                      message.error("Export feature is currently unavailable. Please try again later.");
+                    } else {
+                      message.error("Failed to download report. Please try again later.");
+                    }
+                    setLoading(false);
                   });
+                } else {
+                  message.warning('Please select a session first');
                 }
               }}
               disabled={!pastFilters.sessionId}
+              loading={loading && pastFilters.sessionId}
               style={{
                 background: themeColors.primary,
                 borderColor: themeColors.primary,
                 color: isDarkMode ? themeColors.text : '#fff',
               }}
             >
-              Download CSV
+              Download Excel Report
             </Button>
           </Space>
 

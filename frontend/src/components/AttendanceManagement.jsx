@@ -34,7 +34,6 @@ import {
 import PropTypes from "prop-types";
 import axios from "axios";
 import {
-  downloadAttendanceReport,
   getLecturerUnits,
   getDepartments,
   detectCurrentSession,
@@ -698,7 +697,6 @@ const AttendanceManagement = ({ onLoadingChange }) => {
               localStorage.removeItem("currentSession");
 
               // Clear the selected unit to force UI refresh
-              const prevSelectedUnit = selectedUnit;
               setSelectedUnit(null);
 
               // Refetch past sessions to update the list
@@ -1191,6 +1189,74 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     return classes;
   };
 
+  const handleDownloadReport = async (unit) => {
+    try {
+      if (!unit) {
+        message.error('Please select a unit first');
+        return;
+      }
+      setLoading((prev) => ({ ...prev, stats: true }));
+
+      const token = localStorage.getItem('token');
+
+      // Try a different endpoint format - based on the error we need to adjust the path
+      const response = await axios({
+        url: `https://attendance-system-w70n.onrender.com/api/attendance/export/unit/${unit}`,
+        method: 'GET',
+        responseType: 'blob',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      // ...existing code with blob handling...
+      const contentType = response.headers['content-type'];
+      let fileExtension = 'csv'; // Default extension
+      let fileType = 'text/csv'; // Default type
+
+      // Allow Excel format if available
+      if (contentType && (contentType.includes('excel') ||
+        contentType.includes('spreadsheetml'))) {
+        fileExtension = 'xlsx';
+        fileType = contentType;
+      }
+
+      // Create a blob from the response with proper MIME type
+      const blob = new Blob([response.data], { type: fileType });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+
+      // Get unit name and details for a more informative filename
+      const unitObj = units.find(u => u._id === unit);
+      const unitName = unitObj?.name || 'unknown';
+      const unitCode = unitObj?.code || '';
+      const date = new Date().toISOString().split('T')[0];
+
+      // Create a more informative filename
+      const fileName = `attendance_${unitName.replace(/\s+/g, '_')}_${unitCode}_${date}.${fileExtension}`;
+      link.setAttribute('download', fileName);
+
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      message.success(`Attendance report downloaded successfully as ${fileExtension.toUpperCase()}`);
+    } catch (error) {
+      console.error('Download error:', error);
+
+      // Provide better error handling based on status codes
+      if (error.response?.status === 404) {
+        message.error('Export feature is not available. The server endpoint was not found.');
+      } else if (error.response?.status === 401) {
+        message.error('Your session has expired. Please log in again.');
+      } else {
+        message.error('Failed to download report. Please try again later.');
+      }
+    } finally {
+      setLoading((prev) => ({ ...prev, stats: false })); // Fixed from true to false
+    }
+  };
+
   return (
     <div style={{
       padding: 0,
@@ -1480,7 +1546,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
           >
             <Button
               icon={<DownloadOutlined />}
-              onClick={() => downloadAttendanceReport(selectedUnit)}
+              onClick={() => handleDownloadReport(selectedUnit)}
               disabled={!selectedUnit}
               loading={loading.stats}
               style={{
@@ -1492,7 +1558,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
                 transition: "all 0.3s",
               }}
             >
-              {loading.stats ? "Exporting..." : screens.md ? "Download Report" : "Export"}
+              {loading.stats ? "Exporting..." : screens.md ? "Download Excel Report" : "Export"}
             </Button>
             <Space
               wrap
