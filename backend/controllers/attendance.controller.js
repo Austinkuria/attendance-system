@@ -1502,6 +1502,7 @@ exports.exportSessionAttendance = async (req, res) => {
 exports.exportAllSessionsAttendance = async (req, res) => {
   try {
     const lecturerId = req.user.userId;
+    const { startDate, endDate } = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(lecturerId)) {
       return res.status(400).json({ message: "Invalid lecturer ID format" });
@@ -1516,14 +1517,27 @@ exports.exportAllSessionsAttendance = async (req, res) => {
 
     const unitIds = units.map(unit => unit._id);
 
-    // Get all sessions for these units
-    const sessions = await Session.find({
+    // Build query with date range if provided
+    const sessionQuery = {
       unit: { $in: unitIds },
       ended: true
-    }).sort({ startTime: -1 });
+    };
+
+    // Add date range filter if provided
+    if (startDate && endDate) {
+      sessionQuery.startTime = {
+        $gte: new Date(startDate),
+        $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))  // Include entire end date
+      };
+
+      console.log(`Filtering sessions between ${startDate} and ${endDate}`);
+    }
+
+    // Get all sessions for these units with optional date filtering
+    const sessions = await Session.find(sessionQuery).sort({ startTime: -1 });
 
     if (!sessions.length) {
-      return res.status(404).json({ message: "No sessions found" });
+      return res.status(404).json({ message: "No sessions found for the selected criteria" });
     }
 
     const sessionIds = sessions.map(session => session._id);
@@ -1680,9 +1694,22 @@ exports.exportAllSessionsAttendance = async (req, res) => {
       worksheet.getCell(`A${i}`).font = { bold: true };
     }
 
-    // Generate filename
+    // Add date range to filename and title if provided
     const today = new Date().toISOString().split('T')[0];
-    const filename = `complete_attendance_report_${today}.xlsx`;
+    let filename = 'complete_attendance_report';
+    let reportTitle = 'Comprehensive Attendance Report';
+
+    if (startDate && endDate) {
+      filename = `attendance_report_${startDate}_to_${endDate}`;
+      reportTitle = `Attendance Report (${startDate} to ${endDate})`;
+    } else {
+      filename = `complete_attendance_report_${today}`;
+    }
+
+    filename += '.xlsx';
+
+    // Update title in the Excel file
+    titleCell.value = reportTitle;
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

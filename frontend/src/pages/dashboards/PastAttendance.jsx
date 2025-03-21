@@ -12,7 +12,8 @@ import {
   Button,
   Empty,
   Tag,
-  message
+  message,
+  Modal
 } from 'antd';
 import {
   DownloadOutlined,
@@ -48,6 +49,10 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
     year: null,
     semester: null,
   });
+
+  // Add state for date range modal
+  const [isDateRangeModalVisible, setIsDateRangeModalVisible] = useState(false);
+  const [dateRange, setDateRange] = useState([moment().subtract(30, 'days'), moment()]);
 
   const cardStyle = {
     borderRadius: '16px',
@@ -235,8 +240,17 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
   };
 
   const handleDownloadFullReport = async () => {
+    setIsDateRangeModalVisible(true);
+  };
+
+  const handleDateRangeOk = async () => {
     try {
+      setIsDateRangeModalVisible(false);
       setLoading(true);
+
+      // Format the dates for the API request
+      const startDate = dateRange[0].format('YYYY-MM-DD');
+      const endDate = dateRange[1].format('YYYY-MM-DD');
 
       const token = localStorage.getItem('token');
       const response = await axios({
@@ -244,6 +258,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
         method: 'GET',
         responseType: 'blob',
         headers: { Authorization: `Bearer ${token}` },
+        params: { startDate, endDate }
       });
 
       const contentType = response.headers['content-type'];
@@ -260,8 +275,8 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
       const link = document.createElement('a');
       link.href = url;
 
-      const date = new Date().toISOString().split('T')[0];
-      const fileName = `attendance_full_report_${date}.${fileExtension}`;
+      // Create a more informative filename with date range
+      const fileName = `attendance_full_report_${startDate}_to_${endDate}.${fileExtension}`;
       link.setAttribute('download', fileName);
 
       document.body.appendChild(link);
@@ -276,6 +291,10 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleDateRangeCancel = () => {
+    setIsDateRangeModalVisible(false);
   };
 
   if (!lecturerId) {
@@ -507,6 +526,40 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
           </Spin>
         </Space>
       </Card>
+
+      {/* Date Range Modal for Full Report */}
+      <Modal
+        title="Select Date Range for Report"
+        open={isDateRangeModalVisible}
+        onOk={handleDateRangeOk}
+        onCancel={handleDateRangeCancel}
+        centered
+        okText="Download Report"
+        okButtonProps={{
+          style: { background: themeColors.primary, borderColor: themeColors.primary },
+          loading: loading
+        }}
+        styles={{
+          header: { background: themeColors.cardBg, borderBottom: `1px solid ${themeColors.border}` },
+          body: { background: themeColors.cardBg, padding: '20px' },
+          footer: { background: themeColors.cardBg, borderTop: `1px solid ${themeColors.border}` },
+          content: { background: themeColors.cardBg, boxShadow: '0 4px 12px rgba(0,0,0,0.15)' }
+        }}
+      >
+        <div style={{ padding: '10px 0' }}>
+          <p style={{ marginBottom: '15px', color: themeColors.text }}>
+            Please select a date range for the full attendance report:
+          </p>
+          <DatePicker.RangePicker
+            value={dateRange}
+            onChange={(dates) => setDateRange(dates)}
+            style={{ width: '100%' }}
+            format="YYYY-MM-DD"
+            allowClear={false}
+            className="themed-datepicker"
+          />
+        </div>
+      </Modal>
 
       <style>{`
         .ant-select-selector, .ant-picker {

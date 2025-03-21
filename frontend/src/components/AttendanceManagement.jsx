@@ -1257,9 +1257,22 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     }
   };
 
+  // Add state for date range modal
+  const [isDateRangeModalVisible, setIsDateRangeModalVisible] = useState(false);
+  const [dateRange, setDateRange] = useState([moment().subtract(30, 'days'), moment()]);
+
   const handleDownloadFullReport = async () => {
+    setIsDateRangeModalVisible(true);
+  };
+
+  const handleDateRangeOk = async () => {
     try {
+      setIsDateRangeModalVisible(false);
       setLoading((prev) => ({ ...prev, stats: true }));
+
+      // Format the dates for the API request
+      const startDate = dateRange[0].format('YYYY-MM-DD');
+      const endDate = dateRange[1].format('YYYY-MM-DD');
 
       const token = localStorage.getItem('token');
       const response = await axios({
@@ -1267,6 +1280,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
         method: 'GET',
         responseType: 'blob',
         headers: { Authorization: `Bearer ${token}` },
+        params: { startDate, endDate }
       });
 
       const contentType = response.headers['content-type'];
@@ -1283,8 +1297,8 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       const link = document.createElement('a');
       link.href = url;
 
-      const date = new Date().toISOString().split('T')[0];
-      const fileName = `attendance_full_report_${date}.${fileExtension}`;
+      // Create a more informative filename with date range
+      const fileName = `attendance_full_report_${startDate}_to_${endDate}.${fileExtension}`;
       link.setAttribute('download', fileName);
 
       document.body.appendChild(link);
@@ -1299,6 +1313,10 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     } finally {
       setLoading((prev) => ({ ...prev, stats: false }));
     }
+  };
+
+  const handleDateRangeCancel = () => {
+    setIsDateRangeModalVisible(false);
   };
 
   return (
@@ -1786,6 +1804,40 @@ const AttendanceManagement = ({ onLoadingChange }) => {
               />
             </div>
           )}
+        </div>
+      </Modal>
+
+      {/* Date Range Modal for Full Report */}
+      <Modal
+        title="Select Date Range for Report"
+        open={isDateRangeModalVisible}
+        onOk={handleDateRangeOk}
+        onCancel={handleDateRangeCancel}
+        centered
+        okText="Download Report"
+        okButtonProps={{
+          style: { background: themeColors.primary, borderColor: themeColors.primary },
+          loading: loading.stats
+        }}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: { ...modalStyles.modalBody, padding: '20px' },
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
+      >
+        <div style={{ padding: '10px 0' }}>
+          <p style={{ marginBottom: '15px', color: themeColors.text }}>
+            Please select a date range for the full attendance report:
+          </p>
+          <DatePicker.RangePicker
+            value={dateRange}
+            onChange={(dates) => setDateRange(dates)}
+            style={{ width: '100%' }}
+            format="YYYY-MM-DD"
+            allowClear={false}
+            className="themed-datepicker"
+          />
         </div>
       </Modal>
 
