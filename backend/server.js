@@ -113,6 +113,10 @@ mongoose.connection.on('disconnected', () => {
 
 connectDB();
 
+// Add this before the routes are mounted
+app.use('/api/attendance/export-all-sessions', express.json({ limit: '50mb' }));
+app.use('/api/attendance/export-all-sessions', express.urlencoded({ limit: '50mb', extended: true }));
+
 // Register all routes from index.js
 app.use('/api', routes);  // This handles all routes with /api prefix
 

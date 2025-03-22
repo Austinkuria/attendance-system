@@ -259,69 +259,96 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
           url: `https://attendance-system-w70n.onrender.com/api/attendance/export-all-sessions`,
           method: 'GET',
           responseType: 'blob',
-          headers: { Authorization: `Bearer ${token}` },
+          headers: {
+            Authorization: `Bearer ${token}`,
+            Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // Explicitly request Excel format
+          },
           params: { startDate, endDate }
         });
 
-        // Check if response is a JSON error instead of a file (small size)
-        if (response.data.size < 100) {
+        // Check content type
+        const contentType = response.headers['content-type'];
+
+        // Handle JSON error responses
+        if (contentType && contentType.includes('application/json')) {
           try {
-            // Try to interpret small responses as potential JSON errors
+            // Convert blob to text to parse JSON
             const errorText = await new Response(response.data).text();
             const errorData = JSON.parse(errorText);
 
             if (errorData && errorData.code === 'NO_DATA_FOUND') {
               message.warning(errorData.message || 'No data found for the selected date range');
               return;
+            } else {
+              message.error(errorData.message || 'Error generating report');
+              return;
             }
           } catch (e) {
-            // If it's not a JSON error, continue with normal processing
-            console.log('Small file but not an error message, continuing with download');
+            console.log('Failed to parse error message', e);
           }
         }
 
-        const contentType = response.headers['content-type'];
-        let fileExtension = 'csv';
-        let fileType = 'text/csv';
-
-        if (contentType && (contentType.includes('excel') || contentType.includes('spreadsheetml'))) {
-          fileExtension = 'xlsx';
-          fileType = contentType;
-        }
-
-        const blob = new Blob([response.data], { type: fileType });
-
-        // Check if the blob is empty or too small to be a valid report
-        if (blob.size < 50) {
+        // Check if the response is too small to be a valid file
+        if (response.data.size < 100) {
           message.warning("No data found for the selected date range. Please try a different range.");
           return;
         }
 
-        const url = window.URL.createObjectURL(blob);
+        // Use the proper MIME type
+        let fileExtension = 'xlsx';
+        let fileType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+
+        if (contentType) {
+          fileType = contentType;
+          if (contentType.includes('csv')) {
+            fileExtension = 'csv';
+          }
+        }
+
+        // Create a blob with the correct MIME type
+        const blob = new Blob([response.data], { type: fileType });
+
+        // Create a File object for better handling
+        const file = new File([blob], `attendance_report_${startDate}_to_${endDate}.${fileExtension}`, {
+          type: fileType
+        });
+
+        // Create download URL
+        const url = URL.createObjectURL(file);
         const link = document.createElement('a');
         link.href = url;
+        link.download = file.name;
 
-        // Create a more informative filename with date range
-        const fileName = `attendance_full_report_${startDate}_to_${endDate}.${fileExtension}`;
-        link.setAttribute('download', fileName);
-
+        // Trigger download
         document.body.appendChild(link);
         link.click();
-        link.remove();
-        window.URL.revokeObjectURL(url);
 
-        message.success(`Full attendance report downloaded successfully as ${fileExtension.toUpperCase()}`);
+        // Clean up
+        setTimeout(() => {
+          document.body.removeChild(link);
+          URL.revokeObjectURL(url);
+        }, 1000);
+
+        message.success(`Attendance report downloaded successfully`);
       } catch (error) {
-        if (error.response && error.response.status === 404) {
-          const errorData = error.response.data;
-          message.warning(errorData.message || 'No data found for the selected date range');
+        if (error.response) {
+          if (error.response.status === 404) {
+            message.warning('No data found for the selected date range. Please try a different range.');
+          } else if (error.response.status === 401) {
+            message.error('Your session has expired. Please log in again.');
+            setTimeout(() => navigate('/login'), 2000);
+          } else {
+            message.error(`Failed to download report: ${error.response.data?.message || 'Unknown error'}`);
+          }
+        } else if (error.request) {
+          message.error('Network error. Please check your connection and try again.');
         } else {
-          throw error; // Re-throw to be caught by the outer catch
+          message.error(`Error: ${error.message}`);
         }
       }
     } catch (error) {
       console.error('Download error:', error);
-      message.error('Failed to download full report. Please try again later.');
+      message.error('Failed to download report. Please try again later.');
     } finally {
       setLoading(false);
     }

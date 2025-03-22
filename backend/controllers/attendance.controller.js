@@ -1512,7 +1512,10 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     const units = await Unit.find({ lecturer: lecturerId }).select('_id name code');
 
     if (!units.length) {
-      return res.status(404).json({ message: "No units found for this lecturer" });
+      return res.status(404).json({
+        message: "No units found for this lecturer",
+        code: "NO_DATA_FOUND"
+      });
     }
 
     const unitIds = units.map(unit => unit._id);
@@ -1555,7 +1558,8 @@ exports.exportAllSessionsAttendance = async (req, res) => {
       .populate({
         path: 'session',
         select: 'startTime endTime unit'
-      });
+      })
+      .sort({ 'session.startTime': 1, 'student.regNo': 1 }); // Sort for better organization
 
     if (!attendanceRecords.length) {
       logger.info(`No attendance records found for the selected sessions for lecturer ${lecturerId}`);
@@ -1568,46 +1572,92 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     // Create a map of unit IDs to unit details for easier lookup
     const unitMap = new Map(units.map(unit => [unit._id.toString(), unit]));
 
-    // Process data for export - Include unit details
-    const exportData = attendanceRecords.map(record => {
-      // Look up the unit details for this session
-      const unitId = record.session.unit.toString();
-      const unit = unitMap.get(unitId) || { name: 'Unknown Unit', code: 'N/A' };
+    // Process data for export - sanitize and ensure proper structure
+    const { sanitizeExportData } = require('../utils/exportUtils');
+    let exportData = [];
 
-      return {
-        'Unit Code': unit.code,
-        'Unit Name': unit.name,
-        'Session Date': new Date(record.session.startTime).toLocaleDateString(),
-        'Session Time': `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
-        'Registration Number': record.student.regNo,
-        'First Name': record.student.firstName,
-        'Last Name': record.student.lastName,
-        'Status': record.status,
-        'Attendance Time': record.attendedAt ? new Date(record.attendedAt).toLocaleTimeString() : 'N/A'
-      };
-    });
+    try {
+      // First create properly structured data
+      exportData = attendanceRecords.map(record => {
+        try {
+          // Look up the unit details for this session
+          const unitId = record.session?.unit?.toString() || '';
+          const unit = unitMap.get(unitId) || { name: 'Unknown Unit', code: 'N/A' };
+
+          // Ensure student details exist and are properly formatted
+          const student = record.student || { regNo: 'N/A', firstName: 'Unknown', lastName: 'Student' };
+
+          // Normalize status value
+          const normalizedStatus = record.status === 'present' ? 'Present' :
+            record.status === 'Present' ? 'Present' :
+              record.status === 'absent' ? 'Absent' :
+                record.status === 'Absent' ? 'Absent' : 'Unknown';
+
+          // Create record with proper structure
+          return {
+            'Unit Code': unit.code || 'N/A',
+            'Unit Name': unit.name || 'Unknown Unit',
+            'Session Date': record.session?.startTime ? new Date(record.session.startTime).toLocaleDateString() : 'N/A',
+            'Session Time': record.session?.startTime && record.session?.endTime ?
+              `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}` :
+              'N/A',
+            'Registration Number': student.regNo || 'N/A',
+            'First Name': student.firstName || 'Unknown',
+            'Last Name': student.lastName || 'Student',
+            'Status': normalizedStatus,
+            'Attendance Time': record.attendedAt ? new Date(record.attendedAt).toLocaleTimeString() : 'N/A'
+          };
+        } catch (error) {
+          logger.error(`Error processing attendance record: ${error.message}`);
+          // Return a placeholder record in case of error
+          return {
+            'Unit Code': 'Error',
+            'Unit Name': 'Error Processing Record',
+            'Session Date': 'N/A',
+            'Session Time': 'N/A',
+            'Registration Number': 'N/A',
+            'First Name': 'Error',
+            'Last Name': 'Processing',
+            'Status': 'Error',
+            'Attendance Time': 'N/A'
+          };
+        }
+      });
+
+      // Then sanitize the data to ensure consistency
+      exportData = sanitizeExportData(exportData);
+
+    } catch (error) {
+      logger.error(`Error preparing export data: ${error.message}`);
+      // If everything fails, return an empty array
+      exportData = [];
+    }
 
     // Determine export format based on request headers
     const acceptHeader = req.headers.accept || '';
     if (acceptHeader.includes('application/json')) {
+      // Send valid JSON data
       return res.json(exportData);
     }
 
     // Default to Excel export with enhanced formatting
     const workbook = new excel.Workbook();
-    const worksheet = workbook.addWorksheet('Attendance');
+    const worksheet = workbook.addWorksheet('Attendance', {
+      properties: { tabColor: { argb: '4167B8' } },
+      views: [{ state: 'frozen', xSplit: 0, ySplit: 4, topLeftCell: 'A5' }] // Freeze the header rows
+    });
 
-    // Add headers
+    // Add headers with proper formatting
     worksheet.columns = [
-      { header: 'Unit Code', key: 'Unit Code', width: 12 },
-      { header: 'Unit Name', key: 'Unit Name', width: 18 },
-      { header: 'Session Date', key: 'Session Date', width: 15 },
-      { header: 'Session Time', key: 'Session Time', width: 25 },
-      { header: 'Registration Number', key: 'Registration Number', width: 20 },
-      { header: 'First Name', key: 'First Name', width: 15 },
-      { header: 'Last Name', key: 'Last Name', width: 15 },
-      { header: 'Status', key: 'Status', width: 12 },
-      { header: 'Attendance Time', key: 'Attendance Time', width: 18 }
+      { header: 'Unit Code', key: 'Unit Code', width: 12, style: { alignment: { horizontal: 'left' } } },
+      { header: 'Unit Name', key: 'Unit Name', width: 25, style: { alignment: { horizontal: 'left' } } },
+      { header: 'Session Date', key: 'Session Date', width: 15, style: { alignment: { horizontal: 'left' } } },
+      { header: 'Session Time', key: 'Session Time', width: 25, style: { alignment: { horizontal: 'left' } } },
+      { header: 'Registration Number', key: 'Registration Number', width: 20, style: { alignment: { horizontal: 'left' } } },
+      { header: 'First Name', key: 'First Name', width: 15, style: { alignment: { horizontal: 'left' } } },
+      { header: 'Last Name', key: 'Last Name', width: 15, style: { alignment: { horizontal: 'left' } } },
+      { header: 'Status', key: 'Status', width: 12, style: { alignment: { horizontal: 'center' } } },
+      { header: 'Attendance Time', key: 'Attendance Time', width: 18, style: { alignment: { horizontal: 'left' } } }
     ];
 
     // Add title
@@ -1636,70 +1686,121 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     };
     worksheet.getRow(4).font = { color: { argb: 'FFFFFF' }, bold: true };
 
-    // Add data with alternating row colors and conditional formatting
-    let rowIndex = 5;
-    exportData.forEach(record => {
-      const row = worksheet.addRow(record);
+    try {
+      // Add data with alternating row colors and conditional formatting
+      let rowIndex = 5;
+      if (exportData.length > 0) {
+        exportData.forEach(record => {
+          try {
+            const row = worksheet.addRow(record);
 
-      // Apply alternating row colors
-      if (rowIndex % 2 === 0) {
-        row.eachCell({ includeEmpty: true }, cell => {
-          cell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'F5F5F5' }
-          };
+            // Explicitly set row values based on our specific columns
+            row.getCell(1).value = record['Unit Code'];
+            row.getCell(2).value = record['Unit Name'];
+            row.getCell(3).value = record['Session Date'];
+            row.getCell(4).value = record['Session Time'];
+            row.getCell(5).value = record['Registration Number'];
+            row.getCell(6).value = record['First Name'];
+            row.getCell(7).value = record['Last Name'];
+            row.getCell(8).value = record['Status'];
+            row.getCell(9).value = record['Attendance Time'];
+
+            // Apply alternating row colors
+            if (rowIndex % 2 === 0) {
+              row.eachCell({ includeEmpty: true }, cell => {
+                cell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'F5F5F5' }
+                };
+              });
+            }
+
+            // Color code status cell
+            const statusCell = row.getCell(8); // Status column
+            if (record['Status']) {
+              const normalizedStatus = record['Status'].toString().toLowerCase();
+              if (normalizedStatus === 'present') {
+                statusCell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'C6EFCE' }
+                };
+                statusCell.font = { color: { argb: '006100' } };
+              } else if (normalizedStatus === 'absent') {
+                statusCell.fill = {
+                  type: 'pattern',
+                  pattern: 'solid',
+                  fgColor: { argb: 'FFC7CE' }
+                };
+                statusCell.font = { color: { argb: '9C0006' } };
+              }
+            }
+
+            rowIndex++;
+          } catch (error) {
+            logger.error(`Error adding row to Excel: ${error.message}`);
+            // Continue to next record
+          }
         });
-      }
-
-      // Color code status cell
-      const statusCell = row.getCell(8); // Status column
-      if (record.Status === 'Present') {
-        statusCell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'C6EFCE' }
-        };
-        statusCell.font = { color: { argb: '006100' } };
       } else {
-        statusCell.fill = {
-          type: 'pattern',
-          pattern: 'solid',
-          fgColor: { argb: 'FFC7CE' }
-        };
-        statusCell.font = { color: { argb: '9C0006' } };
+        // Add a message if no data is available
+        const noDataRow = worksheet.addRow(["No attendance data found for the selected criteria"]);
+        worksheet.mergeCells(`A${rowIndex}:I${rowIndex}`);
+        noDataRow.getCell(1).alignment = { horizontal: 'center' };
+        noDataRow.getCell(1).font = { italic: true, color: { argb: '888888' } };
+        rowIndex++;
       }
 
+      // Add summary section
+      worksheet.addRow({});
+      const summaryTitleRow = worksheet.addRow(['Summary Statistics']);
+      summaryTitleRow.getCell(1).font = { bold: true, size: 14 };
+      worksheet.mergeCells(`A${rowIndex + 1}:I${rowIndex + 1}`);
       rowIndex++;
-    });
 
-    // Add summary section
-    worksheet.addRow({});
-    const summaryTitleRow = worksheet.addRow(['Summary Statistics']);
-    summaryTitleRow.getCell(1).font = { bold: true, size: 14 };
-    worksheet.mergeCells(`A${rowIndex + 1}:I${rowIndex + 1}`);
-    rowIndex++;
+      // Calculate statistics with better error handling
+      const totalRecords = attendanceRecords.length || 0;
+      const presentCount = attendanceRecords.filter(r => {
+        const status = (r.status || '').toString().toLowerCase();
+        return status === 'present';
+      }).length || 0;
+      const absentCount = attendanceRecords.filter(r => {
+        const status = (r.status || '').toString().toLowerCase();
+        return status === 'absent';
+      }).length || 0;
+      const attendanceRate = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
 
-    // Calculate statistics
-    const totalRecords = attendanceRecords.length;
-    const presentCount = attendanceRecords.filter(r => r.status === 'Present').length;
-    const absentCount = attendanceRecords.filter(r => r.status === 'Absent').length;
-    const attendanceRate = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
-    const uniqueStudents = new Set(attendanceRecords.map(r => r.student._id.toString())).size;
-    const uniqueSessions = new Set(attendanceRecords.map(r => r.session._id.toString())).size;
+      // Count unique students and sessions with error handling
+      const uniqueStudents = new Set(
+        attendanceRecords
+          .filter(r => r.student?._id)
+          .map(r => r.student._id.toString())
+      ).size || 0;
 
-    // Add statistics rows
-    worksheet.addRow(['Total Records', totalRecords]);
-    worksheet.addRow(['Present Records', presentCount]);
-    worksheet.addRow(['Absent Records', absentCount]);
-    worksheet.addRow(['Overall Attendance Rate', `${attendanceRate.toFixed(1)}%`]);
-    worksheet.addRow(['Unique Students', uniqueStudents]);
-    worksheet.addRow(['Total Sessions', uniqueSessions]);
-    worksheet.addRow(['Total Units', units.length]);
+      const uniqueSessions = new Set(
+        attendanceRecords
+          .filter(r => r.session?._id)
+          .map(r => r.session._id.toString())
+      ).size || 0;
 
-    // Format summary section
-    for (let i = rowIndex + 1; i <= rowIndex + 7; i++) {
-      worksheet.getCell(`A${i}`).font = { bold: true };
+      // Add statistics rows
+      worksheet.addRow(['Total Records', totalRecords]);
+      worksheet.addRow(['Present Records', presentCount]);
+      worksheet.addRow(['Absent Records', absentCount]);
+      worksheet.addRow(['Overall Attendance Rate', `${attendanceRate.toFixed(1)}%`]);
+      worksheet.addRow(['Unique Students', uniqueStudents]);
+      worksheet.addRow(['Total Sessions', uniqueSessions]);
+      worksheet.addRow(['Total Units', units.length]);
+
+      // Format summary section
+      for (let i = rowIndex + 1; i <= rowIndex + 7; i++) {
+        worksheet.getCell(`A${i}`).font = { bold: true };
+      }
+    } catch (error) {
+      logger.error(`Error generating Excel content: ${error.message}`);
+      // Add error message to Excel if formatting fails
+      worksheet.addRow(["Error generating report details. Basic data is still included."]);
     }
 
     // Add date range to filename and title if provided
@@ -1719,7 +1820,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     // Update title in the Excel file
     titleCell.value = reportTitle;
 
-    // Set response headers
+    // Set response headers with correct content type
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
