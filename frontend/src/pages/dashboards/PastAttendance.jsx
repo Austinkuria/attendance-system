@@ -13,7 +13,8 @@ import {
   Empty,
   Tag,
   message,
-  Modal
+  Modal,
+  Tooltip
 } from 'antd';
 import {
   DownloadOutlined,
@@ -263,7 +264,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
             Authorization: `Bearer ${token}`,
             Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // Explicitly request Excel format
           },
-          params: { startDate, endDate }
+          params: { startDate, endDate, unitId: pastFilters.unit }
         });
 
         // Check content type
@@ -463,97 +464,101 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
                   </Option>
                 ))}
             </Select>
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={() => {
-                if (pastFilters.sessionId) {
-                  const token = localStorage.getItem('token');
-                  setLoading(true);
+            <Tooltip title="Download an Excel report for the selected session">
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={() => {
+                  if (pastFilters.sessionId) {
+                    const token = localStorage.getItem('token');
+                    setLoading(true);
 
-                  // Use the correct endpoint path for session export
-                  axios({
-                    url: `https://attendance-system-w70n.onrender.com/api/attendance/export/session/${pastFilters.sessionId}`,
-                    method: 'GET',
-                    responseType: 'blob',
-                    headers: { Authorization: `Bearer ${token}` },
-                  }).then((response) => {
-                    // Determine file type from content-type header
-                    const contentType = response.headers['content-type'];
-                    let fileExtension = 'csv'; // Default extension
-                    let fileType = 'text/csv'; // Default type
+                    // Use the correct endpoint path for session export
+                    axios({
+                      url: `https://attendance-system-w70n.onrender.com/api/attendance/export/session/${pastFilters.sessionId}`,
+                      method: 'GET',
+                      responseType: 'blob',
+                      headers: { Authorization: `Bearer ${token}` },
+                    }).then((response) => {
+                      // Determine file type from content-type header
+                      const contentType = response.headers['content-type'];
+                      let fileExtension = 'csv'; // Default extension
+                      let fileType = 'text/csv'; // Default type
 
-                    // Allow Excel format if available
-                    if (contentType && contentType.includes('excel') ||
-                      contentType.includes('spreadsheetml')) {
-                      fileExtension = 'xlsx';
-                      fileType = contentType;
-                    }
+                      // Allow Excel format if available
+                      if (contentType && contentType.includes('excel') ||
+                        contentType.includes('spreadsheetml')) {
+                        fileExtension = 'xlsx';
+                        fileType = contentType;
+                      }
 
-                    // Create a blob with proper MIME type
-                    const blob = new Blob([response.data], { type: fileType });
-                    const url = window.URL.createObjectURL(blob);
-                    const link = document.createElement('a');
-                    link.href = url;
+                      // Create a blob with proper MIME type
+                      const blob = new Blob([response.data], { type: fileType });
+                      const url = window.URL.createObjectURL(blob);
+                      const link = document.createElement('a');
+                      link.href = url;
 
-                    // Get unit name for better filename
-                    const selectedSession = pastSessions.find(s => s.sessionId === pastFilters.sessionId);
-                    const unitName = selectedSession?.unitName || 'unknown';
-                    const sessionDate = selectedSession ? moment(selectedSession.startTime).format('YYYY-MM-DD') : '';
-                    const sessionTime = selectedSession ? moment(selectedSession.startTime).format('HH-mm') : '';
+                      // Get unit name for better filename
+                      const selectedSession = pastSessions.find(s => s.sessionId === pastFilters.sessionId);
+                      const unitName = selectedSession?.unitName || 'unknown';
+                      const sessionDate = selectedSession ? moment(selectedSession.startTime).format('YYYY-MM-DD') : '';
+                      const sessionTime = selectedSession ? moment(selectedSession.startTime).format('HH-mm') : '';
 
-                    // Create informative filename
-                    const fileName = `attendance_${unitName.replace(/\s+/g, '_')}_${sessionDate}_${sessionTime}.${fileExtension}`;
-                    link.setAttribute('download', fileName);
+                      // Create informative filename
+                      const fileName = `attendance_${unitName.replace(/\s+/g, '_')}_${sessionDate}_${sessionTime}.${fileExtension}`;
+                      link.setAttribute('download', fileName);
 
-                    document.body.appendChild(link);
-                    link.click();
-                    link.remove();
-                    window.URL.revokeObjectURL(url);
+                      document.body.appendChild(link);
+                      link.click();
+                      link.remove();
+                      window.URL.revokeObjectURL(url);
 
-                    message.success(`Report downloaded successfully as ${fileExtension.toUpperCase()}`);
-                    setLoading(false);
-                  }).catch((error) => {
-                    console.error("Download error:", error);
+                      message.success(`Report downloaded successfully as ${fileExtension.toUpperCase()}`);
+                      setLoading(false);
+                    }).catch((error) => {
+                      console.error("Download error:", error);
 
-                    // Better error handling
-                    if (error.response?.status === 404) {
-                      message.error("Export endpoint not found. Please check if the API is updated.");
-                    } else if (error.response?.status === 401) {
-                      message.error("Session expired. Please log in again.");
-                      setTimeout(() => navigate('/login'), 2000);
-                    } else {
-                      message.error("Failed to download report. Please try again later.");
-                    }
-                    setLoading(false);
-                  });
-                } else {
-                  message.warning('Please select a session first');
-                }
-              }}
-              disabled={!pastFilters.sessionId}
-              loading={loading && pastFilters.sessionId}
-              style={{
-                background: themeColors.primary,
-                borderColor: themeColors.primary,
-                color: isDarkMode ? themeColors.text : '#fff',
-              }}
-            >
-              Download Excel Report
-            </Button>
-            <Button
-              type="primary"
-              icon={<DownloadOutlined />}
-              onClick={handleDownloadFullReport}
-              loading={loading}
-              style={{
-                background: themeColors.primary,
-                borderColor: themeColors.primary,
-                color: isDarkMode ? themeColors.text : '#fff',
-              }}
-            >
-              Download Full Report
-            </Button>
+                      // Better error handling
+                      if (error.response?.status === 404) {
+                        message.error("Export endpoint not found. Please check if the API is updated.");
+                      } else if (error.response?.status === 401) {
+                        message.error("Session expired. Please log in again.");
+                        setTimeout(() => navigate('/login'), 2000);
+                      } else {
+                        message.error("Failed to download report. Please try again later.");
+                      }
+                      setLoading(false);
+                    });
+                  } else {
+                    message.warning('Please select a session first');
+                  }
+                }}
+                disabled={!pastFilters.sessionId}
+                loading={loading && pastFilters.sessionId}
+                style={{
+                  background: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  color: isDarkMode ? themeColors.text : '#fff',
+                }}
+              >
+                Download Excel Report
+              </Button>
+            </Tooltip>
+            <Tooltip title="Download a comprehensive attendance report for all sessions within a date range">
+              <Button
+                type="primary"
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadFullReport}
+                loading={loading}
+                style={{
+                  background: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  color: isDarkMode ? themeColors.text : '#fff',
+                }}
+              >
+                Download Full Report
+              </Button>
+            </Tooltip>
           </Space>
 
           <Spin

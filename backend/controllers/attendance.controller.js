@@ -1502,14 +1502,26 @@ exports.exportSessionAttendance = async (req, res) => {
 exports.exportAllSessionsAttendance = async (req, res) => {
   try {
     const lecturerId = req.user.userId;
-    const { startDate, endDate } = req.query;
+    const { startDate, endDate, unitId } = req.query;
 
     if (!mongoose.Types.ObjectId.isValid(lecturerId)) {
       return res.status(400).json({ message: "Invalid lecturer ID format" });
     }
 
     // Get all units taught by this lecturer
-    const units = await Unit.find({ lecturer: lecturerId }).select('_id name code');
+    let units = [];
+    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
+      // If unitId is provided and valid, fetch only that unit
+      const unit = await Unit.findById(unitId).select('_id name code');
+      if (unit) {
+        units = [unit];
+      } else {
+        return res.status(404).json({ message: "Unit not found" });
+      }
+    } else {
+      // Otherwise, fetch all units for the lecturer
+      units = await Unit.find({ lecturer: lecturerId }).select('_id name code');
+    }
 
     if (!units.length) {
       return res.status(404).json({

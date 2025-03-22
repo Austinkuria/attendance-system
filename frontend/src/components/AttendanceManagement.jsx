@@ -15,6 +15,7 @@ import {
   Row,
   Col,
   DatePicker,
+  Tooltip,
 } from "antd";
 import {
   QrcodeOutlined,
@@ -1285,7 +1286,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
             Authorization: `Bearer ${token}`,
             Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // Explicitly request Excel format
           },
-          params: { startDate, endDate }
+          params: { startDate, endDate, unitId: selectedUnit } // Pass selectedUnit as unitId
         });
 
         // Check content type to determine if it's a normal response or an error
@@ -1667,37 +1668,41 @@ const AttendanceManagement = ({ onLoadingChange }) => {
             }}
             className="no-hover"
           >
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={() => handleDownloadReport(selectedUnit)}
-              disabled={!selectedUnit}
-              loading={loading.stats}
-              style={{
-                color: themeColors.primary,
-                borderColor: themeColors.primary,
-                width: screens.xs ? "100%" : "auto",
-                marginBottom: screens.xs ? 0 : 4,
-                borderRadius: 8,
-                transition: "all 0.3s",
-              }}
-            >
-              {loading.stats ? "Exporting..." : screens.md ? "Download Excel Report" : "Export"}
-            </Button>
-            <Button
-              icon={<DownloadOutlined />}
-              onClick={handleDownloadFullReport}
-              loading={loading.stats}
-              style={{
-                color: themeColors.primary,
-                borderColor: themeColors.primary,
-                width: screens.xs ? "100%" : "auto",
-                marginBottom: screens.xs ? 0 : 4,
-                borderRadius: 8,
-                transition: "all 0.3s",
-              }}
-            >
-              {loading.stats ? "Exporting..." : "Download Full Report"}
-            </Button>
+            <Tooltip title="Download attendance report for the selected session">
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={() => handleDownloadReport(selectedUnit)}
+                disabled={!selectedUnit}
+                loading={loading.stats}
+                style={{
+                  color: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  width: screens.xs ? "100%" : "auto",
+                  marginBottom: screens.xs ? 0 : 4,
+                  borderRadius: 8,
+                  transition: "all 0.3s",
+                }}
+              >
+                {loading.stats ? "Exporting..." : screens.md ? "Download Session Report" : "Export Session"}
+              </Button>
+            </Tooltip>
+            <Tooltip title="Download a comprehensive attendance report for all sessions within a date range">
+              <Button
+                icon={<DownloadOutlined />}
+                onClick={handleDownloadFullReport}
+                loading={loading.stats}
+                style={{
+                  color: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  width: screens.xs ? "100%" : "auto",
+                  marginBottom: screens.xs ? 0 : 4,
+                  borderRadius: 8,
+                  transition: "all 0.3s",
+                }}
+              >
+                {loading.stats ? "Exporting..." : "Download Full Report"}
+              </Button>
+            </Tooltip>
             <Space
               wrap
               style={{ width: "100%", marginTop: screens.xs ? 0 : 4 }}
