@@ -24,9 +24,6 @@ router.get('/export/unit/:unitId', authenticate, attendanceController.exportUnit
 router.get('/export/session/:sessionId', authenticate, attendanceController.exportSessionAttendance);
 router.get('/export-all-sessions', authenticate, attendanceController.exportAllSessionsAttendance);
 
-// New route for single unit export
-router.get('/unit-report/:unitId', authenticate, attendanceController.exportSingleUnitAttendance);
-
 // Error-handling middleware
 router.use((err, req, res, next) => {
   console.error("Error:", err);
