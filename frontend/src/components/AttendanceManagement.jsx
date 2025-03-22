@@ -1380,6 +1380,51 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     setIsDateRangeModalVisible(false);
   };
 
+  const handleExportSingleUnit = async () => {
+    try {
+      if (!selectedUnit) {
+        message.warning('Please select a unit first');
+        return;
+      }
+
+      setLoading((prev) => ({ ...prev, stats: true }));
+      const token = localStorage.getItem('token');
+
+      const response = await axios({
+        url: `https://attendance-system-w70n.onrender.com/api/attendance/unit-report/${selectedUnit}`,
+        method: 'GET',
+        responseType: 'blob',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        }
+      });
+
+      // Create blob and download
+      const blob = new Blob([response.data], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      const unit = units.find(u => u._id === selectedUnit);
+      const filename = `${unit?.code || 'unit'}_attendance_${moment().format('YYYY-MM-DD')}.xlsx`;
+
+      link.href = url;
+      link.setAttribute('download', filename);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(url);
+
+      message.success('Unit attendance report downloaded successfully');
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error('Failed to export unit attendance');
+    } finally {
+      setLoading((prev) => ({ ...prev, stats: false }));
+    }
+  };
+
   return (
     <div style={{
       padding: 0,
@@ -1697,6 +1742,20 @@ const AttendanceManagement = ({ onLoadingChange }) => {
               }}
             >
               {loading.stats ? "Exporting..." : "Download Full Report"}
+            </Button>
+            <Button
+              type="primary"
+              icon={<DownloadOutlined />}
+              onClick={handleExportSingleUnit}
+              disabled={!selectedUnit}
+              loading={loading.stats}
+              style={{
+                background: themeColors.primary,
+                borderColor: themeColors.primary,
+                color: isDarkMode ? themeColors.text : '#fff',
+              }}
+            >
+              Export Unit Report
             </Button>
             <Space
               wrap

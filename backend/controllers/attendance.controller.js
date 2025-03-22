@@ -1836,3 +1836,178 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     res.status(500).json({ message: "Error exporting attendance data", error: error.message });
   }
 };
+
+exports.exportSingleUnitAttendance = async (req, res) => {
+  try {
+    const { unitId } = req.params;
+    const { startDate, endDate } = req.query;
+
+    if (!mongoose.Types.ObjectId.isValid(unitId)) {
+      return res.status(400).json({ message: "Invalid unit ID format" });
+    }
+
+    // Fetch unit details
+    const unit = await Unit.findById(unitId)
+      .populate('lecturer', 'firstName lastName');
+
+    if (!unit) {
+      return res.status(404).json({ message: "Unit not found" });
+    }
+
+    // Build session query with date range
+    const sessionQuery = {
+      unit: unitId,
+      ended: true
+    };
+
+    if (startDate && endDate) {
+      sessionQuery.startTime = {
+        $gte: new Date(startDate),
+        $lte: new Date(new Date(endDate).setHours(23, 59, 59, 999))
+      };
+    }
+
+    // Get all sessions for this unit
+    const sessions = await Session.find(sessionQuery).sort({ startTime: -1 });
+
+    if (!sessions.length) {
+      return res.status(404).json({
+        message: "No sessions found for this unit in the selected date range",
+        code: "NO_DATA_FOUND"
+      });
+    }
+
+    // Get attendance records
+    const attendanceRecords = await Attendance.find({
+      session: { $in: sessions.map(s => s._id) }
+    })
+      .populate('student', 'regNo firstName lastName')
+      .populate('session', 'startTime endTime')
+      .sort({ 'session.startTime': -1, 'student.regNo': 1 });
+
+    if (!attendanceRecords.length) {
+      return res.status(404).json({
+        message: "No attendance records found",
+        code: "NO_DATA_FOUND"
+      });
+    }
+
+    // Create workbook
+    const workbook = new excel.Workbook();
+    const worksheet = workbook.addWorksheet('Unit Attendance', {
+      properties: { tabColor: { argb: '4167B8' } },
+      views: [{ state: 'frozen', xSplit: 0, ySplit: 4, topLeftCell: 'A5' }]
+    });
+
+    // Add headers
+    worksheet.columns = [
+      { header: 'Session Date', key: 'date', width: 15 },
+      { header: 'Session Time', key: 'time', width: 25 },
+      { header: 'Registration Number', key: 'regNo', width: 20 },
+      { header: 'Student Name', key: 'name', width: 30 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Attendance Time', key: 'attendanceTime', width: 18 }
+    ];
+
+    // Add title and metadata
+    worksheet.mergeCells('A1:F1');
+    worksheet.getCell('A1').value = `Attendance Report - ${unit.name} (${unit.code})`;
+    worksheet.getCell('A1').font = { size: 16, bold: true };
+    worksheet.getCell('A1').alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells('A2:F2');
+    worksheet.getCell('A2').value = `Lecturer: ${unit.lecturer?.firstName || ''} ${unit.lecturer?.lastName || ''}`;
+    worksheet.getCell('A2').font = { size: 12, italic: true };
+    worksheet.getCell('A2').alignment = { horizontal: 'center' };
+
+    if (startDate && endDate) {
+      worksheet.mergeCells('A3:F3');
+      worksheet.getCell('A3').value = `Period: ${startDate} to ${endDate}`;
+      worksheet.getCell('A3').alignment = { horizontal: 'center' };
+    }
+
+    // Style header row
+    const headerRow = worksheet.getRow(4);
+    headerRow.font = { bold: true };
+    headerRow.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+    headerRow.font = { color: { argb: 'FFFFFF' }, bold: true };
+
+    // Add data rows
+    attendanceRecords.forEach((record, index) => {
+      const row = worksheet.addRow({
+        date: new Date(record.session.startTime).toLocaleDateString(),
+        time: `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
+        regNo: record.student.regNo,
+        name: `${record.student.firstName} ${record.student.lastName}`,
+        status: record.status,
+        attendanceTime: record.attendedAt ? new Date(record.attendedAt).toLocaleTimeString() : 'N/A'
+      });
+
+      // Style status cell
+      const statusCell = row.getCell(5);
+      if (record.status === 'Present') {
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'C6EFCE' }
+        };
+        statusCell.font = { color: { argb: '006100' } };
+      } else {
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFC7CE' }
+        };
+        statusCell.font = { color: { argb: '9C0006' } };
+      }
+
+      // Zebra striping
+      if (index % 2) {
+        row.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'F5F5F5' }
+        };
+      }
+    });
+
+    // Add summary section
+    worksheet.addRow([]);
+    const summaryStartRow = worksheet.rowCount + 1;
+
+    const presentCount = attendanceRecords.filter(r => r.status === 'Present').length;
+    const totalCount = attendanceRecords.length;
+    const attendanceRate = (presentCount / totalCount * 100).toFixed(1);
+
+    worksheet.addRow(['Summary Statistics']).font = { bold: true, size: 14 };
+    worksheet.addRow(['Total Sessions', sessions.length]);
+    worksheet.addRow(['Total Records', totalCount]);
+    worksheet.addRow(['Present', presentCount]);
+    worksheet.addRow(['Absent', totalCount - presentCount]);
+    worksheet.addRow(['Attendance Rate', `${attendanceRate}%`]);
+
+    // Generate filename
+    const dateStr = startDate && endDate ? `${startDate}_to_${endDate}` : new Date().toISOString().split('T')[0];
+    const filename = `${unit.code}_attendance_${dateStr}.xlsx`;
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+
+    // Send the workbook
+    await workbook.xlsx.write(res);
+    res.end();
+
+    logger.info(`Single unit attendance report exported for unit ${unitId}`);
+  } catch (error) {
+    logger.error(`Error exporting single unit attendance: ${error.message}`);
+    res.status(500).json({
+      message: "Error exporting attendance data",
+      error: error.message
+    });
+  }
+};
