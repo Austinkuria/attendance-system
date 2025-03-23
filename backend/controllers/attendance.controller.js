@@ -1682,7 +1682,10 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     // Add metadata
     worksheet.mergeCells('A2:I2');
     const metaCell = worksheet.getCell('A2');
-    metaCell.value = `Generated on ${new Date().toLocaleString()} | All Units`;
+    const now = new Date();
+    const nairobiTime = now.toLocaleString('en-KE', { timeZone: 'Africa/Nairobi' });
+    const unitText = units.length === 1 ? `Unit: ${units[0].name} (${units[0].code})` : 'All Units';
+    metaCell.value = `Generated on ${nairobiTime} | ${unitText}`;
     metaCell.font = { size: 12, italic: true };
     metaCell.alignment = { horizontal: 'center' };
 
@@ -1825,6 +1828,15 @@ exports.exportAllSessionsAttendance = async (req, res) => {
       reportTitle = `Attendance Report (${startDate} to ${endDate})`;
     } else {
       filename = `complete_attendance_report_${today}`;
+    }
+
+    // Append unit names to filename
+    if (units.length === 1) {
+      // If only one unit is selected, add its name
+      filename += `_${units[0].code}_${units[0].name.replace(/\s+/g, '_')}`;
+    } else {
+      // If multiple units are selected, indicate "all_units"
+      filename += '_all_units';
     }
 
     filename += '.xlsx';
