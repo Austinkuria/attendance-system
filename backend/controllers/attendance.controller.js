@@ -1866,30 +1866,46 @@ exports.exportFilteredAttendance = async (req, res) => {
     const { unitId, startDate, endDate } = req.query;
     const studentId = req.user.userId;
 
-    // Build the query
-    const query = { student: studentId };
-    if (unitId) {
-      query['session.unit'] = mongoose.Types.ObjectId(unitId);
-    }
-    if (startDate || endDate) {
-      query.attendedAt = {};
-      if (startDate) query.attendedAt.$gte = new Date(startDate);
-      if (endDate) query.attendedAt.$lte = new Date(endDate);
+    if (!studentId) {
+      return res.status(400).json({ message: 'Student ID is required' });
     }
 
+    // Build the query
+    const query = { student: studentId };
+    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
+      query['session.unit'] = mongoose.Types.ObjectId(unitId);
+    }
+
+    if (startDate || endDate) {
+      query.attendedAt = {};
+      if (startDate) {
+        const parsedStartDate = new Date(startDate);
+        if (!isNaN(parsedStartDate)) {
+          query.attendedAt.$gte = parsedStartDate;
+        }
+      }
+      if (endDate) {
+        const parsedEndDate = new Date(endDate);
+        if (!isNaN(parsedEndDate)) {
+          query.attendedAt.$lte = parsedEndDate;
+        }
+      }
+    }
+
+    // Fetch attendance records with populated session and unit details
     const attendanceRecords = await Attendance.find(query)
       .populate({
         path: 'session',
-        select: 'unit startTime endTime',
+        select: 'startTime endTime unit',
         populate: { path: 'unit', select: 'name code' }
       })
       .sort({ 'session.startTime': -1 });
 
-    // Create workbook
+    // Create workbook and worksheet
     const workbook = new excel.Workbook();
     const worksheet = workbook.addWorksheet('Attendance');
 
-    // Add headers
+    // Define columns
     worksheet.columns = [
       { header: 'Unit', key: 'unit', width: 30 },
       { header: 'Code', key: 'code', width: 15 },

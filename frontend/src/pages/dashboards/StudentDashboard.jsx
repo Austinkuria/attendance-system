@@ -141,6 +141,14 @@ const StudentDashboard = () => {
     feedback: false
   });
 
+  // Add these new state variables after other state declarations
+  const [downloadModalVisible, setDownloadModalVisible] = useState(false);
+  const [downloadFilters, setDownloadFilters] = useState({
+    unit: null,
+    startDate: null,
+    endDate: null,
+  });
+
   // Split the fetchAllData into separate functions for each data typerate functions for each data type
   const fetchProfileData = useCallback(async () => {
     const token = localStorage.getItem('token');
@@ -594,13 +602,58 @@ const StudentDashboard = () => {
     }
   };
 
-  const logout = () => {
-    localStorage.removeItem('token');
-    message.success({
-      content: 'Logged out successfully.',
-      style: { color: themeColors.accent }
-    });
-    navigate('/auth/login');
+  const handleDownloadAttendance = async () => {
+    try {
+      message.loading({ content: 'Preparing download...', key: 'download' });
+
+      const params = {
+        ...(downloadFilters.unit && { unitId: downloadFilters.unit }),
+        ...(downloadFilters.startDate && { startDate: downloadFilters.startDate.format('YYYY-MM-DD') }),
+        ...(downloadFilters.endDate && { endDate: downloadFilters.endDate.format('YYYY-MM-DD') }),
+      };
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        navigate('/auth/login');
+        return;
+      }
+
+      const response = await axios.get(
+        `${API_URL}/attendance/export`,
+        {
+          params,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+            Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+          },
+          responseType: 'blob'
+        }
+      );
+
+      if (!response.data) {
+        throw new Error('No data received');
+      }
+
+      const downloadUrl = window.URL.createObjectURL(new Blob([response.data]));
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      const fileName = `attendance_report_${moment().format('YYYY-MM-DD')}.xlsx`;
+      link.setAttribute('download', fileName);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+
+      message.success({ content: 'Download successful!', key: 'download' });
+      setDownloadModalVisible(false);
+    } catch (error) {
+      console.error('Download error:', error);
+      message.error({
+        content: 'Failed to download attendance data',
+        key: 'download'
+      });
+    }
   };
 
   const getAttendanceColor = (rate) => {
@@ -1058,7 +1111,10 @@ const StudentDashboard = () => {
         Modal.confirm({
           title: <span style={{ color: themeColors.text }}>Confirm Logout</span>,
           content: <span style={{ color: themeColors.text }}>Are you sure you want to logout?</span>,
-          onOk: logout,
+          onOk: () => {
+            localStorage.removeItem('token'); // Clear the token
+            navigate('/auth/login'); // Redirect to login page
+          },
           centered: true,
           okButtonProps: {
             style: {
@@ -2306,10 +2362,10 @@ const StudentDashboard = () => {
                           <Button
                             type="primary"
                             style={{ ...styles.button, color: '#fff !important' }}
-                            onClick={exportAttendanceData}
+                            onClick={() => setDownloadModalVisible(true)}
                             className="export-button"
                           >
-                            <span style={{ color: '#fff' }}>Export Data</span>
+                            <span style={{ color: '#fff' }}>Download Attendance Report</span>
                           </Button>
                         </>
                       )}
@@ -2554,6 +2610,43 @@ const StudentDashboard = () => {
                     We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.
                     By continuing, you agree to this analysis for attendance verification purposes only.
                   </p>
+                </Modal>
+
+                <Modal
+                  title={<span style={{ color: themeColors.text }}>Download Attendance Report</span>}
+                  open={downloadModalVisible}
+                  onCancel={() => setDownloadModalVisible(false)}
+                  onOk={handleDownloadAttendance}
+                  okText="Download"
+                  okButtonProps={{
+                    style: { ...styles.button, color: '#fff' }
+                  }}
+                >
+                  <Space direction="vertical" style={{ width: '100%' }}>
+                    <Select
+                      placeholder="Select Unit (Optional)"
+                      style={{ width: '100%' }}
+                      allowClear
+                      value={downloadFilters.unit}
+                      onChange={(value) => setDownloadFilters(prev => ({ ...prev, unit: value }))}
+                    >
+                      <Option value={null}>All Units</Option>
+                      {units.map(unit => (
+                        <Option key={unit._id} value={unit._id}>{unit.name}</Option>
+                      ))}
+                    </Select>
+
+                    <DatePicker.RangePicker
+                      style={{ width: '100%' }}
+                      onChange={(dates) => {
+                        setDownloadFilters(prev => ({
+                          ...prev,
+                          startDate: dates?.[0] || null,
+                          endDate: dates?.[1] || null
+                        }));
+                      }}
+                    />
+                  </Space>
                 </Modal>
               </>
             )}
