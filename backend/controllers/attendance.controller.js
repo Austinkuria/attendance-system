@@ -1860,3 +1860,75 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     res.status(500).json({ message: "Error exporting attendance data", error: error.message });
   }
 };
+
+exports.exportFilteredAttendance = async (req, res) => {
+  try {
+    const { unitId, startDate, endDate } = req.query;
+    const studentId = req.user.userId;
+
+    // Build the query
+    const query = { student: studentId };
+    if (unitId) {
+      query['session.unit'] = mongoose.Types.ObjectId(unitId);
+    }
+    if (startDate || endDate) {
+      query.attendedAt = {};
+      if (startDate) query.attendedAt.$gte = new Date(startDate);
+      if (endDate) query.attendedAt.$lte = new Date(endDate);
+    }
+
+    const attendanceRecords = await Attendance.find(query)
+      .populate({
+        path: 'session',
+        select: 'unit startTime endTime',
+        populate: { path: 'unit', select: 'name code' }
+      })
+      .sort({ 'session.startTime': -1 });
+
+    // Create workbook
+    const workbook = new excel.Workbook();
+    const worksheet = workbook.addWorksheet('Attendance');
+
+    // Add headers
+    worksheet.columns = [
+      { header: 'Unit', key: 'unit', width: 30 },
+      { header: 'Code', key: 'code', width: 15 },
+      { header: 'Session Date', key: 'date', width: 15 },
+      { header: 'Session Time', key: 'time', width: 20 },
+      { header: 'Status', key: 'status', width: 12 },
+      { header: 'Feedback Submitted', key: 'feedback', width: 15 }
+    ];
+
+    // Add data
+    attendanceRecords.forEach(record => {
+      worksheet.addRow({
+        unit: record.session.unit.name,
+        code: record.session.unit.code,
+        date: new Date(record.session.startTime).toLocaleDateString(),
+        time: `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
+        status: record.status,
+        feedback: record.feedbackSubmitted ? 'Yes' : 'No'
+      });
+    });
+
+    // Style the header row
+    worksheet.getRow(1).font = { bold: true };
+    worksheet.getRow(1).fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '4F81BD' }
+    };
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', `attachment; filename=attendance_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+    // Write workbook to response
+    await workbook.xlsx.write(res);
+    res.end();
+
+  } catch (error) {
+    console.error('Error exporting attendance:', error);
+    res.status(500).json({ message: 'Error exporting attendance data', error: error.message });
+  }
+};

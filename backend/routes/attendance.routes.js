@@ -24,6 +24,9 @@ router.get('/export/unit/:unitId', authenticate, attendanceController.exportUnit
 router.get('/export/session/:sessionId', authenticate, attendanceController.exportSessionAttendance);
 router.get('/export-all-sessions', authenticate, attendanceController.exportAllSessionsAttendance);
 
+// Add this line before the error-handling middleware
+router.get('/export', authenticate, attendanceController.exportFilteredAttendance);
+
 // Error-handling middleware
 router.use((err, req, res, next) => {
   console.error("Error:", err);
