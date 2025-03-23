@@ -1870,10 +1870,11 @@ exports.exportFilteredAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Student ID is required' });
     }
 
-    // Build the query
-    const query = { student: studentId };
+    // Build the query with proper ObjectId handling
+    const query = { student: new mongoose.Types.ObjectId(studentId) };
+
     if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
-      query['session.unit'] = mongoose.Types.ObjectId(unitId);
+      query['session.unit'] = new mongoose.Types.ObjectId(unitId);
     }
 
     if (startDate || endDate) {
@@ -1892,7 +1893,7 @@ exports.exportFilteredAttendance = async (req, res) => {
       }
     }
 
-    // Fetch attendance records with populated session and unit details
+    // Fetch attendance records with proper query
     const attendanceRecords = await Attendance.find(query)
       .populate({
         path: 'session',
@@ -1900,6 +1901,20 @@ exports.exportFilteredAttendance = async (req, res) => {
         populate: { path: 'unit', select: 'name code' }
       })
       .sort({ 'session.startTime': -1 });
+
+    // Process records for export
+    const processedRecords = attendanceRecords.filter(record =>
+      record.session && record.session.unit
+    ).map(record => ({
+      unit: record.session.unit.name || 'N/A',
+      code: record.session.unit.code || 'N/A',
+      date: record.session.startTime ? new Date(record.session.startTime).toLocaleDateString() : 'N/A',
+      time: record.session.startTime && record.session.endTime ?
+        `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}` :
+        'N/A',
+      status: record.status || 'N/A',
+      feedback: record.feedbackSubmitted ? 'Yes' : 'No'
+    }));
 
     // Create workbook and worksheet
     const workbook = new excel.Workbook();
@@ -1916,15 +1931,8 @@ exports.exportFilteredAttendance = async (req, res) => {
     ];
 
     // Add data
-    attendanceRecords.forEach(record => {
-      worksheet.addRow({
-        unit: record.session.unit.name,
-        code: record.session.unit.code,
-        date: new Date(record.session.startTime).toLocaleDateString(),
-        time: `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
-        status: record.status,
-        feedback: record.feedbackSubmitted ? 'Yes' : 'No'
-      });
+    processedRecords.forEach(record => {
+      worksheet.addRow(record);
     });
 
     // Style the header row
@@ -1934,6 +1942,17 @@ exports.exportFilteredAttendance = async (req, res) => {
       pattern: 'solid',
       fgColor: { argb: '4F81BD' }
     };
+    worksheet.getRow(1).font = { color: { argb: 'FFFFFF' } };
+
+    // Add date range info if provided
+    if (startDate && endDate) {
+      worksheet.spliceRows(1, 0, [{
+        unit: `Date Range: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`
+      }]);
+      worksheet.mergeCells('A1:F1');
+      worksheet.getRow(1).font = { bold: true };
+      worksheet.getRow(1).alignment = { horizontal: 'center' };
+    }
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
