@@ -528,17 +528,70 @@ const StudentDashboard = () => {
     }
   }, [units, attendanceData, calculateAttendanceRate, hasShownLowAttendanceAlert]);
 
-  const exportAttendanceData = () => {
-    const csvContent =
-      'data:text/csv;charset=utf-8,' +
-      attendanceRates.map((rate) => `${rate.label},${rate.value === null ? 'N/A' : rate.value}%`).join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', 'attendance_data.csv');
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  const exportAttendanceData = async () => {
+    try {
+      message.loading({ content: 'Preparing attendance data...', key: 'export' });
+
+      const data = attendanceData.attendanceRecords.map(record => ({
+        'Unit Name': record.session.unit.name,
+        'Unit Code': record.session.unit.code || 'N/A',
+        'Session Date': new Date(record.session.startTime).toLocaleDateString(),
+        'Session Time': `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
+        'Status': record.status,
+        'Attendance Time': record.attendedAt ? new Date(record.attendedAt).toLocaleTimeString() : 'N/A',
+        'Feedback Submitted': record.feedbackSubmitted ? 'Yes' : 'No'
+      }));
+
+      // Create workbook and worksheet
+      const XLSX = await import('xlsx');
+      const workbook = XLSX.utils.book_new();
+      const worksheet = XLSX.utils.json_to_sheet(data);
+
+      // Add summary sheet
+      const summaryData = units.map(unit => {
+        const rate = calculateAttendanceRate(unit._id);
+        return {
+          'Unit': unit.name,
+          'Code': unit.code || 'N/A',
+          'Attendance Rate': rate ? `${rate}%` : 'No sessions',
+          'Total Sessions': attendanceData.attendanceRecords.filter(
+            record => record.session.unit._id === unit._id
+          ).length,
+          'Present': attendanceData.attendanceRecords.filter(
+            record => record.session.unit._id === unit._id && record.status === 'Present'
+          ).length,
+          'Absent': attendanceData.attendanceRecords.filter(
+            record => record.session.unit._id === unit._id && record.status === 'Absent'
+          ).length
+        };
+      });
+
+      const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+
+      // Add sheets to workbook
+      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
+      XLSX.utils.book_append_sheet(workbook, worksheet, 'Detailed Attendance');
+
+      // Generate filename with current date
+      const date = new Date().toISOString().split('T')[0];
+      const fileName = `attendance_report_${date}.xlsx`;
+
+      // Write and download file
+      XLSX.writeFile(workbook, fileName);
+
+      message.success({
+        content: 'Attendance data exported successfully!',
+        key: 'export',
+        duration: 3
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      message.error({
+        content: 'Failed to export attendance data',
+        key: 'export',
+        duration: 3
+      });
+    }
   };
 
   const logout = () => {

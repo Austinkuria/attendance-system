@@ -610,15 +610,16 @@ export const downloadStudents = async () => {
     const response = await axios.get(`${API_URL}/students/download`, {
       responseType: "blob",
       headers: {
-        Authorization: `Bearer ${token}`
+        Authorization: `Bearer ${token}`,
+        "Accept": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
       }
     });
 
     // Create temporary download link
-    const url = window.URL.createObjectURL(new Blob([response.data]));
+    const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
     const link = document.createElement("a");
     link.href = url;
-    link.setAttribute("download", "students.csv");
+    link.setAttribute("download", "students.xlsx");
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
