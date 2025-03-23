@@ -1261,8 +1261,10 @@ const AttendanceManagement = ({ onLoadingChange }) => {
   // Add state for date range modal
   const [isDateRangeModalVisible, setIsDateRangeModalVisible] = useState(false);
   const [dateRange, setDateRange] = useState([moment().subtract(30, 'days'), moment()]);
+  const [reportUnitId, setReportUnitId] = useState(null); // New state for unit selection in report
 
   const handleDownloadFullReport = async () => {
+    setReportUnitId(selectedUnit); // Initialize with currently selected unit
     setIsDateRangeModalVisible(true);
   };
 
@@ -1286,7 +1288,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
             Authorization: `Bearer ${token}`,
             Accept: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' // Explicitly request Excel format
           },
-          params: { startDate, endDate, unitId: selectedUnit } // Pass selectedUnit as unitId
+          params: { startDate, endDate, unitId: reportUnitId } // Use reportUnitId instead of selectedUnit
         });
 
         // Check content type to determine if it's a normal response or an error
@@ -1894,16 +1896,39 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       >
         <div style={{ padding: '10px 0' }}>
           <p style={{ marginBottom: '15px', color: themeColors.text }}>
-            Please select a date range for the full attendance report:
+            Please select a date range and unit for the attendance report:
           </p>
-          <DatePicker.RangePicker
-            value={dateRange}
-            onChange={(dates) => setDateRange(dates)}
-            style={{ width: '100%' }}
-            format="YYYY-MM-DD"
-            allowClear={false}
-            className="themed-datepicker"
-          />
+          <Space direction="vertical" size="middle" style={{ width: '100%' }}>
+            <DatePicker.RangePicker
+              value={dateRange}
+              onChange={(dates) => setDateRange(dates)}
+              style={{ width: '100%' }}
+              format="YYYY-MM-DD"
+              allowClear={false}
+              className="themed-datepicker"
+            />
+            <Select
+              placeholder="Select Unit (Optional - All units if empty)"
+              style={{ width: '100%' }}
+              onChange={(value) => setReportUnitId(value)}
+              value={reportUnitId}
+              allowClear
+              className="themed-select"
+            >
+              {units.map((unit) => (
+                <Option key={unit._id} value={unit._id}>
+                  <Space>
+                    <BookOutlined style={{ color: themeColors.primary }} />
+                    {unit.name}
+                    <Tag color={themeColors.secondary}>{unit.code}</Tag>
+                  </Space>
+                </Option>
+              ))}
+            </Select>
+            <Text type="secondary" style={{ fontSize: '12px', color: themeColors.textSecondary }}>
+              Leave unit selection empty to generate a report for all your units
+            </Text>
+          </Space>
         </div>
       </Modal>
 
