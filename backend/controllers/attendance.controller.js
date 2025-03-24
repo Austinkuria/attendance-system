@@ -1701,121 +1701,115 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     };
     worksheet.getRow(4).font = { color: { argb: 'FFFFFF' }, bold: true };
 
-    try {
-      // Add data with alternating row colors and conditional formatting
-      let rowIndex = 5;
-      if (exportData.length > 0) {
-        exportData.forEach(record => {
-          try {
-            const row = worksheet.addRow(record);
+    // Add data with alternating row colors and conditional formatting
+    let rowIndex = 5;
+    if (exportData.length > 0) {
+      exportData.forEach(record => {
+        try {
+          const row = worksheet.addRow(record);
 
-            // Explicitly set row values based on our specific columns
-            row.getCell(1).value = record['Unit Code'];
-            row.getCell(2).value = record['Unit Name'];
-            row.getCell(3).value = record['Session Date'];
-            row.getCell(4).value = record['Session Time'];
-            row.getCell(5).value = record['Registration Number'];
-            row.getCell(6).value = record['First Name'];
-            row.getCell(7).value = record['Last Name'];
-            row.getCell(8).value = record['Status'];
-            row.getCell(9).value = record['Attendance Time'];
+          // Explicitly set row values based on our specific columns
+          row.getCell(1).value = record['Unit Code'];
+          row.getCell(2).value = record['Unit Name'];
+          row.getCell(3).value = record['Session Date'];
+          row.getCell(4).value = record['Session Time'];
+          row.getCell(5).value = record['Registration Number'];
+          row.getCell(6).value = record['First Name'];
+          row.getCell(7).value = record['Last Name'];
+          row.getCell(8).value = record['Status'];
+          row.getCell(9).value = record['Attendance Time'];
 
-            // Apply alternating row colors
-            if (rowIndex % 2 === 0) {
-              row.eachCell({ includeEmpty: true }, cell => {
-                cell.fill = {
-                  type: 'pattern',
-                  pattern: 'solid',
-                  fgColor: { argb: 'F5F5F5' }
-                };
-              });
-            }
-
-            // Color code status cell
-            const statusCell = row.getCell(8); // Status column
-            if (record['Status']) {
-              const normalizedStatus = record['Status'].toString().toLowerCase();
-              if (normalizedStatus === 'present') {
-                statusCell.fill = {
-                  type: 'pattern',
-                  pattern: 'solid',
-                  fgColor: { argb: 'C6EFCE' }
-                };
-                statusCell.font = { color: { argb: '006100' } };
-              } else if (normalizedStatus === 'absent') {
-                statusCell.fill = {
-                  type: 'pattern',
-                  pattern: 'solid',
-                  fgColor: { argb: 'FFC7CE' }
-                };
-                statusCell.font = { color: { argb: '9C0006' } };
-              }
-            }
-
-            rowIndex++;
-          } catch (error) {
-            logger.error(`Error adding row to Excel: ${error.message}`);
-            // Continue to next record
+          // Apply alternating row colors
+          if (rowIndex % 2 === 0) {
+            row.eachCell({ includeEmpty: true }, cell => {
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'F5F5F5' }
+              };
+            });
           }
-        });
-      } else {
-        // Add a message if no data is available
-        const noDataRow = worksheet.addRow(["No attendance data found for the selected criteria"]);
-        worksheet.mergeCells(`A${rowIndex}:I${rowIndex}`);
-        noDataRow.getCell(1).alignment = { horizontal: 'center' };
-        noDataRow.getCell(1).font = { italic: true, color: { argb: '888888' } };
-        rowIndex++;
-      }
 
-      // Add summary section
-      worksheet.addRow({});
-      const summaryTitleRow = worksheet.addRow(['Summary Statistics']);
-      summaryTitleRow.getCell(1).font = { bold: true, size: 14 };
-      worksheet.mergeCells(`A${rowIndex + 1}:I${rowIndex + 1}`);
+          // Color code status cell
+          const statusCell = row.getCell(8); // Status column
+          if (record['Status']) {
+            const normalizedStatus = record['Status'].toString().toLowerCase();
+            if (normalizedStatus === 'present') {
+              statusCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'C6EFCE' }
+              };
+              statusCell.font = { color: { argb: '006100' } };
+            } else if (normalizedStatus === 'absent') {
+              statusCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFC7CE' }
+              };
+              statusCell.font = { color: { argb: '9C0006' } };
+            }
+          }
+
+          rowIndex++;
+        } catch (error) {
+          logger.error(`Error adding row to Excel: ${error.message}`);
+          // Continue to next record
+        }
+      });
+    } else {
+      // Add a message if no data is available
+      const noDataRow = worksheet.addRow(["No attendance data found for the selected criteria"]);
+      worksheet.mergeCells(`A${rowIndex}:I${rowIndex}`);
+      noDataRow.getCell(1).alignment = { horizontal: 'center' };
+      noDataRow.getCell(1).font = { italic: true, color: { argb: '888888' } };
       rowIndex++;
+    }
 
-      // Calculate statistics with better error handling
-      const totalRecords = attendanceRecords.length || 0;
-      const presentCount = attendanceRecords.filter(r => {
-        const status = (r.status || '').toString().toLowerCase();
-        return status === 'present';
-      }).length || 0;
-      const absentCount = attendanceRecords.filter(r => {
-        const status = (r.status || '').toString().toLowerCase();
-        return status === 'absent';
-      }).length || 0;
-      const attendanceRate = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
+    // Add summary section
+    worksheet.addRow({});
+    const summaryTitleRow = worksheet.addRow(['Summary Statistics']);
+    summaryTitleRow.getCell(1).font = { bold: true, size: 14 };
+    worksheet.mergeCells(`A${rowIndex + 1}:I${rowIndex + 1}`);
+    rowIndex++;
 
-      // Count unique students and sessions with error handling
-      const uniqueStudents = new Set(
-        attendanceRecords
-          .filter(r => r.student?._id)
-          .map(r => r.student._id.toString())
-      ).size || 0;
+    // Calculate statistics with better error handling
+    const totalRecords = attendanceRecords.length || 0;
+    const presentCount = attendanceRecords.filter(r => {
+      const status = (r.status || '').toString().toLowerCase();
+      return status === 'present';
+    }).length || 0;
+    const absentCount = attendanceRecords.filter(r => {
+      const status = (r.status || '').toString().toLowerCase();
+      return status === 'absent';
+    }).length || 0;
+    const attendanceRate = totalRecords > 0 ? (presentCount / totalRecords) * 100 : 0;
 
-      const uniqueSessions = new Set(
-        attendanceRecords
-          .filter(r => r.session?._id)
-          .map(r => r.session._id.toString())
-      ).size || 0;
+    // Count unique students and sessions with error handling
+    const uniqueStudents = new Set(
+      attendanceRecords
+        .filter(r => r.student?._id)
+        .map(r => r.student._id.toString())
+    ).size || 0;
 
-      // Add statistics rows
-      worksheet.addRow(['Total Records', totalRecords]);
-      worksheet.addRow(['Present Records', presentCount]);
-      worksheet.addRow(['Absent Records', absentCount]);
-      worksheet.addRow(['Overall Attendance Rate', `${attendanceRate.toFixed(1)}%`]);
-      worksheet.addRow(['Unique Students', uniqueStudents]);
-      worksheet.addRow(['Total Sessions', uniqueSessions]);
-      worksheet.addRow(['Total Units', units.length]);
+    const uniqueSessions = new Set(
+      attendanceRecords
+        .filter(r => r.session?._id)
+        .map(r => r.session._id.toString())
+    ).size || 0;
 
-      // Format summary section
-      for (let i = rowIndex + 1; i <= rowIndex + 7; i++) {
-        worksheet.getCell(`A${i}`).font = { bold: true };
-      }
-    } catch (error) {
-      logger.error(`Error generating Excel content: ${error.message}`);
-      // Add error message to Excel if formatting fails
-      worksheet.addRow(["Error generating report details. Basic data is still included."]);
+    // Add statistics rows
+    worksheet.addRow(['Total Records', totalRecords]);
+    worksheet.addRow(['Present Records', presentCount]);
+    worksheet.addRow(['Absent Records', absentCount]);
+    worksheet.addRow(['Overall Attendance Rate', `${attendanceRate.toFixed(1)}%`]);
+    worksheet.addRow(['Unique Students', uniqueStudents]);
+    worksheet.addRow(['Total Sessions', uniqueSessions]);
+    worksheet.addRow(['Total Units', units.length]);
+
+    // Format summary section
+    for (let i = rowIndex + 1; i <= rowIndex + 7; i++) {
+      worksheet.getCell(`A${i}`).font = { bold: true };
     }
 
     // Add date range to filename and title if provided
