@@ -1870,36 +1870,49 @@ exports.exportFilteredAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Student ID is required' });
     }
 
-    // Build the base query
-    const baseQuery = { student: new mongoose.Types.ObjectId(studentId) };
-
-    // Add unit filter if provided
-    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
-      baseQuery['session.unit'] = new mongoose.Types.ObjectId(unitId);
-    }
+    // Build the base query for attendance records
+    let attendanceQuery = {
+      student: new mongoose.Types.ObjectId(studentId)
+    };
 
     // Add date range filter if provided
     if (startDate || endDate) {
-      baseQuery.attendedAt = {};
+      attendanceQuery.attendedAt = {};
       if (startDate) {
-        baseQuery.attendedAt.$gte = new Date(startDate);
+        attendanceQuery.attendedAt.$gte = new Date(startDate);
       }
       if (endDate) {
-        baseQuery.attendedAt.$lte = new Date(endDate);
+        attendanceQuery.attendedAt.$lte = new Date(endDate);
       }
     }
 
-    // Fetch attendance records
-    const attendanceRecords = await Attendance.find(baseQuery)
-      .populate({
-        path: 'session',
-        select: 'startTime endTime unit',
-        populate: { path: 'unit', select: 'name code' }
-      })
-      .lean() // Use lean() for better performance
+    // Modified population query to properly filter by unit
+    let populateQuery = {
+      path: 'session',
+      select: 'startTime endTime unit',
+      populate: {
+        path: 'unit',
+        select: 'name code'
+      }
+    };
+
+    // Add unit filter to the populate query if unitId is provided
+    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
+      populateQuery.match = {
+        unit: new mongoose.Types.ObjectId(unitId)
+      };
+    }
+
+    // Fetch attendance records with modified query
+    const attendanceRecords = await Attendance.find(attendanceQuery)
+      .populate(populateQuery)
+      .lean()
       .exec();
 
-    if (!attendanceRecords || attendanceRecords.length === 0) {
+    // Filter out records where session is null (due to unit mismatch)
+    const filteredRecords = attendanceRecords.filter(record => record.session !== null);
+
+    if (!filteredRecords || filteredRecords.length === 0) {
       return res.status(404).json({
         message: 'No attendance records found for the specified criteria'
       });
@@ -1919,23 +1932,69 @@ exports.exportFilteredAttendance = async (req, res) => {
       { header: 'Feedback', key: 'feedback', width: 15 }
     ];
 
-    // Add data rows
-    attendanceRecords.forEach(record => {
+    // Add title and date range if provided
+    if (startDate && endDate) {
+      worksheet.spliceRows(1, 0, [{
+        unit: `Attendance Report (${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()})`
+      }]);
+      worksheet.mergeCells('A1:F1');
+      worksheet.getCell('A1').font = { bold: true, size: 14 };
+      worksheet.getCell('A1').alignment = { horizontal: 'center' };
+      worksheet.addRow([]); // Add empty row for spacing
+    }
+
+    // Add data rows with color coding
+    filteredRecords.forEach(record => {
       if (record.session && record.session.unit) {
-        worksheet.addRow({
+        const row = worksheet.addRow({
           unit: record.session.unit.name || 'N/A',
           code: record.session.unit.code || 'N/A',
           date: record.session.startTime ? new Date(record.session.startTime).toLocaleDateString() : 'N/A',
-          time: `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
+          time: record.session.startTime && record.session.endTime ?
+            `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}` :
+            'N/A',
           status: record.status || 'N/A',
           feedback: record.feedbackSubmitted ? 'Yes' : 'No'
         });
+
+        // Color code the status cell
+        const statusCell = row.getCell(5); // Status column
+        if (record.status === 'Present') {
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'C6EFCE' }
+          };
+          statusCell.font = { color: { argb: '006100' } };
+        } else if (record.status === 'Absent') {
+          statusCell.fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFC7CE' }
+          };
+          statusCell.font = { color: { argb: '9C0006' } };
+        }
       }
     });
 
+    // Add summary section
+    worksheet.addRow([]); // Empty row
+    worksheet.addRow(['Summary Statistics']);
+    worksheet.mergeCells(`A${worksheet.rowCount}:F${worksheet.rowCount}`);
+    worksheet.getCell(`A${worksheet.rowCount}`).font = { bold: true };
+
+    const presentCount = filteredRecords.filter(r => r.status === 'Present').length;
+    const absentCount = filteredRecords.filter(r => r.status === 'Absent').length;
+    const totalCount = filteredRecords.length;
+
+    worksheet.addRow(['Total Sessions', totalCount]);
+    worksheet.addRow(['Present', presentCount]);
+    worksheet.addRow(['Absent', absentCount]);
+    worksheet.addRow(['Attendance Rate', `${((presentCount / totalCount) * 100).toFixed(1)}%`]);
+
     // Style header row
-    worksheet.getRow(1).font = { bold: true };
-    worksheet.getRow(1).fill = {
+    worksheet.getRow(startDate && endDate ? 3 : 1).font = { bold: true, color: { argb: 'FFFFFF' } };
+    worksheet.getRow(startDate && endDate ? 3 : 1).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: '4F81BD' }
@@ -1952,17 +2011,8 @@ exports.exportFilteredAttendance = async (req, res) => {
     );
 
     // Write to response
-    return workbook.xlsx.write(res)
-      .then(() => {
-        res.end();
-      })
-      .catch(error => {
-        console.error('Error writing Excel:', error);
-        res.status(500).json({
-          message: 'Error generating Excel file',
-          error: error.message
-        });
-      });
+    await workbook.xlsx.write(res);
+    res.end();
 
   } catch (error) {
     console.error('Error in exportFilteredAttendance:', error);
