@@ -1863,7 +1863,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
 
 exports.exportFilteredAttendance = async (req, res) => {
   try {
-    const { unitId = undefined, startDate, endDate } = req.query; // Use undefined instead of null
+    const { unitId = undefined, startDate, endDate } = req.query;
     const studentId = req.user.userId;
 
     if (!studentId) {
@@ -1877,7 +1877,10 @@ exports.exportFilteredAttendance = async (req, res) => {
       timeStyle: 'long'
     });
 
-    // Build the base query for attendance records
+    // Get the student details
+    const student = await User.findById(studentId).select('regNo firstName lastName');
+
+    // Build the query for fetching attendance records
     let attendanceQuery = {
       student: new mongoose.Types.ObjectId(studentId)
     };
@@ -1893,30 +1896,30 @@ exports.exportFilteredAttendance = async (req, res) => {
       }
     }
 
-    // Modified unit filter to use undefined instead of null
-    let populateQuery = {
-      path: 'session',
-      select: 'startTime endTime unit',
-      populate: {
-        path: 'unit',
-        select: 'name code'
-      }
-    };
+    // Fetch all attendance records without unit filtering first
+    const allAttendanceRecords = await Attendance.find(attendanceQuery)
+      .populate({
+        path: 'session',
+        select: 'startTime endTime unit',
+        populate: { path: 'unit', select: 'name code' }
+      })
+      .lean();
 
-    // Only add unit filter if unitId is provided and valid
+    // Then filter by unit if unitId is provided (doing this in memory for accuracy)
+    let filteredRecords = allAttendanceRecords;
     if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
-      populateQuery.match = {
-        unit: new mongoose.Types.ObjectId(unitId)
-      };
+      filteredRecords = allAttendanceRecords.filter(record =>
+        record.session &&
+        record.session.unit &&
+        record.session.unit._id.toString() === unitId.toString()
+      );
     }
 
-    // Get the student details
-    const student = await User.findById(studentId).select('regNo firstName lastName');
-
-    // Fetch attendance records
-    const filteredRecords = await Attendance.find(attendanceQuery)
-      .populate(populateQuery)
-      .lean();
+    if (!filteredRecords || filteredRecords.length === 0) {
+      return res.status(404).json({
+        message: 'No attendance records found for the specified criteria'
+      });
+    }
 
     // Create workbook with better styling
     const workbook = new excel.Workbook();
@@ -1925,10 +1928,17 @@ exports.exportFilteredAttendance = async (req, res) => {
       views: [{ state: 'frozen', xSplit: 0, ySplit: 4, topLeftCell: 'A5' }]
     });
 
+    // Determine the unit name for the title
+    let reportTitle = 'Student Attendance Report';
+    if (unitId && filteredRecords.length > 0 && filteredRecords[0].session?.unit) {
+      const unitName = filteredRecords[0].session.unit.name || 'Selected Unit';
+      reportTitle = `Attendance Report - ${unitName}`;
+    }
+
     // Add title section with better formatting
     worksheet.mergeCells('A1:F1');
     const titleCell = worksheet.getCell('A1');
-    titleCell.value = 'Student Attendance Report';
+    titleCell.value = reportTitle;
     titleCell.font = { size: 16, bold: true, color: { argb: 'FFFFFF' } };
     titleCell.fill = {
       type: 'pattern',
@@ -2034,10 +2044,11 @@ exports.exportFilteredAttendance = async (req, res) => {
     // Add summary section with enhanced styling
     worksheet.addRow([]); // Empty row for spacing
 
+    // Calculate correct attendance statistics
     const presentCount = filteredRecords.filter(r => r.status === 'Present').length;
     const absentCount = filteredRecords.filter(r => r.status === 'Absent').length;
-    const totalCount = filteredRecords.length;
-    const attendanceRate = ((presentCount / totalCount) * 100).toFixed(1);
+    const totalCount = presentCount + absentCount;
+    const attendanceRate = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : "0.0";
 
     // Style summary section
     worksheet.mergeCells(`A${rowIndex + 1}:F${rowIndex + 1}`);
@@ -2074,6 +2085,13 @@ exports.exportFilteredAttendance = async (req, res) => {
       worksheet.mergeCells(`D${rowIndex + 2 + index}:E${rowIndex + 2 + index}`);
     });
 
+    // Generate filename with unit info if filtered
+    let filename = `attendance_report_${new Date().toISOString().split('T')[0]}`;
+    if (unitId && filteredRecords.length > 0 && filteredRecords[0].session?.unit) {
+      const unitCode = filteredRecords[0].session.unit.code || 'unit';
+      filename = `${unitCode}_attendance_report_${new Date().toISOString().split('T')[0]}`;
+    }
+
     // Set response headers
     res.setHeader(
       'Content-Type',
@@ -2081,7 +2099,7 @@ exports.exportFilteredAttendance = async (req, res) => {
     );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=attendance_report_${new Date().toISOString().split('T')[0]}.xlsx`
+      `attachment; filename=${filename}.xlsx`
     );
 
     // Write to response
