@@ -1870,6 +1870,13 @@ exports.exportFilteredAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Student ID is required' });
     }
 
+    // Get current time in Nairobi timezone
+    const nairobiTime = new Date().toLocaleString('en-KE', {
+      timeZone: 'Africa/Nairobi',
+      dateStyle: 'full',
+      timeStyle: 'long'
+    });
+
     // Build the base query for attendance records
     let attendanceQuery = {
       student: new mongoose.Types.ObjectId(studentId)
@@ -1886,119 +1893,173 @@ exports.exportFilteredAttendance = async (req, res) => {
       }
     }
 
-    // Modified population query to properly filter by unit
-    let populateQuery = {
-      path: 'session',
-      select: 'startTime endTime unit',
-      populate: {
-        path: 'unit',
-        select: 'name code'
-      }
-    };
+    // Get the student details
+    const student = await User.findById(studentId).select('regNo firstName lastName');
 
-    // Add unit filter to the populate query if unitId is provided
-    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
-      populateQuery.match = {
-        unit: new mongoose.Types.ObjectId(unitId)
-      };
-    }
+    // Fetch attendance records
+    const filteredRecords = await Attendance.find(attendanceQuery)
+      .populate({
+        path: 'session',
+        select: 'startTime endTime unit',
+        populate: { path: 'unit', select: 'name code' }
+      })
+      .lean();
 
-    // Fetch attendance records with modified query
-    const attendanceRecords = await Attendance.find(attendanceQuery)
-      .populate(populateQuery)
-      .lean()
-      .exec();
-
-    // Filter out records where session is null (due to unit mismatch)
-    const filteredRecords = attendanceRecords.filter(record => record.session !== null);
-
-    if (!filteredRecords || filteredRecords.length === 0) {
-      return res.status(404).json({
-        message: 'No attendance records found for the specified criteria'
-      });
-    }
-
-    // Create workbook
+    // Create workbook with better styling
     const workbook = new excel.Workbook();
-    const worksheet = workbook.addWorksheet('Attendance Report');
+    const worksheet = workbook.addWorksheet('Attendance Report', {
+      properties: { tabColor: { argb: '4167B8' } },
+      views: [{ state: 'frozen', xSplit: 0, ySplit: 4, topLeftCell: 'A5' }]
+    });
 
-    // Define columns
+    // Add title section with better formatting
+    worksheet.mergeCells('A1:F1');
+    const titleCell = worksheet.getCell('A1');
+    titleCell.value = 'Student Attendance Report';
+    titleCell.font = { size: 16, bold: true, color: { argb: 'FFFFFF' } };
+    titleCell.fill = {
+      type: 'pattern',
+      pattern: 'solid',
+      fgColor: { argb: '2F75B5' }
+    };
+    titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+    // Add student info and date range
+    worksheet.mergeCells('A2:F2');
+    const infoCell = worksheet.getCell('A2');
+    infoCell.value = `Student: ${student.firstName} ${student.lastName} (${student.regNo})`;
+    infoCell.font = { size: 12, italic: true };
+    infoCell.alignment = { horizontal: 'center' };
+
+    worksheet.mergeCells('A3:F3');
+    const dateCell = worksheet.getCell('A3');
+    dateCell.value = `Generated on ${nairobiTime} (EAT)`;
+    dateCell.font = { size: 11, italic: true };
+    dateCell.alignment = { horizontal: 'center' };
+
+    // Define columns with better formatting
     worksheet.columns = [
       { header: 'Unit', key: 'unit', width: 30 },
       { header: 'Code', key: 'code', width: 15 },
       { header: 'Session Date', key: 'date', width: 15 },
-      { header: 'Session Time', key: 'time', width: 20 },
+      { header: 'Session Time', key: 'time', width: 25 },
       { header: 'Status', key: 'status', width: 12 },
       { header: 'Feedback', key: 'feedback', width: 15 }
     ];
 
-    // Add title and date range if provided
-    if (startDate && endDate) {
-      worksheet.spliceRows(1, 0, [{
-        unit: `Attendance Report (${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()})`
-      }]);
-      worksheet.mergeCells('A1:F1');
-      worksheet.getCell('A1').font = { bold: true, size: 14 };
-      worksheet.getCell('A1').alignment = { horizontal: 'center' };
-      worksheet.addRow([]); // Add empty row for spacing
-    }
+    // Style header row
+    worksheet.getRow(4).height = 30;
+    worksheet.getRow(4).eachCell(cell => {
+      cell.font = { bold: true, color: { argb: 'FFFFFF' }, size: 12 };
+      cell.fill = {
+        type: 'pattern',
+        pattern: 'solid',
+        fgColor: { argb: '4472C4' }
+      };
+      cell.alignment = { horizontal: 'center', vertical: 'middle' };
+      cell.border = {
+        top: { style: 'thin', color: { argb: 'FFFFFF' } },
+        bottom: { style: 'thin', color: { argb: 'FFFFFF' } }
+      };
+    });
 
-    // Add data rows with color coding
+    // Add data rows with enhanced styling
+    let rowIndex = 5;
     filteredRecords.forEach(record => {
-      if (record.session && record.session.unit) {
+      if (record.session?.unit) {
         const row = worksheet.addRow({
           unit: record.session.unit.name || 'N/A',
           code: record.session.unit.code || 'N/A',
-          date: record.session.startTime ? new Date(record.session.startTime).toLocaleDateString() : 'N/A',
+          date: record.session.startTime ?
+            new Date(record.session.startTime).toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi' }) :
+            'N/A',
           time: record.session.startTime && record.session.endTime ?
-            `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}` :
+            `${new Date(record.session.startTime).toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi' })} - ${new Date(record.session.endTime).toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi' })}` :
             'N/A',
           status: record.status || 'N/A',
           feedback: record.feedbackSubmitted ? 'Yes' : 'No'
         });
 
-        // Color code the status cell
-        const statusCell = row.getCell(5); // Status column
+        // Alternate row colors
+        if (rowIndex % 2 === 0) {
+          row.eachCell(cell => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'F2F2F2' }
+            };
+          });
+        }
+
+        // Style status cell
+        const statusCell = row.getCell(5);
         if (record.status === 'Present') {
           statusCell.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'C6EFCE' }
           };
-          statusCell.font = { color: { argb: '006100' } };
+          statusCell.font = { color: { argb: '006100' }, bold: true };
         } else if (record.status === 'Absent') {
           statusCell.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'FFC7CE' }
           };
-          statusCell.font = { color: { argb: '9C0006' } };
+          statusCell.font = { color: { argb: '9C0006' }, bold: true };
         }
+
+        // Center align all cells in the row
+        row.eachCell(cell => {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
+
+        rowIndex++;
       }
     });
 
-    // Add summary section
-    worksheet.addRow([]); // Empty row
-    worksheet.addRow(['Summary Statistics']);
-    worksheet.mergeCells(`A${worksheet.rowCount}:F${worksheet.rowCount}`);
-    worksheet.getCell(`A${worksheet.rowCount}`).font = { bold: true };
+    // Add summary section with enhanced styling
+    worksheet.addRow([]); // Empty row for spacing
 
     const presentCount = filteredRecords.filter(r => r.status === 'Present').length;
     const absentCount = filteredRecords.filter(r => r.status === 'Absent').length;
     const totalCount = filteredRecords.length;
+    const attendanceRate = ((presentCount / totalCount) * 100).toFixed(1);
 
-    worksheet.addRow(['Total Sessions', totalCount]);
-    worksheet.addRow(['Present', presentCount]);
-    worksheet.addRow(['Absent', absentCount]);
-    worksheet.addRow(['Attendance Rate', `${((presentCount / totalCount) * 100).toFixed(1)}%`]);
-
-    // Style header row
-    worksheet.getRow(startDate && endDate ? 3 : 1).font = { bold: true, color: { argb: 'FFFFFF' } };
-    worksheet.getRow(startDate && endDate ? 3 : 1).fill = {
+    // Style summary section
+    worksheet.mergeCells(`A${rowIndex + 1}:F${rowIndex + 1}`);
+    const summaryHeader = worksheet.getCell(`A${rowIndex + 1}`);
+    summaryHeader.value = 'Attendance Summary';
+    summaryHeader.font = { bold: true, size: 14, color: { argb: 'FFFFFF' } };
+    summaryHeader.fill = {
       type: 'pattern',
       pattern: 'solid',
-      fgColor: { argb: '4F81BD' }
+      fgColor: { argb: '2F75B5' }
     };
+    summaryHeader.alignment = { horizontal: 'center' };
+
+    // Add summary statistics with styling
+    const summaryData = [
+      ['Total Sessions', totalCount],
+      ['Present', presentCount],
+      ['Absent', absentCount],
+      ['Attendance Rate', `${attendanceRate}%`]
+    ];
+
+    summaryData.forEach((data, index) => {
+      const row = worksheet.addRow(['', data[0], '', data[1], '', '']);
+      row.getCell(2).font = { bold: true };
+      row.getCell(4).font = { bold: true };
+
+      if (data[0] === 'Attendance Rate') {
+        row.getCell(4).font.color = {
+          argb: parseFloat(attendanceRate) >= 75 ? '006100' : '9C0006'
+        };
+      }
+
+      worksheet.mergeCells(`B${rowIndex + 2 + index}:C${rowIndex + 2 + index}`);
+      worksheet.mergeCells(`D${rowIndex + 2 + index}:E${rowIndex + 2 + index}`);
+    });
 
     // Set response headers
     res.setHeader(
