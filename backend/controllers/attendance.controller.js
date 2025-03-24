@@ -1863,7 +1863,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
 
 exports.exportFilteredAttendance = async (req, res) => {
   try {
-    const { unitId, startDate, endDate } = req.query;
+    const { unitId = undefined, startDate, endDate } = req.query; // Use undefined instead of null
     const studentId = req.user.userId;
 
     if (!studentId) {
@@ -1893,16 +1893,29 @@ exports.exportFilteredAttendance = async (req, res) => {
       }
     }
 
+    // Modified unit filter to use undefined instead of null
+    let populateQuery = {
+      path: 'session',
+      select: 'startTime endTime unit',
+      populate: {
+        path: 'unit',
+        select: 'name code'
+      }
+    };
+
+    // Only add unit filter if unitId is provided and valid
+    if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
+      populateQuery.match = {
+        unit: new mongoose.Types.ObjectId(unitId)
+      };
+    }
+
     // Get the student details
     const student = await User.findById(studentId).select('regNo firstName lastName');
 
     // Fetch attendance records
     const filteredRecords = await Attendance.find(attendanceQuery)
-      .populate({
-        path: 'session',
-        select: 'startTime endTime unit',
-        populate: { path: 'unit', select: 'name code' }
-      })
+      .populate(populateQuery)
       .lean();
 
     // Create workbook with better styling
