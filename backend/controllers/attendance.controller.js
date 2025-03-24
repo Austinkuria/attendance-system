@@ -1870,55 +1870,44 @@ exports.exportFilteredAttendance = async (req, res) => {
       return res.status(400).json({ message: 'Student ID is required' });
     }
 
-    // Build the query with proper ObjectId handling
-    const query = { student: new mongoose.Types.ObjectId(studentId) };
+    // Build the base query
+    const baseQuery = { student: new mongoose.Types.ObjectId(studentId) };
 
+    // Add unit filter if provided
     if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
-      query['session.unit'] = new mongoose.Types.ObjectId(unitId);
+      baseQuery['session.unit'] = new mongoose.Types.ObjectId(unitId);
     }
 
+    // Add date range filter if provided
     if (startDate || endDate) {
-      query.attendedAt = {};
+      baseQuery.attendedAt = {};
       if (startDate) {
-        const parsedStartDate = new Date(startDate);
-        if (!isNaN(parsedStartDate)) {
-          query.attendedAt.$gte = parsedStartDate;
-        }
+        baseQuery.attendedAt.$gte = new Date(startDate);
       }
       if (endDate) {
-        const parsedEndDate = new Date(endDate);
-        if (!isNaN(parsedEndDate)) {
-          query.attendedAt.$lte = parsedEndDate;
-        }
+        baseQuery.attendedAt.$lte = new Date(endDate);
       }
     }
 
-    // Fetch attendance records with proper query
-    const attendanceRecords = await Attendance.find(query)
+    // Fetch attendance records
+    const attendanceRecords = await Attendance.find(baseQuery)
       .populate({
         path: 'session',
         select: 'startTime endTime unit',
         populate: { path: 'unit', select: 'name code' }
       })
-      .sort({ 'session.startTime': -1 });
+      .lean() // Use lean() for better performance
+      .exec();
 
-    // Process records for export
-    const processedRecords = attendanceRecords.filter(record =>
-      record.session && record.session.unit
-    ).map(record => ({
-      unit: record.session.unit.name || 'N/A',
-      code: record.session.unit.code || 'N/A',
-      date: record.session.startTime ? new Date(record.session.startTime).toLocaleDateString() : 'N/A',
-      time: record.session.startTime && record.session.endTime ?
-        `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}` :
-        'N/A',
-      status: record.status || 'N/A',
-      feedback: record.feedbackSubmitted ? 'Yes' : 'No'
-    }));
+    if (!attendanceRecords || attendanceRecords.length === 0) {
+      return res.status(404).json({
+        message: 'No attendance records found for the specified criteria'
+      });
+    }
 
-    // Create workbook and worksheet
+    // Create workbook
     const workbook = new excel.Workbook();
-    const worksheet = workbook.addWorksheet('Attendance');
+    const worksheet = workbook.addWorksheet('Attendance Report');
 
     // Define columns
     worksheet.columns = [
@@ -1927,43 +1916,59 @@ exports.exportFilteredAttendance = async (req, res) => {
       { header: 'Session Date', key: 'date', width: 15 },
       { header: 'Session Time', key: 'time', width: 20 },
       { header: 'Status', key: 'status', width: 12 },
-      { header: 'Feedback Submitted', key: 'feedback', width: 15 }
+      { header: 'Feedback', key: 'feedback', width: 15 }
     ];
 
-    // Add data
-    processedRecords.forEach(record => {
-      worksheet.addRow(record);
+    // Add data rows
+    attendanceRecords.forEach(record => {
+      if (record.session && record.session.unit) {
+        worksheet.addRow({
+          unit: record.session.unit.name || 'N/A',
+          code: record.session.unit.code || 'N/A',
+          date: record.session.startTime ? new Date(record.session.startTime).toLocaleDateString() : 'N/A',
+          time: `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
+          status: record.status || 'N/A',
+          feedback: record.feedbackSubmitted ? 'Yes' : 'No'
+        });
+      }
     });
 
-    // Style the header row
+    // Style header row
     worksheet.getRow(1).font = { bold: true };
     worksheet.getRow(1).fill = {
       type: 'pattern',
       pattern: 'solid',
       fgColor: { argb: '4F81BD' }
     };
-    worksheet.getRow(1).font = { color: { argb: 'FFFFFF' } };
-
-    // Add date range info if provided
-    if (startDate && endDate) {
-      worksheet.spliceRows(1, 0, [{
-        unit: `Date Range: ${new Date(startDate).toLocaleDateString()} - ${new Date(endDate).toLocaleDateString()}`
-      }]);
-      worksheet.mergeCells('A1:F1');
-      worksheet.getRow(1).font = { bold: true };
-      worksheet.getRow(1).alignment = { horizontal: 'center' };
-    }
 
     // Set response headers
-    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename=attendance_report_${new Date().toISOString().split('T')[0]}.xlsx`);
+    res.setHeader(
+      'Content-Type',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    );
+    res.setHeader(
+      'Content-Disposition',
+      `attachment; filename=attendance_report_${new Date().toISOString().split('T')[0]}.xlsx`
+    );
 
-    // Write workbook to response
-    await workbook.xlsx.write(res);
-    res.end();
+    // Write to response
+    return workbook.xlsx.write(res)
+      .then(() => {
+        res.end();
+      })
+      .catch(error => {
+        console.error('Error writing Excel:', error);
+        res.status(500).json({
+          message: 'Error generating Excel file',
+          error: error.message
+        });
+      });
 
   } catch (error) {
-    console.error('Error exporting attendance:', error);
-    res.status(500).json({ message: 'Error exporting attendance data', error: error.message });
+    console.error('Error in exportFilteredAttendance:', error);
+    res.status(500).json({
+      message: 'Error exporting attendance data',
+      error: error.message
+    });
   }
 };
