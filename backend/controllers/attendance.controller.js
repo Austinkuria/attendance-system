@@ -328,6 +328,7 @@ exports.getStudentAttendance = async (req, res) => {
       return res.status(400).json({ message: "Invalid student ID format" });
     }
 
+    // Modified query to include all attendance records regardless of status
     const attendanceRecords = await Attendance.find({ student: studentId })
       .select('session status attendedAt')
       .populate({
@@ -349,16 +350,19 @@ exports.getStudentAttendance = async (req, res) => {
     const oneDay = 24 * 60 * 60 * 1000;
     const oneWeek = 7 * oneDay;
 
+    // Process daily events including both present and absent records
     const dailyEvents = {};
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
       const dateStr = sessionDate.toISOString().split('T')[0];
+
       if (!dailyEvents[dateStr]) {
         dailyEvents[dateStr] = [];
       }
+
       dailyEvents[dateStr].push({
         unitName: record.session.unit?.name || 'Unknown',
-        status: record.status,
+        status: record.status || 'Unknown',
         startTime: record.session.startTime,
       });
     });
@@ -368,6 +372,7 @@ exports.getStudentAttendance = async (req, res) => {
       events
     }));
 
+    // Process weekly events including both present and absent records
     const weeklyEvents = {};
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
@@ -380,9 +385,10 @@ exports.getStudentAttendance = async (req, res) => {
       if (!weeklyEvents[weekLabel]) {
         weeklyEvents[weekLabel] = [];
       }
+
       weeklyEvents[weekLabel].push({
         unitName: record.session.unit?.name || 'Unknown',
-        status: record.status,
+        status: record.status || 'Unknown',
         startTime: record.session.startTime,
       });
     });
