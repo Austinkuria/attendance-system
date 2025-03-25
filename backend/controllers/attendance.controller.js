@@ -13,17 +13,11 @@ exports.markAttendance = async (req, res) => {
   try {
     const { sessionId, studentId, deviceId, qrToken, compositeFingerprint } = req.body;
 
-    console.log("QR attendance request received:", {
-      sessionId,
-      studentId,
-      qrTokenLength: qrToken?.length || 0
-    });
-
     // Basic validation
     if (!qrToken) {
       return res.status(400).json({
         success: false,
-        code: "MISSING_QR_CODE",
+        code: "INVALID_QR_CODE",
         message: "QR code data is missing"
       });
     }
@@ -31,80 +25,61 @@ exports.markAttendance = async (req, res) => {
     // Decode and validate the QR token with better error handling
     let decodedToken;
     try {
-      // First try to decode base64 - using a more tolerant approach
-      let jsonData;
+      // First try to decode base64
+      const jsonData = Buffer.from(qrToken, 'base64').toString();
+      
       try {
-        // Try standard base64 decoding first
-        jsonData = Buffer.from(qrToken, 'base64').toString('utf-8');
-      } catch (decodeError) {
-        console.error("Base64 decode failed, trying URL-safe format:", decodeError);
-        // Try URL-safe base64 format as a fallback
-        const fixedQrToken = qrToken.replace(/-/g, '+').replace(/_/g, '/');
-        jsonData = Buffer.from(fixedQrToken, 'base64').toString('utf-8');
-      }
-
-      // Try to parse the JSON data with better error info
-      try {
+        // Then try to parse JSON
         decodedToken = JSON.parse(jsonData);
-        console.log("Successfully decoded QR token:", {
+        console.log("Decoded QR token:", {
           sessionId: decodedToken.s,
           timestamp: decodedToken.t,
           expiresAt: decodedToken.e,
-          hasNonce: !!decodedToken.n,
-          hasHash: !!decodedToken.h
+          nonce: decodedToken.n?.slice(0, 8) // Log partial nonce for debugging
         });
+
       } catch (jsonError) {
-        console.error("JSON parse error:", jsonError, "Raw data:", jsonData);
+        console.error("JSON parse error:", jsonError);
         return res.status(400).json({
           success: false,
           code: "INVALID_QR_FORMAT",
-          message: "QR code contains invalid data format"
+          message: "Invalid QR code format"
         });
       }
 
-      // Verify basic structure with more detailed error reporting
-      if (!decodedToken.s) {
-        console.error("Missing session ID in QR data");
+      // Verify basic structure
+      if (!decodedToken.s || !decodedToken.t || !decodedToken.e || !decodedToken.n) {
+        console.error("Missing QR data fields");
         return res.status(400).json({
           success: false,
           code: "INCOMPLETE_QR_DATA",
-          message: "QR code is missing session identifier"
+          message: "QR code data is incomplete"
         });
       }
 
-      if (!decodedToken.t || !decodedToken.e) {
-        console.error("Missing timestamp or expiration in QR data");
-        return res.status(400).json({
-          success: false,
-          code: "INCOMPLETE_QR_DATA",
-          message: "QR code is missing required timing information"
-        });
-      }
+      // Verify hash if present, but don't reject if missing (for backward compatibility)
+      if (decodedToken.h) {
+        const expectedHash = crypto.createHash('sha256')
+          .update(`${decodedToken.s}${decodedToken.t}${decodedToken.n}`)
+          .digest('hex')
+          .slice(0, 32);
 
-      // Relaxed hash validation - only check if hash is present
-      if (decodedToken.h && decodedToken.n) {
-        try {
-          const expectedHash = crypto.createHash('sha256')
-            .update(`${decodedToken.s}${decodedToken.t}${decodedToken.n}`)
-            .digest('hex')
-            .slice(0, 32);
-
-          if (expectedHash !== decodedToken.h) {
-            console.warn("Hash mismatch (proceeding anyway):", {
-              expected: expectedHash,
-              received: decodedToken.h
-            });
-            // We don't reject immediately but log the mismatch
-          }
-        } catch (hashError) {
-          console.error("Hash verification error:", hashError);
-          // Continue without validation
+        if (expectedHash !== decodedToken.h) {
+          console.error("Hash mismatch:", {
+            expected: expectedHash,
+            received: decodedToken.h
+          });
+          return res.status(400).json({
+            success: false,
+            code: "INVALID_QR_HASH",
+            message: "QR code integrity check failed"
+          });
         }
       }
 
-      // Check expiration with more leniency (add 60 seconds buffer)
+      // Check expiration with some leniency (add 30 seconds buffer)
       const currentTimestamp = Math.floor(Date.now() / 1000);
-      if (decodedToken.e && decodedToken.e + 60 < currentTimestamp) {
+      if (decodedToken.e && decodedToken.e + 30 < currentTimestamp) {
         return res.status(400).json({
           success: false,
           code: "QR_CODE_EXPIRED",
@@ -113,7 +88,7 @@ exports.markAttendance = async (req, res) => {
       }
 
     } catch (error) {
-      console.error("QR decode error:", error, "Raw token:", qrToken?.substring(0, 30) + "...");
+      console.error("QR decode error:", error);
       return res.status(400).json({
         success: false,
         code: "QR_DECODE_ERROR",
@@ -121,7 +96,7 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // Relaxed session matching - check if session ID in QR matches requested session
+    // Verify session matching with more detailed errors
     if (decodedToken.s !== sessionId) {
       console.error("Session mismatch:", {
         qrSession: decodedToken.s,
@@ -187,40 +162,7 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // CRITICAL FIX: Compare the decoded QR token instead of the raw token
-    // Properly encode the data for comparison - recreate the same format as in session.utils.js
-    const encodedQrData = Buffer.from(JSON.stringify({
-      s: decodedToken.s,
-      t: decodedToken.t,
-      e: decodedToken.e,
-      n: decodedToken.n,
-      h: decodedToken.h
-    })).toString('base64');
-
-    // Log QR tokens for debugging
-    console.log("QR Token comparison:", {
-      incomingRaw: qrToken,
-      incomingDecoded: decodedToken,
-      storedQrToken: session.qrToken?.substring(0, 20) + "..." || "None",
-      decodedQrToken: encodedQrData.substring(0, 20) + "..."
-    });
-
-    // More flexible QR token validation - compare either the full token or just the session and nonce parts
-    // This allows for flexibility in how the QR codes are generated
-    if (!session.qrToken) {
-      return res.status(400).json({
-        success: false,
-        code: "NO_QR_CODE",
-        message: "No QR code available for this session."
-      });
-    }
-
-    // Try different validation approaches
-    const isExactMatch = session.qrToken === qrToken;
-    const isSessionIdMatch = decodedToken.s === sessionId;
-
-    // If the exact token doesn't match but the session ID matches and we're within the time window, accept it
-    if (!isExactMatch && !isSessionIdMatch) {
+    if (!session.qrToken || session.qrToken !== qrToken) {
       return res.status(400).json({
         success: false,
         code: "INVALID_QR_CODE",

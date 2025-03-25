@@ -1,5 +1,4 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { ToastContainer, toast } from 'react-toastify';
 import { IoCloseCircleOutline } from 'react-icons/io5';
@@ -39,7 +38,6 @@ import LecturerFeedbackView from './pages/FeedbackPages/LecturerFeedbackView';
 import PastAttendance from './pages/dashboards/PastAttendance';
 import { ThemeProvider } from './context/ThemeContext';
 import { ThemeAwareToasts } from './components/ThemeAwareToasts';
-import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -77,104 +75,93 @@ function App() {
   const handleCloseBanner = () => setShowBanner(false);
 
   return (
-    <Router>
-      <ThemeProvider>
-        <ErrorBoundary>
-          <ToastContainer
-            position="top-center"
-            autoClose={5000}
-            hideProgressBar={false}
-            newestOnTop={false}
-            closeOnClick
-            rtl={false}
-            pauseOnFocusLoss
-            draggable
-            pauseOnHover
-          />
-          <InstallButton />
-          <ThemeAwareToasts />
+    <ThemeProvider>
+      <Router>
+        <ToastContainer
+          position="top-center"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop={false}
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
+        <InstallButton />
+        <ThemeAwareToasts />
 
-          {showBanner && (
-            <div
+        {showBanner && (
+          <div
+            style={{
+              background: isOnline ? '#d4edda' : '#f8d7da',
+              color: isOnline ? '#155724' : '#721c24',
+              padding: '6px',
+              fontSize: '13px',
+              display: 'flex',
+              justifyContent: 'center',
+              alignItems: 'center',
+              position: 'fixed',
+              top: 0,
+              width: '100%',
+              zIndex: 10000,
+              fontWeight: 'bold',
+              boxSizing: 'border-box',
+            }}
+          >
+            <span>
+              {isOnline
+                ? 'Connected to the internet'
+                : "You're offline. Some features may be limited."}
+            </span>
+            <IoCloseCircleOutline
+              onClick={handleCloseBanner}
               style={{
-                background: isOnline ? '#d4edda' : '#f8d7da',
+                marginLeft: '10px',
+                fontSize: '18px',
+                cursor: 'pointer',
                 color: isOnline ? '#155724' : '#721c24',
-                padding: '6px',
-                fontSize: '13px',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                position: 'fixed',
-                top: 0,
-                width: '100%',
-                zIndex: 10000,
-                fontWeight: 'bold',
-                boxSizing: 'border-box',
               }}
-            >
-              <span>
-                {isOnline
-                  ? 'Connected to the internet'
-                  : "You're offline. Some features may be limited."}
-              </span>
-              <IoCloseCircleOutline
-                onClick={handleCloseBanner}
-                style={{
-                  marginLeft: '10px',
-                  fontSize: '18px',
-                  cursor: 'pointer',
-                  color: isOnline ? '#155724' : '#721c24',
-                }}
-              />
-            </div>
-          )}
-
-          <div style={{ paddingTop: showBanner ? '40px' : '0' }}>
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth/login" element={<Login />} />
-              <Route path="/auth/signup" element={<Signup />} />
-              <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
-              <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/401" element={<Unauthorized />} />
-              <Route path="/403" element={<Forbidden />} />
-              <Route path="/500" element={<ServerError />} />
-              <Route path="/405" element={<MethodNotAllowed />} />
-              <Route path="*" element={<NotFound />} />
-              <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
-              <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
-              <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />
-              <Route path="/lecturer/feedback" element={<ProtectedRoute><LecturerFeedbackView /></ProtectedRoute>} />
-              <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-              <Route path="/lecturer/past-attendance" element={<ProtectedRoute><PastAttendance /></ProtectedRoute>} />
-              <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
-              <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
-              <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
-              <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-              <Route path="/student/attendance-trends" element={<ProtectedRoute><AttendanceTrends /></ProtectedRoute>} />
-              <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
-              <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
-              <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
-              <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
-              <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
-              <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
-              <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
-              <Route
-                path="/qr-scanner/:selectedUnit"
-                element={
-                  <ProtectedRoute>
-                    <ErrorBoundary>
-                      <QRScanner />
-                    </ErrorBoundary>
-                  </ProtectedRoute>
-                }
-              />
-            </Routes>
+            />
           </div>
-        </ErrorBoundary>
-      </ThemeProvider>
-    </Router>
+        )}
+
+        <div style={{ paddingTop: showBanner ? '40px' : '0' }}>
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/auth/login" element={<Login />} />
+            <Route path="/auth/signup" element={<Signup />} />
+            <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
+            <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
+            <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/401" element={<Unauthorized />} />
+            <Route path="/403" element={<Forbidden />} />
+            <Route path="/500" element={<ServerError />} />
+            <Route path="/405" element={<MethodNotAllowed />} />
+            <Route path="*" element={<NotFound />} />
+            <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
+            <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
+            <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />
+            <Route path="/lecturer/feedback" element={<ProtectedRoute><LecturerFeedbackView /></ProtectedRoute>} />
+            <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
+            <Route path="/lecturer/past-attendance" element={<ProtectedRoute><PastAttendance /></ProtectedRoute>} />
+            <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
+            <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
+            <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
+            <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
+            <Route path="/student/attendance-trends" element={<ProtectedRoute><AttendanceTrends /></ProtectedRoute>} />
+            <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
+            <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
+            <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
+            <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
+            <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
+            <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
+            <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
+            <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
+          </Routes>
+        </div>
+      </Router>
+    </ThemeProvider>
   );
 }
 

@@ -110,25 +110,14 @@ exports.regenerateQR = async (req, res) => {
     const expiresIn = autoRotate ? 175 : 180; // 175 seconds for auto (buffer for rotation), 180 seconds for manual
 
     const { qrToken, qrCode } = await generateQRToken(session, expiresIn);
-
-    // Store both the QR code image and token
+    session.qrToken = qrToken;
     session.qrCode = qrCode;
-    session.qrToken = qrToken; // Make sure we're saving the token
     session.qrExpiresAt = new Date(Date.now() + (expiresIn * 1000));
-
-    // Ensure we're waiting for the save to complete
     await session.save();
-
-    console.log("Regenerated QR code for session:", {
-      sessionId,
-      tokenLength: qrToken.length,
-      expiresAt: session.qrExpiresAt
-    });
 
     res.status(200).json({
       message: "QR code regenerated successfully",
       qrCode: session.qrCode,
-      qrToken: session.qrToken, // Send the token back to the client
       expiresAt: session.qrExpiresAt
     });
   } catch (error) {
