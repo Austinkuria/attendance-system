@@ -328,8 +328,11 @@ exports.getStudentAttendance = async (req, res) => {
       return res.status(400).json({ message: "Invalid student ID format" });
     }
 
-    // Modified query to include all attendance records regardless of status
-    const attendanceRecords = await Attendance.find({ student: studentId })
+    // Modified query to explicitly include both present and absent records
+    const attendanceRecords = await Attendance.find({
+      student: studentId,
+      status: { $in: ['Present', 'Absent'] } // Explicitly query for both statuses
+    })
       .select('session status attendedAt')
       .populate({
         path: 'session',
@@ -346,11 +349,7 @@ exports.getStudentAttendance = async (req, res) => {
       });
     }
 
-    const semesterStartDate = new Date('2025-01-01');
-    const oneDay = 24 * 60 * 60 * 1000;
-    const oneWeek = 7 * oneDay;
-
-    // Process daily events including both present and absent records
+    // Process daily events with both present and absent records
     const dailyEvents = {};
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
@@ -367,13 +366,12 @@ exports.getStudentAttendance = async (req, res) => {
       });
     });
 
-    const dailyData = Object.entries(dailyEvents).map(([date, events]) => ({
-      date,
-      events
-    }));
-
-    // Process weekly events including both present and absent records
+    // Process weekly events with both present and absent records
     const weeklyEvents = {};
+    const semesterStartDate = new Date('2025-01-01');
+    const oneDay = 24 * 60 * 60 * 1000;
+    const oneWeek = 7 * oneDay;
+
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
       const daysSinceStart = Math.floor((sessionDate - semesterStartDate) / oneDay);
@@ -393,6 +391,11 @@ exports.getStudentAttendance = async (req, res) => {
       });
     });
 
+    const dailyData = Object.entries(dailyEvents).map(([date, events]) => ({
+      date,
+      events
+    }));
+
     const weeklyData = Object.entries(weeklyEvents).map(([week, events]) => ({
       week,
       events
@@ -404,6 +407,7 @@ exports.getStudentAttendance = async (req, res) => {
       dailyEvents: dailyData
     });
   } catch (error) {
+    console.error("Error in getStudentAttendance:", error);
     res.status(500).json({ message: "Error fetching attendance records", error: error.message });
   }
 };
