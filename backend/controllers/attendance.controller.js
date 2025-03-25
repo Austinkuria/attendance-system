@@ -328,11 +328,8 @@ exports.getStudentAttendance = async (req, res) => {
       return res.status(400).json({ message: "Invalid student ID format" });
     }
 
-    // Modified query to explicitly include both present and absent records
-    const attendanceRecords = await Attendance.find({
-      student: studentId,
-      status: { $in: ['Present', 'Absent'] } // Explicitly query for both statuses
-    })
+    // Modified query to get all attendance records for the student without filtering by status
+    const attendanceRecords = await Attendance.find({ student: studentId })
       .select('session status attendedAt')
       .populate({
         path: 'session',
@@ -340,6 +337,8 @@ exports.getStudentAttendance = async (req, res) => {
         populate: { path: 'unit', select: 'name' }
       })
       .sort({ attendedAt: -1 });
+
+    console.log('Found attendance records:', attendanceRecords); // Debug log
 
     if (!attendanceRecords.length) {
       return res.status(200).json({
@@ -349,7 +348,7 @@ exports.getStudentAttendance = async (req, res) => {
       });
     }
 
-    // Process daily events with both present and absent records
+    // Process daily events with all records
     const dailyEvents = {};
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
@@ -366,7 +365,7 @@ exports.getStudentAttendance = async (req, res) => {
       });
     });
 
-    // Process weekly events with both present and absent records
+    // Process weekly events with all records
     const weeklyEvents = {};
     const semesterStartDate = new Date('2025-01-01');
     const oneDay = 24 * 60 * 60 * 1000;
@@ -401,11 +400,15 @@ exports.getStudentAttendance = async (req, res) => {
       events
     }));
 
-    res.status(200).json({
+    const response = {
       attendanceRecords,
       weeklyEvents: weeklyData,
       dailyEvents: dailyData
-    });
+    };
+
+    console.log('Sending response:', response); // Debug log
+
+    res.status(200).json(response);
   } catch (error) {
     console.error("Error in getStudentAttendance:", error);
     res.status(500).json({ message: "Error fetching attendance records", error: error.message });
