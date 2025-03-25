@@ -12,11 +12,36 @@ exports.markAttendance = async (req, res) => {
   try {
     const { sessionId, studentId, deviceId, qrToken, compositeFingerprint } = req.body;
 
-    // Decode the QR token
+    // Decode and validate the QR token
     let decodedToken;
     try {
       const jsonData = Buffer.from(qrToken, 'base64').toString();
       decodedToken = JSON.parse(jsonData);
+
+      // Verify hash to ensure QR code hasn't been tampered with
+      const expectedHash = crypto.createHash('sha256')
+        .update(`${decodedToken.s}${decodedToken.t}${decodedToken.n}${process.env.JWT_SECRET}`)
+        .digest('hex');
+
+      if (expectedHash !== decodedToken.h) {
+        return res.status(400).json({
+          success: false,
+          code: "INVALID_QR_CODE",
+          message: "QR code integrity check failed"
+        });
+      }
+
+      // Check timestamp freshness (within last 30 seconds)
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      const tokenAge = currentTimestamp - decodedToken.t;
+
+      if (tokenAge > 30) {
+        return res.status(400).json({
+          success: false,
+          code: "REPLAY_ATTACK",
+          message: "QR code appears to be from a screenshot. Please scan the live QR code."
+        });
+      }
     } catch (error) {
       return res.status(400).json({
         success: false,
