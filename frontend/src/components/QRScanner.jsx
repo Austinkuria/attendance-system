@@ -374,8 +374,9 @@ const QRScanner = () => {
       setErrorMessage("Session has ended. Attendance cannot be marked.");
       return;
     }
-    stopScanner();
-    setScannedResult(result?.data);
+
+    // Only stop scanner after validation to allow re-scanning if needed
+    setScannedResult(result?.data || "");
     setLoading(true);
     clearTimeout(scanTimeoutRef.current);
 
@@ -384,6 +385,7 @@ const QRScanner = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setErrorMessage("Authentication failed. Please log in again.");
+        setLoading(false);
         return;
       }
 
@@ -392,6 +394,7 @@ const QRScanner = () => {
       if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
         setErrorMessage("Session has ended. Attendance cannot be marked.");
         setSessionEnded(true);
+        setLoading(false);
         return;
       }
 
@@ -400,17 +403,23 @@ const QRScanner = () => {
       const studentId = decoded.userId;
       if (!studentId) {
         setErrorMessage("Invalid user information. Please log in again.");
+        setLoading(false);
         return;
       }
 
       const base64Data = result.data;
 
-      console.log("Marking attendance with params:", {
+      // Log truncated QR data for debugging (only show beginning characters)
+      console.log("Attempting to mark attendance with QR data:", {
         sessionId,
         studentId,
-        deviceId,
-        qrData: base64Data.substring(0, 20) + "..." // Log truncated QR data for debugging
+        deviceIdPresent: !!deviceId,
+        qrDataLength: base64Data?.length || 0,
+        qrDataSample: base64Data?.substring(0, 20) + "..."
       });
+
+      // Now we stop the scanner since we're proceeding with the API call
+      stopScanner();
 
       const response = await markAttendance(sessionId, studentId, token, deviceId, base64Data, compositeFingerprint);
 
@@ -421,8 +430,15 @@ const QRScanner = () => {
         // Check specific error codes
         if (response.code === "QR_CODE_EXPIRED") {
           setErrorMessage("QR code has expired. Please ask your lecturer to regenerate it.");
-          setSessionEnded(true);
-        } else if (["SESSION_INACTIVE", "INVALID_QR_CODE", "ATTENDANCE_ALREADY_MARKED", "DEVICE_CONFLICT"].includes(response.code)) {
+        } else if (response.code === "INVALID_QR_CODE" || response.code === "QR_DECODE_ERROR") {
+          setErrorMessage("Could not read QR code properly. Please try scanning again.");
+          // Restart scanner after a short delay to allow re-scanning
+          setTimeout(() => {
+            setLoading(false);
+            startScanner();
+          }, 1500);
+          return;
+        } else if (["SESSION_INACTIVE", "ATTENDANCE_ALREADY_MARKED", "DEVICE_CONFLICT"].includes(response.code)) {
           setErrorMessage(response.message || "Could not mark attendance.");
         } else {
           setErrorMessage("An unexpected error occurred. Please try again.");
@@ -435,9 +451,17 @@ const QRScanner = () => {
       if (err.response?.status === 401 || err.message?.includes("unauthorized")) {
         setErrorMessage("Your session has expired. Please log in again.");
         localStorage.removeItem("token"); // Clear the invalid token
+      } else if (err.code === "INVALID_QR_CODE" || err.code === "QR_DECODE_ERROR") {
+        setErrorMessage("Could not read QR code. Please try scanning again.");
+        // Restart scanner immediately to allow re-scanning
+        setTimeout(() => {
+          setLoading(false);
+          startScanner();
+        }, 1500);
+        return;
       } else if (err.message && typeof err.message === 'string') {
         if (err.message.includes("Session") ||
-          (err.code && ["SESSION_INACTIVE", "QR_CODE_EXPIRED", "INVALID_QR_CODE"].includes(err.code))) {
+          (err.code && ["SESSION_INACTIVE", "QR_CODE_EXPIRED"].includes(err.code))) {
           setErrorMessage(err.message || "This session is no longer active.");
         } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
           setErrorMessage("You've already marked attendance for this session.");
@@ -452,29 +476,47 @@ const QRScanner = () => {
     } finally {
       setLoading(false);
     }
-  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
+  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint, stopScanner, startScanner]);
 
+  // When starting the scanner, configure it with better settings
   const startScanner = useCallback(() => {
-    if (!videoEl.current || sessionEnded || !sessionId || !componentMounted) return; // Ensure component is mounted
+    if (!videoEl.current || sessionEnded || !sessionId || !componentMounted) return;
     if (scanner.current) scanner.current.destroy();
 
     scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
-      onDecodeError: (err) => console.error("QR Scan Error:", err),
+      onDecodeError: (err) => {
+        // Only log errors that aren't normal "not found" errors to prevent console spam
+        if (err.message && !err.message.includes("not found")) {
+          console.error("QR Scan Error:", err);
+        }
+      },
       preferredCamera: "environment",
       highlightScanRegion: true,
       highlightCodeOutline: true,
       overlay: qrBoxEl.current || undefined,
-      maxScansPerSecond: 1,
+      maxScansPerSecond: 1, // Limit scan frequency slightly
       returnDetailedScanResult: true,
+      // Increase QR reader capacity for larger codes
+      calculateScanRegion: (videoElement) => {
+        const scanRegionSize = Math.min(videoElement.offsetWidth, videoElement.offsetHeight) * 0.8;
+        const scanRegionLeft = (videoElement.offsetWidth - scanRegionSize) / 2;
+        const scanRegionTop = (videoElement.offsetHeight - scanRegionSize) / 2;
+        return { x: scanRegionLeft, y: scanRegionTop, width: scanRegionSize, height: scanRegionSize };
+      }
     });
 
-    scanner.current.start().then(() => setQrOn(true)).catch(() => setQrOn(false));
+    scanner.current.start().then(() => setQrOn(true)).catch((error) => {
+      console.error("Camera error:", error);
+      setQrOn(false);
+      message.error("Failed to access camera. Please check permissions and try again.");
+    });
+
     clearTimeout(scanTimeoutRef.current);
     scanTimeoutRef.current = setTimeout(() => {
       stopScanner();
       message.error("Scanning timed out. Please try again.");
     }, 30000);
-  }, [onScanSuccess, sessionEnded, sessionId, componentMounted]);
+  }, [onScanSuccess, sessionEnded, sessionId, componentMounted, stopScanner]);
 
   useEffect(() => {
     if (!loading && !sessionEnded && sessionId && componentMounted) startScanner(); // Ensure component is mounted
@@ -501,8 +543,8 @@ const QRScanner = () => {
     }
     setScannedResult("");
     setLoading(false);
+    setErrorMessage(null); // Clear any error messages
     startScanner();
-    setErrorMessage(null);
   };
 
   useEffect(() => {
