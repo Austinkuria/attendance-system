@@ -1599,11 +1599,10 @@ exports.exportAllSessionsAttendance = async (req, res) => {
           // Ensure student details exist and are properly formatted
           const student = record.student || { regNo: 'N/A', firstName: 'Unknown', lastName: 'Student' };
 
-          // Normalize status value
-          const normalizedStatus = record.status === 'present' ? 'Present' :
-            record.status === 'Present' ? 'Present' :
-              record.status === 'absent' ? 'Absent' :
-                record.status === 'Absent' ? 'Absent' : 'Unknown';
+          // Normalize status value - convert all to proper case format for consistency
+          const normalizedStatus = record.status ?
+            record.status.toString().charAt(0).toUpperCase() +
+            record.status.toString().slice(1).toLowerCase() : 'Unknown';
 
           // Create record with proper structure
           return {
@@ -1731,17 +1730,17 @@ exports.exportAllSessionsAttendance = async (req, res) => {
           }
 
           // Color code status cell
-          const statusCell = row.getCell(8); // Status column
+          const statusCell = row.getCell(8); // Status column - use case-insensitive comparison
           if (record['Status']) {
             const normalizedStatus = record['Status'].toString().toLowerCase();
-            if (normalizedStatus === 'present') {
+            if (normalizedStatus.includes('present')) {
               statusCell.fill = {
                 type: 'pattern',
                 pattern: 'solid',
                 fgColor: { argb: 'C6EFCE' }
               };
               statusCell.font = { color: { argb: '006100' } };
-            } else if (normalizedStatus === 'absent') {
+            } else if (normalizedStatus.includes('absent')) {
               statusCell.fill = {
                 type: 'pattern',
                 pattern: 'solid',
@@ -1750,7 +1749,6 @@ exports.exportAllSessionsAttendance = async (req, res) => {
               statusCell.font = { color: { argb: '9C0006' } };
             }
           }
-
           rowIndex++;
         } catch (error) {
           logger.error(`Error adding row to Excel: ${error.message}`);
@@ -1773,7 +1771,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     worksheet.mergeCells(`A${rowIndex + 1}:I${rowIndex + 1}`);
     rowIndex++;
 
-    // Calculate statistics with better error handling
+    // Calculate statistics with better error handling and case-insensitive matching
     const totalRecords = attendanceRecords.length || 0;
     const presentCount = attendanceRecords.filter(r => {
       const status = (r.status || '').toString().toLowerCase();
@@ -1816,7 +1814,6 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     const today = new Date().toISOString().split('T')[0];
     let filename = 'complete_attendance_report';
     let reportTitle = 'Comprehensive Attendance Report';
-
     if (startDate && endDate) {
       filename = `attendance_report_${startDate}_to_${endDate}`;
       reportTitle = `Attendance Report (${startDate} to ${endDate})`;
@@ -1832,7 +1829,6 @@ exports.exportAllSessionsAttendance = async (req, res) => {
       // If multiple units are selected, indicate "all_units"
       filename += '_all_units';
     }
-
     filename += '.xlsx';
 
     // Update title in the Excel file
@@ -1842,7 +1838,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
 
-    // Send workbook
+    // Send the workbook
     await workbook.xlsx.write(res);
     res.end();
 
@@ -1903,8 +1899,7 @@ exports.exportFilteredAttendance = async (req, res) => {
     let filteredRecords = allAttendanceRecords;
     if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
       filteredRecords = allAttendanceRecords.filter(record =>
-        record.session &&
-        record.session.unit &&
+        record.session && record.session.unit &&
         record.session.unit._id.toString() === unitId.toString()
       );
     }
@@ -1961,7 +1956,7 @@ exports.exportFilteredAttendance = async (req, res) => {
       { header: 'Session Date', key: 'date', width: 15 },
       { header: 'Session Time', key: 'time', width: 25 },
       { header: 'Status', key: 'status', width: 12 },
-      { header: 'Feedback', key: 'feedback', width: 15 }
+      { header: 'Feedback', key: 'feedback', width: 15 },
     ];
 
     // Style header row
@@ -2104,7 +2099,7 @@ exports.exportFilteredAttendance = async (req, res) => {
     console.error('Error in exportFilteredAttendance:', error);
     res.status(500).json({
       message: 'Error exporting attendance data',
-      error: error.message
+      error: error.message,
     });
   }
 };
