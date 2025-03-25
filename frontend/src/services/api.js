@@ -140,7 +140,7 @@ api.interceptors.response.use(
         }
         errorMessage = 'You are offline. Some data may not be up to date.';
       } catch (err) {
-        console.log( err)
+        console.log(err)
         errorMessage = 'No cached data available offline';
       }
     } else if (error.response) {
@@ -819,13 +819,17 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
 
     console.log("Sending attendance request to:", `${API_URL}/attendance/mark`);
 
+    // Make sure QR token is properly formatted 
+    // (some devices might add line breaks or whitespace when scanning)
+    const cleanQrToken = qrToken.trim();
+
     const response = await axios.post(
       `${API_URL}/attendance/mark`,
       {
         sessionId,
         studentId,
         deviceId,
-        qrToken,
+        qrToken: cleanQrToken,
         compositeFingerprint
       },
       {
@@ -835,7 +839,7 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
           "Accept": "application/json"
         },
         // Add timeout to prevent hanging requests
-        timeout: 10000
+        timeout: 15000 // Increase timeout to 15 seconds
       }
     );
 

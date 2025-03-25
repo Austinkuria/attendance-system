@@ -15,8 +15,8 @@ const QRScanner = () => {
   const scanner = useRef(null);
   const videoEl = useRef(null);
   const qrBoxEl = useRef(null);
-  const [qrOn, setQrOn] = useState(true);
-  const [loading, setLoading] = useState(false);
+  const [qrOn, setQrOn] = useState(false); // Start with false instead of true
+  const [loading, setLoading] = useState(true); // Start with true to show loading state
   const [scannedResult, setScannedResult] = useState("");
   const [sessionId, setSessionId] = useState(null);
   const [sessionEnded, setSessionEnded] = useState(false);
@@ -370,18 +370,24 @@ const QRScanner = () => {
   }, [selectedUnit, navigate]);
 
   const onScanSuccess = useCallback(async (result) => {
+    // Validate session before proceeding
     if (!sessionId || sessionEnded) {
       setErrorMessage("Session has ended. Attendance cannot be marked.");
       return;
     }
 
-    // Only stop scanner after validation to allow re-scanning if needed
-    setScannedResult(result?.data || "");
+    if (!result || !result.data) {
+      setErrorMessage("Invalid QR code. Please try again.");
+      return;
+    }
+
+    // Update UI state
+    setScannedResult(result.data || "");
     setLoading(true);
     clearTimeout(scanTimeoutRef.current);
 
     try {
-      // Get authentication token first and verify it's available
+      // Validate the token first
       const token = localStorage.getItem("token");
       if (!token) {
         setErrorMessage("Authentication failed. Please log in again.");
@@ -389,90 +395,111 @@ const QRScanner = () => {
         return;
       }
 
-      // First check if session is still active
-      const sessionStatus = await checkSessionStatus(sessionId);
-      if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
-        setErrorMessage("Session has ended. Attendance cannot be marked.");
-        setSessionEnded(true);
+      // Check if session is still active
+      try {
+        const sessionStatus = await checkSessionStatus(sessionId);
+        if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
+          setErrorMessage("Session has ended. Attendance cannot be marked.");
+          setSessionEnded(true);
+          setLoading(false);
+          return;
+        }
+      } catch (sessionErr) {
+        console.error("Session check failed:", sessionErr);
+        setErrorMessage("Error checking session status. Please try again.");
         setLoading(false);
         return;
       }
 
-      // Decode the token to get student ID
-      const decoded = jwtDecode(token);
-      const studentId = decoded.userId;
-      if (!studentId) {
+      // Decode the token to get student ID with error handling
+      let studentId;
+      try {
+        const decoded = jwtDecode(token);
+        studentId = decoded?.userId;
+        if (!studentId) {
+          throw new Error("Invalid token data");
+        }
+      } catch (tokenErr) {
+        console.error("Token decode error:", tokenErr);
         setErrorMessage("Invalid user information. Please log in again.");
         setLoading(false);
         return;
       }
 
-      const base64Data = result.data;
+      // Use a clean QR data
+      const base64Data = result.data.trim();
 
-      // Log truncated QR data for debugging (only show beginning characters)
+      // Log QR data for debugging (truncated for privacy)
       console.log("Attempting to mark attendance with QR data:", {
         sessionId,
         studentId,
         deviceIdPresent: !!deviceId,
         qrDataLength: base64Data?.length || 0,
-        qrDataSample: base64Data?.substring(0, 20) + "..."
+        qrDataSample: base64Data ? `${base64Data.substring(0, 20)}...` : "empty"
       });
 
-      // Now we stop the scanner since we're proceeding with the API call
+      // Stop the scanner when proceeding with the API call
       stopScanner();
 
-      const response = await markAttendance(sessionId, studentId, token, deviceId, base64Data, compositeFingerprint);
+      try {
+        // Validate all parameters before making the API call
+        if (!sessionId || !studentId || !token || !deviceId || !base64Data) {
+          throw {
+            message: "Missing required attendance information",
+            code: "MISSING_DATA",
+            success: false
+          };
+        }
 
-      if (response.success) {
-        message.success(response.message || "Attendance marked successfully!");
-        navigate("/student-dashboard");
-      } else {
-        // Check specific error codes
-        if (response.code === "QR_CODE_EXPIRED") {
-          setErrorMessage("QR code has expired. Please ask your lecturer to regenerate it.");
-        } else if (response.code === "INVALID_QR_CODE" || response.code === "QR_DECODE_ERROR") {
-          setErrorMessage("Could not read QR code properly. Please try scanning again.");
-          // Restart scanner after a short delay to allow re-scanning
+        // Make the API call
+        const response = await markAttendance(
+          sessionId,
+          studentId,
+          token,
+          deviceId,
+          base64Data,
+          compositeFingerprint || "fallback-fingerprint"
+        );
+
+        if (response.success) {
+          message.success(response.message || "Attendance marked successfully!");
+          navigate("/student-dashboard");
+        } else {
+          // Handle error responses
+          if (response.code === "QR_CODE_EXPIRED") {
+            setErrorMessage("QR code has expired. Please ask your lecturer to regenerate it.");
+          } else if (["INVALID_QR_CODE", "QR_DECODE_ERROR", "INVALID_QR_FORMAT"].includes(response.code)) {
+            setErrorMessage("Could not read QR code properly. Please try scanning again.");
+            // Restart scanner after a delay
+            setTimeout(() => {
+              setLoading(false);
+              startScanner();
+            }, 1500);
+            return;
+          } else {
+            setErrorMessage(response.message || "An unexpected error occurred. Please try again.");
+          }
+        }
+      } catch (err) {
+        // Handle specific API errors
+        console.error("Attendance marking error:", err);
+
+        if (err.code === "NETWORK_ERROR") {
+          setErrorMessage("Network error. Please check your connection and try again.");
+        } else if (["INVALID_QR_CODE", "QR_DECODE_ERROR", "INVALID_QR_FORMAT"].includes(err.code)) {
+          setErrorMessage("Could not read QR code. Please try scanning again.");
           setTimeout(() => {
             setLoading(false);
             startScanner();
           }, 1500);
           return;
-        } else if (["SESSION_INACTIVE", "ATTENDANCE_ALREADY_MARKED", "DEVICE_CONFLICT"].includes(response.code)) {
-          setErrorMessage(response.message || "Could not mark attendance.");
         } else {
-          setErrorMessage("An unexpected error occurred. Please try again.");
+          setErrorMessage(err.message || "Failed to mark attendance. Please try again.");
         }
       }
     } catch (err) {
-      console.error("Attendance marking error:", err);
-
-      // Check for authentication errors specifically
-      if (err.response?.status === 401 || err.message?.includes("unauthorized")) {
-        setErrorMessage("Your session has expired. Please log in again.");
-        localStorage.removeItem("token"); // Clear the invalid token
-      } else if (err.code === "INVALID_QR_CODE" || err.code === "QR_DECODE_ERROR") {
-        setErrorMessage("Could not read QR code. Please try scanning again.");
-        // Restart scanner immediately to allow re-scanning
-        setTimeout(() => {
-          setLoading(false);
-          startScanner();
-        }, 1500);
-        return;
-      } else if (err.message && typeof err.message === 'string') {
-        if (err.message.includes("Session") ||
-          (err.code && ["SESSION_INACTIVE", "QR_CODE_EXPIRED"].includes(err.code))) {
-          setErrorMessage(err.message || "This session is no longer active.");
-        } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
-          setErrorMessage("You've already marked attendance for this session.");
-        } else if (err.code === "DEVICE_CONFLICT") {
-          setErrorMessage("Another student has already used this device for attendance.");
-        } else {
-          setErrorMessage(err.message || "An unexpected error occurred. Please try again.");
-        }
-      } else {
-        setErrorMessage("Failed to mark attendance. Please try again.");
-      }
+      console.error("Uncaught error in scan handler:", err);
+      setErrorMessage("An unexpected error occurred. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -480,42 +507,92 @@ const QRScanner = () => {
 
   // When starting the scanner, configure it with better settings
   const startScanner = useCallback(() => {
-    if (!videoEl.current || sessionEnded || !sessionId || !componentMounted) return;
-    if (scanner.current) scanner.current.destroy();
+    // Check all required elements are available
+    if (!videoEl.current || sessionEnded || !sessionId || !componentMounted) {
+      console.log("Can't start scanner:", {
+        hasVideoEl: !!videoEl.current,
+        sessionEnded,
+        hasSessionId: !!sessionId,
+        componentMounted
+      });
+      return;
+    }
 
-    scanner.current = new QrScanner(videoEl.current, onScanSuccess, {
-      onDecodeError: (err) => {
-        // Only log errors that aren't normal "not found" errors to prevent console spam
-        if (err.message && !err.message.includes("not found")) {
-          console.error("QR Scan Error:", err);
-        }
-      },
-      preferredCamera: "environment",
-      highlightScanRegion: true,
-      highlightCodeOutline: true,
-      overlay: qrBoxEl.current || undefined,
-      maxScansPerSecond: 1, // Limit scan frequency slightly
-      returnDetailedScanResult: true,
-      // Increase QR reader capacity for larger codes
-      calculateScanRegion: (videoElement) => {
-        const scanRegionSize = Math.min(videoElement.offsetWidth, videoElement.offsetHeight) * 0.8;
-        const scanRegionLeft = (videoElement.offsetWidth - scanRegionSize) / 2;
-        const scanRegionTop = (videoElement.offsetHeight - scanRegionSize) / 2;
-        return { x: scanRegionLeft, y: scanRegionTop, width: scanRegionSize, height: scanRegionSize };
+    // Clean up any existing scanner before creating a new one
+    if (scanner.current) {
+      try {
+        scanner.current.destroy();
+        scanner.current = null;
+      } catch (err) {
+        console.error("Error destroying previous scanner:", err);
       }
-    });
+    }
 
-    scanner.current.start().then(() => setQrOn(true)).catch((error) => {
-      console.error("Camera error:", error);
+    try {
+      // Create a scanner wrapper function that can handle errors safely
+      const safeOnScanSuccess = (result) => {
+        try {
+          if (result && result.data) {
+            // Clean up the QR data
+            result.data = result.data.trim();
+          }
+          onScanSuccess(result);
+        } catch (err) {
+          console.error("Error in scan success handler:", err);
+          setErrorMessage("An error occurred processing the QR code. Please try again.");
+          setLoading(false);
+        }
+      };
+
+      // Initialize with better error catching
+      scanner.current = new QrScanner(videoEl.current, safeOnScanSuccess, {
+        onDecodeError: (err) => {
+          // Only log meaningful errors
+          if (err.message && !err.message.includes("not found")) {
+            console.error("QR Scan Error:", err);
+          }
+        },
+        preferredCamera: "environment",
+        highlightScanRegion: true,
+        highlightCodeOutline: true,
+        maxScansPerSecond: 2, // Increase to 2 for better detection
+        returnDetailedScanResult: true,
+        calculateScanRegion: (videoElement) => {
+          const scanRegionSize = Math.min(videoElement.offsetWidth, videoElement.offsetHeight) * 0.8;
+          const scanRegionLeft = (videoElement.offsetWidth - scanRegionSize) / 2;
+          const scanRegionTop = (videoElement.offsetHeight - scanRegionSize) / 2;
+          return {
+            x: Math.max(0, scanRegionLeft),
+            y: Math.max(0, scanRegionTop),
+            width: scanRegionSize,
+            height: scanRegionSize
+          };
+        }
+      });
+
+      // Start the scanner with error handling
+      scanner.current.start()
+        .then(() => {
+          console.log("QR scanner started successfully");
+          setQrOn(true);
+        })
+        .catch((error) => {
+          console.error("Camera error:", error);
+          setQrOn(false);
+          setErrorMessage("Failed to access camera. Please check permissions and try again.");
+        });
+
+      // Set a timeout to prevent scanning for too long
+      clearTimeout(scanTimeoutRef.current);
+      scanTimeoutRef.current = setTimeout(() => {
+        stopScanner();
+        setErrorMessage("Scanning timed out. Please try again.");
+      }, 30000);
+    } catch (err) {
+      console.error("Error initializing scanner:", err);
+      setErrorMessage("Failed to initialize camera. Please try again.");
       setQrOn(false);
-      message.error("Failed to access camera. Please check permissions and try again.");
-    });
-
-    clearTimeout(scanTimeoutRef.current);
-    scanTimeoutRef.current = setTimeout(() => {
-      stopScanner();
-      message.error("Scanning timed out. Please try again.");
-    }, 30000);
+    }
   }, [onScanSuccess, sessionEnded, sessionId, componentMounted, stopScanner]);
 
   useEffect(() => {
