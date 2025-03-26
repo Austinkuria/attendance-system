@@ -266,25 +266,7 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    // Check if student already marked attendance
-    try {
-      const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
-      if (existingStudentRecord) {
-        return res.status(400).json({
-          success: false,
-          code: "ATTENDANCE_ALREADY_MARKED",
-          message: "You have already marked attendance for this session."
-        });
-      }
-    } catch (recordError) {
-      console.error("Database error when checking existing attendance:", recordError);
-      return res.status(500).json({
-        success: false,
-        code: "DB_ERROR",
-        message: "Database error occurred when checking attendance records."
-      });
-    }
-
+    // IMPORTANT: First check for device conflicts BEFORE checking if this student already marked attendance
     // Enhanced device conflict detection
     try {
       const existingDeviceRecords = await Attendance.find({
@@ -297,60 +279,63 @@ exports.markAttendance = async (req, res) => {
       let conflictType = "";
       let conflictStudent = null;
 
-      // Check for IP address first
-      const ipBasedRecords = existingDeviceRecords.filter(record => record.ipAddress === clientIp);
-      if (ipBasedRecords.length > 0) {
-        // Check if this student already has a record from this IP
-        const sameStudentSameIp = ipBasedRecords.some(record =>
-          record.student.toString() === studentId.toString()
+      // Check for exact device ID or fingerprint matches
+      const exactDeviceMatches = existingDeviceRecords.filter(record =>
+        record.deviceId === deviceId || record.compositeFingerprint === compositeFingerprint
+      );
+
+      if (exactDeviceMatches.length > 0) {
+        // Check if this is a different student trying to use the same device
+        const differentStudentSameDevice = exactDeviceMatches.some(record =>
+          record.student.toString() !== studentId.toString()
         );
 
-        // If different students are using the same IP, it's suspicious
-        if (!sameStudentSameIp) {
-          // Get conflicting student details for audit
-          const conflictRecords = ipBasedRecords.filter(r => r.student.toString() !== studentId.toString());
-          if (conflictRecords.length > 0) {
-            const studentIds = [...new Set(conflictRecords.map(r => r.student.toString()))];
+        if (differentStudentSameDevice) {
+          deviceConflict = true;
+          conflictType = "exact";
 
-            // If we have multiple students from same IP in this session, flag it
-            if (studentIds.length > 0) {
-              deviceConflict = true;
-              conflictType = "ip";
-              conflictStudent = studentIds[0]; // Record the first conflicting student
-
-              // Log this suspicious activity for further investigation
-              logger.warn(`IP conflict detected: Student ${studentId} attempting to mark attendance from same IP as students [${studentIds.join(', ')}] for session ${sessionId}`);
-            }
+          // Log which student used the same device
+          const conflictingStudentRecord = exactDeviceMatches.find(r => r.student.toString() !== studentId.toString());
+          if (conflictingStudentRecord) {
+            conflictStudent = conflictingStudentRecord.student.toString();
           }
+        } else {
+          // Same student using the same device (fall through to check if already marked attendance)
+          // This will be caught by the existingStudentRecord check below
         }
       }
 
-      // Check for exact device ID or fingerprint matches
+      // If no exact match, check for IP address
       if (!deviceConflict) {
-        const exactDeviceMatches = existingDeviceRecords.filter(record =>
-          record.deviceId === deviceId || record.compositeFingerprint === compositeFingerprint
-        );
-
-        if (exactDeviceMatches.length > 0) {
-          // Check if this is the same student marking attendance again
-          const differentStudentSameDevice = exactDeviceMatches.some(record =>
-            record.student.toString() !== studentId.toString()
+        const ipBasedRecords = existingDeviceRecords.filter(record => record.ipAddress === clientIp);
+        if (ipBasedRecords.length > 0) {
+          // Check if this student already has a record from this IP
+          const sameStudentSameIp = ipBasedRecords.some(record =>
+            record.student.toString() === studentId.toString()
           );
 
-          if (differentStudentSameDevice) {
-            deviceConflict = true;
-            conflictType = "exact";
+          // If different students are using the same IP, it's suspicious
+          if (!sameStudentSameIp) {
+            // Get conflicting student details for audit
+            const conflictRecords = ipBasedRecords.filter(r => r.student.toString() !== studentId.toString());
+            if (conflictRecords.length > 0) {
+              const studentIds = [...new Set(conflictRecords.map(r => r.student.toString()))];
 
-            // Log which student used the same device
-            const conflictingStudentRecord = exactDeviceMatches.find(r => r.student.toString() !== studentId.toString());
-            if (conflictingStudentRecord) {
-              conflictStudent = conflictingStudentRecord.student.toString();
+              // If we have multiple students from same IP in this session, flag it
+              if (studentIds.length > 0) {
+                deviceConflict = true;
+                conflictType = "ip";
+                conflictStudent = studentIds[0]; // Record the first conflicting student
+
+                // Log this suspicious activity for further investigation
+                logger.warn(`IP conflict detected: Student ${studentId} attempting to mark attendance from same IP as students [${studentIds.join(', ')}] for session ${sessionId}`);
+              }
             }
           }
         }
       }
 
-      // If no exact match, check for partial fingerprint similarity
+      // If no exact match or IP match, check for partial fingerprint similarity
       if (!deviceConflict && compositeFingerprint && compositeFingerprint.length > 20) {
         for (const record of existingDeviceRecords) {
           // Skip records from the same student
@@ -396,6 +381,7 @@ exports.markAttendance = async (req, res) => {
         }
       }
 
+      // If there's a device conflict, reject the request with a clear message
       if (deviceConflict) {
         // Record this attempt for auditing
         try {
@@ -418,10 +404,11 @@ exports.markAttendance = async (req, res) => {
           // Continue execution even if saving the conflict record fails
         }
 
+        // Return a clear device conflict error
         return res.status(403).json({
           success: false,
           code: "DEVICE_CONFLICT",
-          message: "This device has already been used to mark attendance for this session. Please use your own device.",
+          message: "This device has already been used to mark attendance for another student. Please use your own device.",
           conflictType: conflictType
         });
       }
@@ -429,6 +416,47 @@ exports.markAttendance = async (req, res) => {
       console.error("Error during device conflict check:", deviceCheckError);
       // Don't fail the entire request due to device conflict check error
       // Just log it and continue processing
+    }
+
+    // After checking for device conflicts, check if this student already marked attendance
+    try {
+      const existingStudentRecord = await Attendance.findOne({
+        session: sessionId,
+        student: studentId,
+        $or: [
+          { status: "Present" },
+          { status: "Rejected" }
+        ]
+      });
+
+      if (existingStudentRecord) {
+        const status = existingStudentRecord.status;
+        let message = "You have already marked attendance for this session.";
+        let code = "ATTENDANCE_ALREADY_MARKED";
+
+        if (status === "Rejected") {
+          if (existingStudentRecord.rejectionReason && existingStudentRecord.rejectionReason.includes("Device conflict")) {
+            message = "Your previous attempt was rejected due to device conflict. Please use your own device.";
+            code = "DEVICE_CONFLICT";
+          } else {
+            message = "Your previous attendance submission was rejected. Please contact your lecturer.";
+            code = "PREVIOUS_ATTENDANCE_REJECTED";
+          }
+        }
+
+        return res.status(400).json({
+          success: false,
+          code: code,
+          message: message
+        });
+      }
+    } catch (recordError) {
+      console.error("Database error when checking existing attendance:", recordError);
+      return res.status(500).json({
+        success: false,
+        code: "DB_ERROR",
+        message: "Database error occurred when checking attendance records."
+      });
     }
 
     // Create new attendance record
