@@ -68,4 +68,11 @@ export default defineConfig({
     envCompatible(),
   ],
   define: { 'process.env': {} },
+  test: {
+    globals: true,
+    environment: 'jsdom',
+    setupFiles: './tests/setup.js',
+    css: true,
+    include: ['./tests/**/*.{test,spec}.{js,jsx}']
+  }
 });
