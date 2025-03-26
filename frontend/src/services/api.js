@@ -871,6 +871,7 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
     console.log("Received attendance response:", {
       status: response.status,
       success: response.data?.success,
+      code: response.data?.code,
       message: response.data?.message
     });
 
@@ -885,16 +886,22 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
       code: error.code || error.response?.data?.code
     });
 
-    // Prepare a standardized error object
+    // Prepare a standardized error object with the right error code
     let errorResult = {
       success: false,
       status: error.response?.status || 0
     };
 
     if (error.response) {
-      // Backend error with response
+      // Preserve the error code from the backend
       errorResult.message = error.response.data?.message || "Server returned an error";
       errorResult.code = error.response.data?.code || `ERROR_${error.response.status}`;
+
+      // Make sure DEVICE_CONFLICT code is preserved from backend
+      if (error.response.data?.code === "DEVICE_CONFLICT") {
+        errorResult.code = "DEVICE_CONFLICT";
+        errorResult.message = "This device has already been used by another student. Please use your own device.";
+      }
     } else if (error.code === 'ECONNABORTED') {
       // Timeout error
       errorResult.message = "Request timed out. The server might be under heavy load.";

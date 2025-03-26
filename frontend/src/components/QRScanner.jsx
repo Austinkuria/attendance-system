@@ -468,11 +468,13 @@ const QRScanner = () => {
           } else if (response.code === "ATTENDANCE_ALREADY_MARKED") {
             setErrorMessage("You've already marked attendance for this session.");
           } else if (response.code === "DEVICE_CONFLICT") {
-            setErrorMessage("This device appears to have been used by another student in this session.");
+            setErrorMessage("This device has already been used by another student. Please use your own device.");
           } else if (response.code === "DB_ERROR") {
             setErrorMessage("Database error occurred. Please try again in a moment.");
           } else if (response.code === "SERVER_ERROR") {
             setErrorMessage("Server error occurred. Please try again in a moment.");
+          } else if (response.code === "PREVIOUS_ATTENDANCE_REJECTED") {
+            setErrorMessage("Your previous attendance submission was rejected. Please contact your lecturer.");
           } else {
             setErrorMessage(response.message || "An unexpected error occurred. Please try again.");
           }
@@ -487,23 +489,15 @@ const QRScanner = () => {
           // Use custom error codes to provide better error messages
           switch (apiError.code) {
             case "DEVICE_CONFLICT":
-              errorMsg = "This device has been used by another student. Please use your own device.";
-              break;
-            case "SESSION_INACTIVE":
-              errorMsg = "This attendance session is no longer active.";
-              break;
-            case "QR_CODE_EXPIRED":
-              errorMsg = "This QR code has expired. Please ask your lecturer to show the current code.";
+              errorMsg = "This device has already been used by another student. Please use your own device.";
               break;
             case "ATTENDANCE_ALREADY_MARKED":
               errorMsg = "You've already marked attendance for this session.";
               break;
-            case "INVALID_QR_CODE":
-              errorMsg = "Invalid QR code. Please ask your lecturer to show the current code.";
+            case "PREVIOUS_ATTENDANCE_REJECTED":
+              errorMsg = "Your previous attendance submission was rejected. Please contact your lecturer.";
               break;
-            case "SERVER_ERROR":
-              errorMsg = "Server error. Please try again later.";
-              break;
+            // ...other cases...
             default:
               errorMsg = apiError.message || "Error marking attendance. Please try again.";
           }
@@ -515,33 +509,14 @@ const QRScanner = () => {
       console.error("Attendance marking error:", err);
 
       // More user-friendly error messages
-      if (err.response?.status === 401 || err.message?.includes("unauthorized")) {
-        setErrorMessage("Your session has expired. Please log in again.");
-        localStorage.removeItem("token"); // Clear the invalid token
-      } else if (err.message && typeof err.message === 'string') {
-        // More user-friendly error messages based on codes
-        if (err.code === "SESSION_INACTIVE") {
-          setErrorMessage("This attendance session is no longer active.");
-        } else if (err.code === "QR_CODE_EXPIRED") {
-          setErrorMessage("This QR code has expired. Please ask your lecturer to show the current code.");
-        } else if (err.code === "INVALID_QR_CODE" || err.code === "INVALID_QR_HASH" || err.code === "INCOMPLETE_QR_DATA") {
-          setErrorMessage("The QR code couldn't be validated. Please ask your lecturer for a new code.");
-        } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
-          setErrorMessage("You've already marked attendance for this session.");
-        } else if (err.code === "DEVICE_CONFLICT") {
-          setErrorMessage("This device appears to have been used by another student.");
-        } else if (err.message.includes("Session")) {
-          setErrorMessage("This session is no longer active.");
-        } else if (err.message.includes("500")) {
-          setErrorMessage("The server encountered an error. Please wait a moment and try again.");
-        } else if (err.message.includes("Network")) {
-          setErrorMessage("Network connection issue. Please check your internet connection.");
-        } else {
-          setErrorMessage("We couldn't process your attendance. Please try again.");
-        }
-      } else {
-        setErrorMessage("Something went wrong. Please try scanning again or contact support.");
+      if (err.code === "DEVICE_CONFLICT") {
+        setErrorMessage("This device has already been used by another student. Please use your own device.");
+      } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
+        setErrorMessage("You've already marked attendance for this session.");
+      } else if (err.code === "PREVIOUS_ATTENDANCE_REJECTED") {
+        setErrorMessage("Your previous attendance submission was rejected. Please contact your lecturer.");
       }
+      // ...other error handling...
     } finally {
       setLoading(false);
     }
