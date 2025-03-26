@@ -25,6 +25,7 @@ const QRScanner = () => {
   const [componentMounted, setComponentMounted] = useState(false); // Track if component is mounted
   const [errorMessage, setErrorMessage] = useState(null);
   const [scannerActive, setScannerActive] = useState(true); // New state to track if scanner should be active
+  const [processingQR, setProcessingQR] = useState(false); // New state for processing indication
 
   const { selectedUnit } = useParams();
   const navigate = useNavigate();
@@ -411,6 +412,7 @@ const QRScanner = () => {
     }
     stopScanner();
     setScannedResult(result?.data);
+    setProcessingQR(true); // Set processing state to true when QR is detected
     setLoading(true);
     clearTimeout(scanTimeoutRef.current);
 
@@ -419,6 +421,7 @@ const QRScanner = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setErrorMessage("Authentication failed. Please log in again.");
+        setProcessingQR(false); // Reset processing state
         return;
       }
 
@@ -427,6 +430,7 @@ const QRScanner = () => {
       if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
         setErrorMessage("Session has ended. Attendance cannot be marked.");
         setSessionEnded(true);
+        setProcessingQR(false); // Reset processing state
         return;
       }
 
@@ -435,6 +439,7 @@ const QRScanner = () => {
       const studentId = decoded.userId;
       if (!studentId) {
         setErrorMessage("Invalid user information. Please log in again.");
+        setProcessingQR(false); // Reset processing state
         return;
       }
 
@@ -519,6 +524,7 @@ const QRScanner = () => {
       // ...other error handling...
     } finally {
       setLoading(false);
+      setProcessingQR(false); // Reset processing state
     }
   }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
 
@@ -627,7 +633,7 @@ const QRScanner = () => {
             <Button
               type="primary"
               onClick={handleRescan}
-              disabled={loading || sessionEnded}
+              disabled={loading || sessionEnded || processingQR}
               className="rescan-button"
               style={{
                 backgroundColor: themeColors.secondary,
@@ -649,6 +655,7 @@ const QRScanner = () => {
               type="primary"
               onClick={handleCancel}
               size="middle"
+              disabled={processingQR} // Disable cancel button during processing
               style={{
                 backgroundColor: themeColors.accent,
                 borderColor: themeColors.accent,
@@ -668,7 +675,7 @@ const QRScanner = () => {
           </Space>
         }
       >
-        {loading ? (
+        {loading && !processingQR ? (
           <Spin size="large" tip="Verifying session status..." />
         ) : sessionEnded ? (
           <Alert
@@ -695,9 +702,9 @@ const QRScanner = () => {
                 <div className="scanning-line"></div>
                 <img src="/static/images/icons/scan_qr1.svg" alt="QR Frame" className="qr-frame" />
               </div>
-              {loading && (
+              {(loading || processingQR) && (
                 <div className="qr-loading-overlay">
-                  <Spin size="large" tip="Processing attendance data..." />
+                  <Spin size="large" tip={processingQR ? "Processing QR code... Please wait" : "Processing attendance data..."} />
                 </div>
               )}
               {errorMessage && (
@@ -749,7 +756,7 @@ const QRScanner = () => {
                 style={{ marginTop: 24, marginBottom: 16 }}
               />
             )}
-            {!errorMessage && (
+            {!errorMessage && !processingQR && (
               <div className="scanning-status">
                 <Text type={isDarkMode ? undefined : "secondary"} style={{ color: isDarkMode ? '#fff' : undefined }}>
                   Camera active - awaiting QR code
@@ -758,8 +765,22 @@ const QRScanner = () => {
             )}
           </>
         )}
-        {scannedResult && !sessionEnded && !errorMessage && (
-          <Text className="qr-result" strong>QR Code detected and processing...</Text>
+        {(scannedResult && !sessionEnded && !errorMessage) && (
+          <div className="qr-result">
+            <Spin spinning={processingQR} size="small" style={{ marginRight: 8 }} />
+            <Text strong>
+              {processingQR ? "QR Code detected! Processing..." : "QR Code detected"}
+            </Text>
+            <div className="processing-steps">
+              {processingQR && (
+                <div className="step-indicators">
+                  <div className="step-dot active"></div>
+                  <div className="step-dot"></div>
+                  <div className="step-dot"></div>
+                </div>
+              )}
+            </div>
+          </div>
         )}
       </Card>
     </div>
