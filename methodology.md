@@ -1,0 +1,91 @@
+CHAPTER 3: METHODOLOGY 
+3.1 Introduction 
+This chapter will describe the methodology to be followed in the development of the Smart QR Code Based Attendance System. The methodology will adopt the Agile framework, which is well-suited for iterative development and will allow flexibility to incorporate stakeholder feedback throughout the process. Each phase of development including requirements gathering, system design, development, testing, deployment, and maintenance will be detailed comprehensively. This structured methodology will ensure that the final system will meet user needs, exceed expectations, and address deficiencies identified in existing QR code-based attendance systems, such as proxy attendance and limited student engagement, by delivering a secure, intuitive, and scalable solution.
+3.2 Development Methodology 
+The development of the proposed system will follow the Agile methodology, emphasizing collaboration, adaptability, and incremental progress. This approach will allow for continuous improvement and regular reassessment of the system’s direction based on input from stakeholders. The following phases will guide the development process, ensuring alignment with the system’s goals of efficiency, security, and user satisfaction.
+
+3.2.1 Agile Phase of Development 
+  
+Figure 2.1: Agile Flow Diagram
+Phase 1: Requirements Gathering 
+1.	Identify Stakeholders: 
+Key stakeholders, including lecturers, students, and administrators, will be identified through institutional directories and consultation with educational leadership. Their roles (e.g., session managers, attendees, overseers) and expectations (e.g., ease of use, data insights) will shape the system’s requirements. Early engagement via workshops will ensure their priorities will be reflected in the design.
+User Personas Definition: 
+User personas will be developed for each stakeholder group in order to represent their needs and behaviours: 
+•	Lecturers: They will require tools to generate session-specific QR codes, access real-time attendance reports, and review student feedback.
+•	Students: They will need to scan QR codes to mark attendance and access their attendance history effortlessly.
+•	Administrators: They will need aggregated attendance analytics, user management capabilities (e.g., bulk imports) and tools to manage courses and departments.
+2.	Stakeholder Interviews: 
+Structured interviews with at least five representatives per group will be conducted, using open-ended questions (e.g., “What frustrates you about current attendance methods?”) to collect functional and non-functional requirements. These discussions will focus on pinpointing pain points in current systems (e.g., inefficiencies, inaccuracies) and gathering expectations for the new system (e.g., usability, reliability). This qualitative data will inform subsequent design and development phases.
+1.	Requirement Prioritization and Analysis:
+Collected requirements will be prioritized using techniques like MoSCoW (Must have, Should have, Could have, Won’t have) to focus on critical features first. User stories will be drafted in kanban board (e.g., Trello), such as (e.g., “As a student, I want to scan a QR code so I can mark my attendance quickly”, “As a lecturer, I want real-time attendance updates so I can focus on teaching.”), and tools like surveys or focus groups will supplement interviews to ensure comprehensive input.
+Phase 2: System Design 
+1.	System Architecture Design: 
+•	The architecture will be three tier to ensure scalability and maintainability: 
+•	Frontend: The React.js will be utilized to create a responsive single-page application, leveraging Vite for fast builds and Ant Design for components like Card and Form. React Spring will animate elements (e.g., QR code scaling), and PWA support via VitePWA will enable offline access with service workers caching assets and IndexedDB storing data.
+•	Backend: Express.js running on Node.js will handle RESTful APIs requests, with JWT-based authentication securing user data and enabling real-time updates.
+•	Database: MongoDB with Mongoose ODM will store user profiles, session details, and attendance records, supporting efficient data management and retrieval.
+•	Proxy prevention will rely on device fingerprinting (combining screen, GPU, canvas, and audio attributes), QR expiration (e.g., 5-minute validity), and session status checks. Rate limiting will cap scan attempts (e.g., 5/minute per device), and composite fingerprints will detect cross-browser consistency.
+•	PWA offline capabilities will be designed using service workers for caching and IndexedDB for local data storage, ensuring seamless operation without connectivity.
+2.	User Interface Prototyping: 
+Wireframes for key interfaces such as Wireframes for critical interfaces such as QR code generation, student,lecturer dashboards, and admin panels will be developed using tools like Figma. Prototypes will incorporate animated transitions (e.g., fade-ins, scale effects) and responsive layouts from Ant Design to visualize user interactions and ensure an intuitive experience prior to coding.
+3.	Database Schema Design: 
+MongoDB collections will include: users (e.g., userId, role, deviceFingerprint), sessions (e.g., sessionId, qrCode, expiration, active), attendance (e.g., userId, sessionId, status, compositeFingerprint), and feedback (e.g., rating, comment). Indexes will optimize lookups (e.g., sessionId + userId), and validation will reject duplicate scans or mismatched fingerprints.
+Phase 3: Development 
+1.	Incrementally Develop Core Functionalities: 
+1.	QR Code Generation and Scanning: 
+•	QR codes will embed session IDs and timestamps, generated with time-based expiration and displayed with React Spring animations (e.g., pulsing frames). Scanning will use a library for camera input, with a dynamic overlay (e.g., corner markers, scanning line) enhancing visibility. Scans will halt after 30 seconds if unsuccessful, prompting a retry option.
+•	Proxy prevention will verify QR data against active sessions, rejecting expired or invalid codes with Ant Design alerts (e.g., “QR code expired”). Device fingerprints will be collected on scan, compared to prior records to flag conflicts (e.g., same device marking multiple users).
+2.	Attendance Management: 
+•	Scanned data will sync in real-time with MongoDB via Express.js APIs, ensuring accurate and up-to-date records across stakeholders. Real-time updates will refresh dashboards with polling every 30 seconds. Scans will trigger API calls to Render, validating JWT, session status, and fingerprint uniqueness before updating MongoDB with present status. Already-marked attendance or device conflicts will trigger errors (e.g., “Attendance already recorded”).
+•	Logic will be coded to classify attendance as "present" or "absent" based on successful QR code scans within the session’s active timeframe, with error handling for expired. Edge cases (e.g., duplicate scans) will trigger error logs via Winston and user notifications.
+2.	Feedback System:
+•	A feedback module will be developed using Ant Design’s Form, Input, and Rate components, enabling students to submit 1–5 star ratings and comments post-session. Data will save to a feedback collection ({ sessionId, studentId, rating, comment }), with validation ensuring only attendees submit (checked via attendance status) and and lecturers will view trends via Chart.js visualizations (e.g., average ratings per session).
+3.	Implement Modular Backend: 
+•	Express.js middleware (e.g., Helmet, CORS) will secure APIs, while JWT will validate user identities and prevent unauthorized access. Error logging with Winston will track issues like failed scans or authentication attempts.
+•	MongoDB will store session schedules and attendance records, with Mongoose ensuring data consistency and validation.
+4.	Frontend Development: 
+•	Dynamic React components will be built for stakeholder dashboards, using Ant 	Design for a polished UI and Chart.js for analytics visualization and styled with Ant	Design and themed via a ThemeContext.
+•	Offline mode will cache assets with service workers (via VitePWA) and store scans in IndexedDB, syncing via a queue system when online, with Axios retry logic for failed requests.
+Phase 4: Testing 
+1.	Unit Testing: 
+Modules will be tested individually: Vitest will verify frontend components (e.g., QR code rendering accuracy, feedback form validation) with mocked APIs, while Mocha with Chai will test backend logic (e.g., JWT validation, attendance status assignment). Test cases will include edge scenarios (e.g., expired QR codes, invalid tokens), aiming for 80%+ code coverage.
+2.	Integration Testing: 
+End-to-end flows will be simulated: a QR scan will trigger an API call, update MongoDB, and refresh dashboards, tested with Vitest for frontend interactions and Mocha for backend responses. Offline sync will be validated by toggling network states, ensuring IndexedDB data merges correctly with MongoDB. Mock servers (e.g., MSW for frontend) will mimic backend behavior.
+    3. 	Performance and Security Testing:
+•	GitHub Action with Artillery: A custom workflow (e.g., artilleryio/action) will simulate 300 concurrent scans against Render, targeting <500ms latency, and stress Vercel’s PWA caching limits, logging results as artifacts.
+•	GitHub Code Scanning with CodeQL: Will statically analyze QRScanner.jsx and backend code for vulnerabilities (e.g., JWT forgery, SQL injection risks in MongoDB), generating alerts for weak fingerprinting or unsanitized inputs.
+•	ZAP Full Scan Action: A GitHub Action (zaproxy/action-full-scan) will dynamically scan the deployed app (Vercel frontend, Render backend), probing:
+•	Fingerprint Spoofing: Attempts to bypass device fingerprinting with fake attributes.
+•	QR Reuse: Replays QR codes to test expiration enforcement.
+•	JWT Forgery: Sends forged tokens to bypass authentication.
+•	MongoDB Injection: Injects payloads via APIs to test query sanitization.
+•	Rate Limiting: Validates scan attempt caps (e.g., 5/minute).
+•	Alerts will be filed as GitHub issues, with severity and remediation details, replacing OWASP ZAP’s external probing.
+      4. 	Usability Testing:
+Stakeholders (e.g., 5 lecturers, 10 students, 5 admins) will test the system in realistic scenarios: scanning QR codes in dim lighting, navigating dashboards on mobile/desktop, submitting feedback, assess proxy prevention (e.g., device conflict alerts) and scan speed. Metrics like task completion time and error rates will guide refinements (e.g., larger QR codes, clearer notification messages, brighter overlays and clearer errors).
+5.	User Feedback Collection:
+•	Post-sprint feedback will use surveys (e.g., Likert scales on usability) and interviews, targeting specific features (e.g., “How intuitive is the feedback form?”, “Did the system catch duplicate scans?”). Beta testers will report bugs via an in-app form (Ant Design’s notification), with responses driving sprint backlogs. A feedback loop will ensure at least 80% satisfaction before advancing.
+Phase 5: Deployment 
+1.	Cloud Deployment: 
+The frontend will be deployed on Vercel, utilizing its serverless functions for edge caching, automatic scaling, Progressive Web App(PWA) support and domain setup (e.g., custom URL). A staging site will mirror production for testing, with rollback capabilities via Vercel’s deployment history. The backend will run on Render, leveraging its Node.js environment for Express.js, integrated with MongoDB Atlas for database hosting. Render’s auto-scaling will handle traffic spikes, with a staging instance for pre-release validation.
+2.	Continuous Deployment Pipeline: 
+GitHub Actions will orchestrate CI/CD: commits to main will trigger Vitest tests for frontend (e.g., component rendering, PWA offline mode) and Mocha tests for backend (e.g., API endpoints, database writes), deploying to Vercel and Render on success. Parallel workflows will separate frontend and backend builds, with environment variables (e.g., MONGO_URI, JWT_SECRET) injected securely via platform dashboards. Failed builds will notify  the team via email.
+Phase 6: Maintenance
+System health will be monitored with Vercel Analytics and Vercel Speed Insights for frontend metrics (e.g., page load times, user sessions), Vercel’s logs for PWA performance, and Render’s dashboard for backend stats (e.g., CPU usage, API latency). Alerts via email or Slack will flag anomalies (e.g., >1s response times). MongoDB Atlas will provide query performance insights, optimizing indexes as needed. 
+Features will evolve based on stakeholder input (e.g., multi-language support via i18n, facial recognition integration) and tech trends (e.g., AI-driven attendance predictions), prioritized in sprint planning. Git will manage version history, with semantic versioning (e.g., v1.0.1) tracking releases. Scalability will be ensured by MongoDB sharding and Render’s horizontal scaling, with load tests validating capacity for 1000+ users.
+
+3.3 Data Collection 
+Data collection methods will include both qualitative and quantitative approaches: 
+1.	Surveys: During requirements gathering, surveys will be distributed via Google Forms or SurveyMonkey to 10-20 stakeholders (lecturers, students, admins) to quantify preferences for attendance tracking features. Questions will include Likert scales (e.g., “Rate the importance of real-time reporting: 1-5”) and multiple-choice options (e.g., “Preferred QR scanning method: Camera / Manual entry”). Topics will cover usability (e.g., speed of current systems), reporting needs (e.g., daily vs. weekly summaries), and pain points (e.g., proxy attendance concerns), with results aggregated for statistical analysis.
+2.	Interviews: In depth interviews with key stakeholders which are lecturers, students, and administrators will provide qualitative insights into specific pain points experienced with existing systems. These interviews will explore issues such as ease of use, accessibility concerns, or desired functionalities that are currently lacking. 
+3.	Usage Analytics: Post-deployment, analytics tools (e.g. Vercel Analytics and Vercel speed Insights) will track feature usage: QR scan frequency, dashboard views, feedback submissions, and offline mode activations. Metrics will include daily active users, average session duration, and feature-specific interactions (e.g., “Export button clicks: 50/day”), collected via event tracking and visualized in dashboards (e.g., Chart.js graphs). This data will reveal adoption rates and highlight underused features needing promotion or redesign.
+4.	Feedback Mechanisms: Integrated feedback forms within the application (using Ant Design’s Form and notification) will allow users to report bugs, suggest features, or rate usability directly from dashboards. Options will include dropdowns (e.g., “Issue type: Bug / Feature request”), text fields, and a 1-5 satisfaction scale, submitted to a /feedback endpoint. Push notifications or in-app prompts will encourage periodic input (e.g., “How’s your experience today?”), ensuring continuous user engagement
+3.4 Data Analysis 
+Data analysis techniques will involve both qualitative analysis of stakeholder interviews and quantitative analysis from surveys: 
+1.	Qualitative Analysis: Thematic analysis of interview transcripts will be conducted using tools like NVivo or manual coding. Transcripts will be reviewed to identify recurring themes (e.g., “Ease of use,” “Security concerns”), sub-themes (e.g., “Slow manual processes”), and direct quotes (e.g., “I need attendance instantly”). These insights will prioritize features (e.g., real-time updates) and pinpoint gaps in existing systems (e.g., lack of proxy attendance prevention), validated through stakeholder workshops.
+2.	Quantitative Analysis: Statistical analysis of survey responses will use tools like Excel or SPSS to calculate means, medians, and frequencies (e.g., “80% of lecturers prioritize real-time reporting”). Cross-tabulations will compare preferences across groups (e.g., lecturers vs. students on QR scanning speed), with chi-square tests assessing significance if sample sizes permit. Results will inform post-launch enhancements, focusing on high-demand features (e.g., detailed analytics for admins).
+3.	Pattern of Usage Analysis: Post-deployment analytics will be analyzed with Google Analytics or custom dashboards to track interaction patterns over time (e.g., “QR scans peak at 9 AM”). Heatmaps will visualize click activity (e.g., frequent use of export buttons), and cohort analysis will assess retention (e.g., “80% of pilot users return weekly”). Underutilized features (e.g., feedback form with <10% usage) will trigger investigations—potentially needing UI tweaks or training videos.
+4.	Feedback Evaluation: User feedback will be evaluated biweekly, categorizing submissions by frequency (e.g., “QR scan errors: 20 mentions”) and severity (e.g., “App crashes impact 50% of users”). A weighted scoring system (e.g., severity × frequency) will prioritize fixes, with qualitative comments analyzed for sentiment (e.g., “Love the speed” vs. “Too complex”). Results will feed into sprint backlogs, ensuring user-driven improvements (e.g., larger QR codes for visibility).
+3.5 Chapter Conclusion 
+In summary, this chapter has outlined a comprehensive methodology employing the Agile framework to develop the Smart QR Code Based Attendance System. By following a structured lifecycle requirements gathering, system design, development, testing, deployment, and maintenance augmented by robust data collection (surveys, interviews, analytics, feedback) and analytical techniques (thematic, statistical, usage pattern, feedback evaluation), the proposed system will deliver a forward-thinking solution tailored to educational institutions’ needs. This approach will address gaps in existing attendance systems (e.g., proxy vulnerabilities, limited interactivity) through iterative refinement and stakeholder involvement, ensuring continuous improvement based on real-world insights. The methodology positions the system as a scalable, secure, and user-centric tool, leveraging modern technologies and data-driven decision-making to enhance accountability and engagement in academic settings.
