@@ -27,7 +27,7 @@ exports.markAttendance = async (req, res) => {
     try {
       // First try to decode base64
       const jsonData = Buffer.from(qrToken, 'base64').toString();
-      
+
       try {
         // Then try to parse JSON
         decodedToken = JSON.parse(jsonData);
