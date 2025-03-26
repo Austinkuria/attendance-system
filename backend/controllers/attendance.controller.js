@@ -7,41 +7,105 @@ const Unit = require("../models/Unit");
 const excel = require('exceljs');
 const { parse } = require('json2csv');
 const logger = require('../utils/logger');
+const crypto = require('crypto');
 
 exports.markAttendance = async (req, res) => {
   try {
     const { sessionId, studentId, deviceId, qrToken, compositeFingerprint } = req.body;
 
-    // Decode the QR token
-    let decodedToken;
-    try {
-      const jsonData = Buffer.from(qrToken, 'base64').toString();
-      decodedToken = JSON.parse(jsonData);
-    } catch (error) {
+    // Basic validation
+    if (!qrToken) {
       return res.status(400).json({
         success: false,
         code: "INVALID_QR_CODE",
-        message: "QR code is invalid or corrupted"
+        message: "QR code data is missing"
       });
     }
 
-    // Check if QR code has expired
-    const currentTimestamp = Math.floor(Date.now() / 1000);
-    console.log(`Current timestamp: ${currentTimestamp}, Expires at: ${decodedToken.e}`); // Debugging
-    if (decodedToken.e && decodedToken.e < currentTimestamp) {
+    // Decode and validate the QR token with better error handling
+    let decodedToken;
+    try {
+      // First try to decode base64
+      const jsonData = Buffer.from(qrToken, 'base64').toString();
+
+      try {
+        // Then try to parse JSON
+        decodedToken = JSON.parse(jsonData);
+        console.log("Decoded QR token:", {
+          sessionId: decodedToken.s,
+          timestamp: decodedToken.t,
+          expiresAt: decodedToken.e,
+          nonce: decodedToken.n?.slice(0, 8) // Log partial nonce for debugging
+        });
+
+      } catch (jsonError) {
+        console.error("JSON parse error:", jsonError);
+        return res.status(400).json({
+          success: false,
+          code: "INVALID_QR_FORMAT",
+          message: "Invalid QR code format"
+        });
+      }
+
+      // Verify basic structure
+      if (!decodedToken.s || !decodedToken.t || !decodedToken.e || !decodedToken.n) {
+        console.error("Missing QR data fields");
+        return res.status(400).json({
+          success: false,
+          code: "INCOMPLETE_QR_DATA",
+          message: "QR code data is incomplete"
+        });
+      }
+
+      // Verify hash if present, but don't reject if missing (for backward compatibility)
+      if (decodedToken.h) {
+        const expectedHash = crypto.createHash('sha256')
+          .update(`${decodedToken.s}${decodedToken.t}${decodedToken.n}`)
+          .digest('hex')
+          .slice(0, 32);
+
+        if (expectedHash !== decodedToken.h) {
+          console.error("Hash mismatch:", {
+            expected: expectedHash,
+            received: decodedToken.h
+          });
+          return res.status(400).json({
+            success: false,
+            code: "INVALID_QR_HASH",
+            message: "The QR code appears to be invalid. Please ask your lecturer to generate a new code."
+          });
+        }
+      }
+
+      // Check expiration with some leniency (add 30 seconds buffer)
+      const currentTimestamp = Math.floor(Date.now() / 1000);
+      if (decodedToken.e && decodedToken.e + 30 < currentTimestamp) {
+        return res.status(400).json({
+          success: false,
+          code: "QR_CODE_EXPIRED",
+          message: "QR code has expired. Please scan the current QR code."
+        });
+      }
+
+    } catch (error) {
+      console.error("QR decode error:", error);
       return res.status(400).json({
         success: false,
-        code: "QR_CODE_EXPIRED",
-        message: "This QR code has expired. A new code is generated periodically for security. Please use the current QR code."
+        code: "QR_DECODE_ERROR",
+        message: "Could not read QR code. Please try scanning again."
       });
     }
 
-    // Verify the session ID in the token matches the requested session
+    // Verify session matching with more detailed errors
     if (decodedToken.s !== sessionId) {
+      console.error("Session mismatch:", {
+        qrSession: decodedToken.s,
+        requestSession: sessionId
+      });
       return res.status(400).json({
         success: false,
-        code: "TOKEN_MISMATCH",
-        message: "QR code does not match this session"
+        code: "SESSION_MISMATCH",
+        message: "QR code does not match the current session"
       });
     }
 

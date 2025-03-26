@@ -1,23 +1,37 @@
 const QRCode = require('qrcode');
+const crypto = require('crypto');
 
-const generateQRToken = async (session, expiresInSeconds = 300) => { // Increased expiration time to 5 minutes
+const generateQRToken = async (session, expiresInSeconds = 180) => {
   try {
     const timestamp = Math.floor(Date.now() / 1000);
     const expiresAt = timestamp + expiresInSeconds;
+    const nonce = crypto.randomBytes(8).toString('hex'); // Reduced from 16 to 8 bytes
 
+    // Create a more compact data structure
     const qrData = {
       s: session._id.toString(),
-      u: session.unit.toString(),
       t: timestamp,
-      e: expiresAt, // Add expiration time
-      r: Math.random().toString(36).substring(2, 10) // Simple random string
+      e: expiresAt,
+      n: nonce
     };
 
+    // Generate hash with fewer components
+    qrData.h = crypto.createHash('sha256')
+      .update(`${qrData.s}${timestamp}${nonce}`)
+      .digest('hex')
+      .slice(0, 32); // Only use first 32 chars of hash
+
     const jsonData = JSON.stringify(qrData);
-    const qrToken = Buffer.from(jsonData).toString('base64'); // Raw token
-    const qrCode = await QRCode.toDataURL(qrToken); // PNG QR code
+    const qrToken = Buffer.from(jsonData).toString('base64');
+    const qrCode = await QRCode.toDataURL(qrToken, {
+      errorCorrectionLevel: 'H', // Highest error correction
+      margin: 4,
+      width: 400
+    });
+
     return { qrToken, qrCode };
   } catch (error) {
+    console.error("QR Generation Error:", error);
     throw new Error("Error generating QR code: " + error.message);
   }
 };

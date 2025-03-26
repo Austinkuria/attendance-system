@@ -16,6 +16,7 @@ import {
   Col,
   DatePicker,
   Tooltip,
+  Spin,
 } from "antd";
 import {
   QrcodeOutlined,
@@ -39,6 +40,7 @@ import {
   getDepartments,
   detectCurrentSession,
   createSession,
+  regenerateQR,
 } from "../services/api";
 import moment from "moment";
 import { ThemeContext } from "../context/ThemeContext";
@@ -564,6 +566,111 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     }
   };
 
+  // Add these new functions and state for QR rotation
+  const [qrRotationInterval, setQrRotationInterval] = useState(null);
+  const [isQrRotating, setIsQrRotating] = useState(false); // New loading state
+  const [qrExpiresAt, setQrExpiresAt] = useState(null); // Track expiration time
+  const [qrTimeRemaining, setQrTimeRemaining] = useState(null); // Display countdown
+
+  // Improved regenerateQrCode with better error handling
+  const regenerateQrCode = async (sessionId, attempt = 0) => {
+    if (!sessionId) return;
+
+    try {
+      setIsQrRotating(true);
+      const token = localStorage.getItem("token");
+      const response = await regenerateQR(sessionId, token);
+
+      if (response && response.qrCode) {
+        setQrData(response.qrCode);
+        // Also store the expiration time from backend
+        if (response.expiresAt) {
+          setQrExpiresAt(new Date(response.expiresAt));
+        } else {
+          // Fallback: Set expiration to 3 minutes from now
+          setQrExpiresAt(new Date(Date.now() + 175 * 1000));
+        }
+      }
+      setIsQrRotating(false);
+    } catch (error) {
+      console.error("Error regenerating QR code:", error);
+      // Implement retry logic
+      if (attempt < 3) {
+        console.log(`Retrying QR regeneration... (attempt ${attempt + 1})`);
+        setTimeout(() => regenerateQrCode(sessionId, attempt + 1), 1000 * (attempt + 1));
+      } else {
+        message.error("Failed to refresh QR code. Please try again.");
+        setIsQrRotating(false);
+      }
+    }
+  };
+
+  // Enhanced startQrRotation function with proper interval management
+  const startQrRotation = async (sessionId) => {
+    if (!sessionId) return;
+
+    // Clear any existing rotation interval first
+    if (qrRotationInterval) {
+      clearInterval(qrRotationInterval);
+    }
+
+    // Generate the initial QR code
+    await regenerateQrCode(sessionId);
+
+    // Create a timer to update time remaining display
+    const countdownInterval = setInterval(() => {
+      if (qrExpiresAt) {
+        const remainingMs = qrExpiresAt - Date.now();
+        const remainingSec = Math.max(0, Math.floor(remainingMs / 1000));
+        setQrTimeRemaining(remainingSec);
+
+        // When less than 5 seconds remaining, prepare for refresh
+        if (remainingSec <= 5 && !isQrRotating) {
+          setIsQrRotating(true);
+        }
+
+        // When expired, regenerate QR
+        if (remainingSec <= 0) {
+          regenerateQrCode(sessionId);
+        }
+      }
+    }, 1000);
+
+    // Regenerate QR code more frequently (every 25 seconds)
+    const rotationInterval = setInterval(() => {
+      regenerateQrCode(sessionId);
+    }, 25000);
+
+    // Store the combined intervals to clear them later
+    setQrRotationInterval({
+      countdown: countdownInterval,
+      rotation: rotationInterval
+    });
+  };
+
+  // Update the cleanup for the rotation interval
+  useEffect(() => {
+    return () => {
+      if (qrRotationInterval) {
+        if (qrRotationInterval.countdown) clearInterval(qrRotationInterval.countdown);
+        if (qrRotationInterval.rotation) clearInterval(qrRotationInterval.rotation);
+      }
+    };
+  }, [qrRotationInterval]);
+
+  // Modify the modal close handler to clean up the interval
+  const handleModalClose = () => {
+    if (qrRotationInterval) {
+      if (qrRotationInterval.countdown) clearInterval(qrRotationInterval.countdown);
+      if (qrRotationInterval.rotation) clearInterval(qrRotationInterval.rotation);
+      setQrRotationInterval(null);
+    }
+    setIsQRModalOpen(false);
+    setQrData("");
+    setQrExpiresAt(null);
+    setQrTimeRemaining(null);
+  };
+
   const handleGenerateQR = async () => {
     if (!selectedUnit || !currentSession || currentSession.ended) {
       message.error("Please select a unit and ensure an active session exists");
@@ -589,81 +696,6 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     } finally {
       setLoading((prev) => ({ ...prev, qr: false }));
     }
-  };
-
-  // Add these new functions and state for QR rotation
-  const [qrRotationInterval, setQrRotationInterval] = useState(null);
-  const [isQrRotating, setIsQrRotating] = useState(false); // New loading state
-
-  const regenerateQrCode = async (sessionId, attempt = 0) => {
-    if (!isQRModalOpen) return;
-
-    try {
-      setIsQrRotating(true);
-      const token = localStorage.getItem("token");
-      const response = await axios.post(
-        `https://attendance-system-w70n.onrender.com/api/sessions/regenerate-qr`,
-        { sessionId, autoRotate: true },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
-
-      if (response?.data?.qrCode) {
-        setQrData(response.data.qrCode);
-        // Start the next rotation slightly before expiration (170 seconds)
-        const nextRotation = 170000; // 170 seconds - rotate before 3-minute expiration
-        if (qrRotationInterval) {
-          clearInterval(qrRotationInterval);
-        }
-        const newInterval = setInterval(async () => {
-          if (isQRModalOpen && !isQrRotating) {
-            await regenerateQrCode(sessionId);
-          }
-        }, nextRotation);
-        setQrRotationInterval(newInterval);
-      }
-    } catch (error) {
-      console.error("Error refreshing QR code:", error);
-      if (error.response?.status === 429 && attempt < 3) {
-        const delay = Math.pow(2, attempt) * 1000;
-        await new Promise(resolve => setTimeout(resolve, delay));
-        await regenerateQrCode(sessionId, attempt + 1);
-      }
-    } finally {
-      setIsQrRotating(false);
-    }
-  };
-
-  const startQrRotation = async (sessionId) => {
-    if (qrRotationInterval) {
-      clearInterval(qrRotationInterval);
-    }
-    // Initial QR generation
-    await regenerateQrCode(sessionId);
-  };
-
-  // Add cleanup for the rotation interval
-  useEffect(() => {
-    return () => {
-      if (qrRotationInterval) {
-        clearInterval(qrRotationInterval);
-      }
-    };
-  }, [qrRotationInterval]);
-
-  // Modify the modal close handler to clean up the interval
-  const handleModalClose = () => {
-    if (qrRotationInterval) {
-      clearInterval(qrRotationInterval);
-      setQrRotationInterval(null);
-    }
-
-    Modal.confirm({
-      title: "Are you sure you want to close?",
-      content: "The QR code will no longer be accessible.",
-      okText: "Yes",
-      cancelText: "No",
-      onOk: () => setIsQRModalOpen(false),
-    });
   };
 
   const handleEndSession = async () => {
@@ -1833,18 +1865,32 @@ const AttendanceManagement = ({ onLoadingChange }) => {
         <div style={{ textAlign: "center", padding: screens.xs ? 8 : 24 }}>
           {qrData ? (
             <>
-              <img
-                src={qrData}
-                alt="Attendance QR Code"
-                style={{
-                  width: "100%",
-                  maxWidth: screens.xs ? 200 : 300,
-                  margin: "0 auto",
-                  display: "block",
-                  borderRadius: 8,
-                  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-                }}
-              />
+              <div style={{ position: 'relative' }}>
+                <img
+                  src={qrData}
+                  alt="Attendance QR Code"
+                  style={{
+                    width: "100%",
+                    maxWidth: screens.xs ? 200 : 300,
+                    margin: "0 auto",
+                    display: "block",
+                    borderRadius: 8,
+                    boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+                    opacity: isQrRotating ? 0.7 : 1,
+                    transition: "opacity 0.3s ease"
+                  }}
+                />
+                {isQrRotating && (
+                  <div style={{
+                    position: 'absolute',
+                    top: '50%',
+                    left: '50%',
+                    transform: 'translate(-50%, -50%)'
+                  }}>
+                    <Spin size="large" />
+                  </div>
+                )}
+              </div>
               {currentSession && !currentSession.ended && (
                 <>
                   <SessionTimer end={currentSession.endSession} />
@@ -1861,6 +1907,14 @@ const AttendanceManagement = ({ onLoadingChange }) => {
               >
                 Scan this QR code to mark attendance
               </Typography.Text>
+              {qrTimeRemaining !== null && (
+                <p style={{
+                  color: qrTimeRemaining < 30 ? (qrTimeRemaining < 10 ? 'red' : 'orange') : 'green',
+                  fontWeight: 'bold'
+                }}>
+                  QR Code refreshes in: {Math.floor(qrTimeRemaining / 60)}:{String(qrTimeRemaining % 60).padStart(2, '0')}
+                </p>
+              )}
             </>
           ) : (
             <div style={{ textAlign: "center", padding: screens.xs ? 8 : 24 }}>

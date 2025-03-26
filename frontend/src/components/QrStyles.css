@@ -43,7 +43,8 @@
   width: 100%;
   max-width: 450px;
   height: 350px;
-  margin: 0 auto;
+  margin: 0 auto 24px;
+  /* Add bottom margin */
   overflow: hidden;
   border-radius: 8px;
   background-color: rgba(0, 0, 0, 0.05);
@@ -406,4 +407,78 @@
       rgba(255, 255, 255, 0) 100%);
   transform: rotate(45deg);
   animation: shine 2s infinite;
+}
+
+/* Improved error overlay styling */
+.qr-error-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(220, 53, 69, 0.75);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+  border-radius: 8px;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.qr-error-content {
+  text-align: center;
+  padding: 20px;
+  background-color: rgba(0, 0, 0, 0.8);
+  border-radius: 12px;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  width: 80%;
+  max-width: 280px;
+  border: 2px solid rgba(255, 255, 255, 0.2);
+}
+
+.qr-error-icon {
+  font-size: 30px;
+  font-weight: bold;
+  height: 50px;
+  width: 50px;
+  line-height: 50px;
+  text-align: center;
+  border-radius: 50%;
+  background-color: #fff;
+  color: #dc3545;
+  margin: 0 auto 15px auto;
+  animation: pulse 2s infinite;
+}
+
+/* Improved alert styling */
+.qr-scanner-container .ant-alert {
+  margin-top: 24px;
+  margin-bottom: 16px;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.qr-scanner-container .ant-alert-error {
+  border: none;
+  background-color: rgba(220, 53, 69, 0.1);
+}
+
+.qr-scanner-container .ant-alert-message {
+  font-weight: bold;
+  color: #dc3545;
+}
+
+.qr-scanner-container .ant-alert-description {
+  margin-top: 10px;
+}
+
+/* Remove the unnecessary scanner-error-overlay class */
+.scanner-error-overlay:after {
+  content: none;
+}
+
+/* Improved spacing for elements */
+.qr-scanner-container .ant-alert {
+  margin-top: 24px;
+  margin-bottom: 16px;
 }
