@@ -72,7 +72,7 @@ exports.markAttendance = async (req, res) => {
           return res.status(400).json({
             success: false,
             code: "INVALID_QR_HASH",
-            message: "QR code integrity check failed"
+            message: "The QR code appears to be invalid. Please ask your lecturer to generate a new code."
           });
         }
       }
