@@ -140,7 +140,7 @@ api.interceptors.response.use(
         }
         errorMessage = 'You are offline. Some data may not be up to date.';
       } catch (err) {
-        console.log( err)
+        console.log(err)
         errorMessage = 'No cached data available offline';
       }
     } else if (error.response) {
@@ -805,20 +805,50 @@ export const getCourseByDepartment = async (departmentId, courseName) => {
 // Mark attendance for a student
 export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken, compositeFingerprint) => {
   try {
-    // Validate inputs to help with debugging
-    if (!sessionId || !studentId || !token || !deviceId || !qrToken) {
+    // Validate input parameters
+    if (!sessionId || !studentId || !deviceId || !qrToken || !compositeFingerprint) {
       console.error("Missing required parameters for markAttendance:", {
         hasSessionId: !!sessionId,
         hasStudentId: !!studentId,
-        hasToken: !!token,
         hasDeviceId: !!deviceId,
-        hasQrToken: !!qrToken
+        hasQrToken: !!qrToken,
+        hasCompositeFingerprint: !!compositeFingerprint
       });
-      throw new Error("Missing required parameters for attendance marking");
+
+      // Rather than failing silently, throw an error that can be caught and handled
+      throw new Error("Missing required attendance parameters");
     }
 
-    console.log("Sending attendance request to:", `${API_URL}/attendance/mark`);
+    // Add browser info for better cross-browser detection
+    const browserInfo = {
+      userAgent: navigator.userAgent,
+      appName: navigator.appName,
+      appVersion: navigator.appVersion,
+      platform: navigator.platform,
+      vendor: navigator.vendor || 'unknown',
+      language: navigator.language,
+      cookieEnabled: navigator.cookieEnabled,
+      doNotTrack: navigator.doNotTrack,
+      hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+      maxTouchPoints: navigator.maxTouchPoints || 0,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      colorDepth: window.screen.colorDepth,
+      pixelDepth: window.screen.pixelDepth,
+      devicePixelRatio: window.devicePixelRatio || 1
+    };
 
+    // Log the request being made
+    console.log("Making attendance API request with:", {
+      sessionIdLength: sessionId.length,
+      studentIdLength: studentId.length,
+      deviceIdLength: deviceId.length,
+      qrTokenLength: qrToken.length,
+      fingerprintLength: compositeFingerprint.length,
+      hasToken: !!token
+    });
+
+    // Use axios with timeout setting
     const response = await axios.post(
       `${API_URL}/attendance/mark`,
       {
@@ -826,46 +856,67 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
         studentId,
         deviceId,
         qrToken,
-        compositeFingerprint
+        compositeFingerprint,
+        browserInfo: JSON.stringify(browserInfo)
       },
       {
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "Accept": "application/json"
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
         },
-        // Add timeout to prevent hanging requests
-        timeout: 10000
+        timeout: 20000 // 20 second timeout
       }
     );
 
-    console.log("Attendance API response:", response.status, response.data);
+    console.log("Received attendance response:", {
+      status: response.status,
+      success: response.data?.success,
+      code: response.data?.code,
+      message: response.data?.message
+    });
+
     return response.data;
   } catch (error) {
-    // Enhanced error logging
+    // Enhanced error logging with request details
     console.error("Attendance API error:", {
       status: error.response?.status,
       statusText: error.response?.statusText,
       data: error.response?.data,
-      message: error.message
+      message: error.message,
+      code: error.code || error.response?.data?.code
     });
 
+    // Prepare a standardized error object with the right error code
+    let errorResult = {
+      success: false,
+      status: error.response?.status || 0
+    };
+
     if (error.response) {
-      // Backend error with response
-      throw {
-        message: error.response.data.message || "Server returned an error",
-        code: error.response.data.code || `ERROR_${error.response.status}`,
-        success: error.response.data.success || false,
-        status: error.response.status
-      };
+      // Preserve the error code from the backend
+      errorResult.message = error.response.data?.message || "Server returned an error";
+      errorResult.code = error.response.data?.code || `ERROR_${error.response.status}`;
+
+      // Make sure DEVICE_CONFLICT code is preserved from backend
+      if (error.response.data?.code === "DEVICE_CONFLICT") {
+        errorResult.code = "DEVICE_CONFLICT";
+        errorResult.message = "This device has already been used by another student. Please use your own device.";
+      }
+    } else if (error.code === 'ECONNABORTED') {
+      // Timeout error
+      errorResult.message = "Request timed out. The server might be under heavy load.";
+      errorResult.code = "REQUEST_TIMEOUT";
+    } else if (error.message && error.message.includes('Network Error')) {
+      // Network connectivity issue
+      errorResult.message = "Network error. Please check your internet connection.";
+      errorResult.code = "NETWORK_ERROR";
     } else {
-      // Network or unexpected error
-      throw {
-        message: "Network error. Please check your connection.",
-        code: "NETWORK_ERROR",
-        success: false
-      };
+      // Other unexpected errors
+      errorResult.message = error.message || "Unknown error occurred";
+      errorResult.code = error.code || "UNKNOWN_ERROR";
     }
+
+    throw errorResult;
   }
 };
 

@@ -11,9 +11,21 @@ const crypto = require('crypto');
 
 exports.markAttendance = async (req, res) => {
   try {
-    const { sessionId, studentId, deviceId, qrToken, compositeFingerprint } = req.body;
+    // Log incoming request for debugging
+    console.log("Attendance request received:", {
+      sessionId: req.body.sessionId,
+      studentId: req.body.studentId,
+      ipAddress: req.ip || req.connection.remoteAddress,
+      deviceIdLength: req.body.deviceId ? req.body.deviceId.length : 0,
+      compositeFingerprintLength: req.body.compositeFingerprint ? req.body.compositeFingerprint.length : 0,
+      qrTokenPresent: !!req.body.qrToken,
+      browserInfo: !!req.body.browserInfo
+    });
 
-    // Basic validation
+    const { sessionId, studentId, deviceId, qrToken, compositeFingerprint, browserInfo } = req.body;
+    const clientIp = req.ip || req.connection.remoteAddress;
+
+    // Basic validation with more detailed errors
     if (!qrToken) {
       return res.status(400).json({
         success: false,
@@ -22,11 +34,46 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
+    // Validate required parameters
+    if (!sessionId) {
+      return res.status(400).json({
+        success: false,
+        code: "MISSING_SESSION_ID",
+        message: "Session ID is required"
+      });
+    }
+
+    if (!studentId) {
+      return res.status(400).json({
+        success: false,
+        code: "MISSING_STUDENT_ID",
+        message: "Student ID is required"
+      });
+    }
+
+    if (!deviceId) {
+      return res.status(400).json({
+        success: false,
+        code: "MISSING_DEVICE_ID",
+        message: "Device ID is required"
+      });
+    }
+
     // Decode and validate the QR token with better error handling
     let decodedToken;
     try {
       // First try to decode base64
-      const jsonData = Buffer.from(qrToken, 'base64').toString();
+      let jsonData;
+      try {
+        jsonData = Buffer.from(qrToken, 'base64').toString();
+      } catch (base64Error) {
+        console.error("QR Base64 decode error:", base64Error);
+        return res.status(400).json({
+          success: false,
+          code: "QR_FORMAT_ERROR",
+          message: "QR code format is invalid (base64 decode failed)"
+        });
+      }
 
       try {
         // Then try to parse JSON
@@ -39,17 +86,17 @@ exports.markAttendance = async (req, res) => {
         });
 
       } catch (jsonError) {
-        console.error("JSON parse error:", jsonError);
+        console.error("JSON parse error:", jsonError, "Raw data:", jsonData);
         return res.status(400).json({
           success: false,
           code: "INVALID_QR_FORMAT",
-          message: "Invalid QR code format"
+          message: "Invalid QR code format (JSON parse failed)"
         });
       }
 
       // Verify basic structure
       if (!decodedToken.s || !decodedToken.t || !decodedToken.e || !decodedToken.n) {
-        console.error("Missing QR data fields");
+        console.error("Missing QR data fields:", decodedToken);
         return res.status(400).json({
           success: false,
           code: "INCOMPLETE_QR_DATA",
@@ -109,11 +156,22 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(sessionId)) {
+    // Validate MongoDB ObjectIds with clear error messages
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      console.error("Invalid student ID format:", studentId);
       return res.status(400).json({
         success: false,
-        code: "INVALID_ID_FORMAT",
-        message: "Invalid ID format provided."
+        code: "INVALID_STUDENT_ID_FORMAT",
+        message: "Invalid student ID format provided."
+      });
+    }
+
+    if (!mongoose.Types.ObjectId.isValid(sessionId)) {
+      console.error("Invalid session ID format:", sessionId);
+      return res.status(400).json({
+        success: false,
+        code: "INVALID_SESSION_ID_FORMAT",
+        message: "Invalid session ID format provided."
       });
     }
 
@@ -125,30 +183,64 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    const token = req.headers.authorization?.split(" ")[1];
-    if (!token) {
+    // Authentication validation with better error handling
+    let token, decoded;
+    try {
+      token = req.headers.authorization?.split(" ")[1];
+      if (!token) {
+        return res.status(401).json({
+          success: false,
+          code: "NO_TOKEN_PROVIDED",
+          message: "No authentication token provided."
+        });
+      }
+
+      try {
+        decoded = jwt.verify(token, process.env.JWT_SECRET);
+      } catch (jwtError) {
+        console.error("JWT verification error:", jwtError);
+        return res.status(401).json({
+          success: false,
+          code: "INVALID_TOKEN",
+          message: "Invalid or expired authentication token."
+        });
+      }
+
+      if (decoded.userId !== studentId) {
+        return res.status(403).json({
+          success: false,
+          code: "TOKEN_MISMATCH",
+          message: "Unauthorized: Token does not match student ID."
+        });
+      }
+    } catch (authError) {
+      console.error("Authentication error:", authError);
       return res.status(401).json({
         success: false,
-        code: "NO_TOKEN_PROVIDED",
-        message: "No authentication token provided."
+        code: "AUTH_ERROR",
+        message: "Authentication error occurred."
       });
     }
 
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    if (decoded.userId !== studentId) {
-      return res.status(403).json({
-        success: false,
-        code: "TOKEN_MISMATCH",
-        message: "Unauthorized: Token does not match student ID."
-      });
-    }
+    // Find session with better error handling
+    let session;
+    try {
+      session = await Session.findById(sessionId);
 
-    const session = await Session.findById(sessionId);
-    if (!session) {
-      return res.status(404).json({
+      if (!session) {
+        console.error("Session not found:", sessionId);
+        return res.status(404).json({
+          success: false,
+          code: "SESSION_NOT_FOUND",
+          message: "Session not found."
+        });
+      }
+    } catch (dbError) {
+      console.error("Database error when finding session:", dbError);
+      return res.status(500).json({
         success: false,
-        code: "SESSION_NOT_FOUND",
-        message: "Session not found."
+        code: "DB_ERROR",
+        message: "Database error occurred when retrieving session."
       });
     }
 
@@ -163,6 +255,10 @@ exports.markAttendance = async (req, res) => {
     }
 
     if (!session.qrToken || session.qrToken !== qrToken) {
+      console.error("QR token mismatch:", {
+        expected: session.qrToken ? session.qrToken.substring(0, 20) + '...' : 'null',
+        received: qrToken ? qrToken.substring(0, 20) + '...' : 'null'
+      });
       return res.status(400).json({
         success: false,
         code: "INVALID_QR_CODE",
@@ -170,71 +266,232 @@ exports.markAttendance = async (req, res) => {
       });
     }
 
-    const existingStudentRecord = await Attendance.findOne({ session: sessionId, student: studentId });
-    if (existingStudentRecord) {
-      return res.status(400).json({
-        success: false,
-        code: "ATTENDANCE_ALREADY_MARKED",
-        message: "You have already marked attendance for this session."
-      });
-    }
-
+    // IMPORTANT: First check for device conflicts BEFORE checking if this student already marked attendance
     // Enhanced device conflict detection
-    const existingDeviceRecords = await Attendance.find({
-      session: sessionId,
-      status: "Present"
-    });
+    try {
+      const existingDeviceRecords = await Attendance.find({
+        session: sessionId,
+        status: "Present"
+      });
 
-    // Device collision detection
-    let deviceConflict = false;
-    let conflictType = "";
+      // 1. Advanced device collision detection with multiple layers
+      let deviceConflict = false;
+      let conflictType = "";
+      let conflictStudent = null;
 
-    // Check for exact matches first (highest confidence)
-    if (existingDeviceRecords.some(record => record.deviceId === deviceId || record.compositeFingerprint === compositeFingerprint)) {
-      deviceConflict = true;
-      conflictType = "exact";
-    }
+      // Check for exact device ID or fingerprint matches
+      const exactDeviceMatches = existingDeviceRecords.filter(record =>
+        record.deviceId === deviceId || record.compositeFingerprint === compositeFingerprint
+      );
 
-    // If no exact match, check for partial fingerprint similarity
-    if (!deviceConflict && compositeFingerprint && compositeFingerprint.length > 20) {
-      for (const record of existingDeviceRecords) {
-        if (record.compositeFingerprint && record.compositeFingerprint.length > 20) {
-          // Calculate similarity score between fingerprints
-          const similarityScore = calculateFingerprintSimilarity(compositeFingerprint, record.compositeFingerprint);
+      if (exactDeviceMatches.length > 0) {
+        // Check if this is a different student trying to use the same device
+        const differentStudentSameDevice = exactDeviceMatches.some(record =>
+          record.student.toString() !== studentId.toString()
+        );
 
-          // If similarity is above threshold, consider it a match
-          if (similarityScore > 0.7) { // 70% similarity is considered the same device
-            deviceConflict = true;
-            conflictType = "similar";
-            break;
+        if (differentStudentSameDevice) {
+          deviceConflict = true;
+          conflictType = "exact";
+
+          // Log which student used the same device
+          const conflictingStudentRecord = exactDeviceMatches.find(r => r.student.toString() !== studentId.toString());
+          if (conflictingStudentRecord) {
+            conflictStudent = conflictingStudentRecord.student.toString();
+          }
+        } else {
+          // Same student using the same device (fall through to check if already marked attendance)
+          // This will be caught by the existingStudentRecord check below
+        }
+      }
+
+      // If no exact match, check for IP address
+      if (!deviceConflict) {
+        const ipBasedRecords = existingDeviceRecords.filter(record => record.ipAddress === clientIp);
+        if (ipBasedRecords.length > 0) {
+          // Check if this student already has a record from this IP
+          const sameStudentSameIp = ipBasedRecords.some(record =>
+            record.student.toString() === studentId.toString()
+          );
+
+          // If different students are using the same IP, it's suspicious
+          if (!sameStudentSameIp) {
+            // Get conflicting student details for audit
+            const conflictRecords = ipBasedRecords.filter(r => r.student.toString() !== studentId.toString());
+            if (conflictRecords.length > 0) {
+              const studentIds = [...new Set(conflictRecords.map(r => r.student.toString()))];
+
+              // If we have multiple students from same IP in this session, flag it
+              if (studentIds.length > 0) {
+                deviceConflict = true;
+                conflictType = "ip";
+                conflictStudent = studentIds[0]; // Record the first conflicting student
+
+                // Log this suspicious activity for further investigation
+                logger.warn(`IP conflict detected: Student ${studentId} attempting to mark attendance from same IP as students [${studentIds.join(', ')}] for session ${sessionId}`);
+              }
+            }
           }
         }
       }
+
+      // If no exact match or IP match, check for partial fingerprint similarity
+      if (!deviceConflict && compositeFingerprint && compositeFingerprint.length > 20) {
+        for (const record of existingDeviceRecords) {
+          // Skip records from the same student
+          if (record.student.toString() === studentId.toString()) continue;
+
+          if (record.compositeFingerprint && record.compositeFingerprint.length > 20) {
+            // Calculate similarity score between fingerprints
+            const similarityScore = calculateFingerprintSimilarity(compositeFingerprint, record.compositeFingerprint);
+
+            // If similarity is above threshold, consider it a match
+            if (similarityScore > 0.65) { // Lowered threshold to catch cross-browser attempts
+              deviceConflict = true;
+              conflictType = "similar";
+              conflictStudent = record.student.toString();
+              break;
+            }
+          }
+        }
+      }
+
+      // Check for rapid switching (time-based heuristic)
+      if (!deviceConflict) {
+        // Find the most recent attendance record from this IP address
+        const recentAttendanceFromSameIP = await Attendance.findOne({
+          session: sessionId,
+          ipAddress: clientIp,
+          student: { $ne: mongoose.Types.ObjectId(studentId) } // Different student
+        }).sort({ createdAt: -1 }); // Most recent first
+
+        if (recentAttendanceFromSameIP) {
+          // If there was another attendance from same IP within the last 2 minutes
+          const timeSinceLastAttendance = Date.now() - recentAttendanceFromSameIP.createdAt.getTime();
+          const twoMinutesInMs = 2 * 60 * 1000;
+
+          if (timeSinceLastAttendance < twoMinutesInMs) {
+            deviceConflict = true;
+            conflictType = "timing";
+            conflictStudent = recentAttendanceFromSameIP.student.toString();
+
+            // Log suspicious rapid attendance marking
+            logger.warn(`Timing conflict: Student ${studentId} attempting to mark attendance ${timeSinceLastAttendance / 1000} seconds after student ${conflictStudent} from same IP ${clientIp}`);
+          }
+        }
+      }
+
+      // If there's a device conflict, reject the request with a clear message
+      if (deviceConflict) {
+        // Record this attempt for auditing
+        try {
+          await new Attendance({
+            session: sessionId,
+            student: studentId,
+            status: "Rejected",
+            deviceId,
+            compositeFingerprint,
+            qrToken,
+            attendedAt: new Date(),
+            ipAddress: clientIp,
+            conflictType,
+            conflictingStudent: conflictStudent,
+            rejectionReason: `Device conflict detected: ${conflictType}`,
+            browserInfo: browserInfo || null
+          }).save();
+        } catch (saveError) {
+          console.error("Error saving conflict attendance record:", saveError);
+          // Continue execution even if saving the conflict record fails
+        }
+
+        // Return a clear device conflict error
+        return res.status(403).json({
+          success: false,
+          code: "DEVICE_CONFLICT",
+          message: "This device has already been used to mark attendance for another student. Please use your own device.",
+          conflictType: conflictType
+        });
+      }
+    } catch (deviceCheckError) {
+      console.error("Error during device conflict check:", deviceCheckError);
+      // Don't fail the entire request due to device conflict check error
+      // Just log it and continue processing
     }
 
-    if (deviceConflict) {
-      return res.status(403).json({
+    // After checking for device conflicts, check if this student already marked attendance
+    try {
+      const existingStudentRecord = await Attendance.findOne({
+        session: sessionId,
+        student: studentId,
+        $or: [
+          { status: "Present" },
+          { status: "Rejected" }
+        ]
+      });
+
+      if (existingStudentRecord) {
+        const status = existingStudentRecord.status;
+        let message = "You have already marked attendance for this session.";
+        let code = "ATTENDANCE_ALREADY_MARKED";
+
+        if (status === "Rejected") {
+          if (existingStudentRecord.rejectionReason && existingStudentRecord.rejectionReason.includes("Device conflict")) {
+            message = "Your previous attempt was rejected due to device conflict. Please use your own device.";
+            code = "DEVICE_CONFLICT";
+          } else {
+            message = "Your previous attendance submission was rejected. Please contact your lecturer.";
+            code = "PREVIOUS_ATTENDANCE_REJECTED";
+          }
+        }
+
+        return res.status(400).json({
+          success: false,
+          code: code,
+          message: message
+        });
+      }
+    } catch (recordError) {
+      console.error("Database error when checking existing attendance:", recordError);
+      return res.status(500).json({
         success: false,
-        code: "DEVICE_CONFLICT",
-        message: "This device has already been used to mark attendance for this session.",
-        conflictType: conflictType
+        code: "DB_ERROR",
+        message: "Database error occurred when checking attendance records."
       });
     }
 
-    const attendance = new Attendance({
-      session: sessionId,
-      student: studentId,
-      status: "Present",
-      deviceId,
-      compositeFingerprint,
-      qrToken,
-      attendedAt: new Date()
-    });
-    await attendance.save();
+    // Create new attendance record
+    try {
+      const attendance = new Attendance({
+        session: sessionId,
+        student: studentId,
+        status: "Present",
+        deviceId,
+        compositeFingerprint,
+        qrToken,
+        attendedAt: new Date(),
+        ipAddress: clientIp, // Store client IP for detection
+        browserInfo: browserInfo || null
+      });
 
-    if (!session.attendees.some(a => a.student.toString() === studentId)) {
-      session.attendees.push({ student: studentId });
-      await session.save();
+      await attendance.save();
+    } catch (saveAttendanceError) {
+      console.error("Error saving attendance record:", saveAttendanceError);
+      return res.status(500).json({
+        success: false,
+        code: "ATTENDANCE_SAVE_ERROR",
+        message: "Failed to save attendance record. Please try again."
+      });
+    }
+
+    // Update session attendees
+    try {
+      if (!session.attendees.some(a => a.student.toString() === studentId)) {
+        session.attendees.push({ student: studentId });
+        await session.save();
+      }
+    } catch (updateSessionError) {
+      console.error("Error updating session attendees:", updateSessionError);
+      // Already saved attendance, so don't fail the request here
     }
 
     res.status(201).json({
@@ -252,8 +509,8 @@ exports.markAttendance = async (req, res) => {
 };
 
 /**
- * Calculate similarity between two fingerprints
- * Uses Jaccard similarity for string comparison
+ * Enhanced fingerprint similarity calculation
+ * More sensitive to detect cross-browser attempts from same device
  */
 function calculateFingerprintSimilarity(fp1, fp2) {
   // Handle null or empty cases
@@ -262,19 +519,19 @@ function calculateFingerprintSimilarity(fp1, fp2) {
   }
 
   try {
-    // For hex fingerprints, compare character by character
+    // For hex fingerprints (most common case)
     if (/^[0-9a-f]+$/i.test(fp1) && /^[0-9a-f]+$/i.test(fp2)) {
-      // Take character chunks for comparison
-      const chunkSize = 2;
+      // Take character chunks for comparison with overlapping
+      const chunkSize = 4; // Larger chunks for better detection
       const set1 = new Set();
       const set2 = new Set();
 
-      // Create sets of chunks from fingerprints
-      for (let i = 0; i < fp1.length - chunkSize + 1; i++) {
+      // Create sets of chunks from fingerprints with overlapping
+      for (let i = 0; i < fp1.length - chunkSize + 1; i += 2) { // Step by 2 for overlapping
         set1.add(fp1.substring(i, i + chunkSize));
       }
 
-      for (let i = 0; i < fp2.length - chunkSize + 1; i++) {
+      for (let i = 0; i < fp2.length - chunkSize + 1; i += 2) { // Step by 2 for overlapping
         set2.add(fp2.substring(i, i + chunkSize));
       }
 
@@ -282,28 +539,48 @@ function calculateFingerprintSimilarity(fp1, fp2) {
       const intersection = new Set([...set1].filter(x => set2.has(x)));
       const union = new Set([...set1, ...set2]);
 
+      // Return the Jaccard coefficient
       return intersection.size / union.size;
     }
-    // For non-hex fingerprints, compare more directly
+    // For non-hex fingerprints
     else {
       // Split strings and find common substrings
       const parts1 = fp1.split(/[-,_\s]/);
       const parts2 = fp2.split(/[-,_\s]/);
 
-      // Count matching parts
-      let matches = 0;
+      // Weight matching by length (longer matches count more)
+      let totalWeight = 0;
+      let matchingWeight = 0;
+
       for (const part1 of parts1) {
         if (part1.length < 3) continue; // Skip very short parts
 
-        if (parts2.some(part2 =>
-          part2.length >= 3 &&
-          (part1.includes(part2) || part2.includes(part1))
-        )) {
-          matches++;
+        const weight = Math.sqrt(part1.length); // Weight by square root of length
+        totalWeight += weight;
+
+        // Find best matching part in parts2
+        let bestMatchScore = 0;
+        for (const part2 of parts2) {
+          if (part2.length < 3) continue;
+
+          if (part1 === part2) {
+            bestMatchScore = 1; // Exact match
+            break;
+          }
+
+          // Check for substring or partial match
+          if (part1.includes(part2) || part2.includes(part1)) {
+            const matchLength = Math.min(part1.length, part2.length);
+            const maxLength = Math.max(part1.length, part2.length);
+            const matchScore = matchLength / maxLength;
+            bestMatchScore = Math.max(bestMatchScore, matchScore);
+          }
         }
+
+        matchingWeight += weight * bestMatchScore;
       }
 
-      return matches / Math.max(parts1.length, parts2.length);
+      return totalWeight > 0 ? matchingWeight / totalWeight : 0;
     }
   } catch (error) {
     console.error("Error calculating fingerprint similarity:", error);

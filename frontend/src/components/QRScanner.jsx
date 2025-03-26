@@ -41,7 +41,7 @@ const QRScanner = () => {
     setScannerActive(false); // Mark scanner as inactive
   };
 
-  // Fingerprint generation and other useEffect hooks remain unchanged
+  // Improved fingerprint generation with cross-browser detection
   const generateDeviceFingerprint = async () => {
     try {
       const cachedFingerprint = localStorage.getItem('deviceFingerprint');
@@ -63,31 +63,28 @@ const QRScanner = () => {
         setDeviceId(visitorId);
         localStorage.setItem('deviceFingerprint', visitorId);
 
-        // Enhanced device attributes collection
+        // Enhanced cross-browser attributes collection
         const attributes = {
-          // Basic screen properties
+          // Hardware-specific attributes that remain consistent across browsers
           screen: `${window.screen.width}x${window.screen.height}x${window.screen.colorDepth}`,
-          // Timezone and language
           timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
-          language: navigator.language || 'unknown',
-          // Hardware info
           hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
           deviceMemory: navigator.deviceMemory || 'unknown',
           platform: navigator.platform || 'unknown',
-          // Connection info if available
           connectionType: navigator.connection ? navigator.connection.effectiveType : 'unknown',
-          // GPU info if available
+          // More reliable hardware identifiers
           gpu: getGPUInfo(),
-          // Canvas fingerprint
-          canvas: await generateCanvasFingerprint(),
-          // Audio context fingerprint
+          pixelRatio: window.devicePixelRatio || 'unknown',
+          // Hardware-level canvas fingerprint
+          canvas: await generateHardwareCanvasFingerprint(),
+          // Audio context fingerprint (hardware dependent)
           audio: await generateAudioFingerprint(),
-          // WebGL fingerprint
-          webgl: getWebGLFingerprint(),
-          // Font detection fingerprint
-          fonts: detectCommonFonts(),
-          // User agent normalized components
-          userAgentData: getUserAgentComponents()
+          // OS-level fonts rather than browser-specific
+          systemFonts: detectSystemFonts(),
+          // Device-specific rather than browser-specific
+          deviceFeatures: getDeviceFeatures(),
+          // Add IP-based identification (handled server-side)
+          networkSignature: 'server-check',
         };
 
         // Generate a composite fingerprint from all attributes
@@ -109,38 +106,61 @@ const QRScanner = () => {
     }
   };
 
-  // Canvas fingerprinting to detect same device across browsers
-  const generateCanvasFingerprint = async () => {
+  // Hardware-specific canvas fingerprinting that remains consistent across browsers
+  const generateHardwareCanvasFingerprint = async () => {
     try {
       const canvas = document.createElement('canvas');
       const ctx = canvas.getContext('2d');
       canvas.width = 200;
       canvas.height = 200;
 
-      // Text with different fonts, colors and transformations
+      // Draw hardware-dependent elements
+      // Use WebGL operations that depend on the graphics hardware
+      const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+      if (gl) {
+        // WebGL operations that test hardware capabilities
+        gl.clearColor(0.1, 0.2, 0.3, 1.0);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+
+        // Test various hardware capabilities
+        const extensionsString = gl.getSupportedExtensions().join();
+        const parameterValues = [
+          gl.getParameter(gl.RED_BITS),
+          gl.getParameter(gl.GREEN_BITS),
+          gl.getParameter(gl.BLUE_BITS),
+          gl.getParameter(gl.ALPHA_BITS),
+          gl.getParameter(gl.DEPTH_BITS),
+          gl.getParameter(gl.MAX_VERTEX_ATTRIBS),
+          gl.getParameter(gl.MAX_TEXTURE_SIZE)
+        ].join(',');
+
+        return extensionsString + parameterValues;
+      }
+
+      // Fallback for browsers without WebGL
+      // Text with graphics acceleration testing
       ctx.textBaseline = 'top';
       ctx.font = '14px Arial';
       ctx.fillStyle = '#F72585';
-      ctx.fillText('Canvas Fingerprint', 10, 50);
+      ctx.fillText('Hardware Test', 10, 50);
       ctx.font = '18px Times New Roman';
       ctx.fillStyle = '#4361EE';
-      ctx.fillText('Attendance System', 10, 70);
+      ctx.fillText('Device Rendering', 10, 70);
 
-      // Add some shapes with gradients
+      // Draw shapes that depend on hardware rendering
       const gradient = ctx.createLinearGradient(0, 0, 200, 0);
       gradient.addColorStop(0, '#3A0CA3');
       gradient.addColorStop(1, '#4CC9F0');
       ctx.fillStyle = gradient;
       ctx.fillRect(10, 90, 160, 40);
 
-      // Some arcs and curves that depend on device rendering
+      // Hardware-dependent curves and arcs
       ctx.beginPath();
       ctx.arc(100, 150, 30, 0, Math.PI * 2);
       ctx.closePath();
       ctx.fillStyle = 'rgba(255, 140, 0, 0.5)';
       ctx.fill();
 
-      // Get the canvas data URL and hash it
       const dataURL = canvas.toDataURL();
       const encoder = new TextEncoder();
       const data = encoder.encode(dataURL);
@@ -239,12 +259,13 @@ const QRScanner = () => {
     }
   };
 
-  // Font detection
-  const detectCommonFonts = () => {
-    const baseFonts = ['monospace', 'sans-serif', 'serif'];
-    const fontList = [
-      'Arial', 'Courier New', 'Georgia', 'Times New Roman',
-      'Verdana', 'Tahoma', 'Trebuchet MS'
+  // Get system-level fonts rather than browser-specific
+  const detectSystemFonts = () => {
+    // Focus on system fonts that would be common across browsers
+    const systemFontFamilies = [
+      'Arial', 'Times New Roman', 'Courier New', 'Georgia', 'Verdana',
+      'Tahoma', 'Trebuchet MS', 'Impact', 'Comic Sans MS', 'Webdings',
+      'Symbol', 'Wingdings', 'MS Sans Serif', 'MS Serif'
     ];
 
     const testString = 'mmmmmmmmmmlli';
@@ -257,27 +278,15 @@ const QRScanner = () => {
 
     const result = [];
 
-    for (const font of fontList) {
-      let detected = true;
-      for (const baseFont of baseFonts) {
-        h.style.fontFamily = `'${font}', ${baseFont}`;
-        const defaultWidth = h.offsetWidth;
-        const defaultHeight = h.offsetHeight;
+    // Check which system fonts are available
+    for (const font of systemFontFamilies) {
+      h.style.fontFamily = font;
+      const width = h.offsetWidth;
+      const height = h.offsetHeight;
 
-        h.style.fontFamily = baseFont;
-        const baseWidth = h.offsetWidth;
-        const baseHeight = h.offsetHeight;
-
-        if (defaultWidth !== baseWidth || defaultHeight !== baseHeight) {
-          detected = true;
-          break;
-        } else {
-          detected = false;
-        }
-      }
-
-      if (detected) {
-        result.push(font);
+      // Store font dimensions which are hardware-dependent regardless of browser
+      if (width > 0 && height > 0) {
+        result.push(`${font}:${width}x${height}`);
       }
     }
 
@@ -285,23 +294,46 @@ const QRScanner = () => {
     return result.join(',');
   };
 
-  // Extract consistent user agent components
-  const getUserAgentComponents = () => {
-    const ua = navigator.userAgent;
-    // Extract OS info
-    let os = 'unknown';
-    if (ua.includes('Windows')) os = 'Windows';
-    else if (ua.includes('Mac OS')) os = 'Mac';
-    else if (ua.includes('Linux')) os = 'Linux';
-    else if (ua.includes('Android')) os = 'Android';
-    else if (ua.includes('iOS') || ua.includes('iPhone') || ua.includes('iPad')) os = 'iOS';
+  // Get hardware device features that remain consistent across browsers
+  const getDeviceFeatures = () => {
+    const features = [];
 
-    // Extract device type
-    let deviceType = 'desktop';
-    if (ua.includes('Mobile')) deviceType = 'mobile';
-    else if (ua.includes('Tablet') || ua.includes('iPad')) deviceType = 'tablet';
+    // Check hardware capabilities
+    if ('getBattery' in navigator) {
+      features.push('battery-api');
+    }
 
-    return `${os}-${deviceType}`;
+    // Check vibration capability (usually mobile devices)
+    if ('vibrate' in navigator) {
+      features.push('vibration');
+    }
+
+    // Check device orientation capability
+    if ('DeviceOrientationEvent' in window) {
+      features.push('orientation');
+    }
+
+    // Check touch capability
+    if ('ontouchstart' in window) {
+      features.push(`touch:${navigator.maxTouchPoints || 0}`);
+    }
+
+    // Check bluetooth capability
+    if ('bluetooth' in navigator) {
+      features.push('bluetooth');
+    }
+
+    // Check USB capability
+    if ('usb' in navigator) {
+      features.push('usb');
+    }
+
+    // Check for specific hardware-level APIs
+    if ('gpu' in navigator) {
+      features.push('gpu-api');
+    }
+
+    return features.join(',');
   };
 
   useEffect(() => {
@@ -411,58 +443,80 @@ const QRScanner = () => {
       console.log("Marking attendance with params:", {
         sessionId,
         studentId,
-        deviceId,
-        qrData: base64Data.substring(0, 20) + "..." // Log truncated QR data for debugging
+        hasDeviceId: !!deviceId,
+        deviceIdLength: deviceId ? deviceId.length : 0,
+        compositeFingerprintLength: compositeFingerprint ? compositeFingerprint.length : 0,
+        qrDataLength: base64Data ? base64Data.length : 0
       });
 
-      const response = await markAttendance(sessionId, studentId, token, deviceId, base64Data, compositeFingerprint);
+      try {
+        const response = await markAttendance(sessionId, studentId, token, deviceId, base64Data, compositeFingerprint);
 
-      if (response.success) {
-        message.success(response.message || "Attendance marked successfully!");
-        navigate("/student-dashboard");
-      } else {
-        // Improved error message handling with more user-friendly messages
-        if (response.code === "QR_CODE_EXPIRED") {
-          setErrorMessage("This QR code has expired. Please ask your lecturer to show the current code.");
-        } else if (response.code === "SESSION_INACTIVE") {
-          setErrorMessage("This attendance session is no longer active.");
-        } else if (response.code === "INVALID_QR_CODE" || response.code === "INVALID_QR_HASH" || response.code === "INCOMPLETE_QR_DATA") {
-          setErrorMessage("The QR code couldn't be validated. Please ask your lecturer to show a new code.");
-        } else if (response.code === "ATTENDANCE_ALREADY_MARKED") {
-          setErrorMessage("You've already marked attendance for this session.");
-        } else if (response.code === "DEVICE_CONFLICT") {
-          setErrorMessage("This device appears to have been used by another student.");
+        if (response.success) {
+          message.success(response.message || "Attendance marked successfully!");
+          navigate("/student-dashboard");
         } else {
-          setErrorMessage(response.message || "An unexpected error occurred. Please try again.");
+          // Improved error message handling with more user-friendly messages
+          if (response.code === "QR_CODE_EXPIRED") {
+            setErrorMessage("This QR code has expired. Please ask your lecturer to show the current code.");
+          } else if (response.code === "SESSION_INACTIVE") {
+            setErrorMessage("This attendance session is no longer active.");
+          } else if (response.code === "INVALID_QR_CODE" || response.code === "INVALID_QR_HASH" || response.code === "INCOMPLETE_QR_DATA") {
+            setErrorMessage("The QR code couldn't be validated. Please ask your lecturer to show a new code.");
+          } else if (response.code === "QR_DECODE_ERROR" || response.code === "QR_FORMAT_ERROR") {
+            setErrorMessage("The QR code couldn't be read correctly. Please try scanning again with good lighting.");
+          } else if (response.code === "ATTENDANCE_ALREADY_MARKED") {
+            setErrorMessage("You've already marked attendance for this session.");
+          } else if (response.code === "DEVICE_CONFLICT") {
+            setErrorMessage("This device has already been used by another student. Please use your own device.");
+          } else if (response.code === "DB_ERROR") {
+            setErrorMessage("Database error occurred. Please try again in a moment.");
+          } else if (response.code === "SERVER_ERROR") {
+            setErrorMessage("Server error occurred. Please try again in a moment.");
+          } else if (response.code === "PREVIOUS_ATTENDANCE_REJECTED") {
+            setErrorMessage("Your previous attendance submission was rejected. Please contact your lecturer.");
+          } else {
+            setErrorMessage(response.message || "An unexpected error occurred. Please try again.");
+          }
         }
+      } catch (apiError) {
+        console.error("API Error Details:", apiError);
+        let errorMsg = "Something went wrong. Please try again.";
+
+        if (apiError.status === 500) {
+          errorMsg = "Server error. Please try again in a moment.";
+        } else if (apiError.code) {
+          // Use custom error codes to provide better error messages
+          switch (apiError.code) {
+            case "DEVICE_CONFLICT":
+              errorMsg = "This device has already been used by another student. Please use your own device.";
+              break;
+            case "ATTENDANCE_ALREADY_MARKED":
+              errorMsg = "You've already marked attendance for this session.";
+              break;
+            case "PREVIOUS_ATTENDANCE_REJECTED":
+              errorMsg = "Your previous attendance submission was rejected. Please contact your lecturer.";
+              break;
+            // ...other cases...
+            default:
+              errorMsg = apiError.message || "Error marking attendance. Please try again.";
+          }
+        }
+
+        setErrorMessage(errorMsg);
       }
     } catch (err) {
       console.error("Attendance marking error:", err);
 
       // More user-friendly error messages
-      if (err.response?.status === 401 || err.message?.includes("unauthorized")) {
-        setErrorMessage("Your session has expired. Please log in again.");
-        localStorage.removeItem("token"); // Clear the invalid token
-      } else if (err.message && typeof err.message === 'string') {
-        // More user-friendly error messages based on codes
-        if (err.code === "SESSION_INACTIVE") {
-          setErrorMessage("This attendance session is no longer active.");
-        } else if (err.code === "QR_CODE_EXPIRED") {
-          setErrorMessage("This QR code has expired. Please ask your lecturer to show the current code.");
-        } else if (err.code === "INVALID_QR_CODE" || err.code === "INVALID_QR_HASH" || err.code === "INCOMPLETE_QR_DATA") {
-          setErrorMessage("The QR code couldn't be validated. Please ask your lecturer for a new code.");
-        } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
-          setErrorMessage("You've already marked attendance for this session.");
-        } else if (err.code === "DEVICE_CONFLICT") {
-          setErrorMessage("This device appears to have been used by another student.");
-        } else if (err.message.includes("Session")) {
-          setErrorMessage("This session is no longer active.");
-        } else {
-          setErrorMessage("We couldn't process your attendance. Please try again.");
-        }
-      } else {
-        setErrorMessage("Something went wrong. Please try scanning again or contact support.");
+      if (err.code === "DEVICE_CONFLICT") {
+        setErrorMessage("This device has already been used by another student. Please use your own device.");
+      } else if (err.code === "ATTENDANCE_ALREADY_MARKED") {
+        setErrorMessage("You've already marked attendance for this session.");
+      } else if (err.code === "PREVIOUS_ATTENDANCE_REJECTED") {
+        setErrorMessage("Your previous attendance submission was rejected. Please contact your lecturer.");
       }
+      // ...other error handling...
     } finally {
       setLoading(false);
     }
