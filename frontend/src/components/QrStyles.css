@@ -559,3 +559,82 @@
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+/* New countdown indicator styles */
+.countdown-circle {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--secondary);
+  color: white;
+  font-weight: bold;
+  font-size: 20px;
+  margin: 10px auto 0;
+  animation: pulse-countdown 1s infinite alternate;
+}
+
+@keyframes pulse-countdown {
+  from {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(var(--secondary-rgb, 24, 144, 255), 0.7);
+  }
+
+  to {
+    transform: scale(1.1);
+    box-shadow: 0 0 0 10px rgba(var(--secondary-rgb, 24, 144, 255), 0);
+  }
+}
+
+/* Enhance success alert styles */
+.qr-scanner-container .ant-alert-success {
+  border: none;
+  background-color: rgba(82, 196, 26, 0.15);
+  border-radius: 8px;
+}
+
+.qr-scanner-container .ant-alert-success .ant-alert-message {
+  color: #52c41a;
+  font-weight: bold;
+}
+
+.qr-scanner-container .ant-alert-success .ant-alert-description {
+  color: var(--text-color);
+}
+
+/* Style for the loading overlay with success state */
+.qr-loading-overlay.success {
+  background-color: rgba(82, 196, 26, 0.8);
+}
+
+/* Add a sliding animation for the success alert */
+@keyframes slide-in {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.qr-scanner-container .ant-alert {
+  animation: slide-in 0.3s ease-out;
+}
+
+/* Enhance navigation message in loading overlay */
+.navigation-message {
+  margin-top: 15px;
+  font-size: 16px;
+  font-weight: bold;
+  color: white;
+  text-align: center;
+  background-color: rgba(0, 0, 0, 0.6);
+  padding: 10px 15px;
+  border-radius: 20px;
+  animation: pulse 1.5s infinite alternate;
+}
