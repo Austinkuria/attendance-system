@@ -140,7 +140,7 @@ api.interceptors.response.use(
         }
         errorMessage = 'You are offline. Some data may not be up to date.';
       } catch (err) {
-        console.log( err)
+        console.log(err)
         errorMessage = 'No cached data available offline';
       }
     } else if (error.response) {
@@ -814,10 +814,26 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
         hasDeviceId: !!deviceId,
         hasQrToken: !!qrToken
       });
-      throw new Error("Missing required parameters for attendance marking");
     }
 
-    console.log("Sending attendance request to:", `${API_URL}/attendance/mark`);
+    // Add browser info for better cross-browser detection
+    const browserInfo = {
+      userAgent: navigator.userAgent,
+      appName: navigator.appName,
+      appVersion: navigator.appVersion,
+      platform: navigator.platform,
+      vendor: navigator.vendor || 'unknown',
+      language: navigator.language,
+      cookieEnabled: navigator.cookieEnabled,
+      doNotTrack: navigator.doNotTrack,
+      hardwareConcurrency: navigator.hardwareConcurrency,
+      maxTouchPoints: navigator.maxTouchPoints,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      colorDepth: window.screen.colorDepth,
+      pixelDepth: window.screen.pixelDepth,
+      devicePixelRatio: window.devicePixelRatio
+    };
 
     const response = await axios.post(
       `${API_URL}/attendance/mark`,
@@ -826,20 +842,16 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
         studentId,
         deviceId,
         qrToken,
-        compositeFingerprint
+        compositeFingerprint,
+        browserInfo: JSON.stringify(browserInfo)
       },
       {
         headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json",
-          "Accept": "application/json"
-        },
-        // Add timeout to prevent hanging requests
-        timeout: 10000
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
       }
     );
-
-    console.log("Attendance API response:", response.status, response.data);
     return response.data;
   } catch (error) {
     // Enhanced error logging

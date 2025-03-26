@@ -12,6 +12,7 @@ const crypto = require('crypto');
 exports.markAttendance = async (req, res) => {
   try {
     const { sessionId, studentId, deviceId, qrToken, compositeFingerprint } = req.body;
+    const clientIp = req.ip || req.connection.remoteAddress;
 
     // Basic validation
     if (!qrToken) {
@@ -185,38 +186,130 @@ exports.markAttendance = async (req, res) => {
       status: "Present"
     });
 
-    // Device collision detection
+    // 1. Advanced device collision detection with multiple layers
     let deviceConflict = false;
     let conflictType = "";
+    let conflictStudent = null;
 
-    // Check for exact matches first (highest confidence)
-    if (existingDeviceRecords.some(record => record.deviceId === deviceId || record.compositeFingerprint === compositeFingerprint)) {
-      deviceConflict = true;
-      conflictType = "exact";
+    // Check for IP address first
+    const ipBasedRecords = existingDeviceRecords.filter(record => record.ipAddress === clientIp);
+    if (ipBasedRecords.length > 0) {
+      // Check if this student already has a record from this IP
+      const sameStudentSameIp = ipBasedRecords.some(record =>
+        record.student.toString() === studentId.toString()
+      );
+
+      // If different students are using the same IP, it's suspicious
+      if (!sameStudentSameIp) {
+        // Get conflicting student details for audit
+        const conflictRecords = ipBasedRecords.filter(r => r.student.toString() !== studentId.toString());
+        if (conflictRecords.length > 0) {
+          const studentIds = [...new Set(conflictRecords.map(r => r.student.toString()))];
+
+          // If we have multiple students from same IP in this session, flag it
+          if (studentIds.length > 0) {
+            deviceConflict = true;
+            conflictType = "ip";
+            conflictStudent = studentIds[0]; // Record the first conflicting student
+
+            // Log this suspicious activity for further investigation
+            logger.warn(`IP conflict detected: Student ${studentId} attempting to mark attendance from same IP as students [${studentIds.join(', ')}] for session ${sessionId}`);
+          }
+        }
+      }
+    }
+
+    // Check for exact device ID or fingerprint matches
+    if (!deviceConflict) {
+      const exactDeviceMatches = existingDeviceRecords.filter(record =>
+        record.deviceId === deviceId || record.compositeFingerprint === compositeFingerprint
+      );
+
+      if (exactDeviceMatches.length > 0) {
+        // Check if this is the same student marking attendance again
+        const differentStudentSameDevice = exactDeviceMatches.some(record =>
+          record.student.toString() !== studentId.toString()
+        );
+
+        if (differentStudentSameDevice) {
+          deviceConflict = true;
+          conflictType = "exact";
+
+          // Log which student used the same device
+          const conflictingStudentRecord = exactDeviceMatches.find(r => r.student.toString() !== studentId.toString());
+          if (conflictingStudentRecord) {
+            conflictStudent = conflictingStudentRecord.student.toString();
+          }
+        }
+      }
     }
 
     // If no exact match, check for partial fingerprint similarity
     if (!deviceConflict && compositeFingerprint && compositeFingerprint.length > 20) {
       for (const record of existingDeviceRecords) {
+        // Skip records from the same student
+        if (record.student.toString() === studentId.toString()) continue;
+
         if (record.compositeFingerprint && record.compositeFingerprint.length > 20) {
           // Calculate similarity score between fingerprints
           const similarityScore = calculateFingerprintSimilarity(compositeFingerprint, record.compositeFingerprint);
 
           // If similarity is above threshold, consider it a match
-          if (similarityScore > 0.7) { // 70% similarity is considered the same device
+          if (similarityScore > 0.65) { // Lowered threshold to catch cross-browser attempts
             deviceConflict = true;
             conflictType = "similar";
+            conflictStudent = record.student.toString();
             break;
           }
         }
       }
     }
 
+    // Check for rapid switching (time-based heuristic)
+    if (!deviceConflict) {
+      // Find the most recent attendance record from this IP address
+      const recentAttendanceFromSameIP = await Attendance.findOne({
+        session: sessionId,
+        ipAddress: clientIp,
+        student: { $ne: mongoose.Types.ObjectId(studentId) } // Different student
+      }).sort({ createdAt: -1 }); // Most recent first
+
+      if (recentAttendanceFromSameIP) {
+        // If there was another attendance from same IP within the last 2 minutes
+        const timeSinceLastAttendance = Date.now() - recentAttendanceFromSameIP.createdAt.getTime();
+        const twoMinutesInMs = 2 * 60 * 1000;
+
+        if (timeSinceLastAttendance < twoMinutesInMs) {
+          deviceConflict = true;
+          conflictType = "timing";
+          conflictStudent = recentAttendanceFromSameIP.student.toString();
+
+          // Log suspicious rapid attendance marking
+          logger.warn(`Timing conflict: Student ${studentId} attempting to mark attendance ${timeSinceLastAttendance / 1000} seconds after student ${conflictStudent} from same IP ${clientIp}`);
+        }
+      }
+    }
+
     if (deviceConflict) {
+      // Record this attempt for auditing
+      await new Attendance({
+        session: sessionId,
+        student: studentId,
+        status: "Rejected",
+        deviceId,
+        compositeFingerprint,
+        qrToken,
+        attendedAt: new Date(),
+        ipAddress: clientIp,
+        conflictType,
+        conflictingStudent: conflictStudent,
+        rejectionReason: `Device conflict detected: ${conflictType}`
+      }).save();
+
       return res.status(403).json({
         success: false,
         code: "DEVICE_CONFLICT",
-        message: "This device has already been used to mark attendance for this session.",
+        message: "This device has already been used to mark attendance for this session. Please use your own device.",
         conflictType: conflictType
       });
     }
@@ -228,7 +321,8 @@ exports.markAttendance = async (req, res) => {
       deviceId,
       compositeFingerprint,
       qrToken,
-      attendedAt: new Date()
+      attendedAt: new Date(),
+      ipAddress: clientIp // Store client IP for detection
     });
     await attendance.save();
 
@@ -252,8 +346,8 @@ exports.markAttendance = async (req, res) => {
 };
 
 /**
- * Calculate similarity between two fingerprints
- * Uses Jaccard similarity for string comparison
+ * Enhanced fingerprint similarity calculation
+ * More sensitive to detect cross-browser attempts from same device
  */
 function calculateFingerprintSimilarity(fp1, fp2) {
   // Handle null or empty cases
@@ -262,19 +356,19 @@ function calculateFingerprintSimilarity(fp1, fp2) {
   }
 
   try {
-    // For hex fingerprints, compare character by character
+    // For hex fingerprints (most common case)
     if (/^[0-9a-f]+$/i.test(fp1) && /^[0-9a-f]+$/i.test(fp2)) {
-      // Take character chunks for comparison
-      const chunkSize = 2;
+      // Take character chunks for comparison with overlapping
+      const chunkSize = 4; // Larger chunks for better detection
       const set1 = new Set();
       const set2 = new Set();
 
-      // Create sets of chunks from fingerprints
-      for (let i = 0; i < fp1.length - chunkSize + 1; i++) {
+      // Create sets of chunks from fingerprints with overlapping
+      for (let i = 0; i < fp1.length - chunkSize + 1; i += 2) { // Step by 2 for overlapping
         set1.add(fp1.substring(i, i + chunkSize));
       }
 
-      for (let i = 0; i < fp2.length - chunkSize + 1; i++) {
+      for (let i = 0; i < fp2.length - chunkSize + 1; i += 2) { // Step by 2 for overlapping
         set2.add(fp2.substring(i, i + chunkSize));
       }
 
@@ -282,28 +376,48 @@ function calculateFingerprintSimilarity(fp1, fp2) {
       const intersection = new Set([...set1].filter(x => set2.has(x)));
       const union = new Set([...set1, ...set2]);
 
+      // Return the Jaccard coefficient
       return intersection.size / union.size;
     }
-    // For non-hex fingerprints, compare more directly
+    // For non-hex fingerprints
     else {
       // Split strings and find common substrings
       const parts1 = fp1.split(/[-,_\s]/);
       const parts2 = fp2.split(/[-,_\s]/);
 
-      // Count matching parts
-      let matches = 0;
+      // Weight matching by length (longer matches count more)
+      let totalWeight = 0;
+      let matchingWeight = 0;
+
       for (const part1 of parts1) {
         if (part1.length < 3) continue; // Skip very short parts
 
-        if (parts2.some(part2 =>
-          part2.length >= 3 &&
-          (part1.includes(part2) || part2.includes(part1))
-        )) {
-          matches++;
+        const weight = Math.sqrt(part1.length); // Weight by square root of length
+        totalWeight += weight;
+
+        // Find best matching part in parts2
+        let bestMatchScore = 0;
+        for (const part2 of parts2) {
+          if (part2.length < 3) continue;
+
+          if (part1 === part2) {
+            bestMatchScore = 1; // Exact match
+            break;
+          }
+
+          // Check for substring or partial match
+          if (part1.includes(part2) || part2.includes(part1)) {
+            const matchLength = Math.min(part1.length, part2.length);
+            const maxLength = Math.max(part1.length, part2.length);
+            const matchScore = matchLength / maxLength;
+            bestMatchScore = Math.max(bestMatchScore, matchScore);
+          }
         }
+
+        matchingWeight += weight * bestMatchScore;
       }
 
-      return matches / Math.max(parts1.length, parts2.length);
+      return totalWeight > 0 ? matchingWeight / totalWeight : 0;
     }
   } catch (error) {
     console.error("Error calculating fingerprint similarity:", error);
