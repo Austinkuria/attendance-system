@@ -2207,7 +2207,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
 
 exports.exportFilteredAttendance = async (req, res) => {
   try {
-    const { unitId = undefined, startDate, endDate, useDisplayCalculation = false } = req.query;
+    const { unitId = undefined, startDate, endDate } = req.query;
     const studentId = req.user.userId;
 
     if (!studentId) {
@@ -2223,9 +2223,6 @@ exports.exportFilteredAttendance = async (req, res) => {
 
     // Get the student details
     const student = await User.findById(studentId).select('regNo firstName lastName');
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
 
     // Build the query for fetching attendance records
     let attendanceQuery = {
@@ -2243,8 +2240,6 @@ exports.exportFilteredAttendance = async (req, res) => {
       }
     }
 
-    console.log('Attendance Query:', JSON.stringify(attendanceQuery)); // Debug log
-
     // Fetch all attendance records without unit filtering first
     const allAttendanceRecords = await Attendance.find(attendanceQuery)
       .populate({
@@ -2254,9 +2249,6 @@ exports.exportFilteredAttendance = async (req, res) => {
       })
       .lean();
 
-    console.log(`Found ${allAttendanceRecords.length} attendance records`); // Debug log
-    console.log(`Status distribution: Present: ${allAttendanceRecords.filter(r => r.status === 'Present').length}, Absent: ${allAttendanceRecords.filter(r => r.status === 'Absent').length}`); // Debug log
-
     // Then filter by unit if unitId is provided (doing this in memory for accuracy)
     let filteredRecords = allAttendanceRecords;
     if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
@@ -2264,9 +2256,6 @@ exports.exportFilteredAttendance = async (req, res) => {
         record.session && record.session.unit &&
         record.session.unit._id.toString() === unitId.toString()
       );
-
-      console.log(`After unit filtering: ${filteredRecords.length} records`); // Debug log
-      console.log(`Status distribution: Present: ${filteredRecords.filter(r => r.status === 'Present').length}, Absent: ${filteredRecords.filter(r => r.status === 'Absent').length}`); // Debug log
     }
 
     if (!filteredRecords || filteredRecords.length === 0) {
@@ -2274,139 +2263,6 @@ exports.exportFilteredAttendance = async (req, res) => {
         message: 'No attendance records found for the specified criteria'
       });
     }
-
-    // Group records by unit to calculate per-unit attendance rates
-    const unitAttendanceMap = {};
-
-    // Get all enrolled units correctly - fix for the schema issue
-    // Instead of trying to populate unitsEnrolled directly, get the units from attendance records
-    let enrolledUnitIds = new Set();
-    let enrolledUnits = [];
-
-    // First get all unit IDs from the attendance records
-    allAttendanceRecords.forEach(record => {
-      if (record.session && record.session.unit && record.session.unit._id) {
-        enrolledUnitIds.add(record.session.unit._id.toString());
-      }
-    });
-
-    // Then fetch the actual unit details if we need to use the dashboard calculation
-    if (useDisplayCalculation && enrolledUnitIds.size > 0) {
-      try {
-        // Get complete unit information for all units the student has attendance records for
-        enrolledUnits = await Unit.find({
-          _id: { $in: Array.from(enrolledUnitIds) }
-        }).select('_id name code').lean();
-
-        console.log(`Found ${enrolledUnits.length} enrolled units`);
-      } catch (unitFetchError) {
-        console.error("Error fetching enrolled units:", unitFetchError);
-        // Continue with what we have from attendance records
-        enrolledUnits = Array.from(enrolledUnitIds).map(id => {
-          // Try to find unit info in attendance records
-          const record = allAttendanceRecords.find(r =>
-            r.session && r.session.unit && r.session.unit._id.toString() === id
-          );
-
-          if (record && record.session.unit) {
-            return {
-              _id: record.session.unit._id,
-              name: record.session.unit.name || 'Unknown Unit',
-              code: record.session.unit.code || 'N/A'
-            };
-          }
-
-          // Fallback if not found
-          return { _id: id, name: 'Unknown Unit', code: 'N/A' };
-        });
-      }
-    }
-
-    // If using dashboard calculation method, we need to get all sessions per unit, not just attended ones
-    if (useDisplayCalculation) {
-      try {
-        // Get all sessions for these units
-        const allSessions = await Session.find({
-          unit: { $in: Array.from(enrolledUnitIds) },
-          ended: true // Only count completed sessions
-        }).select('_id unit').lean();
-
-        console.log(`Found ${allSessions.length} total sessions across all enrolled units`); // Debug log
-
-        // Create a map of unit IDs to session counts
-        const unitSessionCounts = {};
-        allSessions.forEach(session => {
-          const unitId = session.unit.toString();
-          unitSessionCounts[unitId] = (unitSessionCounts[unitId] || 0) + 1;
-        });
-
-        // Initialize the unit attendance map with all enrolled units
-        enrolledUnits.forEach(unit => {
-          const unitId = unit._id.toString();
-          unitAttendanceMap[unitId] = {
-            name: unit.name || 'Unknown Unit',
-            code: unit.code || 'N/A',
-            totalSessions: unitSessionCounts[unitId] || 0,
-            presentCount: 0,
-            absentCount: 0,
-            rate: 0
-          };
-        });
-      } catch (error) {
-        console.error("Error getting session data:", error);
-        // Fall back to basic calculation if dashboard calculation fails
-        useDisplayCalculation = false;
-      }
-    }
-
-    // Process attendance records by unit - counting both Present and Absent
-    filteredRecords.forEach(record => {
-      if (record.session && record.session.unit) {
-        const unitId = record.session.unit._id.toString();
-
-        if (!unitAttendanceMap[unitId]) {
-          unitAttendanceMap[unitId] = {
-            name: record.session.unit.name || 'Unknown Unit',
-            code: record.session.unit.code || 'N/A',
-            totalSessions: useDisplayCalculation ? 0 : 0,
-            presentCount: 0,
-            absentCount: 0,
-            rate: 0
-          };
-        }
-
-        // Count both Present and Absent records
-        if (record.status === 'Present') {
-          unitAttendanceMap[unitId].presentCount++;
-        } else if (record.status === 'Absent') {
-          unitAttendanceMap[unitId].absentCount++;
-        }
-
-        // Only increment totalSessions if NOT using dashboard calculation
-        // (for dashboard calculation, we already populated totalSessions above)
-        if (!useDisplayCalculation) {
-          unitAttendanceMap[unitId].totalSessions++;
-        }
-      }
-    });
-
-    // Calculate attendance rates for each unit using appropriate method
-    Object.values(unitAttendanceMap).forEach(unitData => {
-      if (useDisplayCalculation) {
-        // Dashboard calculation: present sessions / total possible sessions
-        unitData.rate = unitData.totalSessions > 0
-          ? ((unitData.presentCount / unitData.totalSessions) * 100).toFixed(1)
-          : "0.0";
-      } else {
-        // Original calculation: present / (present + absent)
-        const totalAttended = unitData.presentCount + unitData.absentCount;
-        unitData.rate = totalAttended > 0
-          ? ((unitData.presentCount / totalAttended) * 100).toFixed(1)
-          : "0.0";
-      }
-
-      console.log(`Unit ${unitData.code}: Total=${unitData.totalSessions}, Present=${unitData.presentCount}, Absent=${unitData.absentCount}, Rate=${unitData.rate}%`); // Debug log
-    });
 
     // Create workbook with better styling
     const workbook = new excel.Workbook();
@@ -2490,23 +2346,39 @@ exports.exportFilteredAttendance = async (req, res) => {
           feedback: record.feedbackSubmitted ? 'Yes' : 'No'
         });
 
-        // Color code status cells
+        // Alternate row colors
+        if (rowIndex % 2 === 0) {
+          row.eachCell(cell => {
+            cell.fill = {
+              type: 'pattern',
+              pattern: 'solid',
+              fgColor: { argb: 'F2F2F2' }
+            };
+          });
+        }
+
+        // Style status cell
         const statusCell = row.getCell(5);
         if (record.status === 'Present') {
-          statusCell.font = { color: { argb: '006100' } };
           statusCell.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'C6EFCE' }
           };
+          statusCell.font = { color: { argb: '006100' }, bold: true };
         } else if (record.status === 'Absent') {
-          statusCell.font = { color: { argb: '9C0006' } };
           statusCell.fill = {
             type: 'pattern',
             pattern: 'solid',
             fgColor: { argb: 'FFC7CE' }
           };
+          statusCell.font = { color: { argb: '9C0006' }, bold: true };
         }
+
+        // Center align all cells in the row
+        row.eachCell(cell => {
+          cell.alignment = { horizontal: 'center', vertical: 'middle' };
+        });
 
         rowIndex++;
       }
@@ -2515,7 +2387,13 @@ exports.exportFilteredAttendance = async (req, res) => {
     // Add summary section with enhanced styling
     worksheet.addRow([]); // Empty row for spacing
 
-    // Summary header
+    // Calculate correct attendance statistics
+    const presentCount = filteredRecords.filter(r => r.status === 'Present').length;
+    const absentCount = filteredRecords.filter(r => r.status === 'Absent').length;
+    const totalCount = presentCount + absentCount;
+    const attendanceRate = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : "0.0";
+
+    // Style summary section
     worksheet.mergeCells(`A${rowIndex + 1}:F${rowIndex + 1}`);
     const summaryHeader = worksheet.getCell(`A${rowIndex + 1}`);
     summaryHeader.value = 'Attendance Summary';
@@ -2526,86 +2404,12 @@ exports.exportFilteredAttendance = async (req, res) => {
       fgColor: { argb: '2F75B5' }
     };
     summaryHeader.alignment = { horizontal: 'center' };
-    rowIndex++;
-
-    // Add unit-specific attendance rates if available
-    if (Object.values(unitAttendanceMap).length > 0) {
-      // Add unit attendance rate header
-      worksheet.mergeCells(`A${rowIndex + 1}:F${rowIndex + 1}`);
-      const unitRateHeader = worksheet.getCell(`A${rowIndex + 1}`);
-      unitRateHeader.value = 'Attendance Rates by Unit';
-      unitRateHeader.font = { bold: true, size: 12 };
-      unitRateHeader.alignment = { horizontal: 'left' };
-      rowIndex++;
-
-      // Add headers for unit rate table
-      const unitRateRow = worksheet.addRow(['Unit Name', 'Code', 'Total Sessions', 'Present', 'Rate', '']);
-      unitRateRow.font = { bold: true };
-      unitRateRow.alignment = { horizontal: 'center' };
-      rowIndex++;
-
-      // Add unit data rows
-      Object.values(unitAttendanceMap).forEach(unitData => {
-        const row = worksheet.addRow([
-          unitData.name,
-          unitData.code,
-          unitData.totalSessions,
-          unitData.presentCount,
-          `${unitData.rate}%`,
-          ''
-        ]);
-
-        // Style the rate cell based on the attendance rate
-        const rateCell = row.getCell(5);
-        const rateValue = parseFloat(unitData.rate);
-
-        if (rateValue >= 75) {
-          rateCell.font = { color: { argb: '006100' } };
-          rateCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'C6EFCE' }
-          };
-        } else {
-          rateCell.font = { color: { argb: '9C0006' } };
-          rateCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFC7CE' }
-          };
-        }
-
-        rowIndex++;
-      });
-    }
-
-    // Add empty row before overall summary
-    worksheet.addRow([]);
-    rowIndex++;
-
-    // Calculate overall attendance data for summary
-    const totalSessions = useDisplayCalculation
-      ? Object.values(unitAttendanceMap).reduce((sum, unit) => sum + unit.totalSessions, 0)
-      : filteredRecords.length;
-
-    const totalPresent = filteredRecords.filter(r => r.status === 'Present').length;
-    const totalAbsent = filteredRecords.filter(r => r.status === 'Absent').length;
-
-    // Calculate attendance rate based on the calculation method
-    let attendanceRate;
-    if (useDisplayCalculation) {
-      attendanceRate = totalSessions > 0 ? ((totalPresent / totalSessions) * 100).toFixed(1) : "0.0";
-    } else {
-      attendanceRate = (totalPresent + totalAbsent) > 0 ? ((totalPresent / (totalPresent + totalAbsent)) * 100).toFixed(1) : "0.0";
-    }
-
-    console.log(`Summary - Total: ${totalSessions}, Present: ${totalPresent}, Absent: ${totalAbsent}, Rate: ${attendanceRate}%`); // Debug log
 
     // Add summary statistics with styling
     const summaryData = [
-      ['Total Sessions', totalSessions],
-      ['Present', totalPresent],
-      ['Absent', totalAbsent],
+      ['Total Sessions', totalCount],
+      ['Present', presentCount],
+      ['Absent', absentCount],
       ['Attendance Rate', `${attendanceRate}%`]
     ];
 
@@ -2620,8 +2424,8 @@ exports.exportFilteredAttendance = async (req, res) => {
         };
       }
 
-      worksheet.mergeCells(`B${rowIndex + 1 + index}:C${rowIndex + 1 + index}`);
-      worksheet.mergeCells(`D${rowIndex + 1 + index}:E${rowIndex + 1 + index}`);
+      worksheet.mergeCells(`B${rowIndex + 2 + index}:C${rowIndex + 2 + index}`);
+      worksheet.mergeCells(`D${rowIndex + 2 + index}:E${rowIndex + 2 + index}`);
     });
 
     // Generate filename with unit info if filtered

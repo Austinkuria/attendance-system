@@ -805,15 +805,51 @@ export const getCourseByDepartment = async (departmentId, courseName) => {
 // Mark attendance for a student
 export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken, compositeFingerprint) => {
   try {
-    const browserInfo = navigator.userAgent;
+    // Validate input parameters
+    if (!sessionId || !studentId || !deviceId || !qrToken || !compositeFingerprint) {
+      console.error("Missing required parameters for markAttendance:", {
+        hasSessionId: !!sessionId,
+        hasStudentId: !!studentId,
+        hasDeviceId: !!deviceId,
+        hasQrToken: !!qrToken,
+        hasCompositeFingerprint: !!compositeFingerprint
+      });
 
-    // Create a timeout promise that rejects after 30 seconds
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject({ code: 'ECONNABORTED', message: 'Request timed out after 30 seconds' }), 30000);
+      // Rather than failing silently, throw an error that can be caught and handled
+      throw new Error("Missing required attendance parameters");
+    }
+
+    // Add browser info for better cross-browser detection
+    const browserInfo = {
+      userAgent: navigator.userAgent,
+      appName: navigator.appName,
+      appVersion: navigator.appVersion,
+      platform: navigator.platform,
+      vendor: navigator.vendor || 'unknown',
+      language: navigator.language,
+      cookieEnabled: navigator.cookieEnabled,
+      doNotTrack: navigator.doNotTrack,
+      hardwareConcurrency: navigator.hardwareConcurrency || 'unknown',
+      maxTouchPoints: navigator.maxTouchPoints || 0,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      colorDepth: window.screen.colorDepth,
+      pixelDepth: window.screen.pixelDepth,
+      devicePixelRatio: window.devicePixelRatio || 1
+    };
+
+    // Log the request being made
+    console.log("Making attendance API request with:", {
+      sessionIdLength: sessionId.length,
+      studentIdLength: studentId.length,
+      deviceIdLength: deviceId.length,
+      qrTokenLength: qrToken.length,
+      fingerprintLength: compositeFingerprint.length,
+      hasToken: !!token
     });
 
-    // Create the actual request promise with more detailed browser info
-    const requestPromise = axios.post(
+    // Use axios with timeout setting
+    const response = await axios.post(
       `${API_URL}/attendance/mark`,
       {
         sessionId,
@@ -821,35 +857,45 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
         deviceId,
         qrToken,
         compositeFingerprint,
-        browserInfo
+        browserInfo: JSON.stringify(browserInfo)
       },
       {
         headers: {
           Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json'
-        }
+          "Content-Type": "application/json"
+        },
+        timeout: 20000 // 20 second timeout
       }
     );
 
-    // Race the request against the timeout
-    const response = await Promise.race([requestPromise, timeoutPromise]);
+    console.log("Received attendance response:", {
+      status: response.status,
+      success: response.data?.success,
+      code: response.data?.code,
+      message: response.data?.message
+    });
+
     return response.data;
   } catch (error) {
-    // Default error result with information for tracking issues
-    const errorResult = {
+    // Enhanced error logging with request details
+    console.error("Attendance API error:", {
+      status: error.response?.status,
+      statusText: error.response?.statusText,
+      data: error.response?.data,
+      message: error.message,
+      code: error.code || error.response?.data?.code
+    });
+
+    // Prepare a standardized error object with the right error code
+    let errorResult = {
       success: false,
-      code: "UNKNOWN_ERROR",
-      message: "An error occurred while marking attendance.",
-      timestamp: new Date().toISOString()
+      status: error.response?.status || 0
     };
 
     if (error.response) {
-      // The request was made and the server responded with a status code
-      // that falls out of the range of 2xx
-      console.error("Server error response:", error.response.status, error.response.data);
-
-      errorResult.status = error.response.status;
-      errorResult.message = error.response.data?.message || "Server returned an error.";
+      // Preserve the error code from the backend
+      errorResult.message = error.response.data?.message || "Server returned an error";
+      errorResult.code = error.response.data?.code || `ERROR_${error.response.status}`;
 
       // Make sure DEVICE_CONFLICT code is preserved from backend
       if (error.response.data?.code === "DEVICE_CONFLICT") {
