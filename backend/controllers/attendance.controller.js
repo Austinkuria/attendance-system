@@ -706,18 +706,16 @@ exports.getStudentAttendance = async (req, res) => {
       });
     });
 
-    // Process weekly events with all records
+    // Process weekly events with actual date ranges
     const weeklyEvents = {};
-    const semesterStartDate = new Date('2025-01-01');
-    const oneDay = 24 * 60 * 60 * 1000;
-    const oneWeek = 7 * oneDay;
-
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
-      const daysSinceStart = Math.floor((sessionDate - semesterStartDate) / oneDay);
-      const weekNumber = Math.floor(daysSinceStart / 7) + 1;
-      const weekStart = new Date(semesterStartDate.getTime() + (weekNumber - 1) * oneWeek);
-      const weekEnd = new Date(weekStart.getTime() + 6 * oneDay);
+      // Get start of week (Sunday) and end of week (Saturday)
+      const weekStart = new Date(sessionDate);
+      weekStart.setDate(sessionDate.getDate() - sessionDate.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
       const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
       if (!weeklyEvents[weekLabel]) {
@@ -2214,7 +2212,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
 
 exports.exportFilteredAttendance = async (req, res) => {
   try {
-    const { unitId = undefined, startDate, endDate, useDisplayCalculation = false } = req.query;
+    const { unitId = undefined, startDate, endDate } = req.query;
     const studentId = req.user.userId;
 
     if (!studentId) {
@@ -2230,9 +2228,6 @@ exports.exportFilteredAttendance = async (req, res) => {
 
     // Get the student details
     const student = await User.findById(studentId).select('regNo firstName lastName');
-    if (!student) {
-      return res.status(404).json({ message: 'Student not found' });
-    }
 
     // Build the query for fetching attendance records
     let attendanceQuery = {
@@ -2250,8 +2245,6 @@ exports.exportFilteredAttendance = async (req, res) => {
       }
     }
 
-    console.log('Attendance Query:', JSON.stringify(attendanceQuery)); // Debug log
-
     // Fetch all attendance records without unit filtering first
     const allAttendanceRecords = await Attendance.find(attendanceQuery)
       .populate({
@@ -2261,9 +2254,6 @@ exports.exportFilteredAttendance = async (req, res) => {
       })
       .lean();
 
-    console.log(`Found ${allAttendanceRecords.length} attendance records`); // Debug log
-    console.log(`Status distribution: Present: ${allAttendanceRecords.filter(r => r.status === 'Present').length}, Absent: ${allAttendanceRecords.filter(r => r.status === 'Absent').length}`); // Debug log
-
     // Then filter by unit if unitId is provided (doing this in memory for accuracy)
     let filteredRecords = allAttendanceRecords;
     if (unitId && mongoose.Types.ObjectId.isValid(unitId)) {
@@ -2271,9 +2261,6 @@ exports.exportFilteredAttendance = async (req, res) => {
         record.session && record.session.unit &&
         record.session.unit._id.toString() === unitId.toString()
       );
-
-      console.log(`After unit filtering: ${filteredRecords.length} records`); // Debug log
-      console.log(`Status distribution: Present: ${filteredRecords.filter(r => r.status === 'Present').length}, Absent: ${filteredRecords.filter(r => r.status === 'Absent').length}`); // Debug log
     }
 
     if (!filteredRecords || filteredRecords.length === 0) {
@@ -2545,7 +2532,13 @@ exports.exportFilteredAttendance = async (req, res) => {
     // Add summary section with enhanced styling
     worksheet.addRow([]); // Empty row for spacing
 
-    // Summary header
+    // Calculate correct attendance statistics
+    const presentCount = filteredRecords.filter(r => r.status === 'Present').length;
+    const absentCount = filteredRecords.filter(r => r.status === 'Absent').length;
+    const totalCount = presentCount + absentCount;
+    const attendanceRate = totalCount > 0 ? ((presentCount / totalCount) * 100).toFixed(1) : "0.0";
+
+    // Style summary section
     worksheet.mergeCells(`A${rowIndex + 1}:F${rowIndex + 1}`);
     const summaryHeader = worksheet.getCell(`A${rowIndex + 1}`);
     summaryHeader.value = 'Attendance Summary';
@@ -2556,86 +2549,12 @@ exports.exportFilteredAttendance = async (req, res) => {
       fgColor: { argb: '2F75B5' }
     };
     summaryHeader.alignment = { horizontal: 'center' };
-    rowIndex++;
-
-    // Add unit-specific attendance rates if available
-    if (Object.values(unitAttendanceMap).length > 0) {
-      // Add unit attendance rate header
-      worksheet.mergeCells(`A${rowIndex + 1}:F${rowIndex + 1}`);
-      const unitRateHeader = worksheet.getCell(`A${rowIndex + 1}`);
-      unitRateHeader.value = 'Attendance Rates by Unit';
-      unitRateHeader.font = { bold: true, size: 12 };
-      unitRateHeader.alignment = { horizontal: 'left' };
-      rowIndex++;
-
-      // Add headers for unit rate table
-      const unitRateRow = worksheet.addRow(['Unit Name', 'Code', 'Total Sessions', 'Present', 'Rate', '']);
-      unitRateRow.font = { bold: true };
-      unitRateRow.alignment = { horizontal: 'center' };
-      rowIndex++;
-
-      // Add unit data rows
-      Object.values(unitAttendanceMap).forEach(unitData => {
-        const row = worksheet.addRow([
-          unitData.name,
-          unitData.code,
-          unitData.totalSessions,
-          unitData.presentCount,
-          `${unitData.rate}%`,
-          ''
-        ]);
-
-        // Style the rate cell based on the attendance rate
-        const rateCell = row.getCell(5);
-        const rateValue = parseFloat(unitData.rate);
-
-        if (rateValue >= 75) {
-          rateCell.font = { color: { argb: '006100' } };
-          rateCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'C6EFCE' }
-          };
-        } else {
-          rateCell.font = { color: { argb: '9C0006' } };
-          rateCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFC7CE' }
-          };
-        }
-
-        rowIndex++;
-      });
-    }
-
-    // Add empty row before overall summary
-    worksheet.addRow([]);
-    rowIndex++;
-
-    // Calculate overall attendance data for summary
-    const totalSessions = useDisplayCalculation
-      ? Object.values(unitAttendanceMap).reduce((sum, unit) => sum + unit.totalSessions, 0)
-      : filteredRecords.length;
-
-    const totalPresent = filteredRecords.filter(r => r.status === 'Present').length;
-    const totalAbsent = filteredRecords.filter(r => r.status === 'Absent').length;
-
-    // Calculate attendance rate based on the calculation method
-    let attendanceRate;
-    if (useDisplayCalculation) {
-      attendanceRate = totalSessions > 0 ? ((totalPresent / totalSessions) * 100).toFixed(1) : "0.0";
-    } else {
-      attendanceRate = (totalPresent + totalAbsent) > 0 ? ((totalPresent / (totalPresent + totalAbsent)) * 100).toFixed(1) : "0.0";
-    }
-
-    console.log(`Summary - Total: ${totalSessions}, Present: ${totalPresent}, Absent: ${totalAbsent}, Rate: ${attendanceRate}%`); // Debug log
 
     // Add summary statistics with styling
     const summaryData = [
-      ['Total Sessions', totalSessions],
-      ['Present', totalPresent],
-      ['Absent', totalAbsent],
+      ['Total Sessions', totalCount],
+      ['Present', presentCount],
+      ['Absent', absentCount],
       ['Attendance Rate', `${attendanceRate}%`]
     ];
 
@@ -2650,8 +2569,8 @@ exports.exportFilteredAttendance = async (req, res) => {
         };
       }
 
-      worksheet.mergeCells(`B${rowIndex + 1 + index}:C${rowIndex + 1 + index}`);
-      worksheet.mergeCells(`D${rowIndex + 1 + index}:E${rowIndex + 1 + index}`);
+      worksheet.mergeCells(`B${rowIndex + 2 + index}:C${rowIndex + 2 + index}`);
+      worksheet.mergeCells(`D${rowIndex + 2 + index}:E${rowIndex + 2 + index}`);
     });
 
     // Generate filename with unit info if filtered
