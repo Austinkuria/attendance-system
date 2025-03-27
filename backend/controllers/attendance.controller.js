@@ -2490,7 +2490,14 @@ exports.exportFilteredAttendance = async (req, res) => {
     // Add data rows with enhanced styling
     let rowIndex = 5;
     exportData.forEach(record => {
-      const row = worksheet.addRow(record);
+      const row = worksheet.addRow({
+        Unit: record.Unit,
+        Code: record.Code,
+        'Session Date': record['Session Date'],
+        'Session Time': record['Session Time'],
+        Status: record.Status,
+        Feedback: record.Feedback
+      });
 
       // Color code status cells
       const statusCell = row.getCell(5);
