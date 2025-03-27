@@ -706,18 +706,16 @@ exports.getStudentAttendance = async (req, res) => {
       });
     });
 
-    // Process weekly events with all records
+    // Process weekly events with actual date ranges
     const weeklyEvents = {};
-    const semesterStartDate = new Date('2025-01-01');
-    const oneDay = 24 * 60 * 60 * 1000;
-    const oneWeek = 7 * oneDay;
-
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
-      const daysSinceStart = Math.floor((sessionDate - semesterStartDate) / oneDay);
-      const weekNumber = Math.floor(daysSinceStart / 7) + 1;
-      const weekStart = new Date(semesterStartDate.getTime() + (weekNumber - 1) * oneWeek);
-      const weekEnd = new Date(weekStart.getTime() + 6 * oneDay);
+      // Get start of week (Sunday) and end of week (Saturday)
+      const weekStart = new Date(sessionDate);
+      weekStart.setDate(sessionDate.getDate() - sessionDate.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+
       const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
       if (!weeklyEvents[weekLabel]) {
@@ -2264,8 +2262,6 @@ exports.exportFilteredAttendance = async (req, res) => {
       });
     }
 
-<<<<<<< HEAD
-=======
     // Group records by unit to calculate per-unit attendance rates
     const unitAttendanceMap = {};
 
@@ -2399,7 +2395,6 @@ exports.exportFilteredAttendance = async (req, res) => {
       console.log(`Unit ${unitData.code}: Total=${unitData.totalSessions}, Present=${unitData.presentCount}, Absent=${unitData.absentCount}, Rate=${unitData.rate}%`); // Debug log
     });
 
->>>>>>> 44bc1522a7a2278e0a07a35d114d7c2d46656487
     // Create workbook with better styling
     const workbook = new excel.Workbook();
     const worksheet = workbook.addWorksheet('Attendance Report', {

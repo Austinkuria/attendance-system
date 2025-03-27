@@ -727,9 +727,24 @@ const StudentDashboard = () => {
         sessionId: record.session._id,
       }));
     } else if (viewMode === 'weekly') {
-      const selectedWeek = attendanceData.weeklyEvents.find((week) =>
-        week.week === selectedDate.format('MMM D - MMM D, YYYY')
-      );
+      // Get the start and end of the selected week using the actual date
+      const startOfWeek = moment(selectedDate).startOf('week');
+      const endOfWeek = moment(selectedDate).endOf('week');
+
+      // Format week string to show actual date range
+      const weekString = `${startOfWeek.format('MMM D')} - ${endOfWeek.format('MMM D, YYYY')}`;
+
+      const weeklyEvents = attendanceData.weeklyEvents || [];
+      const selectedWeek = weeklyEvents.find((week) => {
+        // Parse the stored week string to compare dates
+        const [start, end] = week.week.split(' - ');
+        const storedStartDate = moment(start, 'MMM D');
+        const storedEndDate = moment(end, 'MMM D, YYYY');
+
+        // Check if the selected week overlaps with the stored week
+        return startOfWeek.isSame(storedStartDate, 'day') && endOfWeek.isSame(storedEndDate, 'day');
+      });
+
       events = selectedWeek
         ? selectedWeek.events.map((event) => ({
           title: `${event.unitName} - ${event.status}`,
@@ -792,7 +807,7 @@ const StudentDashboard = () => {
                     setEventPage(1);
                   }}
                   value={selectedDate}
-                  format={viewMode === 'weekly' ? 'MMM D - MMM D, YYYY' : 'YYYY-MM-DD'}
+                  format={viewMode === 'weekly' ? 'wo [Week] YYYY' : 'YYYY-MM-DD'}
                   placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
                   style={{ width: 120, fontSize: '12px' }}
                 />
