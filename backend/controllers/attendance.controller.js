@@ -2101,6 +2101,13 @@ exports.exportAllSessionsAttendance = async (req, res) => {
                 fgColor: { argb: 'FFC7CE' }
               };
               statusCell.font = { color: { argb: '9C0006' } };
+            } else if (normalizedStatus.includes('rejected')) {
+              statusCell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: 'FFCCCB' }
+              };
+              statusCell.font = { color: { argb: '800000' } };
             }
           }
           rowIndex++;
@@ -2514,6 +2521,21 @@ exports.exportFilteredAttendance = async (req, res) => {
           type: 'pattern',
           pattern: 'solid',
           fgColor: { argb: 'FFC7CE' }
+        };
+      } else if (record.Status === 'Rejected') {
+        statusCell.font = { color: { argb: '800000' } }; // Dark red color
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFCCCB' } // Light red color
+        };
+      } else {
+        // Add a default style for other statuses (e.g., Rejected)
+        statusCell.font = { color: { argb: '808080' } }; // Gray color
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'D3D3D3' } // Light gray color
         };
       }
 
