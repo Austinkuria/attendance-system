@@ -231,3 +231,57 @@ module.exports = {
   createPlaceholderRecord,
   parseAttendanceString
 };
+
+/**
+ * Sanitize export data to ensure consistency and prevent errors
+ * @param {Array<Object>} data - The export data to sanitize
+ * @returns {Array<Object>} - The sanitized export data
+ */
+exports.sanitizeExportData = (data) => {
+  if (!Array.isArray(data)) {
+    console.warn("sanitizeExportData: Input is not an array. Returning an empty array.");
+    return [];
+  }
+
+  return data.map(record => {
+    if (!record || typeof record !== 'object') {
+      console.warn("sanitizeExportData: Invalid record found. Skipping.");
+      return null; // Skip invalid records
+    }
+
+    const sanitizedRecord = {};
+    for (const key in record) {
+      if (Object.hasOwnProperty.call(record, key)) {
+        let value = record[key];
+
+        // Handle null or undefined values
+        if (value === null || value === undefined) {
+          sanitizedRecord[key] = 'N/A';
+          continue;
+        }
+
+        // Handle date objects
+        if (value instanceof Date) {
+          sanitizedRecord[key] = value.toLocaleDateString();
+          continue;
+        }
+
+        // Handle objects (e.g., nested objects)
+        if (typeof value === 'object') {
+          sanitizedRecord[key] = JSON.stringify(value); // Convert to string
+          continue;
+        }
+
+        // Sanitize strings
+        if (typeof value === 'string') {
+          sanitizedRecord[key] = value.trim();
+          continue;
+        }
+
+        // For other types (numbers, booleans), use the value directly
+        sanitizedRecord[key] = value;
+      }
+    }
+    return sanitizedRecord;
+  }).filter(record => record !== null); // Filter out skipped records
+};
