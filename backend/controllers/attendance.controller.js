@@ -2395,6 +2395,20 @@ exports.exportFilteredAttendance = async (req, res) => {
       console.log(`Unit ${unitData.code}: Total=${unitData.totalSessions}, Present=${unitData.presentCount}, Absent=${unitData.absentCount}, Rate=${unitData.rate}%`); // Debug log
     });
 
+    // Process data for export
+    const exportData = filteredRecords.map(record => ({
+      'Unit': record.session.unit.name || 'N/A',
+      'Code': record.session.unit.code || 'N/A',
+      'Session Date': record.session.startTime ?
+        new Date(record.session.startTime).toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi' }) :
+        'N/A',
+      'Session Time': record.session.startTime && record.session.endTime ?
+        `${new Date(record.session.startTime).toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi' })} - ${new Date(record.session.endTime).toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi' })}` :
+        'N/A',
+      'Status': record.status || 'N/A',
+      'Feedback': record.feedbackSubmitted ? 'Yes' : 'No'
+    }));
+
     // Create workbook with better styling
     const workbook = new excel.Workbook();
     const worksheet = workbook.addWorksheet('Attendance Report', {
@@ -2436,12 +2450,12 @@ exports.exportFilteredAttendance = async (req, res) => {
 
     // Define columns with better formatting
     worksheet.columns = [
-      { header: 'Unit', key: 'unit', width: 30 },
-      { header: 'Code', key: 'code', width: 15 },
-      { header: 'Session Date', key: 'date', width: 15 },
-      { header: 'Session Time', key: 'time', width: 25 },
-      { header: 'Status', key: 'status', width: 12 },
-      { header: 'Feedback', key: 'feedback', width: 15 },
+      { header: 'Unit', key: 'Unit', width: 30 },
+      { header: 'Code', key: 'Code', width: 15 },
+      { header: 'Session Date', key: 'Session Date', width: 15 },
+      { header: 'Session Time', key: 'Session Time', width: 25 },
+      { header: 'Status', key: 'Status', width: 12 },
+      { header: 'Feedback', key: 'Feedback', width: 15 },
     ];
 
     // Style header row
@@ -2462,57 +2476,35 @@ exports.exportFilteredAttendance = async (req, res) => {
 
     // Add data rows with enhanced styling
     let rowIndex = 5;
-    filteredRecords.forEach(record => {
-      if (record.session?.unit) {
-        const row = worksheet.addRow({
-          unit: record.session.unit.name || 'N/A',
-          code: record.session.unit.code || 'N/A',
-          date: record.session.startTime ?
-            new Date(record.session.startTime).toLocaleDateString('en-KE', { timeZone: 'Africa/Nairobi' }) :
-            'N/A',
-          time: record.session.startTime && record.session.endTime ?
-            `${new Date(record.session.startTime).toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi' })} - ${new Date(record.session.endTime).toLocaleTimeString('en-KE', { timeZone: 'Africa/Nairobi' })}` :
-            'N/A',
-          status: record.status || 'N/A',
-          feedback: record.feedbackSubmitted ? 'Yes' : 'No'
-        });
+    exportData.forEach(record => {
+      const row = worksheet.addRow({
+        Unit: record.Unit,
+        Code: record.Code,
+        'Session Date': record['Session Date'],
+        'Session Time': record['Session Time'],
+        Status: record.Status,
+        Feedback: record.Feedback
+      });
 
-        // Alternate row colors
-        if (rowIndex % 2 === 0) {
-          row.eachCell(cell => {
-            cell.fill = {
-              type: 'pattern',
-              pattern: 'solid',
-              fgColor: { argb: 'F2F2F2' }
-            };
-          });
-        }
-
-        // Style status cell
-        const statusCell = row.getCell(5);
-        if (record.status === 'Present') {
-          statusCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'C6EFCE' }
-          };
-          statusCell.font = { color: { argb: '006100' }, bold: true };
-        } else if (record.status === 'Absent') {
-          statusCell.fill = {
-            type: 'pattern',
-            pattern: 'solid',
-            fgColor: { argb: 'FFC7CE' }
-          };
-          statusCell.font = { color: { argb: '9C0006' }, bold: true };
-        }
-
-        // Center align all cells in the row
-        row.eachCell(cell => {
-          cell.alignment = { horizontal: 'center', vertical: 'middle' };
-        });
-
-        rowIndex++;
+      // Color code status cells
+      const statusCell = row.getCell(5);
+      if (record.Status === 'Present') {
+        statusCell.font = { color: { argb: '006100' } };
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'C6EFCE' }
+        };
+      } else if (record.Status === 'Absent') {
+        statusCell.font = { color: { argb: '9C0006' } };
+        statusCell.fill = {
+          type: 'pattern',
+          pattern: 'solid',
+          fgColor: { argb: 'FFC7CE' }
+        };
       }
+
+      rowIndex++;
     });
 
     // Add summary section with enhanced styling
