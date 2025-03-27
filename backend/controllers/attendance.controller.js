@@ -2264,6 +2264,142 @@ exports.exportFilteredAttendance = async (req, res) => {
       });
     }
 
+<<<<<<< HEAD
+=======
+    // Group records by unit to calculate per-unit attendance rates
+    const unitAttendanceMap = {};
+
+    // Get all enrolled units correctly - fix for the schema issue
+    // Instead of trying to populate unitsEnrolled directly, get the units from attendance records
+    let enrolledUnitIds = new Set();
+    let enrolledUnits = [];
+
+    // First get all unit IDs from the attendance records
+    allAttendanceRecords.forEach(record => {
+      if (record.session && record.session.unit && record.session.unit._id) {
+        enrolledUnitIds.add(record.session.unit._id.toString());
+      }
+    });
+
+    // Then fetch the actual unit details if we need to use the dashboard calculation
+    if (useDisplayCalculation && enrolledUnitIds.size > 0) {
+      try {
+        // Get complete unit information for all units the student has attendance records for
+        enrolledUnits = await Unit.find({
+          _id: { $in: Array.from(enrolledUnitIds) }
+        }).select('_id name code').lean();
+
+        console.log(`Found ${enrolledUnits.length} enrolled units`);
+      } catch (unitFetchError) {
+        console.error("Error fetching enrolled units:", unitFetchError);
+        // Continue with what we have from attendance records
+        enrolledUnits = Array.from(enrolledUnitIds).map(id => {
+          // Try to find unit info in attendance records
+          const record = allAttendanceRecords.find(r =>
+            r.session && r.session.unit && r.session.unit._id.toString() === id
+          );
+
+          if (record && record.session.unit) {
+            return {
+              _id: record.session.unit._id,
+              name: record.session.unit.name || 'Unknown Unit',
+              code: record.session.unit.code || 'N/A'
+            };
+          }
+
+          // Fallback if not found
+          return { _id: id, name: 'Unknown Unit', code: 'N/A' };
+        });
+      }
+    }
+
+    // If using dashboard calculation method, we need to get all sessions per unit, not just attended ones
+    if (useDisplayCalculation) {
+      try {
+        // Get all sessions for these units
+        const allSessions = await Session.find({
+          unit: { $in: Array.from(enrolledUnitIds) },
+          ended: true // Only count completed sessions
+        }).select('_id unit').lean();
+
+        console.log(`Found ${allSessions.length} total sessions across all enrolled units`); // Debug log
+
+        // Create a map of unit IDs to session counts
+        const unitSessionCounts = {};
+        allSessions.forEach(session => {
+          const unitId = session.unit.toString();
+          unitSessionCounts[unitId] = (unitSessionCounts[unitId] || 0) + 1;
+        });
+
+        // Initialize the unit attendance map with all enrolled units
+        enrolledUnits.forEach(unit => {
+          const unitId = unit._id.toString();
+          unitAttendanceMap[unitId] = {
+            name: unit.name || 'Unknown Unit',
+            code: unit.code || 'N/A',
+            totalSessions: unitSessionCounts[unitId] || 0,
+            presentCount: 0,
+            absentCount: 0,
+            rate: 0
+          };
+        });
+      } catch (error) {
+        console.error("Error getting session data:", error);
+        // Fall back to basic calculation if dashboard calculation fails
+        useDisplayCalculation = false;
+      }
+    }
+
+    // Process attendance records by unit - counting both Present and Absent
+    filteredRecords.forEach(record => {
+      if (record.session && record.session.unit) {
+        const unitId = record.session.unit._id.toString();
+
+        if (!unitAttendanceMap[unitId]) {
+          unitAttendanceMap[unitId] = {
+            name: record.session.unit.name || 'Unknown Unit',
+            code: record.session.unit.code || 'N/A',
+            totalSessions: useDisplayCalculation ? 0 : 0,
+            presentCount: 0,
+            absentCount: 0,
+            rate: 0
+          };
+        }
+
+        // Count both Present and Absent records, but not Rejected
+        if (record.status === 'Present') {
+          unitAttendanceMap[unitId].presentCount++;
+        } else if (record.status === 'Absent') {
+          unitAttendanceMap[unitId].absentCount++;
+        }
+
+        // Only increment totalSessions if NOT using dashboard calculation
+        // (for dashboard calculation, we already populated totalSessions above)
+        if (!useDisplayCalculation) {
+          unitAttendanceMap[unitId].totalSessions++;
+        }
+      }
+    });
+
+    // Calculate attendance rates for each unit using appropriate method
+    Object.values(unitAttendanceMap).forEach(unitData => {
+      if (useDisplayCalculation) {
+        // Dashboard calculation: present sessions / total possible sessions
+        unitData.rate = unitData.totalSessions > 0
+          ? ((unitData.presentCount / unitData.totalSessions) * 100).toFixed(1)
+          : "0.0";
+      } else {
+        // Original calculation: present / (present + absent)
+        const totalAttended = unitData.presentCount + unitData.absentCount;
+        unitData.rate = totalAttended > 0
+          ? ((unitData.presentCount / totalAttended) * 100).toFixed(1)
+          : "0.0";
+      }
+
+      console.log(`Unit ${unitData.code}: Total=${unitData.totalSessions}, Present=${unitData.presentCount}, Absent=${unitData.absentCount}, Rate=${unitData.rate}%`); // Debug log
+    });
+
+>>>>>>> 44bc1522a7a2278e0a07a35d114d7c2d46656487
     // Create workbook with better styling
     const workbook = new excel.Workbook();
     const worksheet = workbook.addWorksheet('Attendance Report', {
