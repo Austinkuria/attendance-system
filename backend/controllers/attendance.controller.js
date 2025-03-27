@@ -706,17 +706,16 @@ exports.getStudentAttendance = async (req, res) => {
       });
     });
 
-    // Process weekly events with actual date ranges
+    // Process weekly events using same calendar structure as daily
     const weeklyEvents = {};
     attendanceRecords.forEach(record => {
       const sessionDate = new Date(record.attendedAt || record.session.startTime);
-      // Get start of week (Sunday) and end of week (Saturday)
-      const weekStart = new Date(sessionDate);
-      weekStart.setDate(sessionDate.getDate() - sessionDate.getDay());
-      const weekEnd = new Date(weekStart);
-      weekEnd.setDate(weekStart.getDate() + 6);
+      const startOfWeek = new Date(sessionDate);
+      startOfWeek.setDate(sessionDate.getDate() - sessionDate.getDay());
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
 
-      const weekLabel = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+      const weekLabel = `${startOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${endOfWeek.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`;
 
       if (!weeklyEvents[weekLabel]) {
         weeklyEvents[weekLabel] = [];

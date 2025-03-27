@@ -727,22 +727,14 @@ const StudentDashboard = () => {
         sessionId: record.session._id,
       }));
     } else if (viewMode === 'weekly') {
-      // Get the start and end of the selected week using the actual date
       const startOfWeek = moment(selectedDate).startOf('week');
       const endOfWeek = moment(selectedDate).endOf('week');
 
-      // Format week string to show actual date range
-      const weekString = `${startOfWeek.format('MMM D')} - ${endOfWeek.format('MMM D, YYYY')}`;
-
+      // Format week string using direct date comparison
       const weeklyEvents = attendanceData.weeklyEvents || [];
       const selectedWeek = weeklyEvents.find((week) => {
-        // Parse the stored week string to compare dates
-        const [start, end] = week.week.split(' - ');
-        const storedStartDate = moment(start, 'MMM D');
-        const storedEndDate = moment(end, 'MMM D, YYYY');
-
-        // Check if the selected week overlaps with the stored week
-        return startOfWeek.isSame(storedStartDate, 'day') && endOfWeek.isSame(storedEndDate, 'day');
+        const [startDate, endDate] = week.week.split(' - ').map(date => moment(date, 'MMM D, YYYY'));
+        return selectedDate.isBetween(startDate, endDate, 'day', '[]');
       });
 
       events = selectedWeek
