@@ -2375,7 +2375,7 @@ exports.exportFilteredAttendance = async (req, res) => {
           };
         }
 
-        // Count both Present and Absent records
+        // Count both Present and Absent records, but not Rejected
         if (record.status === 'Present') {
           unitAttendanceMap[unitId].presentCount++;
         } else if (record.status === 'Absent') {
