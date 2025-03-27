@@ -610,6 +610,7 @@ const StudentDashboard = () => {
         ...(downloadFilters.unit && { unitId: downloadFilters.unit }),
         ...(downloadFilters.startDate && { startDate: downloadFilters.startDate.format('YYYY-MM-DD') }),
         ...(downloadFilters.endDate && { endDate: downloadFilters.endDate.format('YYYY-MM-DD') }),
+        useDisplayCalculation: true // Add this parameter to use dashboard calculation method
       };
 
       const token = localStorage.getItem('token');
@@ -2361,7 +2362,7 @@ const StudentDashboard = () => {
                           </div>
                           <Button
                             type="primary"
-                            style={{ ...styles.button, color: '#fff !important' }}
+                            style={{ ...styles.button, color: '#fff !important', marginTop: '20px' }}
                             onClick={() => setDownloadModalVisible(true)}
                             className="export-button"
                           >

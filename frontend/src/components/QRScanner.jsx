@@ -25,6 +25,8 @@ const QRScanner = () => {
   const [componentMounted, setComponentMounted] = useState(false); // Track if component is mounted
   const [errorMessage, setErrorMessage] = useState(null);
   const [scannerActive, setScannerActive] = useState(true); // New state to track if scanner should be active
+  const [processingQR, setProcessingQR] = useState(false); // New state for processing indication
+  const [navigationCountdown, setNavigationCountdown] = useState(0); // New state for navigation countdown
 
   const { selectedUnit } = useParams();
   const navigate = useNavigate();
@@ -411,6 +413,7 @@ const QRScanner = () => {
     }
     stopScanner();
     setScannedResult(result?.data);
+    setProcessingQR(true); // Set processing state to true when QR is detected
     setLoading(true);
     clearTimeout(scanTimeoutRef.current);
 
@@ -419,6 +422,7 @@ const QRScanner = () => {
       const token = localStorage.getItem("token");
       if (!token) {
         setErrorMessage("Authentication failed. Please log in again.");
+        setProcessingQR(false); // Reset processing state
         return;
       }
 
@@ -427,6 +431,7 @@ const QRScanner = () => {
       if (!sessionStatus || !sessionStatus.active || sessionStatus.ended) {
         setErrorMessage("Session has ended. Attendance cannot be marked.");
         setSessionEnded(true);
+        setProcessingQR(false); // Reset processing state
         return;
       }
 
@@ -435,6 +440,7 @@ const QRScanner = () => {
       const studentId = decoded.userId;
       if (!studentId) {
         setErrorMessage("Invalid user information. Please log in again.");
+        setProcessingQR(false); // Reset processing state
         return;
       }
 
@@ -453,8 +459,19 @@ const QRScanner = () => {
         const response = await markAttendance(sessionId, studentId, token, deviceId, base64Data, compositeFingerprint);
 
         if (response.success) {
-          message.success(response.message || "Attendance marked successfully!");
-          navigate("/student-dashboard");
+          // Show success message and navigation notification
+          message.success({
+            content: "Attendance marked successfully!",
+            duration: 2,
+          });
+
+          // Add a navigation message with countdown
+          setNavigationCountdown(3); // Start a 3-second countdown
+
+          // Set a timeout to navigate to dashboard after showing success message
+          setTimeout(() => {
+            navigate("/student-dashboard");
+          }, 3000);
         } else {
           // Improved error message handling with more user-friendly messages
           if (response.code === "QR_CODE_EXPIRED") {
@@ -519,8 +536,12 @@ const QRScanner = () => {
       // ...other error handling...
     } finally {
       setLoading(false);
+      // Don't reset processingQR here if we're showing the countdown
+      if (!navigationCountdown) {
+        setProcessingQR(false);
+      }
     }
-  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint]);
+  }, [sessionId, sessionEnded, navigate, deviceId, compositeFingerprint, navigationCountdown]);
 
   const startScanner = useCallback(() => {
     // Don't start scanner if there's an error message
@@ -584,6 +605,18 @@ const QRScanner = () => {
     }
   }, [errorMessage]);
 
+  useEffect(() => {
+    if (navigationCountdown > 0) {
+      const timer = setTimeout(() => {
+        setNavigationCountdown(navigationCountdown - 1);
+      }, 1000);
+      return () => clearTimeout(timer);
+    } else if (navigationCountdown === 0 && processingQR) {
+      // Reset processing state when countdown finishes
+      setProcessingQR(false);
+    }
+  }, [navigationCountdown, processingQR]);
+
   const handleRescan = () => {
     if (sessionEnded) {
       message.error("Session has ended. Cannot rescan.");
@@ -627,7 +660,7 @@ const QRScanner = () => {
             <Button
               type="primary"
               onClick={handleRescan}
-              disabled={loading || sessionEnded}
+              disabled={loading || sessionEnded || processingQR || navigationCountdown > 0}
               className="rescan-button"
               style={{
                 backgroundColor: themeColors.secondary,
@@ -649,6 +682,7 @@ const QRScanner = () => {
               type="primary"
               onClick={handleCancel}
               size="middle"
+              disabled={processingQR || navigationCountdown > 0} // Disable cancel button during processing
               style={{
                 backgroundColor: themeColors.accent,
                 borderColor: themeColors.accent,
@@ -668,7 +702,7 @@ const QRScanner = () => {
           </Space>
         }
       >
-        {loading ? (
+        {loading && !processingQR ? (
           <Spin size="large" tip="Verifying session status..." />
         ) : sessionEnded ? (
           <Alert
@@ -695,9 +729,15 @@ const QRScanner = () => {
                 <div className="scanning-line"></div>
                 <img src="/static/images/icons/scan_qr1.svg" alt="QR Frame" className="qr-frame" />
               </div>
-              {loading && (
+              {(loading || processingQR) && (
                 <div className="qr-loading-overlay">
-                  <Spin size="large" tip="Processing attendance data..." />
+                  <Spin size="large" tip={
+                    navigationCountdown > 0
+                      ? `Attendance marked! Redirecting to dashboard in ${navigationCountdown}...`
+                      : processingQR
+                        ? "Processing QR code... Please wait"
+                        : "Processing attendance data..."
+                  } />
                 </div>
               )}
               {errorMessage && (
@@ -749,17 +789,47 @@ const QRScanner = () => {
                 style={{ marginTop: 24, marginBottom: 16 }}
               />
             )}
-            {!errorMessage && (
+            {!errorMessage && !processingQR && !navigationCountdown && (
               <div className="scanning-status">
                 <Text type={isDarkMode ? undefined : "secondary"} style={{ color: isDarkMode ? '#fff' : undefined }}>
                   Camera active - awaiting QR code
                 </Text>
               </div>
             )}
+            {navigationCountdown > 0 && (
+              <Alert
+                message="Attendance Marked Successfully!"
+                description={`Redirecting to your dashboard in ${navigationCountdown} seconds...`}
+                type="success"
+                showIcon
+                style={{ marginTop: 16, marginBottom: 16 }}
+              />
+            )}
           </>
         )}
-        {scannedResult && !sessionEnded && !errorMessage && (
-          <Text className="qr-result" strong>QR Code detected and processing...</Text>
+        {(scannedResult && !sessionEnded && !errorMessage) && (
+          <div className="qr-result">
+            <Spin spinning={processingQR && navigationCountdown === 0} size="small" style={{ marginRight: 8 }} />
+            <Text strong>
+              {navigationCountdown > 0
+                ? "Attendance marked successfully!"
+                : processingQR
+                  ? "QR Code detected! Processing..."
+                  : "QR Code detected"}
+            </Text>
+            <div className="processing-steps">
+              {processingQR && navigationCountdown === 0 && (
+                <div className="step-indicators">
+                  <div className="step-dot active"></div>
+                  <div className="step-dot"></div>
+                  <div className="step-dot"></div>
+                </div>
+              )}
+              {navigationCountdown > 0 && (
+                <div className="countdown-circle">{navigationCountdown}</div>
+              )}
+            </div>
+          </div>
         )}
       </Card>
     </div>
