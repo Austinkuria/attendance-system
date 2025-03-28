@@ -727,23 +727,57 @@ const StudentDashboard = () => {
         sessionId: record.session._id,
       }));
     } else if (viewMode === 'weekly') {
+      // Get the current week's start and end dates
       const startOfWeek = moment(selectedDate).startOf('week');
       const endOfWeek = moment(selectedDate).endOf('week');
 
-      // Format week string using direct date comparison
+      // Use manual date comparison instead of isBetween
       const weeklyEvents = attendanceData.weeklyEvents || [];
-      const selectedWeek = weeklyEvents.find((week) => {
-        const [startDate, endDate] = week.week.split(' - ').map(date => moment(date, 'MMM D, YYYY'));
-        return selectedDate.isBetween(startDate, endDate, 'day', '[]');
-      });
+      let selectedWeek = null;
 
-      events = selectedWeek
-        ? selectedWeek.events.map((event) => ({
+      if (weeklyEvents.length > 0) {
+        // Try to find matching week
+        for (const week of weeklyEvents) {
+          if (!week.week) continue;
+
+          const dates = week.week.split(' - ');
+          if (dates.length !== 2) continue;
+
+          const weekStart = moment(dates[0], 'MMM D, YYYY');
+          const weekEnd = moment(dates[1], 'MMM D, YYYY');
+
+          // Check if our selected date falls within this week's range
+          if (selectedDate.isSameOrAfter(weekStart, 'day') && selectedDate.isSameOrBefore(weekEnd, 'day')) {
+            selectedWeek = week;
+            break;
+          }
+        }
+      }
+
+      // If no matching week is found, just filter based on current week bounds
+      if (!selectedWeek) {
+        // Manually filter attendance records within the selected week
+        events = attendanceData.attendanceRecords
+          .filter(record => {
+            const recordDate = record.session.startTime ? moment(record.session.startTime) : null;
+            return recordDate &&
+              recordDate.isSameOrAfter(startOfWeek, 'day') &&
+              recordDate.isSameOrBefore(endOfWeek, 'day');
+          })
+          .map(record => ({
+            title: `${record.session.unit?.name || 'Unknown'} - ${record.status || 'Unknown'}`,
+            date: moment(record.session.startTime),
+            status: record.status || 'Unknown',
+            sessionId: record.session._id,
+          }));
+      } else {
+        // Use the selected week's events
+        events = selectedWeek.events.map((event) => ({
           title: `${event.unitName} - ${event.status}`,
           date: moment(event.startTime),
           status: event.status,
-        }))
-        : [];
+        }));
+      }
     } else {
       const selectedDay = attendanceData.dailyEvents.find((day) =>
         day.date === selectedDate.format('YYYY-MM-DD')
@@ -771,6 +805,39 @@ const StudentDashboard = () => {
     const endIndex = startIndex + pageSize;
     const paginatedEvents = events.slice(startIndex, endIndex);
 
+    // Add this function to handle date selection in weekly mode
+    const handleDateChange = (date) => {
+      if (!date) {
+        setSelectedDate(null);
+        return;
+      }
+
+      if (viewMode === 'weekly') {
+        // When in weekly mode, set the date to the start of the week
+        const startOfWeek = moment(date).startOf('week');
+        setSelectedDate(startOfWeek);
+      } else {
+        setSelectedDate(date);
+      }
+
+      setEventPage(1);
+    };
+
+    // Helper function to format the selected date display in weekly mode
+    const getDatePickerValue = () => {
+      if (!selectedDate) return null;
+      return selectedDate;
+    };
+
+    // Helper function to format the displayed date string based on view mode
+    const getDatePickerFormat = () => {
+      if (viewMode === 'weekly') {
+        // Simplified format without week numbers
+        return 'MMM D, YYYY';
+      }
+      return 'YYYY-MM-DD';
+    };
+
     return (
       <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
         <Card style={styles.card}>
@@ -784,7 +851,12 @@ const StudentDashboard = () => {
                   value={viewMode}
                   onChange={(value) => {
                     setViewMode(value);
-                    setSelectedDate(value === 'daily' ? moment() : null);
+                    // Reset date when switching modes
+                    if (value === 'daily') {
+                      setSelectedDate(moment());
+                    } else {
+                      setSelectedDate(moment().startOf('week'));
+                    }
                     setEventPage(1);
                   }}
                   style={{ width: 80, fontSize: '12px' }}
@@ -793,15 +865,22 @@ const StudentDashboard = () => {
                   <Option value="weekly">Weekly</Option>
                 </Select>
                 <DatePicker
-                  picker={viewMode === 'weekly' ? 'week' : 'date'}
-                  onChange={(date) => {
-                    setSelectedDate(date);
-                    setEventPage(1);
-                  }}
-                  value={selectedDate}
-                  format={viewMode === 'weekly' ? 'wo [Week] YYYY' : 'YYYY-MM-DD'}
-                  placeholder={`Select ${viewMode === 'weekly' ? 'Week' : 'Date'}`}
-                  style={{ width: 120, fontSize: '12px' }}
+                  onChange={handleDateChange}
+                  value={getDatePickerValue()}
+                  format={getDatePickerFormat()}
+                  picker={viewMode === 'weekly' ? 'date' : 'date'} // Changed from 'week' to 'date' for consistent UI
+                  placeholder={viewMode === 'weekly' ? 'Select Date for Week' : 'Select Date'}
+                  style={{ width: 150, fontSize: '12px' }}
+                  renderExtraFooter={() => viewMode === 'weekly' ?
+                    <div style={{
+                      fontSize: '12px',
+                      padding: '5px',
+                      color: isDarkMode ? '#ddd' : '#555',
+                      textAlign: 'center'
+                    }}>
+                      Will show the entire week
+                    </div> : null
+                  }
                 />
                 <Select
                   value={eventSortOrder}
@@ -816,6 +895,27 @@ const StudentDashboard = () => {
                 </Select>
               </Space>
             </Space>
+
+            {/* Display selected date/week range info for clarity */}
+            {selectedDate && (
+              <div style={{
+                fontSize: '13px',
+                textAlign: 'center',
+                marginBottom: '8px',
+                color: themeColors.text
+              }}>
+                {viewMode === 'weekly' ? (
+                  <>
+                    Showing: {moment(selectedDate).startOf('week').format('MMM D')} - {moment(selectedDate).endOf('week').format('MMM D, YYYY')}
+                  </>
+                ) : (
+                  <>
+                    Showing: {moment(selectedDate).format('MMMM D, YYYY')}
+                  </>
+                )}
+              </div>
+            )}
+
             {totalEvents > 0 ? (
               <>
                 <List
@@ -2653,6 +2753,10 @@ const StudentDashboard = () => {
                           endDate: dates?.[1] || null
                         }));
                       }}
+                      popupStyle={{ position: 'fixed' }}
+                      getPopupContainer={trigger => trigger.parentNode}
+                      responsive={true}
+                      format="YYYY-MM-DD"
                     />
                   </Space>
                 </Modal>

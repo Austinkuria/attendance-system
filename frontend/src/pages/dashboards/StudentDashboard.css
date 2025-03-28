@@ -19,7 +19,7 @@ body {
     justify-content: center;
   }
 
-  .event-controls > * {
+  .event-controls>* {
     margin-bottom: 8px;
   }
 }
@@ -36,4 +36,72 @@ body {
     flex: 0 0 25%;
     max-width: 25%;
   }
+}
+
+/* Make date picker calendar responsive */
+.ant-picker-dropdown {
+  max-width: 100%;
+  margin: 0 auto !important;
+}
+
+.ant-picker-panels {
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.ant-picker-panel-container {
+  max-width: 100%;
+  padding: 8px;
+  margin: 0 auto;
+  border-radius: 8px;
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
+}
+
+@media (max-width: 576px) {
+  .ant-picker-dropdown {
+    width: 95% !important;
+    margin: 0 auto !important;
+  }
+
+  .ant-picker-panel {
+    width: 100% !important;
+    max-width: 290px;
+    margin: 0 auto;
+  }
+
+  .ant-picker-panels {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Position the date picker dropdown properly on mobile */
+  .ant-picker-dropdown.ant-slide-up-enter,
+  .ant-picker-dropdown.ant-slide-up-appear,
+  .ant-picker-dropdown.ant-slide-up-enter-active,
+  .ant-picker-dropdown.ant-slide-up-appear-active {
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    margin: 8px auto !important;
+  }
+
+  /* Ensure modal fits well with date picker */
+  .ant-modal {
+    max-width: calc(100vw - 32px);
+    margin: 16px auto;
+  }
+}
+
+/* Adjust modal positioning for date picker */
+.ant-modal-mask,
+.ant-modal-wrap {
+  z-index: 1050;
+}
+
+.ant-picker-dropdown {
+  z-index: 1060;
+  /* Centers the dropdown and adds margin */
+  left: 50% !important;
+  transform: translateX(-50%) !important;
+  margin-top: 8px !important;
+  margin-bottom: 8px !important;
 }
