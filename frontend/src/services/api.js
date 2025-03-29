@@ -1582,6 +1582,16 @@ export const getLecturerPastAttendance = async (date = null) => {
 // Submit system feedback - ensure the path matches the backend route
 export const submitSystemFeedback = async (feedbackData) => {
   try {
+    // Check if user is authenticated
+    if (!isUserAuthenticated()) {
+      console.warn('User is not authenticated. Cannot submit feedback.');
+      return {
+        success: false,
+        authRequired: true,
+        message: 'Please log in to submit feedback'
+      };
+    }
+
     console.log('Submitting system feedback to:', `${API_URL}/system-feedback`);
     console.log('Feedback data:', feedbackData);
 
@@ -1590,13 +1600,42 @@ export const submitSystemFeedback = async (feedbackData) => {
   } catch (error) {
     console.error('Error submitting system feedback:', error);
     console.error('Error details:', error.response?.data || error.message);
+
+    // If it's an auth error, return the special auth required object
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return {
+        success: false,
+        authRequired: true,
+        message: 'Please log in to submit feedback'
+      };
+    }
+
     throw error;
   }
+};
+
+/**
+ * Check if user is authenticated by checking for a valid token
+ * @returns {boolean} True if user is authenticated, false otherwise
+ */
+export const isUserAuthenticated = () => {
+  const token = localStorage.getItem('token');
+  return !!token; // Convert to boolean
 };
 
 // Get user's system feedback history
 export const getUserSystemFeedback = async () => {
   try {
+    // First check if user is authenticated
+    if (!isUserAuthenticated()) {
+      console.warn('User is not authenticated. Cannot fetch feedback.');
+      // Return a special object indicating auth required instead of an empty array
+      return {
+        authRequired: true,
+        message: 'Please log in to view your feedback history'
+      };
+    }
+
     // Add retry logic for more reliable fetching
     let attempts = 0;
     const maxAttempts = 3;
@@ -1605,9 +1644,12 @@ export const getUserSystemFeedback = async () => {
       attempts++;
       try {
         const token = localStorage.getItem('token');
+        // This should never happen given our check above, but just to be safe
         if (!token) {
-          console.error('No token found when fetching user feedback');
-          return [];
+          return {
+            authRequired: true,
+            message: 'Please log in to view your feedback history'
+          };
         }
 
         // Use direct axios call with detailed debugging
@@ -1623,6 +1665,15 @@ export const getUserSystemFeedback = async () => {
         console.log('User feedback response:', response.data);
         return Array.isArray(response.data) ? response.data : [];
       } catch (error) {
+        // Handle 401/403 errors specifically
+        if (error.response?.status === 401 || error.response?.status === 403) {
+          console.warn('Authentication error when fetching feedback:', error.response.status);
+          return {
+            authRequired: true,
+            message: 'Please log in to view your feedback history'
+          };
+        }
+
         if (attempts >= maxAttempts) throw error;
         console.warn(`Attempt ${attempts} failed, retrying...`, error);
         // Wait before retry with exponential backoff
@@ -1633,7 +1684,16 @@ export const getUserSystemFeedback = async () => {
     return []; // Fallback empty array
   } catch (error) {
     console.error('Error fetching user system feedback:', error);
-    return [];
+
+    // If it's an auth error, return the special auth required object
+    if (error.response?.status === 401 || error.response?.status === 403) {
+      return {
+        authRequired: true,
+        message: 'Please log in to view your feedback history'
+      };
+    }
+
+    return []; // Return empty array for other errors
   }
 };
 
