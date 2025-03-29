@@ -45,6 +45,7 @@ const allowedOrigins = process.env.ALLOWED_ORIGINS
       "https://attendance-system123.vercel.app",
       "http://localhost:5173",
       "https://attendance-system-w70n.onrender.com",
+       /\.vercel\.app$/,
     ];
 
 // CORS middleware with dynamic origin validation
