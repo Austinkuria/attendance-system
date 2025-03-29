@@ -1,4 +1,5 @@
 import { useState, useContext } from 'react';
+import PropTypes from 'prop-types';
 import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Divider } from 'antd';
 import { UploadOutlined, BugOutlined, BulbOutlined, ToolOutlined } from '@ant-design/icons';
 import { submitSystemFeedback } from '../../services/api';
@@ -246,6 +247,9 @@ const SystemFeedbackForm = ({ onClose }) => {
             </Modal>
         </div>
     );
+};
+SystemFeedbackForm.propTypes = {
+    onClose: PropTypes.func
 };
 
 export default SystemFeedbackForm;
