@@ -5,6 +5,11 @@ const cors = require("cors");
 const morgan = require("morgan");
 const helmet = require("helmet");
 const routes = require("./routes/index");  // Import the combined routes
+const fs = require("fs");
+const path = require("path");
+const logger = require("./utils/logger");
+
+// Import routes
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const unitRoutes = require("./routes/unit.routes");
@@ -21,27 +26,24 @@ const app = express();
 // Configure Express to trust proxy headers
 app.set('trust proxy', true);
 
-const fs = require("fs");
-const path = require("path");
-
 // Define the upload directory path
 const uploadDir = path.join(__dirname, "uploads");
 
 // Check if the directory exists, if not, create it
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
-  console.log("Uploads folder created successfully!");
+  logger.info("Uploads folder created successfully!");
 } else {
-  console.log("Uploads folder already exists.");
+  logger.debug("Uploads folder already exists.");
 }
 
 // Make sure directory for assets exists to store logo
 const publicAssetsDir = path.join(__dirname, "public/assets");
 if (!fs.existsSync(publicAssetsDir)) {
   fs.mkdirSync(publicAssetsDir, { recursive: true });
-  console.log("Public assets folder created successfully!");
+  logger.info("Public assets folder created successfully!");
 } else {
-  console.log("Public assets folder already exists.");
+  logger.debug("Public assets folder already exists.");
 }
 
 // Middleware
@@ -50,7 +52,7 @@ app.use(express.json({ limit: "10mb" }));
 // Add CORS logging and validation middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
-  console.log(`Incoming request from origin: ${origin || 'undefined'}`);
+  logger.debug(`Incoming request from origin: ${origin || 'undefined'}`);
 
   // Validate origin if present
   if (origin && ![
@@ -93,7 +95,8 @@ app.use((req, res, next) => {
   next();
 });
 
-app.use(morgan("dev"));
+// Use morgan with our winston logger for HTTP request logging
+app.use(morgan("combined", { stream: logger.stream }));
 app.use(helmet());
 
 // Make sure you have this line to serve static assets
@@ -103,20 +106,20 @@ app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
 const connectDB = async () => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log(" MongoDB Connected");
+    logger.info("MongoDB Connected");
   } catch (error) {
-    console.error("❌ MongoDB Connection Error:", error.message);
+    logger.error("MongoDB Connection Error:", error);
     process.exit(1);
   }
 };
 
 // Add connection event handlers
 mongoose.connection.on('error', err => {
-  console.error('MongoDB connection error:', err);
+  logger.error('MongoDB connection error:', err);
 });
 
 mongoose.connection.on('disconnected', () => {
-  console.log('MongoDB disconnected');
+  logger.warn('MongoDB disconnected');
 });
 
 connectDB();
@@ -149,11 +152,8 @@ app.use("/api/admin", (req, res) => {
 });
 
 // IMPORTANT: Modify the route handler for 405 errors
-// REPLACE WITH THIS VERSION that only applies to routes that aren't registered
+// Only apply to routes that aren't registered
 const registeredRoutes = express.Router();
-
-// Register the combined routes first
-app.use('/api', require('./routes/index'));
 
 // Now apply the 405 handler ONLY to paths that weren't matched by any route
 app.use((req, res, next) => {
@@ -174,14 +174,11 @@ app.use((req, res) => {
   });
 });
 
+// Import error handler
+const errorHandler = require('./middleware/errorHandler');
+
 // Handle 500 Internal Server Error
-app.use((err, req, res, next) => {
-  console.error(err.stack);
-  res.status(500).json({
-    success: false,
-    message: "Internal Server Error. Please try again later.",
-  });
-});
+app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000; // Set a default port number
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));

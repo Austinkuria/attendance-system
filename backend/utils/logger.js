@@ -62,6 +62,17 @@ if (process.env.NODE_ENV !== 'production') {
         ),
         handleExceptions: true
     }));
+} else {
+    // Add simplified console transport for production to reduce noise
+    logger.add(new winston.transports.Console({
+        format: winston.format.combine(
+            winston.format.colorize(),
+            winston.format.printf(({ level, message }) => {
+                return `[${level}]: ${message}`;
+            })
+        ),
+        level: 'info'
+    }));
 }
 
 // Create a stream object for Express morgan middleware

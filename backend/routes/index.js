@@ -17,15 +17,18 @@ const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = req
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
 const { apiLimiter, sensitiveLimiter, authLimiter } = require('../middleware/rateLimiter');
 const systemFeedbackRoutes = require('./systemFeedback.routes');
+const logger = require('../utils/logger');
 
-console.log('Loading main routes...');
-console.log('Attendance Routes:', attendanceRoutes);
-console.log('System Feedback Routes:', systemFeedbackRoutes);
+logger.info('Loading main routes...');
+// Remove excessive debug logging that clutters production logs
+if (process.env.NODE_ENV !== 'production') {
+    logger.debug('Loading attendance routes');
+}
 
 router.use('/students', studentRoutes);
 
 // User routes
-router.post("/auth/signup", signup); // Removed trailing comma
+router.post("/auth/signup", signup);
 router.post("/auth/login", login);
 
 // Department routes

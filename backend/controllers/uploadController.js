@@ -1,6 +1,7 @@
 const multer = require("multer");
 const path = require("path");
 const fs = require("fs");
+const logger = require("../utils/logger");
 
 // Ensure "uploads" directory exists
 const uploadDir = "uploads/";
@@ -32,17 +33,17 @@ const upload = multer({ storage, fileFilter });
 
 const handleFileUpload = (req, res) => {
     try {
-        console.log("Received file upload request...");
-        console.log("File details:", req.file);
+        logger.info("Received file upload request");
+        logger.debug("File details:", { filename: req.file?.originalname, size: req.file?.size });
 
         if (!req.file) {
-            console.error("No file uploaded");
+            logger.warn("No file uploaded");
             return res.status(400).json({ message: "No file uploaded" });
         }
 
         res.status(200).json({ message: "File uploaded successfully", file: req.file });
     } catch (error) {
-        console.error("File upload error:", error);
+        logger.error("File upload error:", error);
         res.status(500).json({ message: "Server error", error: error.message });
     }
 };
