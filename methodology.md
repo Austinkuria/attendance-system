@@ -1,4 +1,5 @@
 CHAPTER 3: METHODOLOGY 
+
 3.1 Introduction 
 This chapter will describe the methodology to be followed in the development of the Smart QR Code Based Attendance System. The methodology will adopt the Agile framework, which is well-suited for iterative development and will allow flexibility to incorporate stakeholder feedback throughout the process. Each phase of development including requirements gathering, system design, development, testing, deployment, and maintenance will be detailed comprehensively. This structured methodology will ensure that the final system will meet user needs, exceed expectations, and address deficiencies identified in existing QR code-based attendance systems, such as proxy attendance and limited student engagement, by delivering a secure, intuitive, and scalable solution.
 
@@ -95,3 +96,56 @@ Training materials, including user guides, will be provided to support users. Ba
 
 5. Documentation: 
 System documentation will be maintained, covering system architecture, design decisions, and implementation details. User guides and API documentation will be provided to support developers and end-users.
+
+3.3 Justification of Methodology
+The Agile methodology was selected for this project due to several key advantages that align with the attendance system's development needs:
+
+1. Iterative Development:
+   - The complex nature of anti-spoofing measures and QR code security requires frequent validation and refinement through multiple iterations
+   - Enables early detection of technical challenges in fingerprinting and device identification
+   - Allows features to be tested with real users early to ensure they meet actual classroom conditions
+
+2. Flexibility and Adaptability:
+   - Educational requirements vary between departments, necessitating an approach that can accommodate evolving needs
+   - Security measures can be strengthened incrementally as potential vulnerabilities are identified
+   - QR code timing and rotation can be calibrated based on real-world testing
+   - Anti-spoofing techniques can be refined through multiple iterations
+
+3. Stakeholder Involvement:
+   - Regular feedback from lecturers and students ensures user interface is intuitive
+   - Administrators can validate reporting capabilities throughout development
+   - Continuous engagement leads to higher acceptance and adoption rates
+   - Real-world usage patterns inform refinement of device fingerprinting algorithms
+
+4. Risk Mitigation:
+   - Early development of core functionality (QR generation, authentication, device tracking)
+   - Gradual implementation of more complex features (anti-spoofing, offline capabilities)
+   - Regular testing of security features prevents major vulnerabilities at release
+   - Allows for technology stack adjustments if performance issues are discovered
+
+5. Efficient Resource Utilization:
+   - Development effort focuses on highest-priority features first
+   - Critical security features receive appropriate attention early in the process
+   - Allows parallel development of frontend and backend components
+   - Enables continuous deployment for testing with target user groups
+
+The alternatives considered included Waterfall methodology, which was rejected due to its rigidity and inability to adapt to emerging security requirements, and Spiral methodology, which would have introduced unnecessary complexity given the project scope and timeline.
+
+3.4 Data Collection 
+Data collection methods will include both qualitative and quantitative approaches: 
+1.	Surveys: During requirements gathering, surveys will be distributed via Google Forms or SurveyMonkey to 10-20 stakeholders (lecturers, students, admins) to quantify preferences for attendance tracking features. Questions will include Likert scales (e.g., "Rate the importance of real-time reporting: 1-5") and multiple-choice options (e.g., "Preferred QR scanning method: Camera / Manual entry"). Topics will cover usability (e.g., speed of current systems), reporting needs (e.g., daily vs. weekly summaries), and pain points (e.g., proxy attendance concerns), with results aggregated for statistical analysis.
+2.	Interviews: In depth interviews with key stakeholders which are lecturers, students, and administrators will provide qualitative insights into specific pain points experienced with existing systems. These interviews will explore issues such as ease of use, accessibility concerns, or desired functionalities that are currently lacking. 
+3.	Usage Analytics: Post-deployment, analytics tools (e.g. Vercel Analytics and Vercel speed Insights) will track feature usage: QR scan frequency, dashboard views, feedback submissions, and offline mode activations. Metrics will include daily active users, average session duration, and feature-specific interactions (e.g., "Export button clicks: 50/day"), collected via event tracking and visualized in dashboards (e.g., Chart.js graphs). This data will reveal adoption rates and highlight underused features needing promotion or redesign.
+4.	System Feedback Mechanisms: The application will include dedicated UI components for collecting development feedback about the system itself (distinct from the academic session feedback). These interfaces will use Ant Design's Form components with dropdowns for categorization (e.g., "Issue type: Bug / Feature request / UI improvement"), severity ratings (1-5), free-text description fields, and optional screenshot attachments. This ongoing feedback loop about the application's performance and usability will help identify software issues, usability challenges, and feature suggestions that drive continuous improvement of the attendance system itself.
+
+3.5 Data Analysis 
+Data analysis techniques will involve both qualitative analysis of stakeholder interviews and quantitative analysis from surveys: 
+1.	Qualitative Analysis: Thematic analysis of interview transcripts will be conducted using tools like NVivo or manual coding. Transcripts will be reviewed to identify recurring themes (e.g., “Ease of use,” “Security concerns”), sub-themes (e.g., “Slow manual processes”), and direct quotes (e.g., “I need attendance instantly”). These insights will prioritize features (e.g., real-time updates) and pinpoint gaps in existing systems (e.g., lack of proxy attendance prevention), validated through stakeholder workshops.
+2.	Quantitative Analysis: Statistical analysis of survey responses will use tools like Excel or SPSS to calculate means, medians, and frequencies (e.g., “80% of lecturers prioritize real-time reporting”). Cross-tabulations will compare preferences across groups (e.g., lecturers vs. students on QR scanning speed), with chi-square tests assessing significance if sample sizes permit. Results will inform post-launch enhancements, focusing on high-demand features (e.g., detailed analytics for admins).
+3.	Pattern of Usage Analysis: Post-deployment analytics will be analyzed with Google Analytics or custom dashboards to track interaction patterns over time (e.g., “QR scans peak at 9 AM”). Heatmaps will visualize click activity (e.g., frequent use of export buttons), and cohort analysis will assess retention (e.g., “80% of pilot users return weekly”). Underutilized features (e.g., feedback form with <10% usage) will trigger investigations—potentially needing UI tweaks or training videos.
+4.	Feedback Evaluation: User feedback will be evaluated biweekly, categorizing submissions by frequency (e.g., “QR scan errors: 20 mentions”) and severity (e.g., “App crashes impact 50% of users”). A weighted scoring system (e.g., severity × frequency) will prioritize fixes, with qualitative comments analyzed for sentiment (e.g., “Love the speed” vs. “Too complex”). Results will feed into sprint backlogs, ensuring user-driven improvements (e.g., larger QR codes for visibility).
+
+3.6 Chapter Conclusion 
+In summary, this chapter has outlined a comprehensive methodology employing the Agile framework to develop the Smart QR Code Based Attendance System. By following a structured lifecycle requirements gathering, system design, development, testing, deployment, and maintenance augmented by robust data collection (surveys, interviews, analytics, feedback) and analytical techniques (thematic, statistical, usage pattern, feedback evaluation), the proposed system will deliver a forward-thinking solution tailored to educational institutions’ needs. This approach will address gaps in existing attendance systems (e.g., proxy vulnerabilities, limited interactivity) through iterative refinement and stakeholder involvement, ensuring continuous improvement based on real-world insights. The methodology positions the system as a scalable, secure, and user-centric tool, leveraging modern technologies and data-driven decision-making to enhance accountability and engagement in academic settings.
+
+
