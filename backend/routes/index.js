@@ -28,12 +28,14 @@ if (process.env.NODE_ENV !== 'production') {
 
 router.use('/students', studentRoutes);
 
-// User routes
-router.post("/auth/signup", signup);
-router.post("/auth/login", login);
-
-// Add auth routes
+// Auth routes - move this to before other auth routes
 router.use('/auth', authRoutes);
+
+// Remove or comment out these duplicated routes since they're now in authRoutes
+// router.post("/auth/signup", signup);
+// router.post("/auth/login", login);
+// router.post("/auth/reset-password", sensitiveLimiter, sendResetLink);
+// router.put("/auth/reset-password/:token", resetPassword);
 
 // Department routes
 router.use("/department", departmentRoutes);
@@ -69,9 +71,6 @@ router.put('/lecturers/update/:id', authenticate, authorize(["admin"]), updateLe
 router.delete('/lecturers/delete/:id', authenticate, authorize(['admin']), deleteLecturer);
 router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
-
-router.post("/auth/reset-password", sensitiveLimiter, sendResetLink);
-router.put("/auth/reset-password/:token", resetPassword);
 
 router.use("/system-feedback", authenticate, systemFeedbackRoutes);
 

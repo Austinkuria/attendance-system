@@ -41,27 +41,50 @@ const RoleGuard = ({ allowedRoles, redirectTo = '/auth/login' }) => {
                     return;
                 }
 
-                // Check if token is valid by making API request
-                const response = await axios.get(`${API_URL}/auth/validate-session`, {
-                    headers: { Authorization: `Bearer ${token}` }
-                });
+                try {
+                    // Check if token is valid by making API request
+                    const response = await axios.get(`${API_URL}/auth/validate-session`, {
+                        headers: { Authorization: `Bearer ${token}` }
+                    });
 
-                // Check if the role in the token matches the role from the server
-                if (response.data?.role !== userRole) {
-                    message.error('Session mismatch detected');
-                    localStorage.clear();
-                    setAuthorized(false);
-                    setLoading(false);
-                    return;
-                }
+                    // Check if the role in the token matches the role from the server
+                    if (response.data?.user?.role !== userRole) {
+                        message.error('Session mismatch detected');
+                        localStorage.clear();
+                        setAuthorized(false);
+                        setLoading(false);
+                        return;
+                    }
 
-                // Check if the role is allowed to access this route
-                const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
-                if (roles.includes(userRole)) {
-                    setAuthorized(true);
-                } else {
-                    message.error('You do not have permission to access this page');
-                    setAuthorized(false);
+                    // Check if the role is allowed to access this route
+                    const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+                    if (roles.includes(userRole)) {
+                        setAuthorized(true);
+                    } else {
+                        message.error('You do not have permission to access this page');
+                        setAuthorized(false);
+                    }
+                } catch (error) {
+                    console.error('Session validation API error:', error);
+
+                    // If server doesn't support validation endpoint yet, fallback to local validation
+                    if (error.response?.status === 405 || error.response?.status === 404) {
+                        console.log('Falling back to local token validation');
+
+                        // Use the role from the token as a fallback
+                        const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+                        if (roles.includes(userRole)) {
+                            setAuthorized(true);
+                        } else {
+                            message.error('You do not have permission to access this page');
+                            setAuthorized(false);
+                        }
+                    } else {
+                        // For other errors, log out
+                        message.error('Session validation failed');
+                        localStorage.clear();
+                        setAuthorized(false);
+                    }
                 }
             } catch (error) {
                 console.error('Role verification error:', error);

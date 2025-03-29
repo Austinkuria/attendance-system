@@ -35,7 +35,7 @@ const authController = {
                 message: "Session is valid",
                 user: {
                     id: userId,
-                    role,
+                    role: user.role, // Make sure to return user.role, not just role
                     firstName: user.firstName,
                     lastName: user.lastName,
                     email: user.email,

@@ -11,7 +11,7 @@ router.post('/signup', signupLimiter, signup);
 router.post('/reset-password', sendResetLinkLimiter, sendResetLink);
 router.put('/reset-password/:token', resetPasswordLimiter, resetPassword);
 
-// Add validate session route
+// Add validate session route - make sure it's a GET request
 router.get('/validate-session', authMiddleware, authController.validateSession);
 
 // Add refresh token route
