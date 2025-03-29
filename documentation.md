@@ -42,14 +42,15 @@ Functional Requirements (Implemented):
    - Device identification for security
 
 2. Session Management
-   - QR code generation with automatic refresh every 3 minutes
+   - QR code generation with automatic refresh every 25-30 seconds
    - Session state persistence using localStorage
    - Session timing controls (start/end)
    - Manual attendance status overrides by lecturers
 
 3. Anti-Spoofing Measures
-   - Device fingerprinting through browser information
-   - QR code expiration and rotation
+   - Device fingerprinting through browser information (audio, canvas, WebGL, GPU and system fonts)
+   - IP address tracking and time-based conflict detection
+   - QR code expiration and rotation with SHA-256 hash verification
    - Session token validation
    - Rate limiting on attendance marking
 

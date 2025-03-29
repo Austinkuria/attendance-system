@@ -24,14 +24,14 @@ Collected requirements will be prioritized using techniques like MoSCoW (Must ha
 Phase 2: System Design 
 1. System Architecture Design: 
 •	The architecture will be three tier to ensure scalability and maintainability: 
-•	Frontend: The React.js will be utilized to create a responsive single-page application, leveraging Vite for fast builds and Ant Design for components like Card and Form. React Spring will animate elements (e.g., QR code scaling), and PWA support via VitePWA will enable offline access with service workers caching assets and browser local storage for data persistence.
-•	Backend: Express.js running on Node.js will handle RESTful APIs requests, with JWT-based authentication securing user data and enabling real-time updates.
+•	Frontend: React.js will be utilized to create a responsive single-page application, leveraging Vite for fast builds and Ant Design for components like Card and Form. Basic animations will be added for QR code display, and browser localStorage will be used for client-side data persistence with minimal offline capabilities.
+•	Backend: Express.js running on Node.js will handle RESTful APIs requests, with JWT-based authentication securing user data and polling-based data updates.
 •	Database: MongoDB with Mongoose ODM will store user profiles, session details, and attendance records, supporting efficient data management and retrieval.
-•	Proxy prevention will rely on device fingerprinting (combining screen, GPU, canvas, and audio attributes), QR expiration (e.g., 3-minute validity), and session status checks. Rate limiting will cap scan attempts (e.g., 15/minute per device), and composite fingerprints will detect cross-browser consistency.
-•	PWA offline capabilities will be designed using service workers for caching and IndexedDB for local data storage, ensuring seamless operation without connectivity.
+•	Proxy prevention will rely on device fingerprinting (combining screen, GPU, canvas, and audio attributes), QR expiration (every 25-30 seconds), IP address tracking, and session status checks. Rate limiting will cap scan attempts, and composite fingerprints will detect potential device sharing.
+•	Basic offline capabilities will be implemented using browser localStorage for temporary data storage, focusing on preserving critical user state during connectivity interruptions.
 
 2. User Interface Prototyping: 
-Wireframes for key interfaces such as Wireframes for critical interfaces such as QR code generation, student,lecturer dashboards, and admin panels will be developed using tools like Figma. Prototypes will incorporate animated transitions (e.g., fade-ins, scale effects) and responsive layouts from Ant Design to visualize user interactions and ensure an intuitive experience prior to coding.
+Wireframes for key interfaces such as Wireframes for critical interfaces such as QR code generation, student, lecturer dashboards, and admin panels will be developed using tools like Figma. Prototypes will incorporate animated transitions (e.g., fade-ins, scale effects) and responsive layouts from Ant Design to visualize user interactions and ensure an intuitive experience prior to coding.
 
 3. Database Schema Design: 
 MongoDB collections will include: users (e.g., userId, role, deviceFingerprint), sessions (e.g., sessionId, qrCode, expiration, active), attendance (e.g., userId, sessionId, status, compositeFingerprint), feedback (e.g., rating, comment, pace, interactivity, clarity, anonymous), units, courses and departments. Indexes will optimize lookups (e.g., sessionId + userId), and validation will reject duplicate scans or mismatched fingerprints.
@@ -39,12 +39,12 @@ MongoDB collections will include: users (e.g., userId, role, deviceFingerprint),
 Phase 3: Development 
 1. Incrementally Develop Core Functionalities: 
 1.	QR Code Generation and Scanning: 
-•	QR codes will embed session IDs and timestamps, generated with time-based expiration and displayed with React Spring animations (e.g., pulsing frames). Scanning will use a library for camera input, with a dynamic overlay (e.g., corner markers, scanning line) enhancing visibility. Scans will halt after 30 seconds if unsuccessful, prompting a retry option.
-•	Proxy prevention will verify QR data against active sessions, rejecting expired or invalid codes with Ant Design alerts (e.g., "QR code expired"). Device fingerprints will be collected on scan, compared to prior records to flag conflicts (e.g., same device marking multiple users).
+•	QR codes will embed session IDs and timestamps, generated with time-based expiration (refreshing every 25-30 seconds) and displayed with visual countdowns for users. Scanning will use a camera library with guidance overlays to enhance usability. Scans will halt after 30 seconds if unsuccessful, prompting a retry option.
+•	Proxy prevention will verify QR data against active sessions, rejecting expired or invalid codes with clear user feedback messages. Device fingerprints will be collected on scan, compared to prior records to flag conflicts (e.g., same device marking multiple users).
 
 2. Attendance Management: 
-•	Scanned data will sync with MongoDB via Express.js APIs, ensuring accurate and up-to-date records across stakeholders. Updates will refresh dashboards using polling mechanisms. Scans will trigger API calls to Render, validating JWT, session status, and fingerprint uniqueness before updating MongoDB with present status. Already-marked attendance or device conflicts will trigger errors (e.g., "Attendance already recorded").
-•	Logic will be coded to classify attendance as "present" or "absent" based on successful QR code scans within the session's active timeframe, with error handling for expired sessions. Edge cases (e.g., duplicate scans) will trigger appropriate error messages to the user.
+•	Scanned data will sync with MongoDB via Express.js APIs, ensuring accurate attendance records. Updates will refresh dashboards using polling mechanisms every few seconds. Scans will trigger API calls, validating JWT, session status, and fingerprint uniqueness before updating MongoDB with present status. Already-marked attendance or device conflicts will trigger user-friendly error messages.
+•	The backend will implement advanced conflict detection techniques including exact device matching, IP address tracking and collision detection, fingerprint similarity analysis, and time-based heuristics to identify potential proxy attendance attempts. The system will record client IP addresses with attendance records to detect when multiple students attempt to mark attendance from the same network location within suspicious timeframes.
 
 2. Feedback System:
 •	A feedback module will be developed using Ant Design's Form, Input, and Rate components, enabling students to submit 1–5 star ratings, pace ratings, clarity assessments, and comments post-session. Data will save to a feedback collection ({ sessionId, studentId, unit, course, rating, feedbackText, pace, interactivity, clarity, resources, anonymous }), with validation ensuring only attendees submit (checked via attendance status) and lecturers will view trends via Chart.js visualizations (e.g., average ratings per session).
@@ -54,12 +54,12 @@ Phase 3: Development
 •	MongoDB will store session schedules and attendance records, with Mongoose ensuring data consistency and validation.
 
 4. Frontend Development: 
-•	Dynamic React components will be built for stakeholder dashboards (student, lecturer and admin portals), using Ant Design for a polished UI and Chart.js for analytics visualization and styled with Ant Design and themed via a ThemeContext with light/dark mode support.
-•	Basic offline capabilities will be implemented primarily using localStorage for data persistence, with simple browser caching for assets, and basic polling for data refresh when connectivity is restored.
+•	Dynamic React components will be built for stakeholder dashboards (student, lecturer and admin portals), using Ant Design for a polished UI and Chart.js for analytics visualization, styled with Ant Design and themed via a ThemeContext with light/dark mode support.
+•	Client-side data management will focus on localStorage for session persistence and user preferences, with periodic polling to synchronize with server data. The application will provide basic functionality during brief connectivity interruptions.
 
 Phase 4: Testing
 1. Manual Testing: 
-Individual components and modules will be tested manually to ensure they function as expected. Various scenarios will be simulated (e.g., valid/invalid QR codes, different user roles) to verify robustness. Test cases will be documented to ensure comprehensive coverage of critical functionality.
+Individual components and modules will be tested manually to ensure they function as expected. Various scenarios will be simulated (e.g., valid/invalid QR codes, different user roles, device fingerprint conflicts, same IP address multiple requests) to verify robustness. Test cases will focus on critical security features, particularly anti-spoofing mechanisms like device fingerprinting, IP tracking, and QR code expiration.
 
 2. Integration Testing: 
 End-to-end flows will be manually verified: a QR scan will trigger an API call, update MongoDB, and refresh dashboards. Offline capabilities will be validated by toggling network states, ensuring browser local storage data synchronizes correctly with MongoDB when connectivity is restored.
