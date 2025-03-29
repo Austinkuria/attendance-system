@@ -4,32 +4,20 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const morgan = require("morgan");
 const helmet = require("helmet");
-const routes = require("./routes/index");  // Import the combined routes
 const fs = require("fs");
 const path = require("path");
 const logger = require("./utils/logger");
-
-// Import routes
-const authRoutes = require("./routes/auth.routes");
-const userRoutes = require("./routes/user.routes");
-const unitRoutes = require("./routes/unit.routes");
-const courseRoutes = require("./routes/course.routes");
-const departmentRoutes = require("./routes/department.routes");
-const sessionRoutes = require("./routes/session.routes");
-const attendanceRoutes = require("./routes/attendance.routes");
-const feedbackRoutes = require("./routes/feedback.routes");
-const systemFeedbackRoutes = require('./routes/systemFeedback.routes');
+const routes = require("./routes/index"); // Import the combined routes
+const errorHandler = require("./middleware/errorHandler");
 
 dotenv.config();
 const app = express();
 
 // Configure Express to trust proxy headers
-app.set('trust proxy', true);
+app.set("trust proxy", true);
 
 // Define the upload directory path
 const uploadDir = path.join(__dirname, "uploads");
-
-// Check if the directory exists, if not, create it
 if (!fs.existsSync(uploadDir)) {
   fs.mkdirSync(uploadDir, { recursive: true });
   logger.info("Uploads folder created successfully!");
@@ -37,7 +25,7 @@ if (!fs.existsSync(uploadDir)) {
   logger.debug("Uploads folder already exists.");
 }
 
-// Make sure directory for assets exists to store logo
+// Ensure the public assets folder exists (for storing logos, etc.)
 const publicAssetsDir = path.join(__dirname, "public/assets");
 if (!fs.existsSync(publicAssetsDir)) {
   fs.mkdirSync(publicAssetsDir, { recursive: true });
@@ -48,45 +36,37 @@ if (!fs.existsSync(publicAssetsDir)) {
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
+app.use(helmet());
 
-// Add CORS logging and validation middleware
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  logger.debug(`Incoming request from origin: ${origin || 'undefined'}`);
+// Load allowed CORS origins from environment variables
+const allowedOrigins = process.env.ALLOWED_ORIGINS
+  ? process.env.ALLOWED_ORIGINS.split(",")
+  : [
+      "https://attendance-system123.vercel.app",
+      "http://localhost:5173",
+      "https://attendance-system-w70n.onrender.com",
+    ];
 
-  // Validate origin if present
-  if (origin && ![
-    "https://attendance-system123.vercel.app",
-    "http://localhost:5173",
-    "https://attendance-system-w70n.onrender.com"
-  ].includes(origin)) {
-    return res.status(403).json({
-      success: false,
-      message: "Origin not allowed"
-    });
-  }
-
-  next();
-});
-
-// Update CORS configuration to ensure it accepts POST requests
+// CORS middleware with dynamic origin validation
 app.use(cors({
-  origin: [
-    "https://attendance-system123.vercel.app",
-    "http://localhost:5173",
-    "https://attendance-system-w70n.onrender.com"
-  ],
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization", "Cache-Control"],
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      logger.warn(`Blocked CORS request from origin: ${origin}`);
+      callback(new Error("CORS Not Allowed"));
+    }
+  },
   credentials: true,
-  exposedHeaders: ["Content-Length", "Authorization"]
+  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// Ensure OPTIONS requests are handled correctly for preflight
+// Ensure OPTIONS requests are handled correctly (for CORS preflight)
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization, Cache-Control");
+  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.header("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
@@ -95,55 +75,52 @@ app.use((req, res, next) => {
   next();
 });
 
-// Use morgan with our winston logger for HTTP request logging
+// Morgan HTTP logging integrated with Winston logger
 app.use(morgan("combined", { stream: logger.stream }));
-app.use(helmet());
 
-// Make sure you have this line to serve static assets
-app.use('/assets', express.static(path.join(__dirname, 'public/assets')));
+// Serve static assets
+app.use("/assets", express.static(path.join(__dirname, "public/assets")));
 
-// Connect to MongoDB
-const connectDB = async () => {
+// MongoDB Connection with Retry Logic
+const connectDB = async (retries = 5) => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
+    await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
     logger.info("MongoDB Connected");
   } catch (error) {
-    logger.error("MongoDB Connection Error:", error);
-    process.exit(1);
+    logger.error(`MongoDB Connection Error: ${error.message}`);
+    if (retries > 0) {
+      logger.warn(`Retrying MongoDB connection (${retries} retries left)...`);
+      setTimeout(() => connectDB(retries - 1), 5000); // Retry after 5 seconds
+    } else {
+      process.exit(1);
+    }
   }
 };
-
-// Add connection event handlers
-mongoose.connection.on('error', err => {
-  logger.error('MongoDB connection error:', err);
-});
-
-mongoose.connection.on('disconnected', () => {
-  logger.warn('MongoDB disconnected');
-});
-
 connectDB();
 
-// Add this before the routes are mounted
-app.use('/api/attendance/export-all-sessions', express.json({ limit: '50mb' }));
-app.use('/api/attendance/export-all-sessions', express.urlencoded({ limit: '50mb', extended: true }));
+// Add connection event handlers for debugging
+mongoose.connection.on("error", (err) => {
+  logger.error("MongoDB connection error:", err);
+});
+mongoose.connection.on("disconnected", () => {
+  logger.warn("MongoDB disconnected");
+});
 
-// Register all routes from index.js
-app.use('/api', routes);  // This handles all routes with /api prefix
+// Register all API routes
+app.use("/api", routes);
 
+// Root API route
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-// Example protected route for 401
+// Protected and Admin routes for testing
 app.use("/api/protected", (req, res) => {
   res.status(401).json({
     success: false,
     message: "Unauthorized. Please log in.",
   });
 });
-
-// 403: Forbidden access
 app.use("/api/admin", (req, res) => {
   res.status(403).json({
     success: false,
@@ -151,13 +128,9 @@ app.use("/api/admin", (req, res) => {
   });
 });
 
-// IMPORTANT: Modify the route handler for 405 errors
-// Only apply to routes that aren't registered
-const registeredRoutes = express.Router();
-
-// Now apply the 405 handler ONLY to paths that weren't matched by any route
+// Middleware to handle 405 Method Not Allowed
 app.use((req, res, next) => {
-  if (!req.route) {
+  if (!req.route && !routes.stack.some(r => r.route && r.route.path === req.path)) {
     return res.status(405).json({
       success: false,
       message: `Method ${req.method} is not allowed on route ${req.path}`,
@@ -166,7 +139,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// Handle 404 Not Found
+// 404 Not Found handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
@@ -174,11 +147,8 @@ app.use((req, res) => {
   });
 });
 
-// Import error handler
-const errorHandler = require('./middleware/errorHandler');
-
-// Handle 500 Internal Server Error
+// Centralized error handling middleware
 app.use(errorHandler);
 
-const PORT = process.env.PORT || 5000; // Set a default port number
+const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
