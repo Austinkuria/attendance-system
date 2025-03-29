@@ -38,51 +38,34 @@ if (!fs.existsSync(publicAssetsDir)) {
 app.use(express.json({ limit: "10mb" }));
 app.use(helmet());
 
-// Load allowed CORS origins from environment variables
-const allowedOrigins = process.env.ALLOWED_ORIGINS
-  ? process.env.ALLOWED_ORIGINS.split(",")
-  : [
-      "https://attendance-system123.vercel.app",
-      "http://localhost:5173",
-      "https://attendance-system-w70n.onrender.com",
-       /\.vercel\.app$/,
-    ];
-
-// CORS middleware with dynamic origin validation
+// ✅ Allow all CORS requests
 app.use(cors({
-  origin: (origin, callback) => {
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      logger.warn(`Blocked CORS request from origin: ${origin}`);
-      return callback(null, false); // Instead of throwing an error
-    }
-  },
+  origin: "*", // Fully open CORS
   credentials: true,
   methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
   allowedHeaders: ["Content-Type", "Authorization"],
 }));
 
-// Ensure OPTIONS requests are handled correctly (for CORS preflight)
+// Handle CORS preflight requests
 app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
+  res.header("Access-Control-Allow-Origin", "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
   res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   res.header("Access-Control-Allow-Credentials", "true");
 
   if (req.method === "OPTIONS") {
-    return res.sendStatus(204); // No Content for preflight
+    return res.sendStatus(204);
   }
   next();
 });
 
-// Morgan HTTP logging integrated with Winston logger
+// HTTP request logging
 app.use(morgan("combined", { stream: logger.stream }));
 
 // Serve static assets
 app.use("/assets", express.static(path.join(__dirname, "public/assets")));
 
-// MongoDB Connection with Retry Logic
+// ✅ MongoDB Connection with Retry Logic
 const connectDB = async (retries = 5) => {
   try {
     await mongoose.connect(process.env.MONGO_URI);
@@ -99,7 +82,7 @@ const connectDB = async (retries = 5) => {
 };
 connectDB();
 
-// Add connection event handlers for debugging
+// Handle MongoDB connection events
 mongoose.connection.on("error", (err) => {
   logger.error("MongoDB connection error:", err);
 });
@@ -129,9 +112,9 @@ app.use("/api/admin", (req, res) => {
   });
 });
 
-// Middleware to handle 405 Method Not Allowed
-app.use((req, res, next) => {
-  return res.status(405).json({
+// Handle unsupported methods (405)
+app.use((req, res) => {
+  res.status(405).json({
     success: false,
     message: `Method ${req.method} is not allowed on ${req.originalUrl}`,
   });
@@ -148,7 +131,7 @@ app.use((req, res) => {
 // Centralized error handling middleware
 app.use(errorHandler);
 
-// Graceful exit on fatal errors
+// ✅ Graceful exit on fatal errors
 process.on("uncaughtException", (err) => {
   logger.error("Uncaught Exception:", err);
   process.exit(1);
