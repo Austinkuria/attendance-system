@@ -2,7 +2,7 @@ import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../services/api';
 import { Layout, Card, Typography, Button, Form, Input, message, Spin, Space, Breadcrumb } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined, SettingOutlined } from '@ant-design/icons';
+import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { ThemeContext } from '../../context/ThemeContext';
 
