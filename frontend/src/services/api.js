@@ -1575,16 +1575,42 @@ export const submitSystemFeedback = async (feedbackData) => {
 // Get user's system feedback history
 export const getUserSystemFeedback = async () => {
   try {
-    // Use the api instance with interceptors for better error handling
-    const response = await api.get('/system-feedback/user');
+    // Add retry logic for more reliable fetching
+    let attempts = 0;
+    const maxAttempts = 3;
 
-    // Log the response for debugging
-    console.log('User feedback response:', response.data);
+    while (attempts < maxAttempts) {
+      attempts++;
+      try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('No token found when fetching user feedback');
+          return [];
+        }
 
-    return response.data || [];
+        // Use direct axios call with detailed debugging
+        console.log(`Attempt ${attempts}: Fetching user system feedback`);
+
+        const response = await axios.get(`${API_URL}/system-feedback/user`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Cache-Control': 'no-cache' // Prevent caching
+          }
+        });
+
+        console.log('User feedback response:', response.data);
+        return Array.isArray(response.data) ? response.data : [];
+      } catch (error) {
+        if (attempts >= maxAttempts) throw error;
+        console.warn(`Attempt ${attempts} failed, retrying...`, error);
+        // Wait before retry with exponential backoff
+        await new Promise(r => setTimeout(r, 1000 * attempts));
+      }
+    }
+
+    return []; // Fallback empty array
   } catch (error) {
     console.error('Error fetching user system feedback:', error);
-    // Return empty array on error to prevent UI crashes
     return [];
   }
 };

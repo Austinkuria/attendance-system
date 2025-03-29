@@ -1,6 +1,7 @@
 const SystemFeedback = require('../models/SystemFeedback');
 const User = require('../models/User');
 const logger = require('../utils/logger');
+const mongoose = require('mongoose');
 
 // Submit system feedback
 exports.submitFeedback = async (req, res) => {
@@ -96,12 +97,33 @@ exports.getUserFeedback = async (req, res) => {
       });
     }
 
-    logger.debug(`Fetching system feedback for user: ${userId}`);
+    logger.info(`Fetching system feedback for user: ${userId}`);
 
-    const feedback = await SystemFeedback.find({ userId })
+    // Convert string ID to ObjectId if needed
+    const mongoUserId = mongoose.Types.ObjectId.isValid(userId) ?
+      new mongoose.Types.ObjectId(userId) : userId;
+
+    // Debug existing records to verify the ID format in database
+    const allRecords = await SystemFeedback.find({}).select('userId');
+    logger.debug(`All system feedback records: ${JSON.stringify(allRecords.map(r => r.userId))}`);
+
+    const feedback = await SystemFeedback.find({ userId: mongoUserId })
       .sort({ createdAt: -1 });
 
     logger.info(`Found ${feedback.length} system feedback items for user ${userId}`);
+
+    // If no results, try a different query format for troubleshooting
+    if (feedback.length === 0) {
+      logger.debug(`No feedback found with userId: ${userId}. Trying string comparison...`);
+
+      // Find all feedback where userId's string representation matches
+      const feedbackByString = await SystemFeedback.find().where('userId').equals(userId.toString());
+
+      if (feedbackByString.length > 0) {
+        logger.info(`Found ${feedbackByString.length} feedback items by string ID comparison`);
+        return res.status(200).json(feedbackByString);
+      }
+    }
 
     return res.status(200).json(feedback);
   } catch (error) {
