@@ -14,6 +14,7 @@ import {
   TeamOutlined,
   LineChartOutlined,
   FormOutlined,
+  CommentOutlined,
 } from '@ant-design/icons';
 import {
   Layout,
@@ -277,6 +278,7 @@ const AdminPanel = () => {
     { key: '4', icon: <LineChartOutlined />, label: 'Analytics', onClick: () => window.location.href = '/admin/analytics' },
     { key: '5', icon: <FormOutlined />, label: 'View Feedbacks', onClick: () => window.location.href = '/admin/feedback' },
     { key: '6', icon: <CheckCircleOutlined />, label: 'Attendance', onClick: () => document.getElementById('attendance-overview').scrollIntoView({ behavior: 'smooth' }) },
+    { key: '7', icon: <CommentOutlined />, label: 'System Feedback', onClick: () => window.location.href = '/admin/system-feedback' },
   ];
 
   const profileItems = [

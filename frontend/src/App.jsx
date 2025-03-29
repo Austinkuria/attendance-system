@@ -38,6 +38,7 @@ import LecturerFeedbackView from './pages/FeedbackPages/LecturerFeedbackView';
 import PastAttendance from './pages/dashboards/PastAttendance';
 import { ThemeProvider } from './context/ThemeContext';
 import { ThemeAwareToasts } from './components/ThemeAwareToasts';
+import SystemFeedbackList from './pages/admin/SystemFeedbackList';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -157,6 +158,11 @@ function App() {
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
             <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
+            <Route path="/admin/system-feedback" element={
+              <ProtectedRoute role="admin">
+                <SystemFeedbackList />
+              </ProtectedRoute>
+            } />
             <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
           </Routes>
         </div>

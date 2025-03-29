@@ -1556,4 +1556,43 @@ export const getLecturerPastAttendance = async (date = null) => {
   }
 };
 
+// System Feedback API calls
+export const submitSystemFeedback = async (feedbackData) => {
+  const token = localStorage.getItem('token');
+  const response = await axios.post(
+    'https://attendance-system-w70n.onrender.com/api/system-feedback/submit',
+    feedbackData,
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const getUserSystemFeedback = async () => {
+  const token = localStorage.getItem('token');
+  const response = await axios.get(
+    'https://attendance-system-w70n.onrender.com/api/system-feedback/user',
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const getAllSystemFeedback = async () => {
+  const token = localStorage.getItem('token');
+  const response = await axios.get(
+    'https://attendance-system-w70n.onrender.com/api/system-feedback/all',
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
+export const updateSystemFeedbackStatus = async (feedbackId, status) => {
+  const token = localStorage.getItem('token');
+  const response = await axios.put(
+    `https://attendance-system-w70n.onrender.com/api/system-feedback/${feedbackId}/status`,
+    { status },
+    { headers: { Authorization: `Bearer ${token}` } }
+  );
+  return response.data;
+};
+
 export default api;

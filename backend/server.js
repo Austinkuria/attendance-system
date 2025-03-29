@@ -5,6 +5,16 @@ const cors = require("cors");
 const morgan = require("morgan");
 const helmet = require("helmet");
 const routes = require("./routes/index");  // Import the combined routes
+const authRoutes = require("./routes/auth.routes");
+const userRoutes = require("./routes/user.routes");
+const unitRoutes = require("./routes/unit.routes");
+const courseRoutes = require("./routes/course.routes");
+const departmentRoutes = require("./routes/department.routes");
+const sessionRoutes = require("./routes/session.routes");
+const attendanceRoutes = require("./routes/attendance.routes");
+const feedbackRoutes = require("./routes/feedback.routes");
+const systemFeedbackRoutes = require('./routes/systemFeedback.routes');
+
 dotenv.config();
 const app = express();
 
@@ -120,11 +130,9 @@ app.use('/api/attendance/export-all-sessions', express.urlencoded({ limit: '50mb
 // Register all routes from index.js
 app.use('/api', routes);  // This handles all routes with /api prefix
 
-
 app.get("/", (req, res) => {
   res.send("API is running...");
 });
-
 
 // Example protected route for 401
 app.use("/api/protected", (req, res) => {
@@ -133,7 +141,6 @@ app.use("/api/protected", (req, res) => {
     message: "Unauthorized. Please log in.",
   });
 });
-
 
 // 403: Forbidden access
 app.use("/api/admin", (req, res) => {

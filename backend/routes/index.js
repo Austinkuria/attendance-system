@@ -16,6 +16,7 @@ const { createDepartment, getDepartments } = require("../controllers/departmentC
 const { createCourse, getCoursesByDepartment, getCoursesByDepartmentById } = require("../controllers/courseController");
 const { createUser, bulkUploadStudents } = require("../controllers/adminController");
 const { apiLimiter, sensitiveLimiter, authLimiter } = require('../middleware/rateLimiter');
+const systemFeedbackRoutes = require('./systemFeedback.routes');
 
 console.log('Loading main routes...');
 console.log('Attendance Routes:', attendanceRoutes);
@@ -64,4 +65,5 @@ router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLe
 router.post("/auth/reset-password", sensitiveLimiter, sendResetLink);
 router.put("/auth/reset-password/:token", resetPassword); // Note: You have this line twice; remove one
 
+router.use("/system-feedback", systemFeedbackRoutes);
 module.exports = router;
