@@ -29,6 +29,7 @@ import AttendanceManagement from '../../components/AttendanceManagement';
 import { ThemeContext } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
 import ThemeToggle from '../../components/ThemeToggle';
+import SystemFeedbackButton from '../../components/SystemFeedback/SystemFeedbackButton';
 
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
@@ -759,6 +760,9 @@ const LecturerDashboard = () => {
           </Spin>
         </Content>
       </Layout>
+
+      {/* Add feedback button */}
+      <SystemFeedbackButton />
     </Layout>
   );
 };

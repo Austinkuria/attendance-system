@@ -35,6 +35,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { motion } from 'framer-motion';
 import { getStudents, getLecturers, getCourses, getCourseAttendanceRate } from '../../services/api';
 import BackToTop from '../../components/BackToTop';
+import SystemFeedbackButton from '../../components/SystemFeedback/SystemFeedbackButton';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, ArcElement);
 
@@ -609,6 +610,8 @@ const AdminPanel = () => {
           </Spin>
         </Content>
       </Layout>
+
+      <SystemFeedbackButton />
     </Layout>
   );
 
