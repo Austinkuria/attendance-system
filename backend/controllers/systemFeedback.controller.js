@@ -99,11 +99,18 @@ exports.getUserFeedback = async (req, res) => {
   }
 };
 
-// Update feedback status (for admins)
+// Update feedback status (for admins) - ensure this name matches what's used in routes
 exports.updateFeedbackStatus = async (req, res) => {
   try {
     const { id } = req.params;
     const { status } = req.body;
+
+    if (!status) {
+      return res.status(400).json({
+        success: false,
+        message: 'Status field is required'
+      });
+    }
 
     const feedback = await SystemFeedback.findByIdAndUpdate(
       id,
@@ -124,7 +131,7 @@ exports.updateFeedbackStatus = async (req, res) => {
       data: feedback
     });
   } catch (error) {
-    console.error('Error updating feedback status:', error);
+    logger.error('Error updating feedback status:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to update feedback status',

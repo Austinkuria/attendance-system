@@ -4,12 +4,12 @@ const systemFeedbackController = require('../controllers/systemFeedback.controll
 // Use the correct middleware that's actually defined in your project
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Debug message to confirm this file is being loaded
-console.log('Loading system feedback routes...');
+// Remove excessive debug logging that may hide errors in production
+const logger = require('../utils/logger');
+logger.info('Loading system feedback routes...');
 
 // Root POST endpoint - NO PATH needed here, since we're mounting at /system-feedback
 router.post('/', systemFeedbackController.submitFeedback);
-console.log('POST / route registered for system feedback');
 
 // Get all feedback - admin only
 router.get('/all', systemFeedbackController.getAllFeedback);
@@ -17,8 +17,9 @@ router.get('/all', systemFeedbackController.getAllFeedback);
 // Get user's feedback
 router.get('/user', systemFeedbackController.getUserFeedback);
 
-// Update feedback status - admin only 
-router.put('/:id/status', systemFeedbackController.updateSystemFeedbackStatus);
+// Update feedback status - admin only
+// This was the issue - using updateSystemFeedbackStatus instead of updateFeedbackStatus 
+router.put('/:id/status', systemFeedbackController.updateFeedbackStatus);
 
 // Delete feedback - admin only
 router.delete('/:id', systemFeedbackController.deleteFeedback);
