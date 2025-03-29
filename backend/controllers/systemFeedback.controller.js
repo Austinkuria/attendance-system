@@ -1,5 +1,6 @@
 const SystemFeedback = require('../models/SystemFeedback');
 const User = require('../models/User');
+const logger = require('../utils/logger');
 
 // Submit system feedback
 exports.submitFeedback = async (req, res) => {
@@ -84,13 +85,27 @@ exports.getAllFeedback = async (req, res) => {
 // Get feedback for a specific user
 exports.getUserFeedback = async (req, res) => {
   try {
-    const userId = req.user.id;
+    // Get user ID properly from auth middleware - handle both possible formats
+    const userId = req.user.userId || req.user.id;
+
+    if (!userId) {
+      logger.warn('User ID missing in request');
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated or user ID missing'
+      });
+    }
+
+    logger.debug(`Fetching system feedback for user: ${userId}`);
+
     const feedback = await SystemFeedback.find({ userId })
       .sort({ createdAt: -1 });
 
+    logger.info(`Found ${feedback.length} system feedback items for user ${userId}`);
+
     return res.status(200).json(feedback);
   } catch (error) {
-    console.error('Error fetching user system feedback:', error);
+    logger.error('Error fetching user system feedback:', error);
     return res.status(500).json({
       success: false,
       message: 'Failed to fetch user feedback',

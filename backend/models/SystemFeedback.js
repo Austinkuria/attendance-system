@@ -5,7 +5,8 @@ const systemFeedbackSchema = new mongoose.Schema(
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: 'User',
-      required: true
+      required: true,
+      index: true // Add index for better query performance
     },
     userRole: {
       type: String,
@@ -44,7 +45,17 @@ const systemFeedbackSchema = new mongoose.Schema(
       type: String // URL or Base64 encoded image
     }
   },
-  { timestamps: true }
+  {
+    timestamps: true,
+    // Add toJSON transform to make the response cleaner
+    toJSON: {
+      transform: (doc, ret) => {
+        ret.id = ret._id;
+        delete ret.__v;
+        return ret;
+      }
+    }
+  }
 );
 
 const SystemFeedback = mongoose.model('SystemFeedback', systemFeedbackSchema);

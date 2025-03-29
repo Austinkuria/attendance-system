@@ -1575,11 +1575,17 @@ export const submitSystemFeedback = async (feedbackData) => {
 // Get user's system feedback history
 export const getUserSystemFeedback = async () => {
   try {
+    // Use the api instance with interceptors for better error handling
     const response = await api.get('/system-feedback/user');
-    return response.data;
+
+    // Log the response for debugging
+    console.log('User feedback response:', response.data);
+
+    return response.data || [];
   } catch (error) {
     console.error('Error fetching user system feedback:', error);
-    throw error;
+    // Return empty array on error to prevent UI crashes
+    return [];
   }
 };
 
