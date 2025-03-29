@@ -1,5 +1,6 @@
 import { useState, useEffect, useContext } from 'react';
-import { Drawer, List, Tag, Typography, Badge, Spin, Empty, Tooltip, Button } from 'antd';
+// Remove the unused Badge import
+import { Drawer, List, Tag, Typography, Spin, Empty, Tooltip, Button } from 'antd';
 import { SyncOutlined } from '@ant-design/icons';
 import { getUserSystemFeedback } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';

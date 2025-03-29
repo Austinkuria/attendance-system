@@ -39,8 +39,6 @@ import PastAttendance from './pages/dashboards/PastAttendance';
 import { ThemeProvider } from './context/ThemeContext';
 import { ThemeAwareToasts } from './components/ThemeAwareToasts';
 import SystemFeedbackList from './pages/admin/SystemFeedbackList';
-import MainLayout from './components/Layout/MainLayout';
-import SystemFeedbackButton from './components/SystemFeedback/SystemFeedbackButton';
 
 function App() {
   const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -93,9 +91,6 @@ function App() {
         />
         <InstallButton />
         <ThemeAwareToasts />
-
-        {/* Add the floating feedback button that will appear on all pages */}
-        <SystemFeedbackButton />
 
         {showBanner && (
           <div
