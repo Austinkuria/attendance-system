@@ -1,7 +1,8 @@
 import { useState, useContext } from 'react';
-import { Button, Modal } from 'antd';
-import { CommentOutlined } from '@ant-design/icons';
+import { Button, Modal, Dropdown } from 'antd';
+import { CommentOutlined, PlusOutlined, HistoryOutlined } from '@ant-design/icons';
 import SystemFeedbackForm from './SystemFeedbackForm';
+import SystemFeedbackHistoryDrawer from './SystemFeedbackHistoryDrawer';
 import { ThemeContext } from '../../context/ThemeContext';
 import { css } from '@emotion/css';
 
@@ -49,6 +50,7 @@ const SystemFeedbackButton = () => {
     const { themeColors } = useContext(ThemeContext);
     const styles = useStyles(themeColors);
     const [isModalVisible, setIsModalVisible] = useState(false);
+    const [isDrawerVisible, setIsDrawerVisible] = useState(false);
 
     const showModal = () => {
         setIsModalVisible(true);
@@ -58,12 +60,39 @@ const SystemFeedbackButton = () => {
         setIsModalVisible(false);
     };
 
+    const showHistoryDrawer = () => {
+        setIsDrawerVisible(true);
+    };
+
+    const closeHistoryDrawer = () => {
+        setIsDrawerVisible(false);
+    };
+
+    // Add dropdown menu items
+    const items = [
+        {
+            key: '1',
+            label: 'Submit Feedback',
+            icon: <PlusOutlined />,
+            onClick: showModal
+        },
+        {
+            key: '2',
+            label: 'View My Feedback',
+            icon: <HistoryOutlined />,
+            onClick: showHistoryDrawer
+        }
+    ];
+
     return (
         <>
-            <Button className={styles.feedbackButton} onClick={showModal}>
-                <CommentOutlined className={styles.icon} />
-                Feedback
-            </Button>
+            <Dropdown menu={{ items }} placement="topRight" trigger={['click']}>
+                <Button className={styles.feedbackButton}>
+                    <CommentOutlined className={styles.icon} />
+                    Feedback
+                </Button>
+            </Dropdown>
+
             <Modal
                 title="System Feedback"
                 open={isModalVisible}
@@ -75,6 +104,11 @@ const SystemFeedbackButton = () => {
             >
                 <SystemFeedbackForm onClose={handleClose} />
             </Modal>
+
+            <SystemFeedbackHistoryDrawer
+                visible={isDrawerVisible}
+                onClose={closeHistoryDrawer}
+            />
         </>
     );
 };
