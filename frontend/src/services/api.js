@@ -1,10 +1,10 @@
 import axios from "axios";
 import { openDB } from 'idb';
 
-// Use environment variable for base URL, with fallback
-const API_URL = import.meta.env.VITE_API_URL || "https://attendance-system-w70n.onrender.com/api";
+// Export API_URL for use in other files
+export const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
-// Add a timeout to axios instance
+// Use environment variable for base URL, with fallback
 const api = axios.create({
   baseURL: API_URL, // Use baseURL instead of API_URL as a property
   timeout: 15000, // 15 second timeout
@@ -902,6 +902,13 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
         errorResult.code = "DEVICE_CONFLICT";
         errorResult.message = "This device has already been used by another student. Please use your own device.";
       }
+      
+      // Handle unauthorized or token expired errors
+      if (error.response.status === 401) {
+        // Clear localStorage and redirect to login on token expiration
+        localStorage.clear();
+        window.location.href = '/auth/login';
+      }
     } else if (error.code === 'ECONNABORTED') {
       // Timeout error
       errorResult.message = "Request timed out. The server might be under heavy load.";
@@ -927,9 +934,24 @@ export const regenerateQR = async (sessionId, token) => {
       { sessionId, autoRotate: true },
       { headers: { Authorization: `Bearer ${token}` } }
     );
+    
     return response.data;
   } catch (error) {
-    throw error.response ? error.response.data : new Error(error.message || "Network error");
+    console.error("Error regenerating QR:", error);
+    throw error;
+  }
+};
+
+// Add a function to validate user session
+export const validateUserSession = async (token) => {
+  try {
+    const response = await axios.get(`${API_URL}/auth/validate-session`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error("Session validation error:", error);
+    throw error;
   }
 };
 

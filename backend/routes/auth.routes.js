@@ -1,12 +1,23 @@
 const express = require('express');
 const router = express.Router();
 const { login, signup, sendResetLink, resetPassword } = require('../controllers/userController');
-const { loginLimiter,  signupLimiter,sendResetLinkLimiter,resetPasswordLimiter } = require('../middleware/rateLimiter');
+const authMiddleware = require('../middleware/authMiddleware');
+const authController = require('../controllers/authController');
+const { apiLimiter, loginLimiter, signupLimiter, sendResetLinkLimiter, resetPasswordLimiter } = require('../middleware/rateLimiter');
 
-// Apply rate limiter to login route
+// Apply rate limiters to auth routes
 router.post('/login', loginLimiter, login);
 router.post('/signup', signupLimiter, signup);
-router.post('/send-reset-link', sendResetLinkLimiter, sendResetLink);
-router.post('/reset-password', resetPasswordLimiter, resetPassword);
+router.post('/reset-password', sendResetLinkLimiter, sendResetLink);
+router.put('/reset-password/:token', resetPasswordLimiter, resetPassword);
+
+// Add validate session route
+router.get('/validate-session', authMiddleware, authController.validateSession);
+
+// Add refresh token route
+router.post('/refresh', apiLimiter, authController.refreshToken);
+
+// Add logout route
+router.post('/logout', authController.logout);
 
 module.exports = router;
