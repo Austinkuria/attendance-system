@@ -158,11 +158,14 @@ function App() {
             <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
             <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
             <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
-            <Route path="/admin/system-feedback" element={
-              <ProtectedRoute role="admin">
-                <SystemFeedbackList />
-              </ProtectedRoute>
-            } />
+            <Route
+              path="/admin/system-feedback"
+              element={
+                <ProtectedRoute role="admin">
+                  <SystemFeedbackList />
+                </ProtectedRoute>
+              }
+            />
             <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
           </Routes>
         </div>
