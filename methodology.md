@@ -43,49 +43,55 @@ Phase 3: Development
 •	Proxy prevention will verify QR data against active sessions, rejecting expired or invalid codes with Ant Design alerts (e.g., "QR code expired"). Device fingerprints will be collected on scan, compared to prior records to flag conflicts (e.g., same device marking multiple users).
 
 2. Attendance Management: 
-•	Scanned data will sync in real-time with MongoDB via Express.js APIs, ensuring accurate and up-to-date records across stakeholders. Real-time updates will refresh dashboards with polling or WebSocket connections. Scans will trigger API calls to Render, validating JWT, session status, and fingerprint uniqueness before updating MongoDB with present status. Already-marked attendance or device conflicts will trigger errors (e.g., "Attendance already recorded").
-•	Logic will be coded to classify attendance as "present" or "absent" based on successful QR code scans within the session's active timeframe, with error handling for expired sessions. Edge cases (e.g., duplicate scans) will trigger error logs via Winston and user notifications.
+•	Scanned data will sync with MongoDB via Express.js APIs, ensuring accurate and up-to-date records across stakeholders. Updates will refresh dashboards using polling mechanisms. Scans will trigger API calls to Render, validating JWT, session status, and fingerprint uniqueness before updating MongoDB with present status. Already-marked attendance or device conflicts will trigger errors (e.g., "Attendance already recorded").
+•	Logic will be coded to classify attendance as "present" or "absent" based on successful QR code scans within the session's active timeframe, with error handling for expired sessions. Edge cases (e.g., duplicate scans) will trigger appropriate error messages to the user.
 
 2. Feedback System:
 •	A feedback module will be developed using Ant Design's Form, Input, and Rate components, enabling students to submit 1–5 star ratings, pace ratings, clarity assessments, and comments post-session. Data will save to a feedback collection ({ sessionId, studentId, unit, course, rating, feedbackText, pace, interactivity, clarity, resources, anonymous }), with validation ensuring only attendees submit (checked via attendance status) and lecturers will view trends via Chart.js visualizations (e.g., average ratings per session).
 
 3. Implement Modular Backend: 
-•	Express.js middleware (e.g., Helmet, CORS) will secure APIs, while JWT will validate user identities and prevent unauthorized access. Error logging with Winston will track issues like failed scans or authentication attempts.
+•	Express.js middleware (e.g., CORS) will secure APIs, while JWT will validate user identities and prevent unauthorized access. Standard error handling will track issues like failed scans or authentication attempts.
 •	MongoDB will store session schedules and attendance records, with Mongoose ensuring data consistency and validation.
 
 4. Frontend Development: 
 •	Dynamic React components will be built for stakeholder dashboards (student, lecturer and admin portals), using Ant Design for a polished UI and Chart.js for analytics visualization and styled with Ant Design and themed via a ThemeContext with light/dark mode support.
-•	Offline mode will cache assets with service workers (via VitePWA) and store offline data in browser local storage, syncing via a queue system when online, with Axios retry logic for failed requests.
+•	Basic offline capabilities will be implemented primarily using localStorage for data persistence, with simple browser caching for assets, and basic polling for data refresh when connectivity is restored.
 
 Phase 4: Testing
-1. Unit Testing: 
-Individual components and modules will be tested using Jest and Enzyme for frontend, and Mocha and Chai for backend. Mock data will simulate various scenarios (e.g., valid/invalid QR codes, different user roles) to ensure robustness. Test coverage tools (e.g., Istanbul) will track code coverage, aiming for at least 80% coverage across the codebase.
+1. Manual Testing: 
+Individual components and modules will be tested manually to ensure they function as expected. Various scenarios will be simulated (e.g., valid/invalid QR codes, different user roles) to verify robustness. Test cases will be documented to ensure comprehensive coverage of critical functionality.
 
 2. Integration Testing: 
-End-to-end flows will be simulated: a QR scan will trigger an API call, update MongoDB, and refresh dashboards, tested with Vitest for frontend interactions and Mocha for backend responses. Offline sync will be validated by toggling network states, ensuring browser local storage data merges correctly with MongoDB. Mock servers (e.g., MSW for frontend) will mimic backend behavior.
+End-to-end flows will be manually verified: a QR scan will trigger an API call, update MongoDB, and refresh dashboards. Offline capabilities will be validated by toggling network states, ensuring browser local storage data synchronizes correctly with MongoDB when connectivity is restored.
 
 3. User Acceptance Testing (UAT): 
 Stakeholders will participate in UAT sessions, using the system in real-world scenarios to identify usability issues and validate requirements. Feedback will be collected via surveys and interviews, with critical issues addressed before deployment. UAT will ensure the system meets user expectations and performs reliably in a live environment.
 
 Phase 5: Deployment 
 1. Deployment Planning: 
-A detailed deployment plan will be created, outlining steps for server setup, database migration, and application deployment. Rollback procedures will be defined to handle potential issues during deployment. The plan will include a timeline, resource allocation, and communication strategy to ensure a smooth transition to the live environment.
+A deployment plan will be created, outlining steps for server setup, database configuration, and application deployment. The plan will include a timeline and resource allocation to ensure a smooth transition to the live environment.
 
-2. Continuous Deployment: 
-The system will be deployed using a CI/CD pipeline, automating the build, test, and deployment processes. Tools like GitHub Actions, Docker, and Kubernetes will be used to manage the pipeline, ensuring consistent and reliable deployments. Monitoring tools (e.g., Prometheus, Grafana) will track system performance and alert on issues.
+2. Deployment Strategy: 
+The system will utilize a GitHub-based deployment workflow where:
+- Frontend will be deployed on Vercel, which automatically builds and deploys when changes are pushed to the repository
+- Backend will be deployed on Render.com, configured to deploy when updates are detected in the GitHub repository
+- MongoDB Atlas will serve as the database provider
+- GitHub's security scanning will help identify potential vulnerabilities in the codebase
+- Environment variables will manage configuration across different deployment environments
+- This approach creates a basic CI/CD pipeline where code pushes trigger automated security checks and deployments
 
 Phase 6: Maintenance 
 1. Ongoing Support: 
-A support plan will be established, including a helpdesk for user inquiries and a ticketing system for issue tracking. Regular updates and patches will be released to address bugs, security vulnerabilities, and feature enhancements. User feedback will be continuously collected to guide future improvements.
+Regular updates and patches will be released to address bugs, security vulnerabilities, and feature enhancements. User feedback will be continuously collected to guide future improvements.
 
 2. Performance Monitoring: 
-System performance will be monitored using tools like New Relic and Datadog, tracking metrics such as response times, error rates, and resource usage. Alerts will be configured to notify the development team of any performance issues, ensuring timely resolution. Regular performance reviews will identify areas for optimization and scaling.
+Basic system performance will be monitored through manual checks and standard logging practices. Regular performance reviews will identify areas for optimization.
 
 3. Security Management: 
-Security will be a priority throughout the system's lifecycle. Regular security audits will be conducted to identify and address vulnerabilities. Best practices for data protection, access control, and incident response will be followed. Security updates will be applied promptly to protect against emerging threats.
+Security will be a priority throughout the system's lifecycle. Best practices for data protection, access control, and input validation will be followed. Security updates will be applied promptly to protect against threats.
 
 4. User Training: 
-Training sessions will be conducted for stakeholders to ensure they are familiar with the system's features and functionality. Training materials, including user manuals and video tutorials, will be provided to support ongoing learning. Regular training updates will be offered as new features are introduced.
+Training materials, including user guides, will be provided to support users. Basic documentation will help users understand system functionality.
 
 5. Documentation: 
-Comprehensive documentation will be maintained, covering system architecture, design decisions, and implementation details. User guides and API documentation will be provided to support developers and end-users. Documentation will be regularly updated to reflect changes and new features.
+System documentation will be maintained, covering system architecture, design decisions, and implementation details. User guides and API documentation will be provided to support developers and end-users.

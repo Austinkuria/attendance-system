@@ -27,6 +27,7 @@ QRollCall is a comprehensive web-based attendance tracking application designed 
 ### Core Features
 - **QR Code-based Attendance**: Generate and scan QR codes for quick attendance marking
 - **Real-time Tracking**: Monitor attendance in real-time with instant updates
+- **Auto Refresh Capability**: Automatically refresh data without manual intervention
 - **Role-based Access Control**: Different interfaces for students, lecturers, and administrators
 - **Analytics Dashboard**: Comprehensive attendance statistics and reports
 - **Feedback System**: Collect and analyze student feedback after sessions
@@ -309,4 +310,3 @@ The system implements several security measures:
 
 This project is licensed under the MIT License - see the [LICENSE]
 (https://github.com/Austinkuria/attendance-system/LICENSE) file for details
-````
