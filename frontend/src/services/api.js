@@ -902,7 +902,7 @@ export const markAttendance = async (sessionId, studentId, token, deviceId, qrTo
         errorResult.code = "DEVICE_CONFLICT";
         errorResult.message = "This device has already been used by another student. Please use your own device.";
       }
-      
+
       // Handle unauthorized or token expired errors
       if (error.response.status === 401) {
         // Clear localStorage and redirect to login on token expiration
@@ -934,7 +934,7 @@ export const regenerateQR = async (sessionId, token) => {
       { sessionId, autoRotate: true },
       { headers: { Authorization: `Bearer ${token}` } }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error("Error regenerating QR:", error);
