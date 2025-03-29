@@ -17,6 +17,7 @@ import StudentProfile from './pages/profiles/StudentProfile';
 import 'bootstrap/dist/css/bootstrap.min.css';
 import Analytics from './pages/dashboards/Analytics';
 import ProtectedRoute from './components/ProtectedRoute';
+import RoleGuard from './components/RoleGuard';
 import QRScanner from './components/QRScanner';
 import NotFound from './pages/ErrorPages/NotFound';
 import Forbidden from './pages/ErrorPages/Forbidden';
@@ -144,33 +145,42 @@ function App() {
             <Route path="/500" element={<ServerError />} />
             <Route path="/405" element={<MethodNotAllowed />} />
             <Route path="*" element={<NotFound />} />
-            <Route path="/lecturer-dashboard" element={<ProtectedRoute><LecturerDashboard /></ProtectedRoute>} />
-            <Route path="/lecturer/profile" element={<ProtectedRoute><LecturerProfile /></ProtectedRoute>} />
-            <Route path="/lecturer/settings" element={<ProtectedRoute><LecturerSettings /></ProtectedRoute>} />
-            <Route path="/lecturer/feedback" element={<ProtectedRoute><LecturerFeedbackView /></ProtectedRoute>} />
-            <Route path="/lecturer/analytics" element={<ProtectedRoute><Analytics /></ProtectedRoute>} />
-            <Route path="/lecturer/past-attendance" element={<ProtectedRoute><PastAttendance /></ProtectedRoute>} />
-            <Route path="/admin" element={<ProtectedRoute><AdminPanel /></ProtectedRoute>} />
-            <Route path="/admin/settings" element={<ProtectedRoute><AdminSettings /></ProtectedRoute>} />
-            <Route path="/student-dashboard" element={<ProtectedRoute><StudentDashboard /></ProtectedRoute>} />
-            <Route path="/student/profile" element={<ProtectedRoute><StudentProfile /></ProtectedRoute>} />
-            <Route path="/student/attendance-trends" element={<ProtectedRoute><AttendanceTrends /></ProtectedRoute>} />
-            <Route path="/student/settings" element={<ProtectedRoute><StudentSettings /></ProtectedRoute>} />
-            <Route path="/admin/manage-students" element={<ProtectedRoute><ManageStudents /></ProtectedRoute>} />
-            <Route path="/admin/profile" element={<ProtectedRoute><AdminProfile /></ProtectedRoute>} />
-            <Route path="/admin/manage-courses" element={<ProtectedRoute><ManageCourses /></ProtectedRoute>} />
-            <Route path="/admin/analytics" element={<ProtectedRoute><AdminAnalytics /></ProtectedRoute>} />
-            <Route path="/admin/feedback" element={<ProtectedRoute><AdminFeedbackView /></ProtectedRoute>} />
-            <Route path="/admin/manage-lecturers" element={<ProtectedRoute><ManageLecturers /></ProtectedRoute>} />
-            <Route
-              path="/admin/system-feedback"
-              element={
-                <ProtectedRoute role="admin">
-                  <SystemFeedbackList />
-                </ProtectedRoute>
-              }
-            />
-            <Route path="/qr-scanner/:selectedUnit" element={<ProtectedRoute><QRScanner /></ProtectedRoute>} />
+
+            {/* Lecturer routes */}
+            <Route element={<RoleGuard allowedRoles="lecturer" redirectTo="/auth/login" />}>
+              <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
+              <Route path="/lecturer/profile" element={<LecturerProfile />} />
+              <Route path="/lecturer/settings" element={<LecturerSettings />} />
+              <Route path="/lecturer/feedback" element={<LecturerFeedbackView />} />
+              <Route path="/lecturer/analytics" element={<Analytics />} />
+              <Route path="/lecturer/past-attendance" element={<PastAttendance />} />
+            </Route>
+
+            {/* Admin routes */}
+            <Route element={<RoleGuard allowedRoles="admin" redirectTo="/auth/login" />}>
+              <Route path="/admin" element={<AdminPanel />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route path="/admin/manage-students" element={<ManageStudents />} />
+              <Route path="/admin/profile" element={<AdminProfile />} />
+              <Route path="/admin/manage-courses" element={<ManageCourses />} />
+              <Route path="/admin/analytics" element={<AdminAnalytics />} />
+              <Route path="/admin/feedback" element={<AdminFeedbackView />} />
+              <Route path="/admin/manage-lecturers" element={<ManageLecturers />} />
+              <Route path="/admin/system-feedback" element={<SystemFeedbackList />} />
+            </Route>
+
+            {/* Student routes */}
+            <Route element={<RoleGuard allowedRoles="student" redirectTo="/auth/login" />}>
+              <Route path="/student-dashboard" element={<StudentDashboard />} />
+              <Route path="/student/profile" element={<StudentProfile />} />
+              <Route path="/student/attendance-trends" element={<AttendanceTrends />} />
+              <Route path="/student/settings" element={<StudentSettings />} />
+            </Route>
+
+            {/* Routes that only need authentication but no specific role */}
+            <Route element={<ProtectedRoute />}>
+              <Route path="/qr-scanner/:selectedUnit" element={<QRScanner />} />
+            </Route>
           </Routes>
         </div>
       </Router>
