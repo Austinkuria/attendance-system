@@ -1,4 +1,3 @@
-import React from 'react';
 import SystemFeedbackButton from '../SystemFeedback/SystemFeedbackButton';
 
 /**

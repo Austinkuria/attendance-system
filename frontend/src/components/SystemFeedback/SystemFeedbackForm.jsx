@@ -114,19 +114,18 @@ const SystemFeedbackForm = ({ onClose }) => {
     const handleSubmit = async (values) => {
         try {
             setLoading(true);
-            const feedbackData = {
-                ...values,
-                screenshot: imageUrl || null
-            };
+            const response = await submitSystemFeedback({
+                title: values.title,
+                category: values.category,
+                description: values.description,
+                severity: values.severity,
+                screenshot: imageUrl // Include the image if provided
+            });
 
-            await submitSystemFeedback(feedbackData);
-
-            message.success('Your feedback has been submitted successfully!');
+            message.success('Feedback submitted successfully!');
             form.resetFields();
             setImageUrl('');
-            if (onClose) {
-                onClose();
-            }
+            if (onClose) onClose();
         } catch (error) {
             console.error('Error submitting feedback:', error);
             message.error('Failed to submit feedback. Please try again.');

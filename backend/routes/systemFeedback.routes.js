@@ -1,14 +1,21 @@
 const express = require('express');
 const router = express.Router();
 const systemFeedbackController = require('../controllers/systemFeedback.controller');
-const authMiddleware = require('../middleware/authMiddleware');
+const { protect, authorize } = require('../middleware/auth');
 
-// All routes require authentication
-router.use(authMiddleware);
+// Submit system feedback - authenticated users only
+router.post('/', protect, systemFeedbackController.submitFeedback);
 
-router.post('/submit', systemFeedbackController.submitSystemFeedback);
-router.get('/user', systemFeedbackController.getUserSystemFeedback);
-router.get('/all', systemFeedbackController.getSystemFeedback);
-router.put('/:feedbackId/status', systemFeedbackController.updateFeedbackStatus);
+// Get all feedback - admin only
+router.get('/all', protect, authorize('admin'), systemFeedbackController.getAllFeedback);
+
+// Get user's feedback
+router.get('/user', protect, systemFeedbackController.getUserFeedback);
+
+// Update feedback status - admin only
+router.put('/:id/status', protect, authorize('admin'), systemFeedbackController.updateFeedbackStatus);
+
+// Delete feedback - admin only
+router.delete('/:id', protect, authorize('admin'), systemFeedbackController.deleteFeedback);
 
 module.exports = router;

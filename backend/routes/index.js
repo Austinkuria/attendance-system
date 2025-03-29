@@ -63,7 +63,7 @@ router.post('/lecturers/upload', authenticate, authorize(['admin']), upload.sing
 router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLecturers);
 
 router.post("/auth/reset-password", sensitiveLimiter, sendResetLink);
-router.put("/auth/reset-password/:token", resetPassword); // Note: You have this line twice; remove one
+router.put("/auth/reset-password/:token", resetPassword);
 
 router.use("/system-feedback", systemFeedbackRoutes);
 module.exports = router;

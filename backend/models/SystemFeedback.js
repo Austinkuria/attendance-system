@@ -1,24 +1,52 @@
 const mongoose = require('mongoose');
 
-const SystemFeedbackSchema = new mongoose.Schema({
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+const systemFeedbackSchema = new mongoose.Schema(
+  {
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true
+    },
+    userRole: {
+      type: String,
+      enum: ['student', 'lecturer', 'admin'],
+      required: true
+    },
+    title: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100
+    },
     category: {
-        type: String,
-        required: true,
-        enum: ['Bug', 'Feature Request', 'UI Improvement', 'Performance Issue', 'Other']
+      type: String,
+      required: true,
+      enum: ['Bug', 'Feature Request', 'UI Improvement', 'Performance Issue', 'Other'],
     },
-    title: { type: String, required: true },
-    description: { type: String, required: true },
-    severity: { type: Number, min: 1, max: 5, required: true },
-    screenshot: { type: String }, // Base64 encoded image or URL
-    userRole: { type: String },
+    description: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 1000
+    },
+    severity: {
+      type: Number,
+      required: true,
+      min: 1,
+      max: 5
+    },
     status: {
-        type: String,
-        enum: ['New', 'Under Review', 'In Progress', 'Resolved', 'Closed'],
-        default: 'New'
+      type: String,
+      enum: ['New', 'Under Review', 'In Progress', 'Resolved', 'Closed'],
+      default: 'New'
     },
-    createdAt: { type: Date, default: Date.now },
-    updatedAt: { type: Date, default: Date.now }
-});
+    screenshot: {
+      type: String // URL or Base64 encoded image
+    }
+  },
+  { timestamps: true }
+);
 
-module.exports = mongoose.model('SystemFeedback', SystemFeedbackSchema);
+const SystemFeedback = mongoose.model('SystemFeedback', systemFeedbackSchema);
+
+module.exports = SystemFeedback;

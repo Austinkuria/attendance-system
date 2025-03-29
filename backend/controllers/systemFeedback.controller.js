@@ -1,136 +1,141 @@
 const SystemFeedback = require('../models/SystemFeedback');
-const logger = require('../utils/logger');
+const User = require('../models/User');
 
-exports.submitSystemFeedback = async (req, res) => {
-    try {
-        const { category, title, description, severity, screenshot } = req.body;
-        const userId = req.user.userId;
-        const userRole = req.user.role;
+// Submit system feedback
+exports.submitFeedback = async (req, res) => {
+  try {
+    const { title, category, description, severity, screenshot } = req.body;
+    const userId = req.user.id;
 
-        if (!category || !title || !description || !severity) {
-            return res.status(400).json({
-                success: false,
-                message: 'Category, title, description, and severity are required fields'
-            });
-        }
-
-        const systemFeedback = new SystemFeedback({
-            userId,
-            userRole,
-            category,
-            title,
-            description,
-            severity,
-            screenshot: screenshot || null
-        });
-
-        await systemFeedback.save();
-
-        logger.info(`System feedback submitted by user ${userId} with category ${category}`);
-
-        res.status(201).json({
-            success: true,
-            message: 'Feedback submitted successfully',
-            feedback: systemFeedback
-        });
-    } catch (error) {
-        logger.error(`Error submitting system feedback: ${error.message}`);
-        res.status(500).json({
-            success: false,
-            message: 'Error submitting feedback',
-            error: error.message
-        });
+    // Get user's role
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
     }
+
+    const userRole = user.role;
+
+    // Create new feedback
+    const feedback = new SystemFeedback({
+      userId,
+      userRole,
+      title,
+      category,
+      description,
+      severity,
+      screenshot
+    });
+
+    await feedback.save();
+
+    return res.status(201).json({
+      success: true,
+      message: 'Feedback submitted successfully',
+      data: feedback
+    });
+  } catch (error) {
+    console.error('Error submitting system feedback:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to submit feedback',
+      error: error.message
+    });
+  }
 };
 
-exports.getSystemFeedback = async (req, res) => {
-    try {
-        // Only admins can view all feedback
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Unauthorized: Only administrators can view all system feedback'
-            });
-        }
+// Get all feedback (for admins)
+exports.getAllFeedback = async (req, res) => {
+  try {
+    const feedback = await SystemFeedback.find()
+      .populate('userId', 'firstName lastName email')
+      .sort({ createdAt: -1 });
 
-        const feedback = await SystemFeedback.find()
-            .populate('userId', 'firstName lastName email')
-            .sort({ createdAt: -1 });
-
-        res.status(200).json(feedback);
-    } catch (error) {
-        logger.error(`Error retrieving system feedback: ${error.message}`);
-        res.status(500).json({
-            success: false,
-            message: 'Error retrieving feedback',
-            error: error.message
-        });
-    }
+    return res.status(200).json(feedback);
+  } catch (error) {
+    console.error('Error fetching system feedback:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch feedback',
+      error: error.message
+    });
+  }
 };
 
-exports.getUserSystemFeedback = async (req, res) => {
-    try {
-        const userId = req.user.userId;
+// Get feedback for a specific user
+exports.getUserFeedback = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const feedback = await SystemFeedback.find({ userId })
+      .sort({ createdAt: -1 });
 
-        const feedback = await SystemFeedback.find({ userId })
-            .sort({ createdAt: -1 });
-
-        res.status(200).json(feedback);
-    } catch (error) {
-        logger.error(`Error retrieving user system feedback: ${error.message}`);
-        res.status(500).json({
-            success: false,
-            message: 'Error retrieving your feedback',
-            error: error.message
-        });
-    }
+    return res.status(200).json(feedback);
+  } catch (error) {
+    console.error('Error fetching user system feedback:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to fetch user feedback',
+      error: error.message
+    });
+  }
 };
 
+// Update feedback status (for admins)
 exports.updateFeedbackStatus = async (req, res) => {
-    try {
-        // Only admins can update feedback status
-        if (req.user.role !== 'admin') {
-            return res.status(403).json({
-                success: false,
-                message: 'Unauthorized: Only administrators can update feedback status'
-            });
-        }
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
 
-        const { feedbackId } = req.params;
-        const { status } = req.body;
+    const feedback = await SystemFeedback.findByIdAndUpdate(
+      id,
+      { status },
+      { new: true }
+    );
 
-        const validStatuses = ['New', 'Under Review', 'In Progress', 'Resolved', 'Closed'];
-        if (!validStatuses.includes(status)) {
-            return res.status(400).json({
-                success: false,
-                message: `Invalid status. Must be one of: ${validStatuses.join(', ')}`
-            });
-        }
-
-        const feedback = await SystemFeedback.findByIdAndUpdate(
-            feedbackId,
-            { status, updatedAt: new Date() },
-            { new: true }
-        );
-
-        if (!feedback) {
-            return res.status(404).json({
-                success: false,
-                message: 'Feedback not found'
-            });
-        }
-
-        res.status(200).json({
-            success: true,
-            message: 'Feedback status updated successfully',
-            feedback
-        });
-    } catch (error) {
-        logger.error(`Error updating feedback status: ${error.message}`);
-        res.status(500).json({
-            success: false,
-            message: 'Error updating feedback status',
-            error: error.message
-        });
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feedback not found'
+      });
     }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Feedback status updated successfully',
+      data: feedback
+    });
+  } catch (error) {
+    console.error('Error updating feedback status:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to update feedback status',
+      error: error.message
+    });
+  }
+};
+
+// Delete feedback (admin only)
+exports.deleteFeedback = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const feedback = await SystemFeedback.findByIdAndDelete(id);
+
+    if (!feedback) {
+      return res.status(404).json({
+        success: false,
+        message: 'Feedback not found'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: 'Feedback deleted successfully'
+    });
+  } catch (error) {
+    console.error('Error deleting feedback:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to delete feedback',
+      error: error.message
+    });
+  }
 };
