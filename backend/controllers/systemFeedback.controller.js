@@ -4,29 +4,49 @@ const User = require('../models/User');
 // Submit system feedback
 exports.submitFeedback = async (req, res) => {
   try {
+    console.log('submitFeedback called with body:', req.body);
     const { title, category, description, severity, screenshot } = req.body;
-    const userId = req.user.id;
 
-    // Get user's role
-    const user = await User.findById(userId);
-    if (!user) {
-      return res.status(404).json({ success: false, message: 'User not found' });
+    // Validate required fields
+    if (!title || !category || !description || !severity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: title, category, description, and severity are required'
+      });
     }
 
-    const userRole = user.role;
+    // Get user ID from the authenticated request
+    const userId = req.user.userId || req.user.id;
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'User not authenticated or user ID missing'
+      });
+    }
+
+    // Get user's role from database
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found'
+      });
+    }
 
     // Create new feedback
     const feedback = new SystemFeedback({
       userId,
-      userRole,
+      userRole: user.role,
       title,
       category,
       description,
       severity,
-      screenshot
+      screenshot,
+      status: 'New' // Default status
     });
 
     await feedback.save();
+    console.log('Feedback saved:', feedback);
 
     return res.status(201).json({
       success: true,

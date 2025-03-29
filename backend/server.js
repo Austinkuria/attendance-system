@@ -46,10 +46,7 @@ if (!fs.existsSync(publicAssetsDir)) {
 
 // Middleware
 app.use(express.json({ limit: "10mb" }));
-// app.use(cors({
-//     origin: ["http://localhost:5173", "https://attendance-system-w70n.onrender.com", "https://qr-attendance-system2.vercel.app"],
-//     credentials: true
-// }));
+
 // Add CORS logging and validation middleware
 app.use((req, res, next) => {
   const origin = req.headers.origin;
@@ -70,6 +67,7 @@ app.use((req, res, next) => {
   next();
 });
 
+// Update CORS configuration to ensure it accepts POST requests
 app.use(cors({
   origin: [
     "https://attendance-system123.vercel.app",
@@ -82,7 +80,7 @@ app.use(cors({
   exposedHeaders: ["Content-Length", "Authorization"]
 }));
 
-// Handle preflight requests
+// Ensure OPTIONS requests are handled correctly for preflight
 app.use((req, res, next) => {
   res.header("Access-Control-Allow-Origin", req.headers.origin || "*");
   res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
@@ -150,12 +148,19 @@ app.use("/api/admin", (req, res) => {
   });
 });
 
-// Handle 405 Method Not Allowed
+// IMPORTANT: Modify the route handler for 405 errors
+// REPLACE WITH THIS VERSION that only applies to routes that aren't registered
+const registeredRoutes = express.Router();
+
+// Register the combined routes first
+app.use('/api', require('./routes/index'));
+
+// Now apply the 405 handler ONLY to paths that weren't matched by any route
 app.use((req, res, next) => {
-  if (req.method !== "GET") {
+  if (!req.route) {
     return res.status(405).json({
       success: false,
-      message: `Method ${req.method} is not allowed on this route.`,
+      message: `Method ${req.method} is not allowed on route ${req.path}`,
     });
   }
   next();

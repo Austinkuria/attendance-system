@@ -1556,43 +1556,53 @@ export const getLecturerPastAttendance = async (date = null) => {
   }
 };
 
-// System Feedback API calls
+// **System Feedback API methods**
+// Submit system feedback - ensure the path matches the backend route
 export const submitSystemFeedback = async (feedbackData) => {
-  const token = localStorage.getItem('token');
-  const response = await axios.post(
-    'https://attendance-system-w70n.onrender.com/api/system-feedback/submit',
-    feedbackData,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return response.data;
+  try {
+    console.log('Submitting system feedback to:', `${API_URL}/system-feedback`);
+    console.log('Feedback data:', feedbackData);
+
+    const response = await api.post('/system-feedback', feedbackData);
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting system feedback:', error);
+    console.error('Error details:', error.response?.data || error.message);
+    throw error;
+  }
 };
 
+// Get user's system feedback history
 export const getUserSystemFeedback = async () => {
-  const token = localStorage.getItem('token');
-  const response = await axios.get(
-    'https://attendance-system-w70n.onrender.com/api/system-feedback/user',
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return response.data;
+  try {
+    const response = await api.get('/system-feedback/user');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching user system feedback:', error);
+    throw error;
+  }
 };
 
+// Get all system feedback (admin only)
 export const getAllSystemFeedback = async () => {
-  const token = localStorage.getItem('token');
-  const response = await axios.get(
-    'https://attendance-system-w70n.onrender.com/api/system-feedback/all',
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return response.data;
+  try {
+    const response = await api.get('/system-feedback/all');
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching all system feedback:', error);
+    throw error;
+  }
 };
 
+// Update system feedback status (admin only)
 export const updateSystemFeedbackStatus = async (feedbackId, status) => {
-  const token = localStorage.getItem('token');
-  const response = await axios.put(
-    `https://attendance-system-w70n.onrender.com/api/system-feedback/${feedbackId}/status`,
-    { status },
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
-  return response.data;
+  try {
+    const response = await api.put(`/system-feedback/${feedbackId}/status`, { status });
+    return response.data;
+  } catch (error) {
+    console.error('Error updating system feedback status:', error);
+    throw error;
+  }
 };
 
 export default api;

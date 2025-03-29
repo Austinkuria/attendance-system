@@ -20,6 +20,7 @@ const systemFeedbackRoutes = require('./systemFeedback.routes');
 
 console.log('Loading main routes...');
 console.log('Attendance Routes:', attendanceRoutes);
+console.log('System Feedback Routes:', systemFeedbackRoutes);
 
 router.use('/students', studentRoutes);
 
@@ -65,5 +66,6 @@ router.get('/lecturers/download', authenticate, authorize(['admin']), downloadLe
 router.post("/auth/reset-password", sensitiveLimiter, sendResetLink);
 router.put("/auth/reset-password/:token", resetPassword);
 
-router.use("/system-feedback", systemFeedbackRoutes);
+router.use("/system-feedback", authenticate, systemFeedbackRoutes);
+
 module.exports = router;

@@ -114,6 +114,8 @@ const SystemFeedbackForm = ({ onClose }) => {
     const handleSubmit = async (values) => {
         try {
             setLoading(true);
+            console.log('Submitting feedback with values:', values);
+
             const response = await submitSystemFeedback({
                 title: values.title,
                 category: values.category,
@@ -128,7 +130,20 @@ const SystemFeedbackForm = ({ onClose }) => {
             if (onClose) onClose();
         } catch (error) {
             console.error('Error submitting feedback:', error);
-            message.error('Failed to submit feedback. Please try again.');
+
+            if (error.response) {
+                if (error.response.status === 405) {
+                    message.error('The server does not allow this operation. Please contact support.');
+                } else if (error.response.status === 401) {
+                    message.error('You need to be logged in to submit feedback.');
+                } else {
+                    message.error(`Failed to submit feedback: ${error.response.data?.message || 'Server error'}`);
+                }
+            } else if (error.request) {
+                message.error('Network error. Please check your connection and try again.');
+            } else {
+                message.error('Failed to submit feedback. Please try again.');
+            }
         } finally {
             setLoading(false);
         }
