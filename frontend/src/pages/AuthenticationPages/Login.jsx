@@ -1,4 +1,4 @@
-import { useState, useContext } from 'react';
+import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
@@ -240,6 +240,11 @@ const Login = () => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const [form] = Form.useForm();
+  
+  // Clear any existing tokens when the login page loads
+  useEffect(() => {
+    localStorage.clear();
+  }, []);
 
   const handleLogin = async (values) => {
     const { email, password } = values;

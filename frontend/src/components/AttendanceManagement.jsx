@@ -464,15 +464,12 @@ const AttendanceManagement = ({ onLoadingChange }) => {
         if (error.response?.status === 404) {
           message.info("No past sessions found for the selected criteria");
         } else if (error.response?.status === 401) {
-          message.error("Session expired. Please log in again");
-          // Optionally redirect to login
+          // Handle unauthorized error
+          message.error("Your session has expired. Please login again.");
+          localStorage.clear();
           window.location.href = '/auth/login';
-        } else if (error.code === 'ECONNABORTED') {
-          message.error("Request timed out. Please try again");
-        } else if (!navigator.onLine) {
-          message.error("No internet connection. Please check your network");
         } else {
-          message.error("Unable to load past sessions. Please try again later");
+          message.error("Failed to fetch past sessions");
         }
       }
     } finally {
