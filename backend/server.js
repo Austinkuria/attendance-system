@@ -54,7 +54,7 @@ app.use(cors({
       callback(null, true);
     } else {
       logger.warn(`Blocked CORS request from origin: ${origin}`);
-      callback(new Error("CORS Not Allowed"));
+      return callback(null, false); // Instead of throwing an error
     }
   },
   credentials: true,
@@ -84,16 +84,16 @@ app.use("/assets", express.static(path.join(__dirname, "public/assets")));
 // MongoDB Connection with Retry Logic
 const connectDB = async (retries = 5) => {
   try {
-    await mongoose.connect(process.env.MONGO_URI, { useNewUrlParser: true, useUnifiedTopology: true });
+    await mongoose.connect(process.env.MONGO_URI);
     logger.info("MongoDB Connected");
   } catch (error) {
     logger.error(`MongoDB Connection Error: ${error.message}`);
     if (retries > 0) {
-      logger.warn(`Retrying MongoDB connection (${retries} retries left)...`);
-      setTimeout(() => connectDB(retries - 1), 5000); // Retry after 5 seconds
-    } else {
-      process.exit(1);
+      logger.warn(`Retrying MongoDB connection in 5 seconds... (${retries} retries left)`);
+      await new Promise((resolve) => setTimeout(resolve, 5000));
+      return connectDB(retries - 1);
     }
+    process.exit(1);
   }
 };
 connectDB();
@@ -130,13 +130,10 @@ app.use("/api/admin", (req, res) => {
 
 // Middleware to handle 405 Method Not Allowed
 app.use((req, res, next) => {
-  if (!req.route && !routes.stack.some(r => r.route && r.route.path === req.path)) {
-    return res.status(405).json({
-      success: false,
-      message: `Method ${req.method} is not allowed on route ${req.path}`,
-    });
-  }
-  next();
+  return res.status(405).json({
+    success: false,
+    message: `Method ${req.method} is not allowed on ${req.originalUrl}`,
+  });
 });
 
 // 404 Not Found handler
@@ -149,6 +146,17 @@ app.use((req, res) => {
 
 // Centralized error handling middleware
 app.use(errorHandler);
+
+// Graceful exit on fatal errors
+process.on("uncaughtException", (err) => {
+  logger.error("Uncaught Exception:", err);
+  process.exit(1);
+});
+
+process.on("unhandledRejection", (reason, promise) => {
+  logger.error("Unhandled Rejection at:", promise, "reason:", reason);
+  process.exit(1);
+});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
