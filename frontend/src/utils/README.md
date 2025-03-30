@@ -1,6 +1,6 @@
 # Authentication Utilities
 
-This directory contains utility functions for handling authentication and user sessions throughout the frontend application.
+This documentation covers the authentication utilities available in the application.
 
 ## authUtils.js
 
@@ -33,6 +33,7 @@ This directory contains utility functions for handling authentication and user s
 
 - `logout()`: Logout the user by clearing localStorage and redirecting
 - `setupAuthInterceptors(axiosInstance)`: Setup axios interceptors for authentication
+- `redirectToDashboard()`: Redirects user to the appropriate dashboard based on role
 
 ### How to Use
 
@@ -61,24 +62,72 @@ if (hasRole(['admin', 'lecturer'])) {
 }
 ```
 
-#### Setup Authentication Interceptors
+## Auth Components
+
+### ProtectedRoute
+
+`ProtectedRoute` ensures the user has a valid token before accessing protected routes.
+
+```jsx
+import { ProtectedRoute } from './components';
+
+// In your router configuration:
+<Route element={<ProtectedRoute />}>
+  <Route path="/dashboard" element={<Dashboard />} />
+  <Route path="/profile" element={<Profile />} />
+</Route>
+
+// Or as a wrapper:
+<Route path="/dashboard" element={
+  <ProtectedRoute>
+    <Dashboard />
+  </ProtectedRoute>
+} />
+```
+
+### RoleGuard
+
+`RoleGuard` uses `hasRole()` to restrict access based on user roles.
+
+```jsx
+import { RoleGuard } from './components';
+
+// Restrict access to admins only
+<Route path="/admin" element={
+  <ProtectedRoute>
+    <RoleGuard allowedRoles="admin">
+      <AdminDashboard />
+    </RoleGuard>
+  </ProtectedRoute>
+} />
+
+// Allow multiple roles
+<Route path="/reports" element={
+  <ProtectedRoute>
+    <RoleGuard allowedRoles={["admin", "lecturer"]}>
+      <Reports />
+    </RoleGuard>
+  </ProtectedRoute>
+} />
+```
+
+## Setup Authentication Interceptors
+
+Automatically adds authentication tokens to API requests and handles token expiration.
 
 ```javascript
-import axios from 'axios';
 import { setupAuthInterceptors } from '../utils/authUtils';
+import api from '../services/api';
 
-// Create axios instance
-const api = axios.create({
-  baseURL: 'https://api.example.com'
-});
-
-// Setup interceptors
+// Configure the API instance to use authentication
 setupAuthInterceptors(api);
 
 // Now all requests will include the auth token automatically
 ```
 
 #### Validate Session on App Load
+
+It's important to validate the user's session when the application loads to ensure they're still authenticated.
 
 ```javascript
 import { validateSession } from '../utils/authUtils';
@@ -93,13 +142,5 @@ const initApp = async () => {
     // Session invalid, user will be logged out and redirected
     console.error('Session validation failed:', error.message);
   }
-};
+}
 ```
-
-## Integration with RoleGuard and ProtectedRoute
-
-The auth utilities work in tandem with the RoleGuard and ProtectedRoute components to create a comprehensive authentication system:
-
-1. `ProtectedRoute` ensures the user has a valid token before accessing protected routes
-2. `RoleGuard` uses `hasRole()` to restrict access based on user roles
-3. `authUtils.js` provides the core functionality used by both components

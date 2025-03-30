@@ -945,9 +945,29 @@ export const regenerateQR = async (sessionId, token) => {
 // Add a function to validate user session
 export const validateUserSession = async (token) => {
   try {
+    if (!token) {
+      token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication token not found');
+      }
+    }
+
     const response = await axios.get(`${API_URL}/auth/validate-session`, {
       headers: { Authorization: `Bearer ${token}` }
     });
+
+    // Update user data if available
+    if (response.data?.user) {
+      const userData = JSON.stringify({
+        id: response.data.user.id,
+        role: response.data.user.role,
+        firstName: response.data.user.firstName,
+        lastName: response.data.user.lastName,
+        lastValidated: new Date().toISOString()
+      });
+      localStorage.setItem('userData', userData);
+    }
+
     return response.data;
   } catch (error) {
     console.error("Session validation error:", error);

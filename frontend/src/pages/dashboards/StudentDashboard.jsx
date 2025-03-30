@@ -67,7 +67,6 @@ import { useStyles } from '../../styles/styles.js';
 import { useContext } from 'react';
 import BackToTop from '../../components/BackToTop.jsx';
 import ThemeToggle from '../../components/ThemeToggle.jsx';
-import SystemFeedbackButton from '../../components/SystemFeedback/SystemFeedbackButton';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
@@ -2765,10 +2764,6 @@ const StudentDashboard = () => {
             )}
           </Spin>
         </Content>
-        
-        {/* Add feedback button */}
-        <SystemFeedbackButton />
-        
       </Layout>
 
       {/* Add Back to Top Button */}

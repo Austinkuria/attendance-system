@@ -70,10 +70,38 @@ export const hasRole = (allowedRoles) => {
     const userRole = getUserRole();
     if (!userRole) return false;
 
+    // Handle empty arrays or undefined allowedRoles
+    if (!allowedRoles || (Array.isArray(allowedRoles) && allowedRoles.length === 0)) {
+        return false;
+    }
+
     if (Array.isArray(allowedRoles)) {
         return allowedRoles.includes(userRole);
     }
     return userRole === allowedRoles;
+};
+
+/**
+ * Redirects to the appropriate dashboard based on user role
+ * Helper function for login flows
+ */
+export const redirectToDashboard = () => {
+    const role = getUserRole();
+
+    switch (role) {
+        case 'admin':
+            window.location.href = '/admin/dashboard';
+            break;
+        case 'lecturer':
+            window.location.href = '/lecturer/dashboard';
+            break;
+        case 'student':
+            window.location.href = '/student/dashboard';
+            break;
+        default:
+            // Fallback to login if role is unknown
+            window.location.href = '/auth/login';
+    }
 };
 
 /**
@@ -158,24 +186,45 @@ export const storeAuthData = (authData) => {
 export const setupAuthInterceptors = (axiosInstance) => {
     // Request interceptor to add token
     axiosInstance.interceptors.request.use(
-        config => {
+        (config) => {
             const token = localStorage.getItem('token');
             if (token) {
-                config.headers.Authorization = `Bearer ${token}`;
+                config.headers['Authorization'] = `Bearer ${token}`;
             }
             return config;
         },
-        error => Promise.reject(error)
+        (error) => {
+            return Promise.reject(error);
+        }
     );
 
-    // Response interceptor to handle auth errors
+    // Response interceptor to handle authentication errors
     axiosInstance.interceptors.response.use(
-        response => response,
-        error => {
-            if (error.response?.status === 401) {
-                // Clear auth data and redirect to login
-                logout();
+        (response) => {
+            return response;
+        },
+        async (error) => {
+            const originalRequest = error.config;
+
+            // If the error is 401 and we haven't tried to refresh the token yet
+            if (error.response?.status === 401 && !originalRequest._retry) {
+                originalRequest._retry = true;
+
+                try {
+                    // Try to validate the session first
+                    await validateSession();
+
+                    // If validation succeeds (doesn't throw), retry the original request
+                    return axiosInstance(originalRequest);
+                } catch (refreshError) {
+                    // If session validation fails, logout and redirect
+                    console.error('Session validation failed during request:', refreshError);
+                    logout();
+                    return Promise.reject(error);
+                }
             }
+
+            // For other errors, just pass them through
             return Promise.reject(error);
         }
     );

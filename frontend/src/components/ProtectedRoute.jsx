@@ -1,31 +1,45 @@
-import { Navigate } from 'react-router-dom';
+import React from 'react';
+import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
-// import * as jwt_decode from 'jwt-decode';
-import { jwtDecode } from "jwt-decode";
+import { isTokenValid } from '../utils/authUtils';
+import { Spin } from 'antd';
 
+/**
+ * ProtectedRoute component for handling authentication.
+ * Redirects to login if user is not authenticated.
+ */
 const ProtectedRoute = ({ children }) => {
-    const token = localStorage.getItem('token');
+    const location = useLocation();
+    const [isChecking, setIsChecking] = React.useState(true);
+    const [isAuthenticated, setIsAuthenticated] = React.useState(false);
 
-    // Function to check if the token is expired
-    const isTokenExpired = (token) => {
-        if (!token) return true;
-        const decodedToken = jwtDecode(token)
-        const currentTime = Date.now() / 1000; // Convert to seconds
-        return decodedToken.exp < currentTime;
-    };
+    React.useEffect(() => {
+        // Check authentication status
+        const valid = isTokenValid();
+        setIsAuthenticated(valid);
+        setIsChecking(false);
+    }, []);
 
-    // If the token doesn't exist or is expired, redirect to login
-    if (!token || isTokenExpired(token)) {
-        localStorage.removeItem('token');  // Remove expired token
-        return <Navigate to="/auth/login" />;
+    // Show a loading spinner while checking authentication
+    if (isChecking) {
+        return (
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+                <Spin size="large" />
+            </div>
+        );
     }
 
-    // If token exists and is not expired, render the children components
-    return children;
+    // Redirect to login if not authenticated
+    if (!isAuthenticated) {
+        return <Navigate to="/auth/login" state={{ from: location }} replace />;
+    }
+
+    // Render children if they exist, otherwise render an Outlet for nested routes
+    return children || <Outlet />;
 };
 
 ProtectedRoute.propTypes = {
-    children: PropTypes.node.isRequired,
+    children: PropTypes.node
 };
 
 export default ProtectedRoute;
