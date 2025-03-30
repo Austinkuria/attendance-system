@@ -1,4 +1,4 @@
-import { Navigate, useLocation } from 'react-router-dom';
+import { Navigate, useLocation, Outlet } from 'react-router-dom';
 import PropTypes from 'prop-types';
 import { hasRole } from '../utils/authUtils';
 
@@ -22,11 +22,12 @@ const RoleGuard = ({
         return <Navigate to={redirectTo} state={{ from: location }} replace />;
     }
 
-    return <>{children}</>;
+    // Return children if provided, otherwise return Outlet for nested routes
+    return children ? <>{children}</> : <Outlet />;
 };
 
 RoleGuard.propTypes = {
-    children: PropTypes.node.isRequired,
+    children: PropTypes.node,
     allowedRoles: PropTypes.oneOfType([
         PropTypes.string,
         PropTypes.arrayOf(PropTypes.string)
