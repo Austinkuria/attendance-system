@@ -28,12 +28,80 @@
     padding: var(--alert-padding-y) var(--alert-padding-x);
 }
 
-.network-status-container .ant-alert-message {
-    font-size: var(--alert-font-size);
+/* Enhancing the visuals of the alerts */
+.network-status-alert {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 16px !important;
+    position: relative;
+    overflow: hidden;
 }
 
-.network-status-container .ant-alert-description {
+.network-status-alert:before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 4px;
+    height: 100%;
+    background: currentColor;
+    opacity: 0.7;
+}
+
+/* Online alert animation */
+.online-alert {
+    animation: pulse-success 2s ease-in-out;
+}
+
+/* Status message styling */
+.network-status-title {
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 4px;
+}
+
+.network-status-icon {
+    margin-right: 8px;
+    font-size: 16px;
+}
+
+.network-status-icon.success {
+    color: #52c41a;
+}
+
+.network-status-icon.error {
+    color: #ff4d4f;
+}
+
+.network-status-icon.info {
+    color: #1890ff;
+}
+
+.network-status-description {
+    text-align: center;
+    opacity: 0.9;
     font-size: var(--alert-description-font-size);
+    line-height: 1.5;
+    max-width: 80%;
+    margin: 0 auto;
+}
+
+/* Pulse animation for online notification */
+@keyframes pulse-success {
+    0% {
+        box-shadow: 0 0 0 0 rgba(82, 196, 26, 0.4);
+    }
+
+    70% {
+        box-shadow: 0 0 0 10px rgba(82, 196, 26, 0);
+    }
+
+    100% {
+        box-shadow: 0 0 0 0 rgba(82, 196, 26, 0);
+    }
 }
 
 /* Dark theme specific overrides */
@@ -162,5 +230,65 @@
     /* Adjust icon vertical alignment */
     .network-status-container .ant-alert-with-description .ant-alert-icon {
         margin-top: 3px;
+    }
+}
+
+/* Center alert content on medium and large screens */
+@media (min-width: 576px) {
+    .network-status-container .ant-alert {
+        text-align: center;
+        display: block;
+        padding-left: 16px !important;
+        padding-right: 16px !important;
+    }
+
+    .network-status-container .ant-alert .ant-alert-message,
+    .network-status-container .ant-alert .ant-alert-description {
+        text-align: center;
+        display: block;
+        /* Ensure each element is on its own line */
+    }
+
+    /* Fix icon alignment for better centering */
+    .network-status-container .ant-alert.ant-alert-with-description .ant-alert-icon {
+        position: static;
+        /* Remove absolute positioning */
+        margin-right: 0;
+        margin-bottom: 4px;
+        /* Add space below icon */
+        display: block;
+        /* Make icon display as block */
+        font-size: 16px;
+        text-align: center;
+        /* Center the icon */
+    }
+
+    /* Make the content block display for better centering */
+    .network-status-container .ant-alert .ant-alert-content {
+        display: block;
+        text-align: center;
+        margin: 0 auto;
+    }
+
+    /* Reposition close button for centered layout */
+    .network-status-container .ant-alert .ant-alert-close-icon {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+    }
+
+    /* Enhance online alert */
+    .online-alert {
+        background: linear-gradient(135deg, rgba(82, 196, 26, 0.1) 0%, rgba(82, 196, 26, 0.05) 100%) !important;
+    }
+
+    /* Enhance offline alert */
+    .offline-alert {
+        background: linear-gradient(135deg, rgba(255, 77, 79, 0.1) 0%, rgba(255, 77, 79, 0.05) 100%) !important;
+    }
+
+    /* Enhance info alert */
+    .info-alert {
+        background: linear-gradient(135deg, rgba(24, 144, 255, 0.1) 0%, rgba(24, 144, 255, 0.05) 100%) !important;
     }
 }

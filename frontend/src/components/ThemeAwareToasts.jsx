@@ -13,6 +13,7 @@ async function clearCaches() {
 export const ThemeAwareToasts = () => {
     const { themeColors, isDarkMode } = useContext(ThemeContext);
     const isOnlineRef = useRef(navigator.onLine);
+    const networkBannerVisibleRef = useRef(false);
 
     // Function to get theme-aware styles for specific toast types
     const getToastStyle = (type) => {
@@ -113,25 +114,32 @@ export const ThemeAwareToasts = () => {
         const handleOnline = () => {
             // Only show toast if we were previously offline
             if (!isOnlineRef.current) {
-                // Use toast.info for reconnection
-                toast.info(
-                    <div>
-                        <span role="img" aria-label="Online" style={{ marginRight: '8px', fontSize: '18px' }}>
-                            🔄
-                        </span>
-                        <span>Back online. Refreshing data...</span>
-                    </div>,
-                    {
-                        position: "top-center",
-                        autoClose: 3000,
-                        hideProgressBar: false,
-                        closeOnClick: true,
-                        pauseOnHover: true,
-                        draggable: true,
-                        progress: undefined,
-                        style: getToastStyle('info')
-                    }
-                );
+                // Check if the network banner is visible - avoid duplicate notifications
+                const networkBanner = document.querySelector('.network-status-container');
+                networkBannerVisibleRef.current = networkBanner !== null &&
+                    (window.getComputedStyle(networkBanner).display !== 'none');
+
+                // Only show toast if banner is not visible
+                if (!networkBannerVisibleRef.current) {
+                    toast.info(
+                        <div>
+                            <span role="img" aria-label="Online" style={{ marginRight: '8px', fontSize: '18px' }}>
+                                🔄
+                            </span>
+                            <span>Back online. Refreshing data...</span>
+                        </div>,
+                        {
+                            position: "top-center",
+                            autoClose: 3000,
+                            hideProgressBar: false,
+                            closeOnClick: true,
+                            pauseOnHover: true,
+                            draggable: true,
+                            progress: undefined,
+                            style: getToastStyle('info')
+                        }
+                    );
+                }
 
                 // Trigger a custom event that other components can listen for
                 window.dispatchEvent(new CustomEvent('networkReconnected'));
@@ -142,25 +150,32 @@ export const ThemeAwareToasts = () => {
         const handleOffline = () => {
             isOnlineRef.current = false;
 
-            // Show toast notification when going offline
-            toast.error(
-                <div>
-                    <span role="img" aria-label="Offline" style={{ marginRight: '8px', fontSize: '18px' }}>
-                        📶
-                    </span>
-                    <span>You&apos;re offline. Some features may not work.</span>
-                </div>,
-                {
-                    position: "top-center",
-                    autoClose: 5000,
-                    hideProgressBar: false,
-                    closeOnClick: false,
-                    pauseOnHover: true,
-                    draggable: true,
-                    progress: undefined,
-                    style: getToastStyle('error')
-                }
-            );
+            // Check if the network banner is visible
+            const networkBanner = document.querySelector('.network-status-container');
+            networkBannerVisibleRef.current = networkBanner !== null &&
+                (window.getComputedStyle(networkBanner).display !== 'none');
+
+            // Only show toast if banner is not visible
+            if (!networkBannerVisibleRef.current) {
+                toast.error(
+                    <div>
+                        <span role="img" aria-label="Offline" style={{ marginRight: '8px', fontSize: '18px' }}>
+                            📶
+                        </span>
+                        <span>You&apos;re offline. Some features may not work.</span>
+                    </div>,
+                    {
+                        position: "top-center",
+                        autoClose: 5000,
+                        hideProgressBar: false,
+                        closeOnClick: false,
+                        pauseOnHover: true,
+                        draggable: true,
+                        progress: undefined,
+                        style: getToastStyle('error')
+                    }
+                );
+            }
         };
 
         // Add resize listener to update toast position when screen size changes

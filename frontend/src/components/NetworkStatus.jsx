@@ -1,6 +1,11 @@
 import { useState, useEffect, useRef, useContext } from 'react';
 import { Alert } from 'antd';
 import { ThemeContext } from '../context/ThemeContext';
+import {
+    DisconnectOutlined,
+    CheckCircleOutlined,
+    InfoCircleOutlined
+} from '@ant-design/icons';
 import './NetworkStatus.css';
 
 /**
@@ -45,13 +50,29 @@ const NetworkStatus = () => {
 
             // Show "back online" message briefly
             setShowAlert(true);
-            setTimeout(() => setShowAlert(false), 3000);
+
+            // Dispatch an event to indicate the banner is visible
+            window.dispatchEvent(new CustomEvent('networkBannerVisible', {
+                detail: { type: 'online' }
+            }));
+
+            setTimeout(() => {
+                setShowAlert(false);
+
+                // Dispatch an event to indicate the banner is hidden
+                window.dispatchEvent(new CustomEvent('networkBannerHidden'));
+            }, 3000);
         };
 
         const handleOffline = () => {
             setIsOnline(false);
             previousOnlineStateRef.current = false;
             setShowAlert(true);
+
+            // Dispatch an event to indicate the banner is visible
+            window.dispatchEvent(new CustomEvent('networkBannerVisible', {
+                detail: { type: 'offline' }
+            }));
         };
 
         // Listen for resource load errors
@@ -115,19 +136,41 @@ const NetworkStatus = () => {
         return null;
     }
 
-    // Custom message for small screens (mobile devices) - keep only title different, not description
+    // Custom message for small screens (mobile devices) - keep only title different
     const getResponsiveMessage = (online) => {
         if (windowWidth <= 576) {
-            return online ? "Connected" : "You're offline";
+            return online ? (
+                <span className="network-status-title">
+                    <CheckCircleOutlined className="network-status-icon success" /> Connected
+                </span>
+            ) : (
+                <span className="network-status-title">
+                    <DisconnectOutlined className="network-status-icon error" /> You&apos;re offline
+                </span>
+            );
         }
-        return online ? "You're back online!" : "You're offline";
+        return online ? (
+            <span className="network-status-title">
+                <CheckCircleOutlined className="network-status-icon success" /> You&apos;re back online!
+            </span>
+        ) : (
+            <span className="network-status-title">
+                <DisconnectOutlined className="network-status-icon error" /> You&apos;re offline
+            </span>
+        );
     };
 
-    // Get the appropriate description - now always showing the full description regardless of screen size
+    // Get the appropriate description - now always showing the full description
     const getResponsiveDescription = (online) => {
-        return online
-            ? "Your connection has been restored."
-            : "Please check your internet connection. Some features may be unavailable while offline.";
+        return online ? (
+            <span className="network-status-description">
+                Your connection has been restored.
+            </span>
+        ) : (
+            <span className="network-status-description">
+                Please check your internet connection. Some features may be unavailable while offline.
+            </span>
+        );
     };
 
     // Get theme-aware styles for alerts
@@ -138,7 +181,11 @@ const NetworkStatus = () => {
             color: themeColors.text,
             borderLeft: `3px solid ${type === 'success' ? themeColors.secondary :
                 type === 'warning' ? themeColors.accent : themeColors.primary
-                }`
+                }`,
+            // Center text for medium and large screens
+            textAlign: windowWidth > 576 ? 'center' : 'left',
+            // Keep content together on one line
+            whiteSpace: windowWidth > 576 ? 'normal' : 'normal'
         };
 
         // Theme-specific background colors
@@ -185,7 +232,7 @@ const NetworkStatus = () => {
                     display: 'flex',
                     flexDirection: 'column',
                     boxShadow: isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.5)' : '0 2px 8px rgba(0, 0, 0, 0.15)',
-                    backgroundColor: isDarkMode ? themeColors.background : '#fff'
+                    backgroundColor: isDarkMode ? themeColors.background : '#fff',
                 }}
             >
                 {showAlert && (
@@ -194,27 +241,36 @@ const NetworkStatus = () => {
                         description={getResponsiveDescription(isOnline)}
                         type={isOnline ? "success" : "warning"}
                         banner
-                        showIcon
+                        showIcon={false} /* We're using our own icons now */
                         closable={isOnline}
                         onClose={() => setShowAlert(false)}
                         style={getAlertStyle(isOnline ? 'success' : 'warning')}
-                        className={isDarkMode ? 'dark-theme-alert' : ''}
+                        className={`network-status-alert ${isDarkMode ? 'dark-theme-alert' : ''} ${isOnline ? 'online-alert' : 'offline-alert'}`}
                     />
                 )}
 
                 {loadErrors.length > 0 && !showAlert && (
                     <Alert
-                        message={windowWidth <= 576 ? "Resources failed" : "Some resources failed to load"}
-                        description={windowWidth <= 576
-                            ? "Resources couldn't be loaded."
-                            : "Non-essential resources couldn't be loaded. The application will continue to function normally."}
+                        message={
+                            <span className="network-status-title">
+                                <InfoCircleOutlined className="network-status-icon info" />
+                                {windowWidth <= 576 ? "Resources failed" : "Some resources failed to load"}
+                            </span>
+                        }
+                        description={
+                            <span className="network-status-description">
+                                {windowWidth <= 576
+                                    ? "Resources couldn't be loaded."
+                                    : "Non-essential resources couldn't be loaded. The application will continue to function normally."}
+                            </span>
+                        }
                         type="info"
                         banner
-                        showIcon
+                        showIcon={false}
                         closable
                         onClose={() => setLoadErrors([])}
                         style={getAlertStyle('info')}
-                        className={isDarkMode ? 'dark-theme-alert' : ''}
+                        className={`network-status-alert ${isDarkMode ? 'dark-theme-alert' : ''} info-alert`}
                     />
                 )}
             </div>
