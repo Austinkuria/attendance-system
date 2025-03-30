@@ -17,15 +17,44 @@ export const hasToken = () => {
 export const isTokenValid = () => {
     try {
         const token = localStorage.getItem('token');
-        if (!token) return false;
+        if (!token) {
+            console.log("Auth check failed: No token found");
+            return false;
+        }
 
         const decodedToken = jwtDecode(token);
         const currentTime = Date.now() / 1000; // Convert to seconds
+
+        // Debug log for token expiration (only in development)
+        if (process.env.NODE_ENV === 'development') {
+            const expiresIn = decodedToken.exp - currentTime;
+            console.log(`Token expires in: ${Math.floor(expiresIn / 60)} minutes and ${Math.floor(expiresIn % 60)} seconds`);
+        }
 
         return decodedToken.exp > currentTime;
     } catch (error) {
         console.error("Token validation error:", error);
         return false;
+    }
+};
+
+/**
+ * Get user data from localStorage and verify it matches token data
+ * @returns {Object|null} User data object or null if no valid data
+ */
+export const getUserData = () => {
+    try {
+        // First check if token is valid
+        if (!isTokenValid()) return null;
+
+        // Get and parse userData from localStorage
+        const userDataStr = localStorage.getItem('userData');
+        if (!userDataStr) return null;
+
+        return JSON.parse(userDataStr);
+    } catch (error) {
+        console.error("Error retrieving user data:", error);
+        return null;
     }
 };
 
@@ -87,6 +116,7 @@ export const hasRole = (allowedRoles) => {
  */
 export const redirectToDashboard = () => {
     const role = getUserRole();
+    console.log("Redirecting to dashboard for role:", role);
 
     switch (role) {
         case 'admin':
@@ -100,6 +130,7 @@ export const redirectToDashboard = () => {
             break;
         default:
             // Fallback to login if role is unknown
+            console.error("Unknown role for redirection:", role);
             window.location.href = '/auth/login';
     }
 };
