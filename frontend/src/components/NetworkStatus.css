@@ -1,18 +1,17 @@
 :root {
+    /* Base sizing variables */
     --alert-height: 56px;
     --alert-font-size: 14px;
     --alert-description-font-size: 13px;
     --alert-padding-y: 10px;
     --alert-padding-x: 16px;
+
+    /* We no longer need to hardcode colors here since they're applied via inline styles */
 }
 
+/* We're removing the fixed styling from CSS since it will be applied inline */
 .network-status-container {
-    width: 100%;
-    position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    z-index: 1050;
+    /* Basic structural styles only - theme colors are applied inline */
     display: flex;
     flex-direction: column;
 }
@@ -23,7 +22,7 @@
     transition: height 0.3s ease-in-out;
 }
 
-/* Custom styling for alerts */
+/* Custom styling for alerts - base structure only */
 .network-status-container .ant-alert {
     border-radius: 0;
     margin: 0;
@@ -40,10 +39,7 @@
 }
 
 /* Dark theme specific overrides */
-.network-status-container .dark-theme-alert .ant-alert-icon {
-    color: rgba(255, 255, 255, 0.85);
-}
-
+.network-status-container .dark-theme-alert .ant-alert-icon,
 .network-status-container .dark-theme-alert .ant-alert-message,
 .network-status-container .dark-theme-alert .ant-alert-description {
     color: rgba(255, 255, 255, 0.85);

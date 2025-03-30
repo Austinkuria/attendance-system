@@ -168,8 +168,16 @@ const NetworkStatus = () => {
                 aria-live="assertive"
                 ref={alertRef}
                 style={{
-                    // Apply theme-based box shadow
-                    boxShadow: isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.5)' : '0 2px 8px rgba(0, 0, 0, 0.15)'
+                    width: '100%',
+                    position: 'fixed',
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    zIndex: 1050,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    boxShadow: isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.5)' : '0 2px 8px rgba(0, 0, 0, 0.15)',
+                    backgroundColor: isDarkMode ? themeColors.background : '#fff'
                 }}
             >
                 {showAlert && (

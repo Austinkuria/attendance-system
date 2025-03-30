@@ -14,6 +14,29 @@ export const ThemeAwareToasts = () => {
     const { themeColors, isDarkMode } = useContext(ThemeContext);
     const isOnlineRef = useRef(navigator.onLine);
 
+    // Function to get theme-aware styles for specific toast types
+    const getToastStyle = (type) => {
+        // Base styles with theme colors
+        switch (type) {
+            case 'success':
+                return {
+                    background: isDarkMode ? '#1a3a2a' : '#f0fff4',
+                    color: themeColors.text
+                };
+            case 'error':
+                return {
+                    background: isDarkMode ? '#3b2a1a' : '#fffbf0',
+                    color: themeColors.text
+                };
+            case 'info':
+            default:
+                return {
+                    background: isDarkMode ? '#1e2c3d' : '#f0f7ff',
+                    color: themeColors.text
+                };
+        }
+    };
+
     useEffect(() => {
         // Register the service worker with update notifications
         register({
@@ -106,10 +129,7 @@ export const ThemeAwareToasts = () => {
                         pauseOnHover: true,
                         draggable: true,
                         progress: undefined,
-                        style: {
-                            background: isDarkMode ? '#1e2c3d' : '#f0f7ff',
-                            color: themeColors.text
-                        }
+                        style: getToastStyle('info')
                     }
                 );
 
@@ -138,10 +158,7 @@ export const ThemeAwareToasts = () => {
                     pauseOnHover: true,
                     draggable: true,
                     progress: undefined,
-                    style: {
-                        background: isDarkMode ? '#3b2a1a' : '#fffbf0',
-                        color: themeColors.text
-                    }
+                    style: getToastStyle('error')
                 }
             );
         };
