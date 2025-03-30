@@ -8,6 +8,7 @@ import { Alert } from 'antd';
 const NetworkStatus = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [showAlert, setShowAlert] = useState(!navigator.onLine);
+    const [loadErrors, setLoadErrors] = useState([]);
 
     useEffect(() => {
         const handleOnline = () => {
@@ -22,9 +23,23 @@ const NetworkStatus = () => {
             setShowAlert(true);
         };
 
+        // Listen for resource load errors
+        const handleResourceError = (event) => {
+            const url = event.target?.src || event.target?.href || '';
+            if (url && url.includes('vercel') || url.includes('analytics')) {
+                console.warn(`Resource failed to load: ${url}`);
+                setLoadErrors(prev => [...prev, url]);
+
+                // Prevent the error from propagating further
+                event.stopPropagation();
+                event.preventDefault();
+            }
+        };
+
         // Add event listeners
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
+        window.addEventListener('error', handleResourceError, true); // Capture phase
 
         // If we're online initially, hide the alert after 3s
         if (isOnline && showAlert) {
@@ -36,10 +51,11 @@ const NetworkStatus = () => {
         return () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
+            window.removeEventListener('error', handleResourceError, true);
         };
     }, [isOnline, showAlert]);
 
-    if (!showAlert) return null;
+    if (!showAlert && loadErrors.length === 0) return null;
 
     return (
         <div
@@ -51,19 +67,33 @@ const NetworkStatus = () => {
                 zIndex: 1000
             }}
         >
-            <Alert
-                message={isOnline ? "You're back online!" : "You're offline"}
-                description={
-                    isOnline
-                        ? "Your connection has been restored."
-                        : "Please check your internet connection. Some features may be unavailable while offline."
-                }
-                type={isOnline ? "success" : "warning"}
-                banner
-                showIcon
-                closable={isOnline}
-                onClose={() => setShowAlert(false)}
-            />
+            {showAlert && (
+                <Alert
+                    message={isOnline ? "You're back online!" : "You're offline"}
+                    description={
+                        isOnline
+                            ? "Your connection has been restored."
+                            : "Please check your internet connection. Some features may be unavailable while offline."
+                    }
+                    type={isOnline ? "success" : "warning"}
+                    banner
+                    showIcon
+                    closable={isOnline}
+                    onClose={() => setShowAlert(false)}
+                />
+            )}
+
+            {loadErrors.length > 0 && !showAlert && (
+                <Alert
+                    message="Some resources failed to load"
+                    description="Non-essential resources couldn't be loaded. The application will continue to function normally."
+                    type="info"
+                    banner
+                    showIcon
+                    closable
+                    onClose={() => setLoadErrors([])}
+                />
+            )}
         </div>
     );
 };

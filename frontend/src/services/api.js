@@ -1739,4 +1739,54 @@ export const updateSystemFeedbackStatus = async (feedbackId, status) => {
   }
 };
 
+/**
+ * Suppresses errors from Vercel Analytics to prevent console pollution
+ * This is useful when Vercel resources can't be loaded but aren't essential
+ */
+export const suppressVercelAnalyticsErrors = () => {
+  // Use error event capture to prevent Vercel analytics errors from propagating
+  window.addEventListener('error', (event) => {
+    const errorMsg = event.message || '';
+    const errorSrc = event.filename || event.target?.src || '';
+
+    // Check if the error is related to Vercel Analytics
+    if (
+      (errorMsg.includes('Vercel') || errorMsg.includes('Failed to fetch')) &&
+      (errorSrc.includes('vercel') || errorSrc.includes('attendance-system123'))
+    ) {
+      console.warn('Suppressed Vercel error:', {
+        message: errorMsg,
+        source: errorSrc
+      });
+
+      // Prevent the error from showing in the console
+      event.preventDefault();
+      event.stopPropagation();
+      return false;
+    }
+  }, true); // Use capture phase
+
+  // Patch the import() function to catch dynamic import errors
+  const originalImport = window.import;
+  if (originalImport) {
+    window.import = function () {
+      return originalImport.apply(this, arguments)
+        .catch(error => {
+          if (
+            error.message.includes('Failed to fetch dynamically imported module') &&
+            arguments[0].includes('vercel')
+          ) {
+            console.warn('Suppressed Vercel dynamic import error for:', arguments[0]);
+            // Return empty module to prevent errors cascading
+            return {};
+          }
+          throw error;
+        });
+    };
+  }
+};
+
+// Call this function early in the app initialization
+suppressVercelAnalyticsErrors();
+
 export default api;

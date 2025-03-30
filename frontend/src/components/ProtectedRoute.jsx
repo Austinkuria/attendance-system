@@ -1,32 +1,21 @@
 import { useState, useEffect } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import PropTypes from 'prop-types';
-import { isTokenValid } from '../utils/authUtils';
+import { isTokenValid, validateSession } from '../utils/authUtils';
 import { Spin, Alert } from 'antd';
 
 /**
  * ProtectedRoute component for handling authentication.
  * Redirects to login if user is not authenticated.
- * Handles offline mode gracefully.
  */
 const ProtectedRoute = ({ children }) => {
     const location = useLocation();
     const [isChecking, setIsChecking] = useState(true);
     const [isAuthenticated, setIsAuthenticated] = useState(false);
-    const [isOffline, setIsOffline] = useState(!navigator.onLine);
     const [error, setError] = useState(null);
 
     useEffect(() => {
         let isMounted = true;
-
-        const handleOnlineStatusChange = () => {
-            if (isMounted) {
-                setIsOffline(!navigator.onLine);
-            }
-        };
-
-        window.addEventListener('online', handleOnlineStatusChange);
-        window.addEventListener('offline', handleOnlineStatusChange);
 
         const checkAuthentication = async () => {
             try {
@@ -42,34 +31,9 @@ const ProtectedRoute = ({ children }) => {
                     return;
                 }
 
-                // Handle offline mode
-                if (!navigator.onLine) {
-                    console.log("Offline mode: using cached authentication");
-                    const userData = localStorage.getItem('userData');
-                    if (userData && localValid) {
-                        // If offline but we have valid local token and userData, allow access
-                        if (isMounted) {
-                            setIsAuthenticated(true);
-                            setIsOffline(true);
-                        }
-                    } else {
-                        // No cached user data
-                        if (isMounted) {
-                            setError("You're offline with no cached authentication data");
-                            setIsAuthenticated(false);
-                        }
-                    }
-                    if (isMounted) {
-                        setIsChecking(false);
-                    }
-                    return;
-                }
-
-                // Online mode: validate with server if possible
+                // If local token is valid, try to validate with server
                 try {
-                    // Import dynamically to prevent circular dependencies
-                    const { validateUserSession } = await import('../services/api');
-                    await validateUserSession();
+                    await validateSession();
                     if (isMounted) {
                         console.log("Session validated successfully");
                         setIsAuthenticated(true);
@@ -98,8 +62,6 @@ const ProtectedRoute = ({ children }) => {
 
         return () => {
             isMounted = false;
-            window.removeEventListener('online', handleOnlineStatusChange);
-            window.removeEventListener('offline', handleOnlineStatusChange);
         };
     }, []);
 
@@ -130,12 +92,6 @@ const ProtectedRoute = ({ children }) => {
                 />
             </div>
         );
-    }
-
-    // Handle offline mode with warning
-    if (isOffline && isAuthenticated) {
-        // We'll still render the content, but with a warning
-        console.log("Rendering offline content with cached authentication");
     }
 
     // Redirect to login if not authenticated

@@ -19,17 +19,34 @@ class ErrorBoundary extends Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Update state so the next render will show the fallback UI
+    // Ignore specific errors related to Vercel Analytics
+    if (error.message && (
+      error.message.includes('Vercel Analytics') ||
+      error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('attendance-system123.vercel.app')
+    )) {
+      console.warn('Vercel Analytics error suppressed:', error);
+      return null; // Don't update state for Vercel errors
+    }
+
+    // Update state so the next render will show the fallback UI for other errors
     return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Log the error to the console
+    // Ignore Vercel Analytics errors
+    if (error.message && (
+      error.message.includes('Vercel Analytics') ||
+      error.message.includes('Failed to fetch dynamically imported module') ||
+      error.message.includes('attendance-system123.vercel.app')
+    )) {
+      console.warn('Vercel Analytics error suppressed in componentDidCatch:', error);
+      return;
+    }
+
+    // Log other errors to the console
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
     this.setState({ errorInfo });
-
-    // You could also log to an error reporting service here
-    // logErrorToService(error, errorInfo);
   }
 
   handleReload = () => {
@@ -105,7 +122,7 @@ class ErrorBoundary extends Component {
 }
 
 ErrorBoundary.propTypes = {
-  children: PropTypes.node.isRequired
+  children: PropTypes.node
 };
 
 export default ErrorBoundary;

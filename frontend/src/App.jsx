@@ -1,7 +1,5 @@
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect, useState } from 'react';
-import { ToastContainer, toast } from 'react-toastify';
-import { IoCloseCircleOutline } from 'react-icons/io5';
+import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Home from './pages/Home';
 import Login from './pages/AuthenticationPages/Login';
@@ -41,98 +39,34 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ThemeAwareToasts } from './components/ThemeAwareToasts';
 import SystemFeedbackList from './pages/admin/SystemFeedbackList';
 import SystemFeedbackButton from './components/SystemFeedback/SystemFeedbackButton';
+import { NetworkStatus } from './components';
+import { ErrorBoundary } from './components';
 
 function App() {
-  const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const [showBanner, setShowBanner] = useState(false);
-
-  useEffect(() => {
-    if (navigator.onLine) {
-      setTimeout(() => setShowBanner(false), 1000);
-    }
-  }, []);
-
-  useEffect(() => {
-    const handleOnline = () => {
-      setIsOnline(true);
-      toast.success("You're back online", { autoClose: 3000 });
-      setShowBanner(true);
-      setTimeout(() => setShowBanner(false), 3000);
-    };
-
-    const handleOffline = () => {
-      setIsOnline(false);
-      toast.error("You're offline. Some features may not work.", { autoClose: 3000 });
-      setShowBanner(true);
-    };
-
-    window.addEventListener('online', handleOnline);
-    window.addEventListener('offline', handleOffline);
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      window.removeEventListener('offline', handleOffline);
-    };
-  }, []);
-
-  const handleCloseBanner = () => setShowBanner(false);
-
   return (
-    <ThemeProvider>
-      <Router>
-        <ToastContainer
-          position="top-center"
-          autoClose={5000}
-          hideProgressBar={false}
-          newestOnTop={false}
-          closeOnClick
-          rtl={false}
-          pauseOnFocusLoss
-          draggable
-          pauseOnHover
-        />
-        <InstallButton />
-        <ThemeAwareToasts />
+    <ErrorBoundary>
+      <ThemeProvider>
+        <Router>
+          <ToastContainer
+            position="top-center"
+            autoClose={5000}
+            hideProgressBar={false}
+            newestOnTop={false}
+            closeOnClick
+            rtl={false}
+            pauseOnFocusLoss
+            draggable
+            pauseOnHover
+          />
+          <InstallButton />
+          <ThemeAwareToasts />
 
-        {/* Add the feedback button globally so it appears on all pages */}
-        <SystemFeedbackButton />
+          {/* Using NetworkStatus component to handle online/offline status */}
+          <NetworkStatus />
 
-        {showBanner && (
-          <div
-            style={{
-              background: isOnline ? '#d4edda' : '#f8d7da',
-              color: isOnline ? '#155724' : '#721c24',
-              padding: '6px',
-              fontSize: '13px',
-              display: 'flex',
-              justifyContent: 'center',
-              alignItems: 'center',
-              position: 'fixed',
-              top: 0,
-              width: '100%',
-              zIndex: 10000,
-              fontWeight: 'bold',
-              boxSizing: 'border-box',
-            }}
-          >
-            <span>
-              {isOnline
-                ? 'Connected to the internet'
-                : "You're offline. Some features may be limited."}
-            </span>
-            <IoCloseCircleOutline
-              onClick={handleCloseBanner}
-              style={{
-                marginLeft: '10px',
-                fontSize: '18px',
-                cursor: 'pointer',
-                color: isOnline ? '#155724' : '#721c24',
-              }}
-            />
-          </div>
-        )}
+          {/* Add the feedback button globally so it appears on all pages */}
+          <SystemFeedbackButton />
 
-        <div style={{ paddingTop: showBanner ? '40px' : '0' }}>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/auth/login" element={<Login />} />
@@ -182,9 +116,9 @@ function App() {
               <Route path="/qr-scanner/:selectedUnit" element={<QRScanner />} />
             </Route>
           </Routes>
-        </div>
-      </Router>
-    </ThemeProvider>
+        </Router>
+      </ThemeProvider>
+    </ErrorBoundary>
   );
 }
 
