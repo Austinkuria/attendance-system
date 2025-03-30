@@ -47,6 +47,10 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <Router>
+          {/* Using NetworkStatus component to handle online/offline status
+              Placed at the very top of the application */}
+          <NetworkStatus />
+
           <ToastContainer
             position="top-center"
             autoClose={5000}
@@ -60,9 +64,6 @@ function App() {
           />
           <InstallButton />
           <ThemeAwareToasts />
-
-          {/* Using NetworkStatus component to handle online/offline status */}
-          <NetworkStatus />
 
           {/* Add the feedback button globally so it appears on all pages */}
           <SystemFeedbackButton />

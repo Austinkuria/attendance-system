@@ -26,7 +26,7 @@ const NetworkStatus = () => {
         // Listen for resource load errors
         const handleResourceError = (event) => {
             const url = event.target?.src || event.target?.href || '';
-            if (url && url.includes('vercel') || url.includes('analytics')) {
+            if (url && (url.includes('vercel') || url.includes('analytics'))) {
                 console.warn(`Resource failed to load: ${url}`);
                 setLoadErrors(prev => [...prev, url]);
 
@@ -55,16 +55,20 @@ const NetworkStatus = () => {
         };
     }, [isOnline, showAlert]);
 
-    if (!showAlert && loadErrors.length === 0) return null;
+    // If nothing to show, render a hidden placeholder to maintain layout consistency
+    if (!showAlert && loadErrors.length === 0) {
+        return <div data-testid="network-status" className="network-status-placeholder"></div>;
+    }
 
     return (
         <div
+            className="network-status-container"
+            data-testid="network-status"
             style={{
-                position: 'fixed',
-                top: 0,
-                left: 0,
-                right: 0,
-                zIndex: 1000
+                width: '100%',
+                zIndex: 1050, // Higher than most components but below modals (usually 1000)
+                position: 'relative', // Use relative instead of fixed to push content down
+                marginBottom: '0px' // Space below the alert
             }}
         >
             {showAlert && (

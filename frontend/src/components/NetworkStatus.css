@@ -1,0 +1,45 @@
+.network-status-container {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Animation for showing/hiding the alert */
+.network-alert-enter {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-20px);
+}
+
+.network-alert-enter-active {
+    max-height: 100px;
+    opacity: 1;
+    transform: translateY(0);
+    transition: all 300ms ease-in-out;
+}
+
+.network-alert-exit {
+    max-height: 100px;
+    opacity: 1;
+    transform: translateY(0);
+}
+
+.network-alert-exit-active {
+    max-height: 0;
+    opacity: 0;
+    transform: translateY(-20px);
+    transition: all 300ms ease-in-out;
+}
+
+/* Make sure alerts are responsive on small screens */
+@media (max-width: 576px) {
+    .network-status-container .ant-alert-description {
+        display: none;
+        /* Hide description on small screens to save space */
+    }
+
+    .network-status-container .ant-alert {
+        padding: 8px 15px;
+        /* Smaller padding on small screens */
+    }
+}
