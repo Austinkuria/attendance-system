@@ -5,8 +5,6 @@
     --alert-description-font-size: 13px;
     --alert-padding-y: 10px;
     --alert-padding-x: 16px;
-
-    /* We no longer need to hardcode colors here since they're applied via inline styles */
 }
 
 /* We're removing the fixed styling from CSS since it will be applied inline */
@@ -90,27 +88,79 @@
 
 @media (max-width: 576px) {
     :root {
-        --alert-height: 40px;
+        --alert-height: 90px;
+        /* Increased to accommodate full description text on small screens */
         --alert-font-size: 13px;
+        --alert-description-font-size: 11px;
         --alert-padding-y: 8px;
         --alert-padding-x: 12px;
     }
 
+    /* Keep descriptions fully visible and properly styled */
     .network-status-container .ant-alert-description {
-        display: none;
+        display: block !important;
+        font-size: var(--alert-description-font-size);
+        line-height: 1.3;
+        margin-top: 4px;
+        white-space: normal !important;
+        /* Prevent text truncation */
+        overflow: visible !important;
+        /* Ensure text is not cut off */
+        text-overflow: clip !important;
+        /* Don't use ellipsis */
+    }
+
+    /* Maintain vertical space for description */
+    .network-status-container .ant-alert {
+        padding: 8px 12px !important;
+        height: auto !important;
+        /* Allow height to expand based on content */
+        min-height: 70px;
+        /* Ensure minimum height for the alert */
+    }
+
+    /* Improve title appearance on small screens */
+    .network-status-container .ant-alert-message {
+        font-size: 13px;
+        font-weight: 600;
+        /* Make title more visible */
+        margin-bottom: 3px !important;
+    }
+
+    /* Better icon positioning for multiline content */
+    .network-status-container .ant-alert-icon {
+        font-size: 14px;
+        margin-right: 6px;
+        align-self: flex-start;
+        margin-top: 2px;
     }
 }
 
 @media (max-width: 360px) {
     :root {
-        --alert-height: 36px;
+        --alert-height: 100px;
+        /* Further increased for smallest screens */
         --alert-font-size: 12px;
+        --alert-description-font-size: 10px;
         --alert-padding-y: 6px;
-        --alert-padding-x: 10px;
+        --alert-padding-x: 8px;
     }
 
+    /* Adjust padding for very small screens */
+    .network-status-container .ant-alert {
+        padding: 8px 6px 8px 8px !important;
+        /* Reduce horizontal padding */
+    }
+
+    /* Adjust icon size and spacing for very small screens */
     .network-status-container .ant-alert-icon {
-        font-size: 14px;
-        margin-right: 8px;
+        margin-right: 4px;
+        font-size: 12px;
+        /* Smaller icon */
+    }
+
+    /* Adjust icon vertical alignment */
+    .network-status-container .ant-alert-with-description .ant-alert-icon {
+        margin-top: 3px;
     }
 }

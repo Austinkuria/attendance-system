@@ -15,6 +15,7 @@ const NetworkStatus = () => {
     const [showAlert, setShowAlert] = useState(!navigator.onLine);
     const [loadErrors, setLoadErrors] = useState([]);
     const [spacerHeight, setSpacerHeight] = useState(0);
+    const [windowWidth, setWindowWidth] = useState(window.innerWidth);
     const { isDarkMode, themeColors } = useContext(ThemeContext);
 
     const alertRef = useRef(null);
@@ -68,6 +69,7 @@ const NetworkStatus = () => {
 
         // Update spacer height on window resize
         const handleResize = () => {
+            setWindowWidth(window.innerWidth);
             updateSpacerHeight();
         };
 
@@ -113,13 +115,19 @@ const NetworkStatus = () => {
         return null;
     }
 
-    // Custom message for small screens (mobile devices)
+    // Custom message for small screens (mobile devices) - keep only title different, not description
     const getResponsiveMessage = (online) => {
-        const width = window.innerWidth;
-        if (width <= 576) {
-            return online ? "Connected" : "No connection";
+        if (windowWidth <= 576) {
+            return online ? "Connected" : "You're offline";
         }
         return online ? "You're back online!" : "You're offline";
+    };
+
+    // Get the appropriate description - now always showing the full description regardless of screen size
+    const getResponsiveDescription = (online) => {
+        return online
+            ? "Your connection has been restored."
+            : "Please check your internet connection. Some features may be unavailable while offline.";
     };
 
     // Get theme-aware styles for alerts
@@ -183,11 +191,7 @@ const NetworkStatus = () => {
                 {showAlert && (
                     <Alert
                         message={getResponsiveMessage(isOnline)}
-                        description={
-                            isOnline
-                                ? "Your connection has been restored."
-                                : "Please check your internet connection. Some features may be unavailable while offline."
-                        }
+                        description={getResponsiveDescription(isOnline)}
                         type={isOnline ? "success" : "warning"}
                         banner
                         showIcon
@@ -200,8 +204,10 @@ const NetworkStatus = () => {
 
                 {loadErrors.length > 0 && !showAlert && (
                     <Alert
-                        message={window.innerWidth <= 576 ? "Resources failed" : "Some resources failed to load"}
-                        description="Non-essential resources couldn't be loaded. The application will continue to function normally."
+                        message={windowWidth <= 576 ? "Resources failed" : "Some resources failed to load"}
+                        description={windowWidth <= 576
+                            ? "Resources couldn't be loaded."
+                            : "Non-essential resources couldn't be loaded. The application will continue to function normally."}
                         type="info"
                         banner
                         showIcon

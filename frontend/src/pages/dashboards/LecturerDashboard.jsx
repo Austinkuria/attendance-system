@@ -1,4 +1,4 @@
-import { useContext, useState, useEffect } from 'react';
+import { useContext, useState, useEffect, useCallback } from 'react';
 import {
   UserOutlined,
   SettingOutlined,
@@ -30,6 +30,7 @@ import { ThemeContext } from '../../context/ThemeContext';
 import { motion } from 'framer-motion';
 import ThemeToggle from '../../components/ThemeToggle';
 import SystemFeedbackButton from '../../components/SystemFeedback/SystemFeedbackButton';
+import { useNetworkStatus, useNetworkRefresh } from '../../hooks';
 
 const { Header, Sider, Content } = Layout;
 const { Title: AntTitle } = Typography;
@@ -40,6 +41,7 @@ const LecturerDashboard = () => {
   const [showBackToTop, setShowBackToTop] = useState(false);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading dashboard data...');
+  const { isOnline } = useNetworkStatus();
   const navigate = useNavigate();
 
   // Create style objects matching AdminPanel approach
@@ -267,6 +269,32 @@ const LecturerDashboard = () => {
     `,
   };
 
+  // Function to load dashboard data
+  const loadDashboardData = useCallback(() => {
+    setLoading(true);
+    setLoadingMessage('Loading dashboard data...');
+
+    // Here you would fetch data from your API
+    // If not online, consider showing cached data
+    if (!isOnline) {
+      console.log('Network is offline, using cached data');
+      // Load cached data here if available
+    }
+
+    // Simulate data loading completion
+    const timer = setTimeout(() => {
+      setLoading(false);
+    }, 1500);
+
+    return () => clearTimeout(timer);
+  }, [isOnline]);
+
+  // Use the network refresh hook to reload data when coming back online
+  useNetworkRefresh(() => {
+    console.log('Network reconnected in LecturerDashboard, refreshing data...');
+    loadDashboardData();
+  }, [loadDashboardData]);
+
   useEffect(() => {
     // Single more efficient auth check
     const checkAuth = () => {
@@ -290,20 +318,13 @@ const LecturerDashboard = () => {
 
     window.addEventListener('storage', handleStorageChange);
 
-    // Simulate loading data
-    setLoading(true);
-    setLoadingMessage('Loading dashboard data...');
-
-    // Simulate data loading completion
-    const timer = setTimeout(() => {
-      setLoading(false);
-    }, 1500);
+    // Load initial data
+    loadDashboardData();
 
     return () => {
       window.removeEventListener('storage', handleStorageChange);
-      clearTimeout(timer);
     };
-  }, []);
+  }, [loadDashboardData]);
 
   // Optimize resize handler
   useEffect(() => {
