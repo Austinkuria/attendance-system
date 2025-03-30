@@ -7,6 +7,8 @@ import './NetworkStatus.css';
  * NetworkStatus component that monitors online/offline status and displays a banner
  * when the user is offline or experiences network issues.
  * Uses ThemeContext for consistent styling with the rest of the app.
+ * 
+ * Note: Toast notifications are now handled by ThemeAwareToasts component
  */
 const NetworkStatus = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
@@ -16,6 +18,7 @@ const NetworkStatus = () => {
     const { isDarkMode, themeColors } = useContext(ThemeContext);
 
     const alertRef = useRef(null);
+    const previousOnlineStateRef = useRef(isOnline);
 
     // Update spacer height based on actual banner height
     const updateSpacerHeight = () => {
@@ -33,7 +36,12 @@ const NetworkStatus = () => {
 
     useEffect(() => {
         const handleOnline = () => {
+            // Track if this is a transition from offline to online
+            const wasOffline = !previousOnlineStateRef.current;
+
             setIsOnline(true);
+            previousOnlineStateRef.current = true;
+
             // Show "back online" message briefly
             setShowAlert(true);
             setTimeout(() => setShowAlert(false), 3000);
@@ -41,6 +49,7 @@ const NetworkStatus = () => {
 
         const handleOffline = () => {
             setIsOnline(false);
+            previousOnlineStateRef.current = false;
             setShowAlert(true);
         };
 
@@ -120,7 +129,7 @@ const NetworkStatus = () => {
             fontSize: 'var(--alert-font-size)',
             color: themeColors.text,
             borderLeft: `3px solid ${type === 'success' ? themeColors.secondary :
-                    type === 'warning' ? themeColors.accent : themeColors.primary
+                type === 'warning' ? themeColors.accent : themeColors.primary
                 }`
         };
 

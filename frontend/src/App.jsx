@@ -1,4 +1,5 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useNavigate } from 'react-router-dom';
+import { useState, useEffect } from 'react';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Home from './pages/Home';
@@ -47,8 +48,10 @@ function App() {
     <ErrorBoundary>
       <ThemeProvider>
         <Router>
-          {/* Using NetworkStatus component to handle online/offline status
-              Placed at the very top of the application */}
+          {/* Important: ThemeAwareToasts must be before NetworkStatus to ensure toast handlers are registered first */}
+          <ThemeAwareToasts />
+
+          {/* NetworkStatus component for displaying banner notifications */}
           <NetworkStatus />
 
           <ToastContainer
@@ -61,9 +64,9 @@ function App() {
             pauseOnFocusLoss
             draggable
             pauseOnHover
+            theme="colored"
           />
           <InstallButton />
-          <ThemeAwareToasts />
 
           {/* Add the feedback button globally so it appears on all pages */}
           <SystemFeedbackButton />
