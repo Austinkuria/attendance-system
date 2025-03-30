@@ -4,7 +4,6 @@
     --alert-description-font-size: 13px;
     --alert-padding-y: 10px;
     --alert-padding-x: 16px;
-    --alert-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
 .network-status-container {
@@ -16,7 +15,6 @@
     z-index: 1050;
     display: flex;
     flex-direction: column;
-    box-shadow: var(--alert-shadow);
 }
 
 /* Spacer to push content down when alerts are showing */
@@ -39,6 +37,16 @@
 
 .network-status-container .ant-alert-description {
     font-size: var(--alert-description-font-size);
+}
+
+/* Dark theme specific overrides */
+.network-status-container .dark-theme-alert .ant-alert-icon {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.network-status-container .dark-theme-alert .ant-alert-message,
+.network-status-container .dark-theme-alert .ant-alert-description {
+    color: rgba(255, 255, 255, 0.85);
 }
 
 /* Alert animations */
@@ -68,7 +76,7 @@
     transition: all 300ms ease-in-out;
 }
 
-/* Responsive breakpoints - adjust CSS variables instead of hardcoded values */
+/* Responsive breakpoints */
 @media (max-width: 992px) {
     :root {
         --alert-height: 52px;

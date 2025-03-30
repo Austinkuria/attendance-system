@@ -39,8 +39,8 @@ import { ThemeProvider } from './context/ThemeContext';
 import { ThemeAwareToasts } from './components/ThemeAwareToasts';
 import SystemFeedbackList from './pages/admin/SystemFeedbackList';
 import SystemFeedbackButton from './components/SystemFeedback/SystemFeedbackButton';
-import { NetworkStatus } from './components';
 import { ErrorBoundary } from './components';
+import NetworkStatus from './components/NetworkStatus';
 
 function App() {
   return (

@@ -1,16 +1,19 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useContext } from 'react';
 import { Alert } from 'antd';
-import './NetworkStatus.css'; // Import the CSS file
+import { ThemeContext } from '../context/ThemeContext';
+import './NetworkStatus.css';
 
 /**
  * NetworkStatus component that monitors online/offline status and displays a banner
  * when the user is offline or experiences network issues.
+ * Uses ThemeContext for consistent styling with the rest of the app.
  */
 const NetworkStatus = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [showAlert, setShowAlert] = useState(!navigator.onLine);
     const [loadErrors, setLoadErrors] = useState([]);
     const [spacerHeight, setSpacerHeight] = useState(0);
+    const { isDarkMode, themeColors } = useContext(ThemeContext);
 
     const alertRef = useRef(null);
 
@@ -110,6 +113,33 @@ const NetworkStatus = () => {
         return online ? "You're back online!" : "You're offline";
     };
 
+    // Get theme-aware styles for alerts
+    const getAlertStyle = (type) => {
+        // Base styles with theme colors
+        const baseStyle = {
+            fontSize: 'var(--alert-font-size)',
+            color: themeColors.text,
+            borderLeft: `3px solid ${type === 'success' ? themeColors.secondary :
+                    type === 'warning' ? themeColors.accent : themeColors.primary
+                }`
+        };
+
+        // Theme-specific background colors
+        if (isDarkMode) {
+            return {
+                ...baseStyle,
+                backgroundColor: type === 'success' ? '#1a3a2a' :
+                    type === 'warning' ? '#3b2a1a' : '#1e2c3d',
+            };
+        } else {
+            return {
+                ...baseStyle,
+                backgroundColor: type === 'success' ? '#f0fff4' :
+                    type === 'warning' ? '#fffbf0' : '#f0f7ff',
+            };
+        }
+    };
+
     return (
         <>
             {/* This spacer div pushes content down when alerts are visible */}
@@ -128,6 +158,10 @@ const NetworkStatus = () => {
                 role="alert"
                 aria-live="assertive"
                 ref={alertRef}
+                style={{
+                    // Apply theme-based box shadow
+                    boxShadow: isDarkMode ? '0 2px 8px rgba(0, 0, 0, 0.5)' : '0 2px 8px rgba(0, 0, 0, 0.15)'
+                }}
             >
                 {showAlert && (
                     <Alert
@@ -142,6 +176,8 @@ const NetworkStatus = () => {
                         showIcon
                         closable={isOnline}
                         onClose={() => setShowAlert(false)}
+                        style={getAlertStyle(isOnline ? 'success' : 'warning')}
+                        className={isDarkMode ? 'dark-theme-alert' : ''}
                     />
                 )}
 
@@ -154,6 +190,8 @@ const NetworkStatus = () => {
                         showIcon
                         closable
                         onClose={() => setLoadErrors([])}
+                        style={getAlertStyle('info')}
+                        className={isDarkMode ? 'dark-theme-alert' : ''}
                     />
                 )}
             </div>
