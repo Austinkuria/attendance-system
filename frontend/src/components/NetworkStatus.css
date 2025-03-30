@@ -1,10 +1,47 @@
-.network-status-container {
-    width: 100%;
-    display: flex;
-    flex-direction: column;
+:root {
+    --alert-height: 56px;
+    --alert-font-size: 14px;
+    --alert-description-font-size: 13px;
+    --alert-padding-y: 10px;
+    --alert-padding-x: 16px;
+    --alert-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
 }
 
-/* Animation for showing/hiding the alert */
+.network-status-container {
+    width: 100%;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 1050;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--alert-shadow);
+}
+
+/* Spacer to push content down when alerts are showing */
+.network-status-spacer {
+    width: 100%;
+    transition: height 0.3s ease-in-out;
+}
+
+/* Custom styling for alerts */
+.network-status-container .ant-alert {
+    border-radius: 0;
+    margin: 0;
+    font-weight: 500;
+    padding: var(--alert-padding-y) var(--alert-padding-x);
+}
+
+.network-status-container .ant-alert-message {
+    font-size: var(--alert-font-size);
+}
+
+.network-status-container .ant-alert-description {
+    font-size: var(--alert-description-font-size);
+}
+
+/* Alert animations */
 .network-alert-enter {
     max-height: 0;
     opacity: 0;
@@ -12,14 +49,14 @@
 }
 
 .network-alert-enter-active {
-    max-height: 100px;
+    max-height: var(--alert-height);
     opacity: 1;
     transform: translateY(0);
     transition: all 300ms ease-in-out;
 }
 
 .network-alert-exit {
-    max-height: 100px;
+    max-height: var(--alert-height);
     opacity: 1;
     transform: translateY(0);
 }
@@ -31,15 +68,45 @@
     transition: all 300ms ease-in-out;
 }
 
-/* Make sure alerts are responsive on small screens */
+/* Responsive breakpoints - adjust CSS variables instead of hardcoded values */
+@media (max-width: 992px) {
+    :root {
+        --alert-height: 52px;
+        --alert-description-font-size: 12px;
+    }
+}
+
+@media (max-width: 768px) {
+    :root {
+        --alert-height: 48px;
+        --alert-padding-y: 8px;
+        --alert-padding-x: 15px;
+    }
+}
+
 @media (max-width: 576px) {
-    .network-status-container .ant-alert-description {
-        display: none;
-        /* Hide description on small screens to save space */
+    :root {
+        --alert-height: 40px;
+        --alert-font-size: 13px;
+        --alert-padding-y: 8px;
+        --alert-padding-x: 12px;
     }
 
-    .network-status-container .ant-alert {
-        padding: 8px 15px;
-        /* Smaller padding on small screens */
+    .network-status-container .ant-alert-description {
+        display: none;
+    }
+}
+
+@media (max-width: 360px) {
+    :root {
+        --alert-height: 36px;
+        --alert-font-size: 12px;
+        --alert-padding-y: 6px;
+        --alert-padding-x: 10px;
+    }
+
+    .network-status-container .ant-alert-icon {
+        font-size: 14px;
+        margin-right: 8px;
     }
 }

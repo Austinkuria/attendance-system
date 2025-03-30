@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Alert } from 'antd';
+import './NetworkStatus.css'; // Import the CSS file
 
 /**
  * NetworkStatus component that monitors online/offline status and displays a banner
@@ -9,6 +10,23 @@ const NetworkStatus = () => {
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [showAlert, setShowAlert] = useState(!navigator.onLine);
     const [loadErrors, setLoadErrors] = useState([]);
+    const [spacerHeight, setSpacerHeight] = useState(0);
+
+    const alertRef = useRef(null);
+
+    // Update spacer height based on actual banner height
+    const updateSpacerHeight = () => {
+        if (alertRef.current) {
+            const height = alertRef.current.offsetHeight;
+            setSpacerHeight(height);
+        } else {
+            // Use CSS variable as fallback
+            const alertHeight = getComputedStyle(document.documentElement)
+                .getPropertyValue('--alert-height')
+                .trim();
+            setSpacerHeight(alertHeight ? parseInt(alertHeight) : 56);
+        }
+    };
 
     useEffect(() => {
         const handleOnline = () => {
@@ -36,10 +54,19 @@ const NetworkStatus = () => {
             }
         };
 
+        // Update spacer height on window resize
+        const handleResize = () => {
+            updateSpacerHeight();
+        };
+
         // Add event listeners
         window.addEventListener('online', handleOnline);
         window.addEventListener('offline', handleOffline);
         window.addEventListener('error', handleResourceError, true); // Capture phase
+        window.addEventListener('resize', handleResize);
+
+        // Initial height update
+        updateSpacerHeight();
 
         // If we're online initially, hide the alert after 3s
         if (isOnline && showAlert) {
@@ -52,53 +79,85 @@ const NetworkStatus = () => {
             window.removeEventListener('online', handleOnline);
             window.removeEventListener('offline', handleOffline);
             window.removeEventListener('error', handleResourceError, true);
+            window.removeEventListener('resize', handleResize);
         };
     }, [isOnline, showAlert]);
 
-    // If nothing to show, render a hidden placeholder to maintain layout consistency
+    // Update spacer height when alert visibility changes
+    useEffect(() => {
+        updateSpacerHeight();
+        // Use ResizeObserver for more accurate height tracking
+        if (alertRef.current) {
+            const resizeObserver = new ResizeObserver(() => {
+                updateSpacerHeight();
+            });
+            resizeObserver.observe(alertRef.current);
+            return () => resizeObserver.disconnect();
+        }
+    }, [showAlert, loadErrors.length]);
+
+    // If nothing to show, don't render anything
     if (!showAlert && loadErrors.length === 0) {
-        return <div data-testid="network-status" className="network-status-placeholder"></div>;
+        return null;
     }
 
-    return (
-        <div
-            className="network-status-container"
-            data-testid="network-status"
-            style={{
-                width: '100%',
-                zIndex: 1050, // Higher than most components but below modals (usually 1000)
-                position: 'relative', // Use relative instead of fixed to push content down
-                marginBottom: '0px' // Space below the alert
-            }}
-        >
-            {showAlert && (
-                <Alert
-                    message={isOnline ? "You're back online!" : "You're offline"}
-                    description={
-                        isOnline
-                            ? "Your connection has been restored."
-                            : "Please check your internet connection. Some features may be unavailable while offline."
-                    }
-                    type={isOnline ? "success" : "warning"}
-                    banner
-                    showIcon
-                    closable={isOnline}
-                    onClose={() => setShowAlert(false)}
-                />
-            )}
+    // Custom message for small screens (mobile devices)
+    const getResponsiveMessage = (online) => {
+        const width = window.innerWidth;
+        if (width <= 576) {
+            return online ? "Connected" : "No connection";
+        }
+        return online ? "You're back online!" : "You're offline";
+    };
 
-            {loadErrors.length > 0 && !showAlert && (
-                <Alert
-                    message="Some resources failed to load"
-                    description="Non-essential resources couldn't be loaded. The application will continue to function normally."
-                    type="info"
-                    banner
-                    showIcon
-                    closable
-                    onClose={() => setLoadErrors([])}
-                />
-            )}
-        </div>
+    return (
+        <>
+            {/* This spacer div pushes content down when alerts are visible */}
+            <div
+                className="network-status-spacer"
+                style={{
+                    height: (showAlert || loadErrors.length > 0) ? `${spacerHeight}px` : '0px',
+                }}
+                aria-hidden="true"
+            />
+
+            {/* Fixed position container for alerts */}
+            <div
+                className="network-status-container"
+                data-testid="network-status"
+                role="alert"
+                aria-live="assertive"
+                ref={alertRef}
+            >
+                {showAlert && (
+                    <Alert
+                        message={getResponsiveMessage(isOnline)}
+                        description={
+                            isOnline
+                                ? "Your connection has been restored."
+                                : "Please check your internet connection. Some features may be unavailable while offline."
+                        }
+                        type={isOnline ? "success" : "warning"}
+                        banner
+                        showIcon
+                        closable={isOnline}
+                        onClose={() => setShowAlert(false)}
+                    />
+                )}
+
+                {loadErrors.length > 0 && !showAlert && (
+                    <Alert
+                        message={window.innerWidth <= 576 ? "Resources failed" : "Some resources failed to load"}
+                        description="Non-essential resources couldn't be loaded. The application will continue to function normally."
+                        type="info"
+                        banner
+                        showIcon
+                        closable
+                        onClose={() => setLoadErrors([])}
+                    />
+                )}
+            </div>
+        </>
     );
 };
 
