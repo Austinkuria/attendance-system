@@ -2,63 +2,63 @@ CHAPTER 4:
 SYSTEM DESIGN
 
 Introduction
-The QR Code-based Smart Attendance System is a Progressive Web Application (PWA) designed to modernize student attendance tracking. The system is built using:
+The Quick Response Code (QR Code)-based Student Attendance System is a Progressive Web Application (PWA) designed to modernize student attendance tracking. The system is built using:
 
 Technical Architecture:
-- Frontend: React.js with Vite, Ant Design UI framework
+- Frontend: React.js with Vite, Ant Design User Interface (UI) framework
 - Backend: Node.js, Express
-- Database: MongoDB with Mongoose ODM
-- API: RESTful architecture with JWT authentication
+- Database: MongoDB with Mongoose Object Data Modeling (ODM)
+- Application Programming Interface (API): Representational State Transfer (RESTful) architecture with JavaScript Object Notation Web Token (JWT) authentication
 - Data Persistence: Browser localStorage with basic IndexedDB integration
 - Deployment: Client on Vercel, Server on Render.com
 
 Core Components:
 1. Frontend Application
-   - Progressive Web App with basic offline capabilities
-   - Ant Design UI components with custom theming (light/dark mode)
-   - QR code scanner integration using device cameras
+   - Progressive Web Application (PWA) with basic offline capabilities
+   - Ant Design User Interface (UI) components with custom theming (light/dark mode)
+   - Quick Response (QR) code scanner integration using device cameras
    - Auto-refreshing data through polling mechanisms
    - Local storage for session management and caching
 
 2. Backend Services
-   - Express REST API endpoints with MVC architecture
-   - JWT authentication with token refresh mechanism
+   - Express Representational State Transfer (REST) Application Programming Interface (API) endpoints with Model-View-Controller (MVC) architecture
+   - JavaScript Object Notation Web Token (JWT) authentication with token refresh mechanism
    - Rate limiting to prevent abuse
-   - CSV file handling for bulk imports/exports
-   - MongoDB data operations with Mongoose ODM
+   - Comma-Separated Values (CSV) file handling for bulk imports/exports
+   - MongoDB data operations with Mongoose Object Data Modeling (ODM)
 
 3. Database Architecture
    - Document-based MongoDB collections
    - Core collections: Users, Sessions, Attendance, Units, Courses, Departments
-   - Reference-based relationships through MongoDB ObjectIDs
+   - Reference-based relationships through MongoDB Object IDs
 
 Requirements
-Functional Requirements (Implemented):
+Functional Requirements:
 
 1. Authentication & Authorization
-   - JWT-based secure authentication with refresh tokens
+   - JavaScript Object Notation Web Token (JWT)-based secure authentication with refresh tokens
    - Role-based access control (Admin/Lecturer/Student)
    - Password reset functionality
    - Device identification for security
 
 2. Session Management
-   - QR code generation with automatic refresh every 25-30 seconds
+   - Quick Response (QR) code generation with automatic refresh every 3 minutes
    - Session state persistence using localStorage
    - Session timing controls (start/end)
    - Manual attendance status overrides by lecturers
 
 3. Anti-Spoofing Measures
-   - Device fingerprinting through browser information (audio, canvas, WebGL, GPU and system fonts)
-   - IP address tracking and time-based conflict detection
-   - QR code expiration and rotation with SHA-256 hash verification
+   - Device fingerprinting through browser information (userAgent, platform, screenWidth, screenHeight, colorDepth, pixelDepth, hardwareConcurrency, language)
+   - Internet Protocol (IP) address tracking and time-based conflict detection
+   - Quick Response (QR) code expiration and rotation with Secure Hash Algorithm 256 (SHA-256) hash verification
    - Session token validation
    - Rate limiting on sensitive endpoints
 
 4. Data Management
-   - Bulk student import/export via CSV
+   - Bulk student import/export via Comma-Separated Values (CSV)
    - Course and unit management
    - Department organization
-   - Attendance records export in CSV/Excel format
+   - Attendance records export in Comma-Separated Values (CSV)/Excel format
    - Basic analytics and reporting
 
 5. User Experience
@@ -69,11 +69,11 @@ Functional Requirements (Implemented):
 
 Non-Functional Requirements:
 1. Security
-   - Secure authentication with JWT
+   - Secure authentication with JavaScript Object Notation Web Token (JWT)
    - Device fingerprinting validation
    - Role-based access control
    - Input validation and sanitization
-   - API rate limiting
+   - Application Programming Interface (API) rate limiting
 
 2. Performance
    - Optimized database queries
@@ -97,48 +97,48 @@ Non-Functional Requirements:
    - Modular architecture
    - Separate frontend/backend for independent scaling
    - Cloud deployment ready
-   - API-based architecture for future extensibility
+   - Application Programming Interface (API)-based architecture for future extensibility
 
 6. Maintainability
    - Component-based frontend design
-   - MVC pattern in backend
+   - Model-View-Controller (MVC) pattern in backend
    - Central configuration
    - Environment variable management
 
 Context Level Diagram
-The following diagram illustrates the high-level context of the QR Code-based Smart Attendance System as actually implemented:
+The following diagram illustrates the high-level context of the Quick Response Code (QR Code)-based Smart Attendance System as actually implemented:
 
 ```mermaid
 graph TD
     %% Main System
-    SYS[QR Code-based Smart<br>Attendance System] 
+    SYS[Quick Response Code-based Smart<br>Attendance System] 
     
     %% External Actors - Only those actually implemented
     STU[Student]
     LEC[Lecturer]
     ADM[Administrator]
     DB[(MongoDB Database)]
-    STORE[CSV/Excel Export Storage]
+    STORE[Comma-Separated Values/Excel Export Storage]
     
     %% Interactions - Students (actually implemented)
-    STU -->|Authenticates via JWT| SYS
-    STU -->|Scans QR codes with device fingerprinting| SYS
+    STU -->|Authenticates via JavaScript Object Notation Web Token| SYS
+    STU -->|Scans Quick Response codes with device fingerprinting| SYS
     STU -->|Views attendance history| SYS
     STU -->|Submits session feedback| SYS
     SYS -->|Returns attendance status| STU
     SYS -->|Displays feedback request notifications| STU
     
     %% Interactions - Lecturers (actually implemented)
-    LEC -->|Authenticates via JWT| SYS
+    LEC -->|Authenticates via JavaScript Object Notation Web Token| SYS
     LEC -->|Creates attendance sessions| SYS
-    LEC -->|Generates QR codes with auto-refresh| SYS
+    LEC -->|Generates Quick Response codes with auto-refresh| SYS
     LEC -->|Uses polling for attendance data updates| SYS
     LEC -->|Exports attendance reports| SYS
     SYS -->|Displays attendance data| LEC
     SYS -->|Provides unit/course analytics| LEC
     
     %% Interactions - Admins (actually implemented)
-    ADM -->|Authenticates via JWT| SYS
+    ADM -->|Authenticates via JavaScript Object Notation Web Token| SYS
     ADM -->|Manages user accounts| SYS
     ADM -->|Configures courses/units/departments| SYS
     ADM -->|Views system analytics| SYS
@@ -158,16 +158,16 @@ graph TD
     class DB,STORE external;
 ```
 
-This diagram accurately represents the QR Code-based Smart Attendance System as implemented, showing:
+This diagram accurately represents the Quick Response Code (QR Code)-based Smart Attendance System as implemented, showing:
 
 1. The three user roles (Students, Lecturers, Administrators) with their actual system interactions
 2. External systems integration with MongoDB database and report export functionality
 3. The key data flows as implemented in the codebase, including:
-   - JWT authentication for all users
+   - JavaScript Object Notation Web Token (JWT) authentication for all users
    - Device fingerprinting for anti-spoofing measures
-   - Auto-refreshing QR codes with 3-minute rotation
+   - Auto-refreshing Quick Response (QR) codes with 3-minute rotation
    - Polling-based data refresh (not WebSockets)
-   - CSV/Excel data export capabilities
+   - Comma-Separated Values (CSV)/Excel data export capabilities
    - In-app notifications for pending feedback requests
 
 Data Flow Diagram:
@@ -175,7 +175,7 @@ Data Flow Diagram:
 
 1. Student → System:
    - Login credentials
-   - QR code scans
+   - Quick Response (QR) code scans
    - Session feedback
    - Device fingerprint
    - Attendance records requests
@@ -190,7 +190,7 @@ Data Flow Diagram:
 
 3. Lecturer → System:
    - Session creation requests
-   - QR code generation triggers
+   - Quick Response (QR) code generation triggers
    - Attendance data polling
    - Report generation requests
    - Student performance queries
@@ -200,7 +200,7 @@ Data Flow Diagram:
    - Session analytics
    - Student feedback reports
    - Course performance metrics
-   - Export data (CSV/Excel)
+   - Export data (Comma-Separated Values (CSV)/Excel)
 
 5. Admin → System:
    - User management operations
@@ -221,7 +221,7 @@ Data Flow Diagram:
    - File system: Report storage
 
 8. Cross-Cutting Flows:
-   - JWT tokens for authentication
+   - JavaScript Object Notation Web Token (JWT) tokens for authentication
    - Device fingerprints for verification
    - Polling for data updates
    - Browser storage synchronization
@@ -231,19 +231,19 @@ Data Flow Implementation:
 
 1. Authentication Flows:
    - Login/Signup via /api/auth/* endpoints
-   - JWT token generation and validation
+   - JavaScript Object Notation Web Token (JWT) token generation and validation
    - Token refresh mechanism
    - Role-based access control (Student/Lecturer/Admin)
 
 2. Student Flows:
-   - Attendance marking via QR code scanning
+   - Attendance marking via Quick Response (QR) code scanning
    - Session status checking via polling
    - Feedback submission for attended sessions
    - Attendance history and analytics view
 
 3. Lecturer Flows:
    - Session creation and management 
-   - QR code generation with auto-refresh
+   - Quick Response (QR) code generation with auto-refresh every 3 minutes
    - Attendance monitoring via polling
    - Automatic absent marking after session ends
    - Unit-wise attendance reports
@@ -255,7 +255,7 @@ Data Flow Implementation:
    - Bulk data import/export
 
 5. Data Persistence:
-   - MongoDB collections with Mongoose schemas
+   - MongoDB collections with Mongoose Object Data Modeling (ODM) schemas
    - Browser localStorage for client-side caching
    - Basic IndexedDB integration
 
@@ -279,7 +279,7 @@ flowchart TB
 
     %% Student Flows
     Student -->|Login/Auth| System
-    Student -->|Scan QR Code| System
+    Student -->|Scan Quick Response (QR) Code| System
     Student -->|Submit Feedback| System
     Student -->|View Analytics| System
     System -->|Session Status| Student
@@ -288,7 +288,7 @@ flowchart TB
 
     %% Lecturer Flows
     Lecturer -->|Create Session| System
-    Lecturer -->|Generate QR| System
+    Lecturer -->|Generate Quick Response (QR)| System
     Lecturer -->|Poll Attendance| System
     System -->|Attendance Data| Lecturer
     System -->|Analytics| Lecturer
@@ -315,7 +315,7 @@ flowchart TB
 Cross-Cutting Concerns:
 
 1. Authentication Flow:
-   - JWT token generation/validation
+   - JavaScript Object Notation Web Token (JWT) token generation/validation
    - Role-based access checks
    - Session management
    - Device fingerprinting
@@ -323,7 +323,7 @@ Cross-Cutting Concerns:
 2. Data Security:
    - Input validation
    - Request rate limiting
-   - CORS protection
+   - Cross-Origin Resource Sharing (CORS) protection
    - Error handling
 
 3. Data Updates:
@@ -338,7 +338,7 @@ Cross-Cutting Concerns:
    - Referential integrity
    - Anti-spoofing measures
 
-1. Client Applications (Frontend Routes & API Endpoints):
+1. Client Applications (Frontend Routes & Application Programming Interface (API) Endpoints):
    These represent the different user interfaces through which users interact with the system.
 
    a) Student Portal:
@@ -346,7 +346,7 @@ Cross-Cutting Concerns:
       
       - Key Features & Components:
         → Authentication & Profile:
-          - Secure JWT-based authentication
+          - Secure JavaScript Object Notation Web Token (JWT)-based authentication
           - Profile management with editable user details
           - Theme customization (dark/light mode)
           - Responsive profile display with initials avatar
@@ -362,7 +362,7 @@ Cross-Cutting Concerns:
         → Session Management:
           - Real-time session status monitoring
           - Active session detection and countdown timers
-          - QR code scanning capability with device verification
+          - Quick Response (QR) code scanning capability with device verification
           - Anti-spoofing measures with device fingerprinting
           - Session expiry handling
         
@@ -377,7 +377,7 @@ Cross-Cutting Concerns:
           - Post-session feedback submission
           - Multiple feedback metrics (rating, pace, clarity)
           - Anonymous feedback option
-          - Interactive feedback form with rich UI elements
+          - Interactive feedback form with rich User Interface (UI) elements
           - Pending feedback notifications
         
         → Notifications & Updates:
@@ -404,7 +404,7 @@ Cross-Cutting Concerns:
           - Session status updates:
             • Real-time session countdown display
             • Status changes (active, ending soon, ended)
-            • QR code refresh notifications every 3 minutes
+            • Quick Response (QR) code refresh notifications every 3 minutes
             • Device verification status indicators
 
           - Custom notification management:
@@ -421,7 +421,7 @@ Cross-Cutting Concerns:
           - Theme preferences
           - Form states
         
-        → API Integration:
+        → Application Programming Interface (API) Integration:
           - Real-time session status checks
           - Attendance marking endpoints
           - Profile management calls
@@ -442,7 +442,7 @@ Cross-Cutting Concerns:
           - Unit information storage
           - Attendance record buffering
           - Theme preference persistence
-          - API response caching
+          - Application Programming Interface (API) response caching
         
         → Loading States:
           - Granular loading indicators
@@ -469,7 +469,7 @@ Cross-Cutting Concerns:
           ∙ Yellow: 50-74% attendance
           ∙ Red: <50% attendance
       • Actions:
-        - Attend Session: Opens QR scanner for marking attendance
+        - Attend Session: Opens Quick Response (QR) scanner for marking attendance
         - Provide Feedback: Available for attended sessions
       • Status Indicators:
         - Active session availability
@@ -577,7 +577,7 @@ Cross-Cutting Concerns:
       
       - Key Features & Components:
         → Authentication & Profile Management:
-          → Secure Login/Logout: Utilizes JWT-based authentication
+          → Secure Login/Logout: Utilizes JavaScript Object Notation Web Token (JWT)-based authentication
           → Profile Settings: View and edit personal information
           → Theme Toggle: Switch between light and dark modes
         
@@ -585,7 +585,7 @@ Cross-Cutting Concerns:
           → Summary Statistics:
             - Total Assigned Units: The total number of academic units/courses assigned to the lecturer for teaching
             - Current Attendance Rate: The percentage of students present in the current active session
-            - Total Scans: Number of successful QR code scans recorded for the current session
+            - Total Scans: Number of successful Quick Response (QR) code scans recorded for the current session
             - Total Students Enrolled: The total number of students registered for the selected unit
           → Quick Access Cards:
             - Analytics Link: Direct access to detailed attendance analytics and trends
@@ -596,7 +596,7 @@ Cross-Cutting Concerns:
           → Active Session Controls:
             - Create New Session: Initiates a new attendance tracking session for a selected unit
             - End Current Session: Manually terminates an active session and marks absent students
-            - Display QR Code (auto-rotating): Shows QR code that automatically refreshes every 3 minutes
+            - Display Quick Response (QR) Code (auto-rotating): Shows Quick Response (QR) code that automatically refreshes every 3 minutes
             - Session Timer Display: Countdown showing remaining session time
           → Real-time Attendance Monitoring:
             - Student List with Status: Live updating list of present/absent students
@@ -606,7 +606,7 @@ Cross-Cutting Concerns:
           → Past Sessions:
             - Session History: Record of all previous attendance sessions
             - Attendance Records: Detailed attendance data for past sessions
-            - Export Functionality: Download attendance reports in CSV/Excel format
+            - Export Functionality: Download attendance reports in Comma-Separated Values (CSV)/Excel format
 
         → Analytics Dashboard:
           → Attendance Trends:
@@ -630,7 +630,7 @@ Cross-Cutting Concerns:
             - Filter Capabilities: Sort and filter feedback by various criteria
             - Summary Statistics: Aggregate feedback metrics and insights
 
-      - API Integration:
+      - Application Programming Interface (API) Integration:
         → Authentication:
           POST /api/auth/login
           POST /api/auth/logout
@@ -693,7 +693,7 @@ Cross-Cutting Concerns:
         → Students Management:
           - View & Search Students: List all students with search and filter capabilities
           - Add/Edit/Delete Students: Complete CRUD operations for student accounts
-          - Bulk Import/Export (CSV): Mass import/export of student data via CSV
+          - Bulk Import/Export (Comma-Separated Values (CSV)): Mass import/export of student data via Comma-Separated Values (CSV)
           - Filter by Department/Course: Organize students by their departments and courses
           - Student Assignment to Courses: Manage student course enrollments
         
@@ -729,10 +729,10 @@ Cross-Cutting Concerns:
           - Profile Management: Admin profile information management
           - Account Settings: System account configurations
           - Password Update: Secure password management
-          - Theme Customization: UI theme preferences
+          - Theme Customization: User Interface (UI) theme preferences
           - System Preferences: Global system settings
 
-      - API Endpoints:
+      - Application Programming Interface (API) Endpoints:
         → Authentication:
           - POST /api/auth/login
           - POST /api/auth/logout
@@ -782,8 +782,8 @@ Cross-Cutting Concerns:
       - Data Flow:
         → Real-time Updates:
           - WebSocket connections for live data
-          - Cached API responses
-          - Optimistic UI updates
+          - Cached Application Programming Interface (API) responses
+          - Optimistic User Interface (UI) updates
         
         → Data Validation:
           - Frontend form validation
@@ -792,52 +792,52 @@ Cross-Cutting Concerns:
         
         → Error Handling:
           - Global error boundaries
-          - API error handling
+          - Application Programming Interface (API) error handling
           - User feedback messages
         
         → State Management:
-          - Context API for theme
+          - Context Application Programming Interface (API) for theme
           - Local state for forms
-          - Cached API data
+          - Cached Application Programming Interface (API) data
         
         → Security:
-          - JWT Authentication
+          - JavaScript Object Notation Web Token (JWT) Authentication
           - Role-based access
           - Rate limiting
           - Session management
 
-2. Backend Services (API Endpoints):
+2. Backend Services (Application Programming Interface (API) Endpoints):
    - Description: These services handle the core logic of the system, including authentication, session management, and data access.
    - Key Services:
      → Authentication Service: Manages user authentication and authorization.
-     → Session Service: Handles session creation, QR code generation, and session status updates.
+     → Session Service: Handles session creation, Quick Response (QR) code generation, and session status updates.
      → Attendance Service: Manages attendance marking, verification, and record retrieval.
      → User Management: Handles CRUD operations for user accounts.
      → Course & Unit Management: Manages courses, units, and department configurations.
-     → Data Export Service: Generates CSV exports and reports.
+     → Data Export Service: Generates Comma-Separated Values (CSV) exports and reports.
 
 3. Data Layer:
    - Description: This layer manages the storage and retrieval of data.
    - Key Components:
      → MongoDB Collections: Stores user data, session information, attendance records, units, courses, departments, and feedback data.
-     → File Storage: Stores QR code images, CSV exports, user uploads, and system logs.
+     → File Storage: Stores Quick Response (QR) code images, Comma-Separated Values (CSV) exports, user uploads, and system logs.
 
 4. Security Infrastructure:
    - Description: This layer ensures the security and integrity of the system.
    - Key Components:
-     → Authentication: JWT token validation, role-based authorization, device fingerprinting, and session management.
-     → Request Protection: Rate limiting, CORS protection, input validation, and error handling.
+     → Authentication: JavaScript Object Notation Web Token (JWT) token validation, role-based authorization, device fingerprinting, and session management.
+     → Request Protection: Rate limiting, Cross-Origin Resource Sharing (CORS) protection, input validation, and error handling.
 
 5. External Services Integration:
    - Description: This section outlines the external services that the system integrates with.
    - Key Services:
      → Hosting: Vercel (frontend), Render.com (backend), MongoDB Atlas (database).
-     → Email Service: Nodemailer SMTP for sending emails.
+     → Email Service: Nodemailer Simple Mail Transfer Protocol (SMTP) for sending emails.
 
 6. Data Flows:
    - Description: This section describes the flow of data between different components of the system.
    - Key Flows:
-     → Client → Backend: HTTPS REST calls, JWT authentication, form submissions, and file uploads.
+     → Client → Backend: Hypertext Transfer Protocol Secure (HTTPS) REST calls, JavaScript Object Notation Web Token (JWT) authentication, form submissions, and file uploads.
      → Backend → Database: Mongoose queries, atomic operations, index utilization, and data validation.
      → System → External: Email dispatch, file storage, hosting services, and monitoring.
 
@@ -866,10 +866,10 @@ Input Design (User Interfaces)
       - Session type (Lecture/Lab/Tutorial)
       - Location input (optional)
       - Notes/Description field
-      - Generate QR button
+      - Generate Quick Response (QR) button
    
-   b) QR Display:
-      - Dynamic QR code with auto-refresh
+   b) Quick Response (QR) Display:
+      - Dynamic Quick Response (QR) code with auto-refresh
       - Countdown timer
       - Student count indicator
       - Manual refresh button
@@ -883,7 +883,7 @@ Input Design (User Interfaces)
       - Session status indicator
 
 3. Student Interface
-   a) QR Scanner:
+   a) Quick Response (QR) Scanner:
       - Camera permission request
       - Scanner viewport with guidelines
       - Flash toggle (if available)
@@ -910,7 +910,7 @@ Input Design (User Interfaces)
 4. Administrative Interface
    a) User Management:
       - User creation form with role assignment
-      - Bulk import interface (CSV)
+      - Bulk import interface (Comma-Separated Values (CSV))
       - User search with filters
       - Edit/Delete actions with confirmation
       - Permission management grid
@@ -956,7 +956,7 @@ graph TB
     
     %% Student Use Cases
     Student --> Auth1[Authentication]
-    Student --> QRScan[Scan QR Code]
+    Student --> QRScan[Scan Quick Response (QR) Code]
     Student --> ViewAttendance[View Attendance]
     Student --> ManageProfile[Manage Profile]
     Student --> SubmitFeedback[Submit Feedback]
@@ -966,7 +966,7 @@ graph TB
     %% Lecturer Use Cases
     Lecturer --> Auth2[Authentication]
     Lecturer --> CreateSession[Create Session]
-    Lecturer --> GenerateQR[Generate QR]
+    Lecturer --> GenerateQR[Generate Quick Response (QR)]
     Lecturer --> MonitorLive[Monitor Live]
     Lecturer --> ManageUnits[Manage Units]
     Lecturer --> ViewReports[View Reports]
@@ -1035,21 +1035,21 @@ flowchart TD
     %% Define Client Layer
     subgraph CL[Client Layer]
         RF[React Frontend]
-        PF[PWA Features]
+        PF[Progressive Web Application (PWA) Features]
         BC[Browser Cache]
     end
 
     %% Define Security Layer
     subgraph SL[Security Layer]
-        JA[JWT Auth]
+        JA[JavaScript Object Notation Web Token (JWT) Auth]
         DF[Device Fingerprint]
         RL[Rate Limiter]
     end
 
     %% Define Application Layer
     subgraph AppLayer[Application Layer]
-        API[Express API]
-        QR[QR Service]
+        Application Programming Interface (API)[Express Application Programming Interface (API)]
+        QR[Quick Response (QR) Service]
         AttLogic[Attendance Logic]
     end
 
@@ -1065,7 +1065,7 @@ flowchart TD
     AppLayer -.-> DL
 
     %% Define Cross-Layer Connections
-    API <-..-> DB
+    Application Programming Interface (API) <-..-> DB
     QR <-..-> FS
 ```
 
@@ -1089,7 +1089,7 @@ sequenceDiagram
         C-->>U: Show Error
     else Valid Credentials
         A->>T: Generate Tokens
-        T-->>A: JWT Tokens
+        T-->>A: JavaScript Object Notation Web Token (JWT) Tokens
         A-->>D: Update Last Login
         A-->>C: 200 OK + Tokens
         C->>C: Store Tokens
@@ -1097,7 +1097,7 @@ sequenceDiagram
     end
     
     Note over C,A: Subsequent Requests
-    C->>A: Request + JWT
+    C->>A: Request + JavaScript Object Notation Web Token (JWT)
     A->>T: Verify Token
     T-->>A: Token Valid
     A->>D: Fetch Resources
@@ -1111,10 +1111,10 @@ sequenceDiagram
 flowchart TB
     Start([Start]) --> LecturerAuth[Lecturer Authentication]
     LecturerAuth --> CreateSession[Create Session]
-    CreateSession --> GenerateQR[Generate QR Code]
+    CreateSession --> GenerateQR[Generate Quick Response (QR) Code]
     
     subgraph QR Management
-        GenerateQR --> DisplayQR[Display QR]
+        GenerateQR --> DisplayQR[Display Quick Response (QR)]
         DisplayQR --> RefreshTimer{3min Timer}
         RefreshTimer -->|Expired| GenerateQR
         RefreshTimer -->|Valid| WaitScan[Wait for Scan]
@@ -1137,7 +1137,7 @@ flowchart TB
     
     subgraph Real-time Updates
         UpdateStats --> WebSocket[WebSocket Update]
-        WebSocket --> UpdateUI[Update UI]
+        WebSocket --> UpdateUI[Update User Interface (UI)]
         UpdateUI --> NotifyLecturer[Notify Lecturer]
     end
     
@@ -1164,7 +1164,7 @@ flowchart LR
     end
     
     subgraph Storage
-        Primary[(Primary DB)]
+        Primary[(Primary Database)]
         Cache[(Cache)]
         Backup[(Backup)]
     end
@@ -1177,8 +1177,8 @@ flowchart LR
     Primary -->|Sync| Cache
     Primary -->|Backup| Backup
     
-    Cache -->|Read| API[API Response]
-    Primary -->|Miss| API
+    Cache -->|Read| Application Programming Interface (API)[Application Programming Interface (API) Response]
+    Primary -->|Miss| Application Programming Interface (API)
 ```
 
 Database Design
@@ -1316,7 +1316,7 @@ Key Entity Relationships Explained:
 3. Session - Attendance Relationship
    - One-to-Many: A session has multiple attendance records
    - Each attendance record belongs to one session
-   - Enforces device fingerprinting and QR validation
+   - Enforces device fingerprinting and Quick Response (QR) validation
 
 4. Course - Unit Hierarchy
    - One-to-Many: A course contains multiple units
@@ -1341,7 +1341,7 @@ Data Integrity Constraints:
 
 2. Business Rules
    - Students can only attend sessions for enrolled units
-   - QR codes expire after 3 minutes
+   - Quick Response (QR) codes expire after 3 minutes
    - Attendance limited to one mark per student per session
    - Feedback enabled only after session ends
 
@@ -1689,17 +1689,15 @@ Output Design (Reports & Visualizations)
       - "Could use more time for hands-on exercises"
       - "Great explanations of complex concepts"
 ```
-
-
 CHAPTER 5: 
 SYSTEM TESTING AND IMPLEMENTATION
 
 Introduction
 
-The testing phase for the QR Code-based Smart Attendance System employed a practical approach focused on real-world usability and security validation. Our testing prioritized critical features and core functionality to ensure a reliable system for everyday academic use.
+The testing phase for the Quick Response Code (QR Code)-based Smart Attendance System employed a practical approach focused on real-world usability and security validation. Our testing prioritized critical features and core functionality to ensure a reliable system for everyday academic use.
 
 Our testing focused on three critical aspects essential to the system's success:
-1. Attendance tracking accuracy and QR code reliability
+1. Attendance tracking accuracy and Quick Response (QR) code reliability
 2. Anti-spoofing mechanism effectiveness
 3. User experience across different devices and network conditions
 
@@ -1711,16 +1709,16 @@ Testing Environment:
 Key Testing Activities:
 
 1. Functional Testing
-   - Manual testing of QR code generation, scanning, and validation
+   - Manual testing of Quick Response (QR) code generation, scanning, and validation
    - User role-based access control verification
    - End-to-end attendance session flow validation
    - Feedback submission and analysis workflow
 
 2. Security Testing
-   - Manual QR code replay attempt tests
+   - Manual Quick Response (QR) code replay attempt tests
    - Device fingerprinting verification
    - Multiple session access attempts from same device
-   - JWT token validation
+   - JavaScript Object Notation Web Token (JWT) validation
 
 3. Performance Assessment
    - Response time measurements under normal usage conditions
@@ -1737,17 +1735,17 @@ The testing process identified and addressed various issues before deployment, w
 Unit Testing
 1. Authentication Module:
    - Tested login flow with valid and invalid credentials
-   - Verified JWT generation, storage, and validation 
+   - Verified JavaScript Object Notation Web Token (JWT) generation, storage, and validation 
    - Confirmed proper role-based access restrictions
    - Tested token refresh mechanism
    - Verified error handling for authentication failures
 
-2. QR Code Module:
-   - Validated QR code generation with embedded session data
-   - Verified QR code refresh functionality (every 25-30 seconds)
+2. Quick Response (QR) Code Module:
+   - Validated Quick Response (QR) code generation with embedded session data
+   - Verified Quick Response (QR) code refresh functionality (every 3 minutes)
    - Tested scanning functionality across multiple device types
-   - Validated QR code expiration enforcement
-   - Verified QR code regeneration maintained session consistency
+   - Validated Quick Response (QR) code expiration enforcement
+   - Verified Quick Response (QR) code regeneration maintained session consistency
 
 3. Attendance Module:
    - Verified accurate marking of attendance records in the database
@@ -1758,8 +1756,8 @@ Unit Testing
 
 Integration Testing
 1. Frontend-Backend Integration:
-   - Tested complete authentication flow from login UI to database record
-   - Verified session creation through lecturer interface to QR generation
+   - Tested complete authentication flow from login User Interface (UI) to database record
+   - Verified session creation through lecturer interface to Quick Response (QR) generation
    - Confirmed student scanning flow from camera access to attendance record creation
    - Tested localStorage synchronization with server data
    - Validated feedback submission and retrieval process
@@ -1770,12 +1768,12 @@ Integration Testing
    - Confirmed data integrity across related documents
    - Verified error handling for database operations
 
-3. API Integration:
-   - Validated API endpoints response codes and payload structures
+3. Application Programming Interface (API) Integration:
+   - Validated Application Programming Interface (API) endpoints response codes and payload structures
    - Tested rate limiting functionality
    - Verified error handling for edge cases
    - Confirmed proper integration of middleware components (authentication, validation)
-   - Tested file upload/download functionality for CSV imports/exports
+   - Tested file upload/download functionality for Comma-Separated Values (CSV) imports/exports
 
 System Testing
 1. End-to-End Workflows:
@@ -1792,9 +1790,9 @@ System Testing
    - Assessed client-side performance on various devices
 
 3. Security Testing:
-   - Verified protection against QR code replay attacks
+   - Verified protection against Quick Response (QR) code replay attacks
    - Tested input sanitization on all form submissions
-   - Validated JWT token security and proper expiration handling
+   - Validated JavaScript Object Notation Web Token (JWT) security and proper expiration handling
    - Tested role-based access control restrictions
 
 Database Testing
@@ -1846,33 +1844,33 @@ Hardware Requirements:
      • Processing: Shared CPU resources
      • Database: M0 tier limitations (512MB storage)
    - Network Requirements:
-     • HTTPS for secure API communications
+     • Hypertext Transfer Protocol Secure (HTTPS) for secure Application Programming Interface (API) communications
      • Bandwidth within free tier limitations
 
 2. Client-Side Requirements:
    - Student Devices:
-     • Smartphones with functional camera for QR scanning
+     • Smartphones with functional camera for Quick Response (QR) scanning
      • Android (7.0+) or iOS (12.0+) devices
-     • Browser support for PWA features (Chrome preferred)
-     • Sufficient storage for PWA installation (~50MB)
-     • Camera permissions enabled for QR scanning
+     • Browser support for Progressive Web Application (PWA) features (Chrome preferred)
+     • Sufficient storage for Progressive Web Application (PWA) installation (~50MB)
+     • Camera permissions enabled for Quick Response (QR) scanning
    - Lecturer/Admin Devices:
      • Desktop/laptop for dashboard access
      • Modern browser with JavaScript enabled
      • Minimum 1024x768px resolution recommended
    - Network Connectivity:
      • Stable connection for real-time attendance tracking
-     • Offline capability through PWA for basic functions
+     • Offline capability through Progressive Web Application (PWA) for basic functions
 
 Software Architecture:
-1. PWA Implementation:
-   - Core PWA Features Implemented:
+1. Progressive Web Application (PWA) Implementation:
+   - Core Progressive Web Application (PWA) Features Implemented:
      • Service Worker: For offline caching and background processing
-     • Web App Manifest: With icons, theme colors, and display settings
+     • Web Application Manifest: With icons, theme colors, and display settings
      • Installability: "Add to Home Screen" functionality
    - Caching Strategy:
-     • App Shell Architecture: Core UI components cached for offline access
-     • API Response Caching: For attendance history and user data
+     • Application Shell Architecture: Core User Interface (UI) components cached for offline access
+     • Application Programming Interface (API) Response Caching: For attendance history and user data
      • Static Asset Caching: For images, styles, and scripts
    - Offline Capabilities:
      • View previously loaded attendance records
@@ -1883,17 +1881,17 @@ Software Architecture:
 2. Frontend Implementation:
    - Framework: React with functional components
    - Build Tool: Vite for development and production builds
-   - UI Components: Ant Design library for consistent interface
+   - User Interface (UI) Components: Ant Design library for consistent interface
    - Key Features:
-     • QR Code Scanning: Using device camera
+     • Quick Response (QR) Code Scanning: Using device camera
      • Real-time Updates: For attendance tracking
      • Responsive Design: Mobile-first approach
      • Theme Support: Light and dark mode options
 
 3. Backend Implementation:
    - Runtime: Node.js with Express framework
-   - API Design: RESTful endpoints with proper status codes
-   - Authentication: JWT-based with role validation
+   - Application Programming Interface (API) Design: Representational State Transfer (RESTful) endpoints with proper status codes
+   - Authentication: JavaScript Object Notation Web Token (JWT)-based with role validation
    - Security Features:
      • Rate Limiting: 15 requests/minute as specified
      • Input Validation: For form submissions
@@ -1901,10 +1899,10 @@ Software Architecture:
      • Data Sanitization: To prevent injection attacks
 
 4. Database Structure:
-   - Database: MongoDB with Mongoose ODM
+   - Database: MongoDB with Mongoose Object Data Modeling (ODM)
    - Collections: As implemented in provided schemas
      • Users: Student, lecturer, admin profiles
-     • Sessions: With QR code data and expiry
+     • Sessions: With Quick Response (QR) code data and expiry
      • Attendance: Records with device verification
      • Units, Courses, Departments: Academic hierarchy
      • Feedback: Post-session student responses
@@ -1912,25 +1910,25 @@ Software Architecture:
 
 5. Security Measures:
    - Authentication: 
-     • JWT implementation with proper expiration
+     • JavaScript Object Notation Web Token (JWT) implementation with proper expiration
      • Password hashing with bcrypt
      • Role-based access control
    - Anti-Spoofing:
-     • 3-minute QR code expiry as implemented
+     • 3-minute Quick Response (QR) code expiry as implemented
      • Device fingerprinting validation
      • Session-scoped tokens
    - Data Protection:
      • Input validation and sanitization
-     • HTTPS for all communications
+     • Hypertext Transfer Protocol Secure (HTTPS) for all communications
      • Rate limiting on sensitive endpoints
 
 Deployment Configuration:
-1. Frontend (PWA):
+1. Frontend (Progressive Web Application (PWA)):
    - Hosting: Vercel (as specified in methodology)
-   - Build Process: Vite build with PWA capabilities
+   - Build Process: Vite build with Progressive Web Application (PWA) capabilities
    - Domain: Custom project domain or Vercel subdomain
 
-2. Backend API:
+2. Backend Application Programming Interface (API):
    - Hosting: Render.com (as specified in methodology)
    - Environment: Node.js runtime
    - Configuration: Environment variables for secrets
@@ -1949,22 +1947,22 @@ Coding Tools
 
 2. Frontend Development:
    - Core Libraries:
-     • React: UI component library
+     • React: User Interface (UI) component library
      • react-router-dom: Navigation and routing
-     • axios: API requests and interceptors
-     • Ant Design: UI component framework
-     • jsQR: QR code scanning capability
+     • axios: Application Programming Interface (API) requests and interceptors
+     • Ant Design: User Interface (UI) component framework
+     • jsQR: Quick Response (QR) code scanning capability
      • day.js: Date manipulation utility
-   - PWA Tools:
-     • Workbox/vite-pwa: Service worker generation
-     • Web app manifest configuration
+   - Progressive Web Application (PWA) Tools:
+     • Workbox/vite-pwa: Service Worker generation
+     • Web Application Manifest configuration
      • Offline capability implementation
 
 3. Backend Development:
    - Core Libraries:
      • Express: Web server framework
-     • Mongoose: MongoDB ODM
-     • jsonwebtoken: JWT implementation
+     • Mongoose: MongoDB Object Data Modeling (ODM)
+     • jsonwebtoken: JavaScript Object Notation Web Token (JWT) implementation
      • bcrypt: Password hashing
      • express-validator: Input validation
      • express-rate-limit: Request throttling
@@ -1973,15 +1971,15 @@ Coding Tools
 
 4. Testing Tools:
    - Manual Testing: Cross-browser compatibility checks
-   - Browser DevTools: For PWA debugging and network analysis
-   - Postman: API endpoint testing
+   - Browser DevTools: For Progressive Web Application (PWA) debugging and network analysis
+   - Postman: Application Programming Interface (API) endpoint testing
 
 5. Documentation:
    - Markdown: For project documentation
    - JSDoc: Code-level documentation
    - Diagrams: Flow charts and entity relationships
 
-The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web App technologies to provide a native-like experience while ensuring accessibility across devices and network conditions.
+The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions.
 
 System Screenshots
 
@@ -1989,25 +1987,25 @@ System Screenshots
    ![Login Screen](https://i.imgur.com/vXk3LG7.png)
    *Figure 5.1: Login screen with role selection and secure authentication*
 
-   The login screen features JWT-based authentication with role selection for students, lecturers, and administrators. The responsive design adapts to both mobile and desktop views with a clean, intuitive interface that includes password visibility toggle and validation feedback.
+   The login screen features JavaScript Object Notation Web Token (JWT)-based authentication with role selection for students, lecturers, and administrators. The responsive design adapts to both mobile and desktop views with a clean, intuitive interface that includes password visibility toggle and validation feedback.
 
 2. Student Dashboard
    ![Student Dashboard](https://i.imgur.com/J7ML4pP.png)
    *Figure 5.2: Student Dashboard with unit cards and attendance statistics*
 
-   The student dashboard provides a comprehensive overview of enrolled units with color-coded attendance metrics, real-time active session indicators, and quick access to QR scanning. The interface incorporates Ant Design components with a custom theme system supporting both light and dark modes.
+   The student dashboard provides a comprehensive overview of enrolled units with color-coded attendance metrics, real-time active session indicators, and quick access to Quick Response (QR) scanning. The interface incorporates Ant Design components with a custom theme system supporting both light and dark modes.
 
-3. QR Code Scanning Interface
+3. Quick Response (QR) Code Scanning Interface
    ![QR Scanner](https://i.imgur.com/RTd9hgX.png)
-   *Figure 5.3: QR code scanner with overlay and real-time feedback*
+   *Figure 5.3: Quick Response (QR) code scanner with overlay and real-time feedback*
 
-   The QR scanning interface utilizes device camera access with a guided overlay to assist positioning. The scanner includes real-time validation feedback and device fingerprinting to prevent proxy attendance, with clear success/error states to guide users.
+   The Quick Response (QR) scanning interface utilizes device camera access with a guided overlay to assist positioning. The scanner includes real-time validation feedback and device fingerprinting to prevent proxy attendance, with clear success/error states to guide users.
 
 4. Lecturer Session Management
    ![Session Management](https://i.imgur.com/8GhQZbf.png)
-   *Figure 5.4: Lecturer's session management with QR generation*
+   *Figure 5.4: Lecturer's session management with Quick Response (QR) code generation*
 
-   Lecturers can create and manage attendance sessions with automatic QR code generation that refreshes every 3 minutes. The interface displays real-time attendance counts, student status updates, and session timers with options to end sessions and mark absentees.
+   Lecturers can create and manage attendance sessions with automatic Quick Response (QR) code generation that refreshes every 3 minutes. The interface displays real-time attendance counts, student status updates, and session timers with options to end sessions and mark absentees.
 
 5. Attendance Analytics
    ![Analytics Dashboard](https://i.imgur.com/wP6JcP4.png)
@@ -2029,19 +2027,19 @@ System Screenshots
 
 8. Mobile Responsiveness
    ![Mobile View](https://i.imgur.com/Nq3C2UK.png)
-   *Figure 5.8: Mobile responsive design of the QR scanner*
+   *Figure 5.8: Mobile responsive design of the Quick Response (QR) scanner*
 
-   The system's Progressive Web App capabilities ensure full functionality across devices, with responsive layouts that adapt to different screen sizes. The mobile interface maintains usability while preserving essential features.
+   The system's Progressive Web Application (PWA) capabilities ensure full functionality across devices, with responsive layouts that adapt to different screen sizes. The mobile interface maintains usability while preserving essential features.
 
 Chapter Conclusion
 
-The implementation and testing phase of the QR Code-based Smart Attendance System demonstrated successful realization of the project's core objectives. The system effectively addresses the challenges identified in traditional and existing digital attendance systems through several key innovations:
+The implementation and testing phase of the Quick Response Code (QR Code)-based Smart Attendance System demonstrated successful realization of the project's core objectives. The system effectively addresses the challenges identified in traditional and existing digital attendance systems through several key innovations:
 
-1. **Anti-Spoofing Security**: The implemented device fingerprinting and QR code rotation mechanisms proved highly effective in preventing proxy attendance, with testing confirming the system's ability to detect and reject unauthorized attendance attempts. The 3-minute QR code expiration and composite fingerprint validation created a robust security layer that significantly improves attendance authenticity.
+1. **Anti-Spoofing Security**: The implemented device fingerprinting and Quick Response (QR) code rotation mechanisms proved highly effective in preventing proxy attendance, with testing confirming the system's ability to detect and reject unauthorized attendance attempts. The 3-minute Quick Response (QR) code expiration and composite fingerprint validation created a robust security layer that significantly improves attendance authenticity.
 
-2. **Real-time Processing**: Performance testing revealed acceptable response times across all core functionalities, with QR code generation averaging 320ms and attendance marking completing in under 600ms. These metrics ensure the system remains fluid and responsive even during peak usage periods with multiple concurrent users.
+2. **Real-time Processing**: Performance testing revealed acceptable response times across all core functionalities, with Quick Response (QR) code generation averaging 320ms and attendance marking completing in under 600ms. These metrics ensure the system remains fluid and responsive even during peak usage periods with multiple concurrent users.
 
-3. **Cross-platform Accessibility**: The PWA implementation successfully delivered a consistent experience across various devices and browsers, with offline capabilities functioning as designed. Testing confirmed proper functionality on both Android and iOS devices using Chrome, Safari, and Firefox browsers, ensuring broad accessibility without requiring native app installation.
+3. **Cross-platform Accessibility**: The Progressive Web Application (PWA) implementation successfully delivered a consistent experience across various devices and browsers, with offline capabilities functioning as designed. Testing confirmed proper functionality on both Android and iOS devices using Chrome, Safari, and Firefox browsers, ensuring broad accessibility without requiring native app installation.
 
 4. **User Experience Optimization**: User acceptance testing with actual lecturers and students confirmed the system's intuitive interface design and workflow. The responsive layouts adapt appropriately to different screen sizes, and the implementation of dark/light theme options provides visual comfort across different environments and preferences.
 
@@ -2049,7 +2047,7 @@ The implementation and testing phase of the QR Code-based Smart Attendance Syste
 
 The deployment configuration utilizing Vercel for frontend hosting, Render.com for backend services, and MongoDB Atlas for database storage provides a cost-effective yet scalable infrastructure that meets the project's requirements. This cloud-based approach ensures accessibility, reliability, and maintainability without significant infrastructure investment.
 
-While the testing phase identified approximately 25 issues requiring resolution before full deployment, these were primarily minor UI inconsistencies and edge-case handling rather than fundamental architectural or security concerns. All critical functionality was successfully implemented and validated through comprehensive testing.
+While the testing phase identified approximately 25 issues requiring resolution before full deployment, these were primarily minor User Interface (UI) inconsistencies and edge-case handling rather than fundamental architectural or security concerns. All critical functionality was successfully implemented and validated through comprehensive testing.
 
 The system is now ready for phased deployment, beginning with controlled pilot testing in selected courses before institution-wide implementation. Feedback mechanisms are in place to gather ongoing user insights that will inform future enhancements and optimizations, ensuring the system continues to evolve based on real-world usage patterns and requirements.
 
@@ -2058,23 +2056,23 @@ CONCLUSION AND RECOMMENDATIONS
 
 6.1 Introduction
 
-This chapter presents the culmination of the QR Code-based Smart Attendance System project, summarizing the key outcomes, reflecting on challenges overcome, and providing recommendations for future enhancements. The development of this system addressed critical needs in academic attendance management through innovative technology integration. By implementing a Progressive Web Application (PWA) with QR code scanning capabilities, device fingerprinting for enhanced security, and real-time attendance tracking, the project has successfully modernized traditional attendance processes.
+This chapter presents the culmination of the Quick Response Code (QR Code)-based Smart Attendance System project, summarizing the key outcomes, reflecting on challenges overcome, and providing recommendations for future enhancements. The development of this system addressed critical needs in academic attendance management through innovative technology integration. By implementing a Progressive Web Application (PWA) with Quick Response (QR) code scanning capabilities, device fingerprinting for enhanced security, and real-time attendance tracking, the project has successfully modernized traditional attendance processes.
 
 The chapter will evaluate how effectively the system has met its original objectives, identify the limitations encountered during development and implementation, and propose strategic recommendations for continued improvement and expansion. Additionally, it outlines potential future work to extend the system's capabilities, references that guided the development process, and appendices containing technical documentation and supplementary materials.
 
 6.2 Conclusion
 
-The QR Code-based Smart Attendance System has successfully achieved its primary objectives of creating a secure, efficient, and user-friendly attendance tracking solution for academic institutions. The project outcomes can be evaluated against the initial objectives as follows:
+The Quick Response Code (QR Code)-based Smart Attendance System has successfully achieved its primary objectives of creating a secure, efficient, and user-friendly attendance tracking solution for academic institutions. The project outcomes can be evaluated against the initial objectives as follows:
 
-1. **Automation of Attendance Processes**: The system has successfully eliminated manual attendance marking by implementing QR code scanning technology, reducing the time spent on administrative tasks by approximately 80% in test environments. This automation has significantly improved efficiency for both lecturers and administrators while providing real-time attendance visibility.
+1. **Automation of Attendance Processes**: The system has successfully eliminated manual attendance marking by implementing Quick Response (QR) code scanning technology, reducing the time spent on administrative tasks by approximately 80% in test environments. This automation has significantly improved efficiency for both lecturers and administrators while providing real-time attendance visibility.
 
-2. **Prevention of Proxy Attendance**: The implementation of advanced anti-spoofing measures, including 3-minute QR code expiration, device fingerprinting, and composite verification techniques, has proven highly effective in preventing unauthorized attendance marking. Testing demonstrated a 95% success rate in detecting proxy attempts, significantly enhancing attendance accountability.
+2. **Prevention of Proxy Attendance**: The implementation of advanced anti-spoofing measures, including 3-minute Quick Response (QR) code expiration, device fingerprinting, and composite verification techniques, has proven highly effective in preventing unauthorized attendance marking. Testing demonstrated a 95% success rate in detecting proxy attempts, significantly enhancing attendance accountability.
 
-3. **Real-time Attendance Monitoring**: The system provides immediate attendance updates to lecturers through WebSocket connections, allowing them to monitor student presence as it happens. This real-time capability enables better classroom management and immediate intervention for attendance issues.
+3. **Real-time Attendance Monitoring**: The system provides immediate attendance updates to lecturers through polling mechanisms, allowing them to monitor student presence with regular refresh intervals. This near real-time capability enables better classroom management and timely intervention for attendance issues.
 
 4. **Comprehensive Reporting**: The analytics dashboard successfully delivers visual representations of attendance patterns across units, courses, and departments, with exportable reports that support administrative decision-making and compliance with academic requirements.
 
-5. **Cross-platform Accessibility**: As a Progressive Web Application, the system functions seamlessly across various devices and operating systems, eliminating the need for native applications while maintaining full functionality on both mobile and desktop platforms.
+5. **Cross-platform Accessibility**: As a Progressive Web Application (PWA), the system functions seamlessly across various devices and operating systems, eliminating the need for native applications while maintaining full functionality on both mobile and desktop platforms.
 
 6. **Student Engagement**: The feedback mechanism has successfully gathered valuable insights from students following attended sessions, creating a communication channel that promotes continuous improvement in teaching methods and course delivery.
 
@@ -2082,11 +2080,11 @@ The development process revealed several key insights:
 
 - **Technical Implementation**: The chosen technology stack (React/Node.js/MongoDB) proved highly suitable for the application's requirements, providing flexibility, performance, and scalability.
 
-- **Security Measures**: The multi-layered security approach (JWT authentication, device fingerprinting, QR expiration) created a robust system resistant to common vulnerabilities and spoofing attempts.
+- **Security Measures**: The multi-layered security approach (JavaScript Object Notation Web Token (JWT) authentication, device fingerprinting, Quick Response (QR) expiration) created a robust system resistant to common vulnerabilities and spoofing attempts.
 
 - **User Experience**: User acceptance testing confirmed that the intuitive interface design significantly contributed to rapid adoption, with minimal training required for both students and lecturers.
 
-- **Offline Capabilities**: The PWA implementation successfully provided core functionality during connectivity issues, ensuring the system's reliability even in environments with unstable network connections.
+- **Offline Capabilities**: The Progressive Web Application (PWA) implementation successfully provided core functionality during connectivity issues, ensuring the system's reliability even in environments with unstable network connections.
 
 - **Data Management**: The NoSQL database structure adapted well to the evolving requirements of the project, allowing for flexible schema adjustments without service disruption.
 
@@ -2096,23 +2094,23 @@ While the system has met its core objectives, some limitations were identified:
 
 - **Feature Scope**: Some initially proposed advanced features, such as facial recognition integration, were deferred to future development phases due to time and resource constraints.
 
-- **Mobile Hardware Dependency**: The system requires modern smartphones with functional cameras for QR scanning, potentially excluding students with older devices from using the full functionality.
+- **Mobile Hardware Dependency**: The system requires modern smartphones with functional cameras for Quick Response (QR) scanning, potentially excluding students with older devices from using the full functionality.
 
-Overall, the QR Code-based Smart Attendance System represents a significant advancement over traditional attendance methods, successfully addressing the challenges of efficiency, accuracy, and security while providing a foundation for future enhancements and expanded capabilities.
+Overall, the Quick Response Code (QR Code)-based Smart Attendance System represents a significant advancement over traditional attendance methods, successfully addressing the challenges of efficiency, accuracy, and security while providing a foundation for future enhancements and expanded capabilities.
 
 6.3 Recommendations
 
-Based on the development experience, testing outcomes, and user feedback, the following recommendations are proposed to enhance the QR Code-based Smart Attendance System's effectiveness and expand its capabilities:
+Based on the development experience, testing outcomes, and user feedback, the following recommendations are proposed to enhance the Quick Response Code (QR Code)-based Smart Attendance System's effectiveness and expand its capabilities:
 
 1. **Technical Enhancements**
 
    a) **Biometric Verification Integration**:
-      - Implement optional facial recognition as a secondary verification method alongside QR code scanning to further enhance anti-spoofing measures.
+      - Implement optional facial recognition as a secondary verification method alongside Quick Response (QR) code scanning to further enhance anti-spoofing measures.
       - Utilize WebRTC and TensorFlow.js for browser-based facial recognition to maintain cross-platform compatibility.
       - Ensure privacy compliance with appropriate user consent mechanisms and data protection measures.
 
    b) **Enhanced Offline Functionality**:
-      - Expand PWA capabilities to support complete offline attendance marking with background synchronization.
+      - Expand Progressive Web Application (PWA) capabilities to support complete offline attendance marking with background synchronization.
       - Implement robust conflict resolution for offline-recorded attendance that syncs upon reconnection.
       - Add IndexedDB storage optimization for improved offline data handling and persistence.
 
@@ -2136,7 +2134,7 @@ Based on the development experience, testing outcomes, and user feedback, the fo
       - Utilize native device capabilities like secure enclaves for enhanced fingerprinting.
 
    b) **Learning Management System (LMS) Integration**:
-      - Create plugins for popular LMS platforms (Moodle, Canvas, Blackboard) to synchronize attendance data.
+      - Create plugins for popular Learning Management System (LMS) platforms (Moodle, Canvas, Blackboard) to synchronize attendance data.
       - Implement single sign-on (SSO) capabilities for seamless user experience.
       - Automate attendance record transfers to institutional grading systems.
 
@@ -2165,7 +2163,7 @@ Based on the development experience, testing outcomes, and user feedback, the fo
       - Create a scalable pricing model for SaaS deployment to other educational institutions.
 
    c) **Integration Ecosystem**:
-      - Develop an API marketplace for third-party developers to extend functionality.
+      - Develop an Application Programming Interface (API) marketplace for third-party developers to extend functionality.
       - Create standardized data export formats for compatibility with institutional systems.
       - Implement webhook capabilities for real-time integration with external services.
 
@@ -2190,7 +2188,7 @@ These recommendations are prioritized based on their potential impact on system 
 
 6.4 Future Work
 
-Building upon the current implementation of the QR Code-based Smart Attendance System, several directions for future development have been identified to extend functionality, enhance performance, and broaden application scope:
+Building upon the current implementation of the Quick Response Code (QR Code)-based Smart Attendance System, several directions for future development have been identified to extend functionality, enhance performance, and broaden application scope:
 
 1. **Short-term Development (6-12 months)**
 
@@ -2199,21 +2197,28 @@ Building upon the current implementation of the QR Code-based Smart Attendance S
       - Implement biometric authentication (fingerprint, face ID)
       - Add push notifications for attendance reminders and alerts
       - Develop offline-first architecture with background sync capabilities
-      - Optimize camera interaction for faster QR scanning
+      - Optimize camera interaction for faster Quick Response (QR) scanning
 
    b) **Enhanced Analytics Platform**:
       - Build advanced visualization dashboard with customizable widgets
       - Implement attendance forecasting based on historical patterns
       - Create correlation analysis between attendance and performance metrics
       - Develop automated insights and recommendations for improving attendance
-      - Add export capabilities for various formats (PDF, Excel, CSV)
+      - Add export capabilities for various formats (PDF, Excel, Comma-Separated Values (CSV))
 
-   c) **API Ecosystem Expansion**:
-      - Develop comprehensive API documentation with interactive examples
+   c) **Application Programming Interface (API) Ecosystem Expansion**:
+      - Develop comprehensive Application Programming Interface (API) documentation with interactive examples
       - Create software development kit (SDK) for third-party integrations
-      - Implement OAuth 2.0 for secure API access
-      - Add rate limiting and usage metrics for API consumers
-      - Build developer portal for API key management
+      - Implement OAuth 2.0 for secure Application Programming Interface (API) access
+      - Add rate limiting and usage metrics for Application Programming Interface (API) consumers
+      - Build developer portal for Application Programming Interface (API) key management
+
+   d) **Real-time Updates with WebSockets**:
+      - Replace current polling mechanisms with WebSocket connections
+      - Enable immediate push updates for attendance marking
+      - Implement live dashboard updates for lecturers
+      - Add real-time notifications for session status changes
+      - Reduce server load through persistent connections
 
 2. **Medium-term Development (1-2 years)**
 
@@ -2281,7 +2286,7 @@ The future development roadmap will be guided by ongoing user feedback, technolo
 
 6.5 References
 
-1. Ademola, P. A., et al. (2023). "Implementation of a QR Code-Based Attendance System with Anti-Spoofing Mechanism." Journal of Educational Technology Systems, 51(3), 405-428.
+1. Ademola, P. A., et al. (2023). "Implementation of a Quick Response Code (QR Code)-Based Attendance System with Anti-Spoofing Mechanism." Journal of Educational Technology Systems, 51(3), 405-428.
 
 2. Bhattacharya, S., & Kumar, M. (2022). "Progressive Web Applications in Educational Contexts: Opportunities and Implementation Challenges." International Journal of Mobile and Blended Learning, 14(2), 56-71.
 
@@ -2289,29 +2294,29 @@ The future development roadmap will be guided by ongoing user feedback, technolo
 
 4. Dahiya, R., et al. (2022). "MERN Stack Development: Modern Web Application Architecture and Implementation." International Journal of Advanced Computer Science and Applications, 13(4), 345-356.
 
-5. Ekpenyong, E. E., et al. (2023). "QR Code Technology in Educational Management: A Systematic Literature Review." Education and Information Technologies, 28, 5123-5148.
+5. Ekpenyong, E. E., et al. (2023). "Quick Response Code (QR Code) Technology in Educational Management: A Systematic Literature Review." Education and Information Technologies, 28, 5123-5148.
 
 6. Farid, D. M., et al. (2023). "Blockchain-Based Attendance Management Systems for Educational Institutions: Challenges and Opportunities." IEEE Access, 11, 29874-29889.
 
-7. Google Developers. (2023). "Progressive Web Apps." https://developers.google.com/web/progressive-web-apps/
+7. Google Developers. (2023). "Progressive Web Applications." https://developers.google.com/web/progressive-web-apps/
 
 8. Hussain, S., et al. (2022). "Anti-Spoofing Measures in Biometric Attendance Systems: A Comparative Analysis." International Journal of Information Security, 21(3), 489-504.
 
 9. Jahan, I., et al. (2022). "MongoDB Performance Optimization Strategies for Web Applications." Journal of Database Management, 33(2), 1-22.
 
-10. Kumar, A., & Singh, R. K. (2023). "JWT-Based Authentication: Best Practices and Implementation Strategies." Journal of Information Security and Applications, 75, 103352.
+10. Kumar, A., & Singh, R. K. (2023). "JavaScript Object Notation Web Token (JWT)-Based Authentication: Best Practices and Implementation Strategies." Journal of Information Security and Applications, 75, 103352.
 
 11. Lee, K., & Kim, J. (2022). "React.js and Node.js: Building Efficient Web Applications." IEEE Software, 39(2), 98-104.
 
-12. Mozilla Developer Network. (2023). "Service Workers API." https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
+12. Mozilla Developer Network. (2023). "Service Workers Application Programming Interface (API)." https://developer.mozilla.org/en-US/docs/Web/API/Service_Worker_API
 
 13. Nguyen, T. H., & Trinh, V. C. (2023). "Real-time Web Applications with WebSockets: Design Patterns and Best Practices." Proceedings of the International Conference on Web Engineering, 245-257.
 
-14. Ramadhan, K., et al. (2022). "QR Code Generation and Processing: Algorithms and Optimization Techniques." Journal of Visual Communication and Image Representation, 82, 103407.
+14. Ramadhan, K., et al. (2022). "Quick Response Code (QR Code) Generation and Processing: Algorithms and Optimization Techniques." Journal of Visual Communication and Image Representation, 82, 103407.
 
 15. Soni, P., & Mishra, R. (2022). "Ant Design: Component Libraries for Enterprise Applications." International Journal of User Interface Design, 3(2), 78-92.
 
-16. W3C. (2023). "Web App Manifest." https://www.w3.org/TR/appmanifest/
+16. W3C. (2023). "Web Application Manifest." https://www.w3.org/TR/appmanifest/
 
 17. Williams, A. B., et al. (2023). "Educational Data Analytics: From Attendance Tracking to Learning Outcomes." Journal of Learning Analytics, 10(1), 45-62.
 
@@ -2321,17 +2326,59 @@ The future development roadmap will be guided by ongoing user feedback, technolo
 
 6.6 Appendices
 
-Appendix A: API Documentation
+Appendix A: Application Programming Interface (API) Documentation
 
-The complete API documentation detailing all endpoints, request parameters, response formats, and authentication requirements used in the QR Code-based Smart Attendance System is available at:
+The complete Application Programming Interface (API) documentation detailing all endpoints, request parameters, response formats, and authentication requirements used in the Quick Response Code (QR Code)-based Smart Attendance System is available at:
 https://attendance-system-docs.vercel.app/api-reference
 
-Key API sections include:
-1. Authentication APIs
-2. User Management APIs
-3. Session Management APIs
-4. Attendance Marking APIs
-5. Reporting & Analytics APIs
-6. System Configuration APIs
+Key Application Programming Interface (API) sections include:
+1. Authentication Application Programming Interfaces (APIs)
+2. User Management Application Programming Interfaces (APIs)
+3. Session Management Application Programming Interfaces (APIs)
+4. Attendance Marking Application Programming Interfaces (APIs)
+5. Reporting & Analytics Application Programming Interfaces (APIs)
+6. System Configuration Application Programming Interfaces (APIs)
+
+Appendix B: Technical Abbreviations Reference Guide
+
+1. API - Application Programming Interface: A set of rules and protocols that allows different software applications to communicate with each other.
+
+2. CORS - Cross-Origin Resource Sharing: A security feature implemented by browsers that restricts web pages from making requests to a different domain than the one that served the original page.
+
+3. CRUD - Create, Read, Update, Delete: The four basic operations of persistent storage in database applications.
+
+4. CSV - Comma-Separated Values: A simple file format used to store tabular data where each field is separated by a comma.
+
+5. HTTPS - Hypertext Transfer Protocol Secure: An extension of HTTP that uses encryption for secure communication over a computer network.
+
+6. JWT - JavaScript Object Notation Web Token: A compact, URL-safe means of representing claims to be transferred between two parties.
+
+7. LMS - Learning Management System: A software application for the administration, documentation, tracking, reporting, automation, and delivery of educational courses, training programs, or learning and development programs.
+
+8. MVC - Model-View-Controller: A software architectural pattern that separates an application into three main logical components.
+
+9. ODM - Object Data Modeling: A programming technique for converting data between incompatible type systems in object-oriented programming languages.
+
+10. PWA - Progressive Web Application: A type of application software delivered through the web, built using common web technologies that aims to work on any platform with a standards-compliant browser.
+
+11. QR Code - Quick Response Code: A type of matrix barcode that can be read by an imaging device (such as a camera) and processed to extract data.
+
+12. REST - Representational State Transfer: An architectural style for providing standards between computer systems on the web, making it easier for systems to communicate with each other.
+
+13. SHA-256 - Secure Hash Algorithm 256-bit: A cryptographic hash function that produces a 256-bit (32-byte) hash value, typically rendered as a hexadecimal number of 64 digits.
+
+14. SMTP - Simple Mail Transfer Protocol: A communication protocol for electronic mail transmission.
+
+15. SSO - Single Sign-On: An authentication scheme that allows a user to log in with a single ID and password to any of several related, yet independent, software systems.
+
+16. UI - User Interface: The space where interactions between humans and machines occur.
+
+17. URL - Uniform Resource Locator: A reference to a web resource that specifies its location on a computer network and a mechanism for retrieving it.
+
+18. UUID - Universally Unique Identifier: A 128-bit label used for information in computer systems that requires a high probability of uniqueness.
+
+19. WCAG - Web Content Accessibility Guidelines: A set of guidelines for making web content more accessible to people with disabilities.
+
+20. WebRTC - Web Real-Time Communication: An open-source project that provides web browsers and mobile applications with real-time communication via simple APIs.
 
 
