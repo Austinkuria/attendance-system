@@ -106,45 +106,45 @@ Non-Functional Requirements:
    - Environment variable management
 
 Context Level Diagram
-The following diagram illustrates the high-level context of the Quick Response Code (QR Code)-based Smart Attendance System as actually implemented:
+The following diagram illustrates the high-level context of the Quick Response Code (QR Code)-based Smart Attendance System:
 
 ```mermaid
 graph TD
     %% Main System
     SYS[Quick Response Code-based Smart<br>Attendance System] 
     
-    %% External Actors - Only those actually implemented
+    %% External Actors
     STU[Student]
     LEC[Lecturer]
     ADM[Administrator]
     DB[(MongoDB Database)]
-    STORE[Comma-Separated Values/Excel Export Storage]
+    STORE[CSV/Excel Export Storage]
     
-    %% Interactions - Students (actually implemented)
-    STU -->|Authenticates via JavaScript Object Notation Web Token| SYS
-    STU -->|Scans Quick Response codes with device fingerprinting| SYS
+    %% Interactions - Students
+    STU -->|Authenticates via JWT| SYS
+    STU -->|Scans QR codes with device fingerprinting| SYS
     STU -->|Views attendance history| SYS
     STU -->|Submits session feedback| SYS
     SYS -->|Returns attendance status| STU
     SYS -->|Displays feedback request notifications| STU
     
-    %% Interactions - Lecturers (actually implemented)
-    LEC -->|Authenticates via JavaScript Object Notation Web Token| SYS
+    %% Interactions - Lecturers
+    LEC -->|Authenticates via JWT| SYS
     LEC -->|Creates attendance sessions| SYS
-    LEC -->|Generates Quick Response codes with auto-refresh| SYS
+    LEC -->|Generates QR codes with auto-refresh| SYS
     LEC -->|Uses polling for attendance data updates| SYS
     LEC -->|Exports attendance reports| SYS
     SYS -->|Displays attendance data| LEC
     SYS -->|Provides unit/course analytics| LEC
     
-    %% Interactions - Admins (actually implemented)
-    ADM -->|Authenticates via JavaScript Object Notation Web Token| SYS
+    %% Interactions - Admins
+    ADM -->|Authenticates via JWT| SYS
     ADM -->|Manages user accounts| SYS
     ADM -->|Configures courses/units/departments| SYS
     ADM -->|Views system analytics| SYS
     SYS -->|Provides administrative reports| ADM
     
-    %% Interactions - External Systems (actually implemented)
+    %% Interactions - External Systems
     SYS <-->|Stores/retrieves data| DB
     SYS -->|Generates exportable reports| STORE
     
@@ -158,15 +158,15 @@ graph TD
     class DB,STORE external;
 ```
 
-This diagram accurately represents the Quick Response Code (QR Code)-based Smart Attendance System as implemented, showing:
+This diagram represents the Quick Response Code (QR Code)-based Smart Attendance System, showing:
 
-1. The three user roles (Students, Lecturers, Administrators) with their actual system interactions
+1. The three user roles (Students, Lecturers, Administrators) with their system interactions
 2. External systems integration with MongoDB database and report export functionality
-3. The key data flows as implemented in the codebase, including:
+3. The key data flows in the system, including:
    - JavaScript Object Notation Web Token (JWT) authentication for all users
    - Device fingerprinting for anti-spoofing measures
    - Auto-refreshing Quick Response (QR) codes with 3-minute rotation
-   - Polling-based data refresh (not WebSockets)
+   - Polling-based data refresh
    - Comma-Separated Values (CSV)/Excel data export capabilities
    - In-app notifications for pending feedback requests
 
@@ -200,7 +200,7 @@ Data Flow Diagram:
    - Session analytics
    - Student feedback reports
    - Course performance metrics
-   - Export data (Comma-Separated Values (CSV)/Excel)
+   - Export data (CSV/Excel)
 
 5. Admin → System:
    - User management operations
@@ -227,44 +227,6 @@ Data Flow Diagram:
    - Browser storage synchronization
    - Error logs and alerts
 
-Data Flow Implementation:
-
-1. Authentication Flows:
-   - Login/Signup via /api/auth/* endpoints
-   - JavaScript Object Notation Web Token (JWT) token generation and validation
-   - Token refresh mechanism
-   - Role-based access control (Student/Lecturer/Admin)
-
-2. Student Flows:
-   - Attendance marking via Quick Response (QR) code scanning
-   - Session status checking via polling
-   - Feedback submission for attended sessions
-   - Attendance history and analytics view
-
-3. Lecturer Flows:
-   - Session creation and management 
-   - Quick Response (QR) code generation with auto-refresh every 3 minutes
-   - Attendance monitoring via polling
-   - Automatic absent marking after session ends
-   - Unit-wise attendance reports
-
-4. Admin Flows:
-   - User management (CRUD operations)
-   - Course & department configuration 
-   - System analytics and monitoring
-   - Bulk data import/export
-
-5. Data Persistence:
-   - MongoDB collections with Mongoose Object Data Modeling (ODM) schemas
-   - Browser localStorage for client-side caching
-   - Basic IndexedDB integration
-
-6. Security Measures:
-   - Device fingerprinting for anti-spoofing
-   - Rate limiting on sensitive endpoints
-   - Input validation and sanitization
-   - Error logging
-
 Data Flow Implementation (Mermaid Compatible):
 
 ```mermaid
@@ -279,7 +241,7 @@ flowchart TB
 
     %% Student Flows
     Student -->|Login/Auth| System
-    Student -->|Scan Quick Response (QR) Code| System
+    Student -->|Scan QR Code| System
     Student -->|Submit Feedback| System
     Student -->|View Analytics| System
     System -->|Session Status| Student
@@ -288,7 +250,7 @@ flowchart TB
 
     %% Lecturer Flows
     Lecturer -->|Create Session| System
-    Lecturer -->|Generate Quick Response (QR)| System
+    Lecturer -->|Generate QR| System
     Lecturer -->|Poll Attendance| System
     System -->|Attendance Data| Lecturer
     System -->|Analytics| Lecturer
@@ -956,7 +918,7 @@ graph TB
     
     %% Student Use Cases
     Student --> Auth1[Authentication]
-    Student --> QRScan[Scan Quick Response (QR) Code]
+    Student --> QRScan[Scan QR Code]
     Student --> ViewAttendance[View Attendance]
     Student --> ManageProfile[Manage Profile]
     Student --> SubmitFeedback[Submit Feedback]
@@ -966,7 +928,7 @@ graph TB
     %% Lecturer Use Cases
     Lecturer --> Auth2[Authentication]
     Lecturer --> CreateSession[Create Session]
-    Lecturer --> GenerateQR[Generate Quick Response (QR)]
+    Lecturer --> GenerateQR[Generate QR]
     Lecturer --> MonitorLive[Monitor Live]
     Lecturer --> ManageUnits[Manage Units]
     Lecturer --> ViewReports[View Reports]
@@ -1035,21 +997,21 @@ flowchart TD
     %% Define Client Layer
     subgraph CL[Client Layer]
         RF[React Frontend]
-        PF[Progressive Web Application (PWA) Features]
+        PF[PWA Features]
         BC[Browser Cache]
     end
 
     %% Define Security Layer
     subgraph SL[Security Layer]
-        JA[JavaScript Object Notation Web Token (JWT) Auth]
+        JA[JWT Auth]
         DF[Device Fingerprint]
         RL[Rate Limiter]
     end
 
     %% Define Application Layer
     subgraph AppLayer[Application Layer]
-        Application Programming Interface (API)[Express Application Programming Interface (API)]
-        QR[Quick Response (QR) Service]
+        API[Express API]
+        QR[QR Service]
         AttLogic[Attendance Logic]
     end
 
@@ -1065,7 +1027,7 @@ flowchart TD
     AppLayer -.-> DL
 
     %% Define Cross-Layer Connections
-    Application Programming Interface (API) <-..-> DB
+    API <-..-> DB
     QR <-..-> FS
 ```
 
@@ -1089,7 +1051,7 @@ sequenceDiagram
         C-->>U: Show Error
     else Valid Credentials
         A->>T: Generate Tokens
-        T-->>A: JavaScript Object Notation Web Token (JWT) Tokens
+        T-->>A: JWT Tokens
         A-->>D: Update Last Login
         A-->>C: 200 OK + Tokens
         C->>C: Store Tokens
@@ -1097,7 +1059,7 @@ sequenceDiagram
     end
     
     Note over C,A: Subsequent Requests
-    C->>A: Request + JavaScript Object Notation Web Token (JWT)
+    C->>A: Request + JWT
     A->>T: Verify Token
     T-->>A: Token Valid
     A->>D: Fetch Resources
@@ -1111,16 +1073,16 @@ sequenceDiagram
 flowchart TB
     Start([Start]) --> LecturerAuth[Lecturer Authentication]
     LecturerAuth --> CreateSession[Create Session]
-    CreateSession --> GenerateQR[Generate Quick Response (QR) Code]
+    CreateSession --> GenerateQR[Generate QR Code]
     
-    subgraph QR Management
-        GenerateQR --> DisplayQR[Display Quick Response (QR)]
+    subgraph QR_Management[QR Management]
+        GenerateQR --> DisplayQR[Display QR]
         DisplayQR --> RefreshTimer{3min Timer}
         RefreshTimer -->|Expired| GenerateQR
         RefreshTimer -->|Valid| WaitScan[Wait for Scan]
     end
     
-    subgraph Student Flow
+    subgraph Student_Flow[Student Flow]
         StudentScan[Student Scans] --> DeviceCheck{Device Check}
         DeviceCheck -->|Valid| TokenCheck{Token Valid?}
         DeviceCheck -->|Invalid| RejectScan[Reject Scan]
@@ -1135,9 +1097,9 @@ flowchart TB
         UpdateStats --> EnableFeedback[Enable Feedback]
     end
     
-    subgraph Real-time Updates
+    subgraph Realtime_Updates[Real-time Updates]
         UpdateStats --> WebSocket[WebSocket Update]
-        WebSocket --> UpdateUI[Update User Interface (UI)]
+        WebSocket --> UpdateUI[Update UI]
         UpdateUI --> NotifyLecturer[Notify Lecturer]
     end
     
@@ -1151,7 +1113,7 @@ flowchart TB
 
 ```mermaid
 flowchart LR
-    subgraph Write Operations
+    subgraph Write_Operations[Write Operations]
         Create[Create Record]
         Update[Update Record]
         Delete[Delete Record]
@@ -1164,7 +1126,7 @@ flowchart LR
     end
     
     subgraph Storage
-        Primary[(Primary Database)]
+        Primary[(Primary DB)]
         Cache[(Cache)]
         Backup[(Backup)]
     end
@@ -1177,8 +1139,8 @@ flowchart LR
     Primary -->|Sync| Cache
     Primary -->|Backup| Backup
     
-    Cache -->|Read| Application Programming Interface (API)[Application Programming Interface (API) Response]
-    Primary -->|Miss| Application Programming Interface (API)
+    Cache -->|Read| API_Response[API Response]
+    Primary -->|Miss| API_Response
 ```
 
 Database Design
