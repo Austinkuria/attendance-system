@@ -2,35 +2,36 @@ CHAPTER 4:
 SYSTEM DESIGN
 
 Introduction
-The Quick Response Code (QR Code)-based Student Attendance System is a Progressive Web Application (PWA) designed to modernize student attendance tracking. The system is built using:
+The QRollCall Smart Attendance System is a Progressive Web Application (PWA) designed to modernize student attendance tracking in educational institutions. Built on the MERN stack, the system provides a secure, efficient solution for monitoring classroom attendance. The system has been implemented with:
 
 Technical Architecture:
-- Frontend: React.js with Vite, Ant Design User Interface (UI) framework
-- Backend: Node.js, Express
-- Database: MongoDB Atlas with Mongoose Object Data Modeling (ODM)
-- Application Programming Interface (API): Representational State Transfer (RESTful) architecture with JavaScript Object Notation Web Token (JWT) authentication
-- Data Persistence: Browser localStorage with basic IndexedDB integration
-- Deployment: Client on Vercel, Server on Render.com
+- Frontend: React.js with Vite, Ant Design UI framework with custom theming for light/dark modes
+- Backend: Node.js, Express with RESTful API architecture
+- Database: MongoDB Atlas with Mongoose ODM for data modeling and validation
+- Authentication: JWT-based secure authentication with role-based access control
+- Data Persistence: Browser localStorage with offline functionality through PWA capabilities
+- Deployment: Frontend on Vercel, Backend on Render.com for optimal scalability
 
 Core Components:
 1. Frontend Application
-   - Progressive Web Application (PWA) with basic offline capabilities
-   - Ant Design User Interface (UI) components with custom theming (light/dark mode)
-   - Quick Response (QR) code scanner integration using device cameras
-   - Auto-refreshing data through polling mechanisms
-   - Local storage for session management and caching
+   - Progressive Web Application (PWA) with service workers for offline access
+   - Responsive design using Ant Design components that adapt to various screen sizes
+   - QR code scanner utilizing device cameras with guided positioning overlay
+   - Real-time attendance updates through efficient polling mechanisms
+   - Browser localStorage for session persistence and offline data access
 
 2. Backend Services
-   - Express Representational State Transfer (REST) Application Programming Interface (API) endpoints with Model-View-Controller (MVC) architecture
-   - JavaScript Object Notation Web Token (JWT) authentication with token refresh mechanism
-   - Rate limiting to prevent abuse
-   - Comma-Separated Values (CSV) file handling for bulk imports/exports
-   - MongoDB data operations with Mongoose Object Data Modeling (ODM)
+   - Express REST API endpoints organized in MVC architecture
+   - JWT authentication with token refresh mechanism for persistent sessions
+   - Rate limiting protection (15 requests/minute) to prevent abuse
+   - CSV import/export functionality for bulk user management
+   - MongoDB operations with Mongoose ODM for data integrity
 
 3. Database Architecture
-   - Document-based MongoDB collections
-   - Core collections: Users, Sessions, Attendance, Units, Courses, Departments
-   - Reference-based relationships through MongoDB Object IDs
+   - MongoDB collections with optimized schema design
+   - Core collections: Users, Sessions, Attendance, Units, Courses, Departments, Feedback
+   - Reference-based relationships using MongoDB Object IDs for data consistency
+
 . Data Layer:
    - Description: This layer manages the storage and retrieval of data.
    - Key Components:
