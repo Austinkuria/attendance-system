@@ -201,6 +201,94 @@ api.interceptors.response.use(
   }
 );
 
+// Add a dedicated login function with better error handling
+export const loginUser = async (credentials) => {
+  try {
+    console.log('Attempting login with:', { email: credentials.email, passwordLength: credentials.password?.length });
+
+    // Create a cancellable request with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
+    const response = await axios.post(`${API_URL}/auth/login`, credentials, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      timeout: 30000 // 30 second timeout
+    });
+
+    // Clear the timeout since we got a response
+    clearTimeout(timeoutId);
+
+    console.log('Login response status:', response.status);
+
+    if (response.data && response.data.token) {
+      // Store auth data
+      localStorage.setItem('token', response.data.token);
+      if (response.data.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+      }
+
+      // Store user data if available
+      if (response.data.user) {
+        const userData = {
+          id: response.data.user.id || response.data.user._id,
+          role: response.data.user.role,
+          firstName: response.data.user.firstName,
+          lastName: response.data.user.lastName,
+          email: response.data.user.email,
+          lastLogin: new Date().toISOString()
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('userId', userData.id);
+        localStorage.setItem('role', userData.role);
+      }
+
+      return response.data;
+    }
+
+    throw new Error('Invalid response format from server');
+  } catch (error) {
+    console.error('Login error details:', {
+      name: error.name,
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      code: error.code,
+      url: `${API_URL}/auth/login`
+    });
+
+    // Create a more user-friendly error message
+    let errorMessage = 'Login failed. Please check your credentials and try again.';
+
+    if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+      errorMessage = 'Login request timed out. The server might be slow or unreachable.';
+    } else if (!navigator.onLine) {
+      errorMessage = 'You appear to be offline. Please check your internet connection.';
+    } else if (error.response) {
+      // Server responded with an error
+      if (error.response.status === 401) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (error.response.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later.';
+      } else if (error.response.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+    } else if (error.message.includes('Network Error')) {
+      errorMessage = 'Network error. The server might be down or unreachable.';
+    }
+
+    throw {
+      message: errorMessage,
+      originalError: error,
+      status: error.response?.status || 0
+    };
+  }
+};
+
 // get userprofile
 export const getUserProfile = async () => {
   const token = localStorage.getItem('token');

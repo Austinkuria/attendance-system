@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route} from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import Home from './pages/Home';
@@ -41,8 +41,25 @@ import SystemFeedbackList from './pages/admin/SystemFeedbackList';
 import SystemFeedbackButton from './components/SystemFeedback/SystemFeedbackButton';
 import { ErrorBoundary } from './components';
 import NetworkStatus from './components/NetworkStatus';
+import { useEffect } from 'react';
+import { message } from 'antd';
 
 function App() {
+  // Add network connectivity check
+  useEffect(() => {
+    // Check network connectivity on load
+    const checkNetwork = () => {
+      if (!navigator.onLine) {
+        message.warning({
+          content: 'You are offline. Some features may not work correctly.',
+          duration: 5,
+        });
+      }
+    };
+
+    checkNetwork();
+  }, []);
+
   return (
     <ErrorBoundary>
       <ThemeProvider>
