@@ -31,6 +31,30 @@ Core Components:
    - Document-based MongoDB collections
    - Core collections: Users, Sessions, Attendance, Units, Courses, Departments
    - Reference-based relationships through MongoDB Object IDs
+. Data Layer:
+   - Description: This layer manages the storage and retrieval of data.
+   - Key Components:
+     → MongoDB Collections: Stores user data, session information, attendance records, units, courses, departments, and feedback data.
+     → File Storage: Stores QR code images, CSV exports, user uploads, and system logs.
+
+4. Security Infrastructure:
+   - Description: This layer ensures the security and integrity of the system.
+   - Key Components:
+     → Authentication: JWT token validation, role-based authorization, device fingerprinting, and session management.
+     → Request Protection: Rate limiting, CORS protection, input validation, and error handling.
+
+5. External Services Integration:
+   - Description: This section outlines the external services that the system integrates with.
+   - Key Services:
+     → Hosting: Vercel (frontend), Render.com (backend), MongoDB Atlas (database).
+     → Email Service: Nodemailer SMTP for sending emails.
+
+6. Data Flows:
+   - Description: This section describes the flow of data between different components of the system.
+   - Key Flows:
+     → Client → Backend: HTTPS REST calls, JWT authentication, form submissions, and file uploads.
+     → Backend → Database: Mongoose queries, atomic operations, index utilization, and data validation.
+     → System → External: Email dispatch, file storage, hosting services, and monitoring.
 
 Requirements
 Functional Requirements:
@@ -204,6 +228,235 @@ flowchart TB
     Student & Lecturer & Admin --> Security
     Security --> System
 ```
+
+Input Design (User Interfaces)
+
+1. Authentication Interface
+   a) Login Form:
+      - Username/Registration Number field (required)
+      - Password field with show/hide toggle (required)
+      - Role selection dropdown (Admin/Lecturer/Student)
+      - Remember me checkbox
+      - Forgot password link
+      - Login button with loading state
+   
+   b) Password Recovery:
+      - Email/Registration Number input (required)
+      - Security questions verification
+      - New password input with strength indicator
+      - Password confirmation field
+      - Reset button with confirmation dialog
+
+2. Session Management Interface
+   a) Session Creation (Lecturer):
+      - Unit selection dropdown (required)
+      - Duration setting (15/30/45/60 minutes)
+      - Session type (Lecture/Lab/Tutorial)
+      - Location input (optional)
+      - Notes/Description field
+      - Generate QR button
+   
+   b) QR Display:
+      - Dynamic QR code with auto-refresh
+      - Countdown timer
+      - Student count indicator
+      - Manual refresh button
+      - End session button with confirmation
+   
+   c) Real-time Monitoring:
+      - Live attendance count
+      - Present students list
+      - Search and filter options
+      - Export attendance button
+      - Session status indicator
+
+3. Student Interface
+   a) QR Scanner:
+      - Camera permission request
+      - Scanner viewport with guidelines
+      - Flash toggle (if available)
+      - Manual code input fallback
+      - Scan status indicator
+   
+   b) Attendance History:
+      - Calendar view with attendance markers
+      - List view with filters:
+        • Date range selector
+        • Unit filter
+        • Status filter (Present/Absent)
+      - Attendance percentage calculator
+      - Export personal records button
+   
+   c) Feedback Form:
+      - Session rating (1-5 stars)
+      - Pace rating (Too Slow/Just Right/Too Fast)
+      - Understanding check (Yes/Partial/No)
+      - Comments text area
+      - Anonymous submission toggle
+      - Submit button with confirmation
+
+4. Administrative Interface
+   a) User Management:
+      - User creation form with role assignment
+      - Bulk import interface (CSV)
+      - User search with filters
+      - Edit/Delete actions with confirmation
+      - Permission management grid
+   
+   b) Course Management:
+      - Course creation wizard
+      - Unit assignment interface
+      - Lecturer allocation form
+      - Student enrollment manager
+      - Course analytics dashboard
+
+5. Common Interface Elements
+   a) Navigation:
+      - Responsive sidebar/navbar
+      - Breadcrumb trail
+      - Quick action buttons
+      - Profile dropdown menu
+   
+   b) Notifications:
+      - Toast messages for actions
+      - Status alerts
+      - Session reminders
+      - System notifications
+   
+   c) Data Tables:
+      - Sortable columns
+      - Search functionality
+      - Pagination controls
+      - Bulk action tools
+      - Export options
+
+Process Design
+
+1. Detailed Use Case Diagrams:
+
+```mermaid
+graph TB
+    %% Actors
+    Student((Student))
+    Lecturer((Lecturer))
+    Admin((Admin))
+    System[System]
+    
+    %% Student Use Cases
+    Student --> Auth1[Authentication]
+    Student --> QRScan[Scan QR Code]
+    Student --> ViewAttendance[View Attendance]
+    Student --> ManageProfile[Manage Profile]
+    Student --> SubmitFeedback[Submit Feedback]
+    Student --> ViewAnalytics[View Analytics]
+    Student --> ExportData[Export Data]
+    
+    %% Lecturer Use Cases
+    Lecturer --> Auth2[Authentication]
+    Lecturer --> CreateSession[Create Session]
+    Lecturer --> GenerateQR[Generate QR]
+    Lecturer --> MonitorLive[Monitor Live]
+    Lecturer --> ManageUnits[Manage Units]
+    Lecturer --> ViewReports[View Reports]
+    Lecturer --> ExportStats[Export Stats]
+    Lecturer --> ReviewFeedback[Review Feedback]
+    
+    %% Admin Use Cases
+    Admin --> Auth3[Authentication]
+    Admin --> ManageUsers[Manage Users]
+    Admin --> ManageCourses[Manage Courses]
+    Admin --> ConfigSystem[Configure System]
+    Admin --> ViewLogs[View Logs]
+    Admin --> BackupData[Backup Data]
+    Admin --> GenerateReports[Generate Reports]
+    
+    %% System Interactions
+    Auth1 & Auth2 & Auth3 --> System
+    QRScan --> System
+    CreateSession --> System
+    ManageUsers --> System
+    ViewAnalytics --> System
+```
+
+2. Detailed Session Flow:
+
+```mermaid
+stateDiagram-v2
+    [*] --> LecturerLogin: Start
+    LecturerLogin --> SessionCreation: Authenticate
+    SessionCreation --> QRGeneration: Configure
+    
+    state QRGeneration {
+        [*] --> Generate
+        Generate --> Display
+        Display --> Refresh: Every 3 min
+        Refresh --> Generate
+    }
+    
+    QRGeneration --> StudentScanning
+    
+    state StudentScanning {
+        [*] --> ScanAttempt
+        ScanAttempt --> DeviceCheck
+        DeviceCheck --> TokenValidation
+        TokenValidation --> AttendanceMark: Valid
+        TokenValidation --> RejectionError: Invalid
+        DeviceCheck --> RejectionError: Invalid
+    }
+    
+    StudentScanning --> AttendanceTracking
+    
+    state AttendanceTracking {
+        [*] --> RealTimeUpdates
+        RealTimeUpdates --> Statistics
+        Statistics --> FeedbackPrompt
+    }
+    
+    AttendanceTracking --> SessionEnd
+    SessionEnd --> [*]: Complete
+```
+
+3. System Architecture Flow:
+
+```mermaid
+flowchart TD
+    %% Define Client Layer
+    subgraph CL[Client Layer]
+        RF[React Frontend]
+        PF[PWA Features]
+        BC[Browser Cache]
+    end
+
+    %% Define Security Layer
+    subgraph SL[Security Layer]
+        JA[JWT Auth]
+        DF[Device Fingerprint]
+        RL[Rate Limiter]
+    end
+
+    %% Define Application Layer
+    subgraph AppLayer[Application Layer]
+        API[Express API]
+        QR[QR Service]
+        AttLogic[Attendance Logic]
+    end
+
+    %% Define Data Layer
+    subgraph DL[Data Layer]
+        DB[(MongoDB)]
+        FS[File Storage]
+    end
+
+    %% Define Layer Connections
+    CL -.-> SL
+    SL -.-> AppLayer
+    AppLayer -.-> DL
+
+    %% Define Cross-Layer Connections
+    API <-..-> DB
+    QR <-..-> FS
+```
+
 
 4. Detailed Authentication Flow:
 
@@ -422,6 +675,23 @@ flowchart LR
     Cache -->|Read| API_Response[API Response]
     Primary -->|Miss| API_Response
 ```
+Database Design
+Normalization Analysis:
+
+1. First Normal Form (1NF)
+   - All tables have primary keys (_id)
+   - Each column contains atomic values
+   - No repeating groups
+   
+2. Second Normal Form (2NF)
+   - Meets 1NF
+   - No partial dependencies
+   - Tables organized by complete functional dependencies
+   
+3. Third Normal Form (3NF)
+   - Meets 2NF
+   - No transitive dependencies
+   - Each non-key attribute directly depends on primary key
 
 Collections and Relationships (Implemented MongoDB Schema):
 
@@ -482,6 +752,37 @@ Collections and Relationships (Implemented MongoDB Schema):
    - conflictingStudent: { type: ObjectId, ref: "User" }
    - timestamps: true
    ```
+
+Implemented Indexes:
+```javascript
+// Attendance Indexes
+- { session: 1, status: 1 }
+- { session: 1, deviceId: 1 }
+- { session: 1, compositeFingerprint: 1 }
+- { student: 1 }
+- { deviceId: 1 }
+- { compositeFingerprint: 1 }
+- { timestamp: 1 }
+
+// Units Indexes
+- { code: 1 } // unique
+- { lecturer: 1 }
+- { course: 1 }
+
+// Courses Indexes
+- { code: 1 } // unique
+- { department: 1 }
+
+// Feedback Indexes
+- { sessionId: 1 }
+- { unit: 1 }
+- { course: 1 }
+- { studentId: 1 }
+```
+
+Chapter Conclusion
+
+The Smart QR Code-based Student Attendance System design establishes a robust architecture that effectively addresses modern attendance tracking challenges in educational environments. The implementation of JWT authentication, device fingerprinting, and auto-refreshing QR codes creates a multi-layered security approach that prevents proxy attendance while maintaining user convenience. By leveraging Progressive Web Application principles with service workers and local storage, the system maintains functionality even under unreliable network conditions common in educational settings. The MongoDB schema design with carefully planned relationships and indexes supports efficient queries while allowing flexibility for future feature expansion. The separation of presentation layer (React frontend), application logic (Express API), and data storage (MongoDB) enables independent scaling and targeted security hardening. This architecture provides a solid foundation for implementation while remaining adaptable to real-world deployment challenges.
 
 CHAPTER 5: 
 SYSTEM TESTING AND IMPLEMENTATION
@@ -1106,7 +1407,7 @@ The future development roadmap will be guided by ongoing user feedback, technolo
 
 13. Nguyen, T. H., & Trinh, V. C. (2023). "Real-time Web Applications with WebSockets: Design Patterns and Best Practices." Proceedings of the International Conference on Web Engineering, 245-257.
 
-14. Ramadhan, K., et al. (2022). "Quick Response Code (QR Code) Generation and Processing: Algorithms and Optimization Techniques." Journal of Visual Communication and Image Representation, 82, 103407.
+14. Ramadhan, K., et al. (2022). "Quick Response Code (QR) Generation and Processing: Algorithms and Optimization Techniques." Journal of Visual Communication and Image Representation, 82, 103407.
 
 15. Soni, P., & Mishra, R. (2022). "Ant Design: Component Libraries for Enterprise Applications." International Journal of User Interface Design, 3(2), 78-92.
 
