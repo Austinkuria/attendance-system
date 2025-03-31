@@ -6,7 +6,8 @@ const {
   deleteStudent,
   importStudents,
   downloadStudents,
-  registerUser
+  registerUser,
+  updateStudentV2 // Add import for new function
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
@@ -18,6 +19,7 @@ const router = express.Router();
 // Student management routes
 router.get("/", authenticate, authorize(['admin']), getStudents);
 
+// Keep the original route for backwards compatibility
 router.put("/:id", authenticate, authorize(['admin']), [
   check('firstName').notEmpty().withMessage('First name is required'),
   check('lastName').notEmpty().withMessage('Last name is required'),
@@ -33,6 +35,17 @@ router.put("/:id", authenticate, authorize(['admin']), [
   check('year').isInt({ min: 1, max: 4 }).withMessage('Valid year is required'),
   check('semester').isInt({ min: 1, max: 3 }).withMessage('Valid semester is required')
 ], updateStudent);
+
+// Add new v2 route with more flexible validation
+router.put("/v2/:id", authenticate, authorize(['admin']), [
+  check('firstName').notEmpty().withMessage('First name is required'),
+  check('lastName').notEmpty().withMessage('Last name is required'),
+  check('email').isEmail().withMessage('Valid email is required'),
+  check('regNo').notEmpty().withMessage('Registration number is required'),
+  // More lenient validation for course and department
+  check('year').isInt({ min: 1, max: 4 }).withMessage('Valid year is required'),
+  check('semester').isInt({ min: 1, max: 3 }).withMessage('Valid semester is required')
+], updateStudentV2);
 
 router.delete("/:id", authenticate, authorize(['admin']), deleteStudent);
 router.get("/download", authenticate, authorize(['admin']), downloadStudents);

@@ -339,6 +339,45 @@ export const addStudent = async (student) => {
   }
 };
 
+// New v2 endpoint for updating students that handles ID validation better
+export const updateStudentV2 = async (studentId, studentData) => {
+  const token = localStorage.getItem("token");
+  if (!token) {
+    console.error("No token found in localStorage");
+    throw new Error("Authentication required");
+  }
+  
+  try {
+    // Ensure proper formatting of course and department IDs
+    const formattedData = {
+      ...studentData,
+      course: studentData.course || studentData.courseId,
+      department: studentData.department || studentData.departmentId
+    };
+
+    console.log("Sending update to student v2 API:", {
+      id: studentId,
+      data: formattedData
+    });
+
+    const response = await axios.put(
+      `${API_URL}/students/v2/${studentId}`,
+      formattedData,
+      { 
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        } 
+      }
+    );
+    
+    return response.data;
+  } catch (error) {
+    console.error("Error in updateStudentV2:", error);
+    throw error;
+  }
+};
+
 // Fetch all lecturers
 export const getLecturers = async () => {
   const token = localStorage.getItem("token");

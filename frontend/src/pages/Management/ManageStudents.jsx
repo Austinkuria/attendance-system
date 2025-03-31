@@ -33,7 +33,7 @@ import {
 } from "@ant-design/icons";
 import { ThemeContext } from '../../context/ThemeContext';
 // import ThemeToggle from '../../components/ThemeToggle';
-import { getStudents, deleteStudent, downloadStudents } from "../../services/api";
+import { getStudents, deleteStudent, downloadStudents, updateStudentV2 } from "../../services/api";
 import api from "../../services/api";
 import { useTableStyles } from '../../components/SharedTableStyles';
 import { useModalStyles } from '../../components/SharedModalStyles';
@@ -255,13 +255,11 @@ const ManageStudents = () => {
         semester: Number(selectedStudent.semester) || selectedStudent.semester,
       };
 
-      const response = await api.put(
-        `/students/${selectedStudent._id}`,
-        formattedStudent,
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      console.log("Updating student with data:", formattedStudent);
+      
+      const response = await updateStudentV2(selectedStudent._id, formattedStudent);
 
-      if (response.status === 200) {
+      if (response.message === "Student updated successfully") {
         const updated = await getStudents();
         setStudents(formatStudentData(updated));
         setIsEditModalVisible(false);
@@ -269,8 +267,8 @@ const ManageStudents = () => {
       }
     } catch (err) {
       console.error("Error updating student:", err);
-      setGlobalError(err.response?.data?.message || "Failed to update student");
-      message.error("Failed to update student");
+      setGlobalError(err.response?.data?.message || err.userMessage || "Failed to update student");
+      message.error(err.userMessage || "Failed to update student");
     } finally {
       setLoading(false);
     }

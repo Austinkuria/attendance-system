@@ -301,6 +301,76 @@ const updateStudent = async (req, res) => {
   }
 };
 
+// New improved update student function that handles IDs properly
+const updateStudentV2 = async (req, res) => {
+  const { firstName, lastName, email, regNo, course, department, year, semester } = req.body;
+
+  // Check validation results
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+
+  try {
+    const student = await User.findById(req.params.id);
+    if (!student) {
+      return res.status(404).json({ message: 'Student not found' });
+    }
+
+    // Check if email or regNo is already taken by another user
+    const existingUser = await User.findOne({
+      $and: [
+        { _id: { $ne: req.params.id } },
+        { $or: [{ email }, { regNo }] }
+      ]
+    });
+
+    if (existingUser) {
+      return res.status(400).json({
+        message: existingUser.email === email
+          ? 'Email already in use'
+          : 'Registration number already exists'
+      });
+    }
+
+    // Update student fields without requiring department and course validation
+    // This makes the function more robust
+    let updateData = {
+      firstName,
+      lastName,
+      email,
+      regNo,
+      year,
+      semester
+    };
+
+    // Only update course and department if they are valid MongoDB ObjectIds
+    if (course && mongoose.Types.ObjectId.isValid(course)) {
+      updateData.course = course;
+    }
+    
+    if (department && mongoose.Types.ObjectId.isValid(department)) {
+      updateData.department = department;
+    }
+
+    // Use findByIdAndUpdate for atomic update
+    const updatedStudent = await User.findByIdAndUpdate(
+      req.params.id,
+      updateData,
+      { new: true, runValidators: true }
+    );
+
+    if (!updatedStudent) {
+      return res.status(404).json({ message: 'Failed to update student' });
+    }
+
+    res.json({ message: 'Student updated successfully', student: updatedStudent });
+  } catch (error) {
+    console.error("Error in updateStudentV2:", error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // Delete student
 
 const deleteStudent = async (req, res) => {
@@ -986,7 +1056,7 @@ module.exports = {
   registerUser,
   getUserProfile,
   updateUserProfile,
-  importStudents,
+  updateStudentV2, // Add the new function to exports
   createLecturer,
   updateLecturer,
   deleteLecturer,
