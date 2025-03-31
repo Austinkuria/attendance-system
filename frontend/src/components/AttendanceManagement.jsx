@@ -219,11 +219,19 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
     // Set up session expiry check
     const intervalId = setInterval(() => {
-      const session = JSON.parse(localStorage.getItem("currentSession"));
-      if (session && new Date(session.endSession) < new Date()) {
-        setCurrentSession(null);
-        setQrData("");
-        localStorage.removeItem("currentSession");
+      const sessionJSON = localStorage.getItem("currentSession");
+      if (sessionJSON) {
+        try {
+          const session = JSON.parse(sessionJSON);
+          if (session && new Date(session.endSession) < new Date()) {
+            setCurrentSession(null);
+            setQrData("");
+            localStorage.removeItem("currentSession");
+          }
+        } catch (error) {
+          console.error("Error checking session expiry:", error);
+          localStorage.removeItem("currentSession");
+        }
       }
     }, 60000);
 

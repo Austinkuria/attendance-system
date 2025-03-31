@@ -1,6 +1,6 @@
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import { API_URL } from '../services/api';
+import { API_URL } from '../config';
 
 /**
  * Check if a JWT token exists in localStorage

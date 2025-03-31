@@ -20,7 +20,8 @@ const ProtectedRoute = ({ children }) => {
         const checkAuthentication = async () => {
             try {
                 // First check local token validity
-                const localValid = isTokenValid();
+                const token = localStorage.getItem('token');
+                const localValid = token && isTokenValid();
 
                 if (!localValid) {
                     if (isMounted) {

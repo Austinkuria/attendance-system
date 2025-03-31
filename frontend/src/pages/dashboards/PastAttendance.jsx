@@ -34,6 +34,8 @@ import { useTableStyles } from '../../components/SharedTableStyles';
 const { Option } = Select;
 const { Text } = Typography;
 
+const API_URL = 'https://attendance-system-w70n.onrender.com/api';
+
 const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) => {
   const navigate = useNavigate();
   const { themeColors, isDarkMode } = useContext(ThemeContext);
@@ -133,7 +135,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
       };
 
       const response = await axios.get(
-        `https://attendance-system-w70n.onrender.com/api/attendance/past-lecturer`,
+        `${API_URL}/attendance/past-lecturer`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem('token')}` },
           params,
@@ -259,7 +261,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
 
       try {
         const response = await axios({
-          url: `https://attendance-system-w70n.onrender.com/api/attendance/export-all-sessions`,
+          url: `${API_URL}/attendance/export-all-sessions`,
           method: 'GET',
           responseType: 'blob',
           headers: {
@@ -477,7 +479,7 @@ const PastAttendance = ({ units: propUnits = [], lecturerId: propLecturerId }) =
 
                     // Use the correct endpoint path for session export
                     axios({
-                      url: `https://attendance-system-w70n.onrender.com/api/attendance/export/session/${pastFilters.sessionId}`,
+                      url: `${API_URL}/attendance/export/session/${pastFilters.sessionId}`,
                       method: 'GET',
                       responseType: 'blob',
                       headers: { Authorization: `Bearer ${token}` },

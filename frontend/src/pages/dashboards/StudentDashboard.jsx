@@ -957,6 +957,11 @@ const StudentDashboard = () => {
   const fetchSessionStatus = async (unitId, sessionIdToCheck) => {
     try {
       const token = localStorage.getItem('token');
+      if (!token) {
+        console.error('Authentication token missing');
+        return { isExpired: true, error: 'Authentication failed' };
+      }
+      
       const activeResponse = await axios.get(
         `${API_URL}/sessions/active/${unitId}`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -982,13 +987,16 @@ const StudentDashboard = () => {
       console.error('Error fetching session status:', error);
       if (error.response?.status === 404) {
         const token = localStorage.getItem('token');
+        if (!token) {
+          return { isExpired: true, error: 'Authentication failed' };
+        }
         const lastSession = await axios.get(
           `${API_URL}/sessions/last/${unitId}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
         return { isExpired: lastSession.data._id !== sessionIdToCheck, latestSession: lastSession.data };
       }
-      throw error;
+      return { isExpired: true, error: error.message || 'Failed to fetch session status' };
     }
   };
 

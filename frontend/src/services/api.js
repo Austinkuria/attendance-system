@@ -346,7 +346,7 @@ export const updateStudentV2 = async (studentId, studentData) => {
     console.error("No token found in localStorage");
     throw new Error("Authentication required");
   }
-  
+
   try {
     // Ensure proper formatting of course and department IDs
     const formattedData = {
@@ -363,14 +363,14 @@ export const updateStudentV2 = async (studentId, studentData) => {
     const response = await axios.put(
       `${API_URL}/students/v2/${studentId}`,
       formattedData,
-      { 
-        headers: { 
+      {
+        headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json"
-        } 
+        }
       }
     );
-    
+
     return response.data;
   } catch (error) {
     console.error("Error in updateStudentV2:", error);
@@ -985,17 +985,13 @@ export const regenerateQR = async (sessionId, token) => {
 export const validateUserSession = async (token) => {
   try {
     if (!token) {
-      token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication token not found');
-      }
+      throw new Error('No authentication token found');
     }
 
     const response = await axios.get(`${API_URL}/auth/validate-session`, {
       headers: { Authorization: `Bearer ${token}` }
     });
 
-    // Update user data if available
     if (response.data?.user) {
       const userData = JSON.stringify({
         id: response.data.user.id,
