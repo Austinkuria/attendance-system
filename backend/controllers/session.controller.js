@@ -218,33 +218,50 @@ exports.getActiveSessionForUnit = async (req, res) => {
 
     const currentSession = await Session.findOne(query);
     if (!currentSession) {
-      return res.status(404).json({ message: 'No active session found for this unit' });
-    }
-
-    if (currentTime > new Date(currentSession.endTime)) {
-      currentSession.ended = true;
-      await currentSession.save();
-      return res.status(404).json({ message: 'Session has ended' });
-    }
-
-    // Don't include sensitive data like qrToken when authentication is not provided
-    if (!req.user) {
-      // Return a minimal version of the session data without sensitive information
-      return res.json({
-        _id: currentSession._id,
-        unit: currentSession.unit,
-        startTime: currentSession.startTime,
-        endTime: currentSession.endTime,
-        ended: currentSession.ended,
-        // Omitting qrCode and qrToken for security
+      return res.status(404).json({
+        message: 'No active session found for this unit',
+        active: false
       });
     }
 
+    // Double check if the session has ended based on time
+    if (currentTime > new Date(currentSession.endTime)) {
+      currentSession.ended = true;
+      await currentSession.save();
+      return res.status(404).json({
+        message: 'Session has ended',
+        active: false,
+        ended: true
+      });
+    }
+
+    // Ensure the status flags are properly set and consistent
+    const sessionData = {
+      _id: currentSession._id,
+      unit: currentSession.unit,
+      startTime: currentSession.startTime,
+      endTime: currentSession.endTime,
+      ended: false,  // Explicitly set to false since we've verified it's active
+      active: true   // Add explicit active flag for clarity
+    };
+
+    // Don't include sensitive data like qrToken when authentication is not provided
+    if (!req.user) {
+      return res.json(sessionData); // Return minimal session data
+    }
+
     // If authenticated, include the qrCode
-    res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
+    return res.json({
+      ...sessionData,
+      qrCode: currentSession.qrCode
+    });
   } catch (error) {
     console.error("Error fetching active session:", error);
-    res.status(500).json({ message: 'Error fetching active session', error: error.message });
+    res.status(500).json({
+      message: 'Error fetching active session',
+      error: error.message,
+      active: false
+    });
   }
 };
 
@@ -280,5 +297,76 @@ exports.checkSessionStatus = async (req, res) => {
   } catch (error) {
     console.error("Error checking session status:", error);
     res.status(500).json({ message: 'Error checking session status', error: error.message });
+  }
+};
+
+exports.validateSession = async (req, res) => {
+  try {
+    const { sessionId } = req.params;
+
+    if (!sessionId || !mongoose.isValidObjectId(sessionId)) {
+      return res.status(400).json({
+        message: 'Invalid or missing session ID',
+        valid: false
+      });
+    }
+
+    // Find the session without requiring authentication
+    const session = await Session.findById(sessionId);
+
+    if (!session) {
+      return res.status(404).json({
+        message: 'Session not found',
+        valid: false
+      });
+    }
+
+    const currentTime = new Date();
+
+    // Check if session has ended or expired
+    if (session.ended || currentTime > new Date(session.endTime)) {
+      // If session has ended but the ended flag isn't set, update it
+      if (!session.ended) {
+        session.ended = true;
+        await session.save();
+      }
+
+      return res.status(200).json({
+        message: 'Session has ended',
+        valid: false,
+        ended: true,
+        active: false
+      });
+    }
+
+    // Check if session has started yet
+    if (currentTime < new Date(session.startTime)) {
+      return res.status(200).json({
+        message: 'Session has not started yet',
+        valid: false,
+        ended: false,
+        active: false
+      });
+    }
+
+    // If we got here, session is valid and active
+    return res.status(200).json({
+      message: 'Session is active and valid',
+      valid: true,
+      ended: false,
+      active: true,
+      unitId: session.unit,
+      startTime: session.startTime,
+      endTime: session.endTime
+    });
+
+  } catch (error) {
+    console.error("Error validating session:", error);
+    return res.status(500).json({
+      message: 'Error validating session',
+      error: error.message,
+      valid: false,
+      active: false
+    });
   }
 };
