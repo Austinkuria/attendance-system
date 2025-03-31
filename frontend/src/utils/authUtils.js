@@ -149,11 +149,34 @@ export const redirectToDashboard = () => {
  */
 export const validateSession = async () => {
     try {
-        const token = localStorage.getItem("token");
+        const token = localStorage.getItem('token');
         if (!token) {
             throw new Error("No authentication token found");
         }
 
+        // Check if this is being called from the QR scanner page
+        const currentPath = window.location.pathname;
+        const isQRScannerPath = currentPath.includes('/qr-scanner');
+
+        // Use a different endpoint for validating attendance sessions
+        if (isQRScannerPath) {
+            // Extract the unitId from the path
+            const pathParts = currentPath.split('/');
+            const unitId = pathParts[pathParts.length - 1];
+
+            // Validate the unit session directly instead of user session
+            try {
+                const response = await axios.get(`${API_URL}/sessions/active/${unitId}`);
+                if (response.data && response.data.active) {
+                    return { valid: true, sessionData: response.data };
+                }
+            } catch (error) {
+                console.error("Error validating unit session:", error);
+                // Continue to normal authentication below instead of throwing
+            }
+        }
+
+        // Normal user session validation
         const response = await axios.get(`${API_URL}/auth/validate-session`, {
             headers: {
                 Authorization: `Bearer ${token}`,
@@ -173,13 +196,23 @@ export const validateSession = async () => {
             localStorage.setItem("userData", userData);
         }
 
-        if (response.data && response.data.valid) {
+        if (response.data && response.data.valid !== false) {
             return response.data;
         } else {
             throw new Error("Invalid session");
         }
     } catch (error) {
         console.error("Session validation error:", error);
+
+        // Handle errors differently for QR scanner path
+        const isQRScannerPath = window.location.pathname.includes('/qr-scanner');
+        if (isQRScannerPath) {
+            // For QR scanner, we don't want to clear token or force logout
+            // Just pass the error up to be handled by the component
+            throw error;
+        }
+
+        // For other paths, proceed with normal logout behavior
         localStorage.removeItem("token");
         logout();
         throw new Error(error.response?.data?.message || "Session validation failed");

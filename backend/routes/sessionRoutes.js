@@ -21,5 +21,5 @@ router.get('/last/:unitId', authenticate, getLastSession); // Get the most recen
 router.post('/regenerate-qr', regenerateQR);
 router.get('/active/:unitId', getActiveSessionForUnit); // No authentication middleware
 router.get('/status/:sessionId', authenticate, checkSessionStatus); // New route to check session status
-router.get('/validate-session/:sessionId', validateSession); // Add validate session route - removed authentication
+router.get('/validate-session/:sessionId', validateSession); // Add validate session route without authentication
 module.exports = router;

@@ -300,6 +300,7 @@ exports.checkSessionStatus = async (req, res) => {
   }
 };
 
+// Add validateSession function to handle session validation without authentication
 exports.validateSession = async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -359,7 +360,6 @@ exports.validateSession = async (req, res) => {
       startTime: session.startTime,
       endTime: session.endTime
     });
-
   } catch (error) {
     console.error("Error validating session:", error);
     return res.status(500).json({

@@ -32,7 +32,22 @@ const ProtectedRoute = ({ children }) => {
                     return;
                 }
 
-                // If local token is valid, try to validate with server
+                // Check if this route is for the QR scanner
+                const currentPath = window.location.pathname;
+                const isQRScannerPath = currentPath.includes('/qr-scanner');
+
+                if (isQRScannerPath) {
+                    // For QR scanner paths, just mark as authenticated if local token is valid
+                    // The actual session check will happen within the QR scanner component
+                    if (isMounted) {
+                        console.log("Allowing QR scanner access with valid token");
+                        setIsAuthenticated(true);
+                        setIsChecking(false);
+                    }
+                    return;
+                }
+
+                // For non-QR scanner paths, validate with server
                 try {
                     await validateSession();
                     if (isMounted) {
