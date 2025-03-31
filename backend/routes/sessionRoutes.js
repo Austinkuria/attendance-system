@@ -18,6 +18,6 @@ router.post('/create', authenticate, sensitiveLimiter, createSession); // Create
 router.post('/end', authenticate, endSession); // End an existing session
 router.get('/last/:unitId', authenticate, getLastSession); // Get the most recent ended session for a unit
 router.post('/regenerate-qr', regenerateQR);
-router.get('/active/:unitId', authenticate, getActiveSessionForUnit);
+router.get('/active/:unitId', getActiveSessionForUnit); // Removed authentication middleware
 router.get('/status/:sessionId', authenticate, checkSessionStatus); // New route to check session status
 module.exports = router;

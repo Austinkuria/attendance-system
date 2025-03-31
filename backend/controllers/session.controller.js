@@ -227,6 +227,20 @@ exports.getActiveSessionForUnit = async (req, res) => {
       return res.status(404).json({ message: 'Session has ended' });
     }
 
+    // Don't include sensitive data like qrToken when authentication is not provided
+    if (!req.user) {
+      // Return a minimal version of the session data without sensitive information
+      return res.json({
+        _id: currentSession._id,
+        unit: currentSession.unit,
+        startTime: currentSession.startTime,
+        endTime: currentSession.endTime,
+        ended: currentSession.ended,
+        // Omitting qrCode and qrToken for security
+      });
+    }
+
+    // If authenticated, include the qrCode
     res.json({ ...currentSession.toObject(), qrCode: currentSession.qrCode });
   } catch (error) {
     console.error("Error fetching active session:", error);
