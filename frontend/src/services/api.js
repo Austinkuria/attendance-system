@@ -8,6 +8,10 @@ export const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 const api = axios.create({
   baseURL: API_URL, // Use baseURL instead of API_URL as a property
   timeout: 15000, // 15 second timeout
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: false
 });
 
 // Initialize IndexedDB
@@ -73,6 +77,9 @@ api.interceptors.request.use(
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    if (config.headers['cache-control']) {
+      delete config.headers['cache-control'];
+    }
     return config;
   },
   (error) => Promise.reject(error)
@@ -82,6 +89,20 @@ api.interceptors.request.use(
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    if (error.message === 'Network Error') {
+      console.error('CORS or network issue detected:', error);
+      try {
+        const url = error.config.url;
+        const cachedData = await getFromIndexedDB('apiCache', url);
+        if (cachedData) {
+          console.log('Returning cached data due to network error');
+          return Promise.resolve({ data: cachedData, _fromCache: true });
+        }
+      } catch (e) {
+        console.error('Failed to retrieve from cache:', e);
+      }
+    }
+
     const originalRequest = error.config;
 
     if (error.response?.status === 401 && !originalRequest._retry) {
@@ -180,12 +201,6 @@ api.interceptors.response.use(
   }
 );
 
-// Helper function to get the authorization header
-// const getAuthHeader = () => {
-//   const token = localStorage.getItem('token');
-//   return { headers: { Authorization: `Bearer ${token}` } };
-// };
-
 // get userprofile
 export const getUserProfile = async () => {
   const token = localStorage.getItem('token');
@@ -249,7 +264,6 @@ export const getStudentUnits = async (token) => {
     const response = await axios.get("https://attendance-system-w70n.onrender.com/api/unit/student/units", {
       headers: {
         Authorization: `Bearer ${token}`,
-        "Cache-Control": "no-cache",  // Disable caching to force a fresh request
       },
     });
     return response.data;
@@ -670,39 +684,6 @@ export const downloadStudents = async () => {
   }
 };
 
-// export const createCourse = async (courseData) => {
-//   const token = localStorage.getItem("token");
-//   try {
-//     const response = await axios.post(`${API_URL}/course/create`, courseData, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//         "Content-Type": "application/json"
-//       }
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error creating course:", error.response?.data || error.message);
-//     throw error;
-//   }
-// };
-
-// // update a course
-// export const updateCourse = async (id, courseData) => {
-//   const token = localStorage.getItem("token");
-//   try {
-//     const response = await axios.put(`${API_URL}/course/${id}`, courseData, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//         "Content-Type": "application/json"
-//       }
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error updating course:", error.response?.data || error.message);
-//     throw error;
-//   }
-// };
-
 // delete a course
 export const deleteCourse = async (id) => {
   const token = localStorage.getItem("token");
@@ -735,26 +716,6 @@ export const getDepartments = async () => {
     return [];
   }
 };
-
-// export const addUnitToCourse = async (courseId, unitData) => {
-//   const token = localStorage.getItem("token");
-//   try {
-//     const response = await axios.post(
-//       `${API_URL}/course/${courseId}/units`,
-//       unitData,
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//           "Content-Type": "application/json"
-//         }
-//       }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error adding unit:", error.response?.data || error.message);
-//     throw error;
-//   }
-// };
 
 // Remove a unit from a course
 export const removeUnitFromCourse = async (courseId, unitId) => {
@@ -824,22 +785,6 @@ export const getCourseByDepartment = async (departmentId, courseName) => {
     throw error;
   }
 };
-
-// export const updateLecturer = async (id, lecturerData) => {
-//   const token = localStorage.getItem("token");
-//   try {
-//     const response = await axios.put(`${API_URL}/lecturers/${id}`, lecturerData, {
-//       headers: {
-//         Authorization: `Bearer ${token}`,
-//         "Content-Type": "application/json"
-//       }
-//     });
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error updating lecturer:", error.response?.data || error.message);
-//     throw error;
-//   }
-// };
 
 // Mark attendance for a student
 export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken, compositeFingerprint) => {
@@ -1249,50 +1194,6 @@ export const checkSessionStatus = async (sessionId) => {
   }
 };
 
-// export const markAttendance = async (sessionId, studentId, token, deviceId, qrToken, compositeFingerprint) => {
-//   try {
-//     const response = await axios.post(
-//       `${API_URL}/attendance/mark`,
-//       { sessionId, studentId, deviceId, qrToken, compositeFingerprint },
-//       {
-//         headers: {
-//           Authorization: `Bearer ${token}`,
-//         },
-//       }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     if (error.response) {
-//       // Backend error with response
-//       throw {
-//         message: error.response.data.message,
-//         code: error.response.data.code,
-//         success: error.response.data.success
-//       };
-//     } else {
-//       // Network or unexpected error
-//       throw {
-//         message: "Network error. Please check your connection.",
-//         code: "NETWORK_ERROR",
-//         success: false
-//       };
-//     }
-//   }
-// };
-
-// export const regenerateQR = async (sessionId, token) => {
-//   try {
-//     const response = await axios.post(
-//       `${API_URL}/sessions/regenerate-qr`,
-//       { sessionId, autoRotate: true },
-//       { headers: { Authorization: `Bearer ${token}` } }
-//     );
-//     return response.data;
-//   } catch (error) {
-//     throw error.response ? error.response.data : new Error(error.message || "Network error");
-//   }
-// };
-
 // ✅ End Session (Lecturer Ends the Attendance Session)
 export const endSession = async (sessionId) => {
   try {
@@ -1394,27 +1295,6 @@ export const getSessionAttendance = async (sessionId) => {
   }
 };
 
-// // Get current session for a specific unit
-// export const getCurrentSession = async (selectedUnit) => {
-//   try {
-//     const token = getToken();
-//     if (!token) throw new Error("Authentication token missing");
-//     const response = await axios.get(`${API_URL}/sessions/current/${selectedUnit}`, {
-//       headers: {
-//         "Content-Type": "application/json",
-//         "Authorization": `Bearer ${token}`
-//       }
-//     });
-//     return response.data; // Return the session object
-//   } catch (error) {
-//     if (error.response?.status === 404) {
-//       return null; // Return null if no current session exists
-//     }
-//     console.error("Error fetching current session:", error);
-//     throw error;
-//   }
-// };
-
 // Get last ended session for a specific unit
 export const getLastSession = async (unitId) => {
   const maxRetries = 3;
@@ -1439,24 +1319,6 @@ export const getLastSession = async (unitId) => {
     }
   }
 };
-
-//   try {
-//     const token = localStorage.getItem('token');
-//     if (!token) throw new Error("Authentication token missing");
-
-//     const response = await axios.get(`${API_URL}/attendance/trends/${unitId}`, {
-//       headers: {
-//         "Authorization": `Bearer ${token}`,
-//         "Content-Type": "application/json"
-//       }
-//     });
-
-//     return response.data;
-//   } catch (error) {
-//     console.error("Error fetching attendance trends:", error);
-//     throw error.response?.data || new Error("Failed to fetch attendance trends");
-//   }
-// };
 
 export const getAttendanceTrends = async (unitId, startDate, endDate) => {
   try {

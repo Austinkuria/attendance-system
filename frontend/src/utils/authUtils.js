@@ -1,13 +1,13 @@
 import { jwtDecode } from "jwt-decode";
 import axios from "axios";
-import { API_URL } from '../config';
+import { API_URL } from "../services/api";
 
 /**
  * Check if a JWT token exists in localStorage
  * @returns {boolean} True if token exists
  */
 export const hasToken = () => {
-    return !!localStorage.getItem('token');
+    return !!localStorage.getItem("token");
 };
 
 /**
@@ -16,22 +16,29 @@ export const hasToken = () => {
  */
 export const isTokenValid = () => {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
             console.log("Auth check failed: No token found");
             return false;
         }
 
-        const decodedToken = jwtDecode(token);
+        const decoded = jwtDecode(token);
         const currentTime = Date.now() / 1000; // Convert to seconds
 
         // Debug log for token expiration (only in development)
-        if (process.env.NODE_ENV === 'development') {
-            const expiresIn = decodedToken.exp - currentTime;
-            console.log(`Token expires in: ${Math.floor(expiresIn / 60)} minutes and ${Math.floor(expiresIn % 60)} seconds`);
+        if (process.env.NODE_ENV === "development") {
+            const expiresIn = decoded.exp - currentTime;
+            console.log(
+                `Token expires in: ${Math.floor(expiresIn / 60)} minutes and ${Math.floor(expiresIn % 60)} seconds`
+            );
         }
 
-        return decodedToken.exp > currentTime;
+        if (decoded.exp < currentTime) {
+            localStorage.removeItem("token");
+            return false;
+        }
+
+        return true;
     } catch (error) {
         console.error("Token validation error:", error);
         return false;
@@ -48,7 +55,7 @@ export const getUserData = () => {
         if (!isTokenValid()) return null;
 
         // Get and parse userData from localStorage
-        const userDataStr = localStorage.getItem('userData');
+        const userDataStr = localStorage.getItem("userData");
         if (!userDataStr) return null;
 
         return JSON.parse(userDataStr);
@@ -64,7 +71,7 @@ export const getUserData = () => {
  */
 export const getUserRole = () => {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) return null;
 
         const decodedToken = jwtDecode(token);
@@ -80,7 +87,7 @@ export const getUserRole = () => {
  */
 export const getUserId = () => {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) return null;
 
         const decodedToken = jwtDecode(token);
@@ -119,19 +126,19 @@ export const redirectToDashboard = () => {
     console.log("Redirecting to dashboard for role:", role);
 
     switch (role) {
-        case 'admin':
-            window.location.href = '/admin/dashboard';
+        case "admin":
+            window.location.href = "/admin/dashboard";
             break;
-        case 'lecturer':
-            window.location.href = '/lecturer/dashboard';
+        case "lecturer":
+            window.location.href = "/lecturer/dashboard";
             break;
-        case 'student':
-            window.location.href = '/student/dashboard';
+        case "student":
+            window.location.href = "/student/dashboard";
             break;
         default:
             // Fallback to login if role is unknown
             console.error("Unknown role for redirection:", role);
-            window.location.href = '/auth/login';
+            window.location.href = "/auth/login";
     }
 };
 
@@ -142,13 +149,16 @@ export const redirectToDashboard = () => {
  */
 export const validateSession = async () => {
     try {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem("token");
         if (!token) {
-            throw new Error('No authentication token found');
+            throw new Error("No authentication token found");
         }
 
         const response = await axios.get(`${API_URL}/auth/validate-session`, {
-            headers: { Authorization: `Bearer ${token}` }
+            headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            },
         });
 
         // Store any additional user data from the validation response
@@ -158,16 +168,21 @@ export const validateSession = async () => {
                 role: response.data.user.role,
                 firstName: response.data.user.firstName,
                 lastName: response.data.user.lastName,
-                lastValidated: new Date().toISOString()
+                lastValidated: new Date().toISOString(),
             });
-            localStorage.setItem('userData', userData);
+            localStorage.setItem("userData", userData);
         }
 
-        return response.data;
+        if (response.data && response.data.valid) {
+            return response.data;
+        } else {
+            throw new Error("Invalid session");
+        }
     } catch (error) {
-        console.error('Session validation error:', error);
+        console.error("Session validation error:", error);
+        localStorage.removeItem("token");
         logout();
-        throw new Error(error.response?.data?.message || 'Session validation failed');
+        throw new Error(error.response?.data?.message || "Session validation failed");
     }
 };
 
@@ -179,8 +194,8 @@ export const logout = () => {
     sessionStorage.clear();
 
     // Redirect to login page if not already there
-    if (!window.location.pathname.includes('/auth/login')) {
-        window.location.href = '/auth/login';
+    if (!window.location.pathname.includes("/auth/login")) {
+        window.location.href = "/auth/login";
     }
 };
 
@@ -192,7 +207,7 @@ export const storeAuthData = (authData) => {
     const { token } = authData;
 
     // Store token
-    localStorage.setItem('token', token);
+    localStorage.setItem("token", token);
 
     // Decode token to get user data
     const decodedToken = jwtDecode(token);
@@ -202,12 +217,12 @@ export const storeAuthData = (authData) => {
     const userData = JSON.stringify({
         id: userId,
         role,
-        lastLogin: new Date().toISOString()
+        lastLogin: new Date().toISOString(),
     });
 
-    localStorage.setItem('userData', userData);
-    localStorage.setItem('userId', userId);
-    localStorage.setItem('role', role);
+    localStorage.setItem("userData", userData);
+    localStorage.setItem("userId", userId);
+    localStorage.setItem("role", role);
 };
 
 /**
@@ -218,9 +233,9 @@ export const setupAuthInterceptors = (axiosInstance) => {
     // Request interceptor to add token
     axiosInstance.interceptors.request.use(
         (config) => {
-            const token = localStorage.getItem('token');
+            const token = localStorage.getItem("token");
             if (token) {
-                config.headers['Authorization'] = `Bearer ${token}`;
+                config.headers["Authorization"] = `Bearer ${token}`;
             }
             return config;
         },
@@ -249,7 +264,7 @@ export const setupAuthInterceptors = (axiosInstance) => {
                     return axiosInstance(originalRequest);
                 } catch (refreshError) {
                     // If session validation fails, logout and redirect
-                    console.error('Session validation failed during request:', refreshError);
+                    console.error("Session validation failed during request:", refreshError);
                     logout();
                     return Promise.reject(error);
                 }
