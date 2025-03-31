@@ -68,47 +68,55 @@ Non-Functional Requirements:
    Component-based frontend design simplifies updates and feature additions by isolating functionality into manageable units. The MVC pattern in the backend creates clear separation of concerns for easier debugging and enhancement. Central configuration management simplifies deployment across different environments. Environment variable management allows configuration changes without code modifications.
 
 Context Level Diagram
-The following diagram illustrates the high-level context of the Quick Response Code (QR Code)-based Smart Attendance System as implemented:
+The context level diagram provides a high-level overview of the QRollCall Smart Attendance System, illustrating how external actors interact with the system and the flow of information between them based on the actual implementation. The system interfaces with Students, Lecturers, Administrators, and external systems like MongoDB Atlas and file storage.
+
+Students interact with the system through JWT authentication, QR code scanning with device fingerprinting validation, attendance history viewing, and feedback submission. As implemented in the student dashboards and API controllers, the system validates attendance with composite fingerprinting and IP checks, provides real-time session status through polling mechanisms, and prompts for session feedback when appropriate.
+
+Lecturers use the system to create and manage attendance sessions, generating QR codes that automatically refresh every 3 minutes as implemented in the session controller. They monitor attendance data through real-time updates using polling mechanisms (not WebSockets) and can export attendance reports in Excel format. The system provides unit-specific analytics visualized with Chart.js components.
+
+Administrators manage users, courses, and departments through comprehensive management interfaces. They access system-wide analytics and can generate various reports through the export functionality implemented in the attendance controller.
+
+The system interacts with MongoDB Atlas using Mongoose ODM for all data operations and uses file storage for QR code images and attendance export generation. All authentication is handled through JWT tokens with appropriate expiration and refresh mechanisms.
 
 ```mermaid
 graph TD
     %% Main System
-    SYS[Quick Response Code-based Smart<br>Attendance System] 
+    SYS[QRollCall Smart Attendance System] 
     
     %% External Actors
     STU[Student]
     LEC[Lecturer]
     ADM[Administrator]
     DB[(MongoDB Atlas)]
-    STORE[CSV/Excel Export Storage]
+    STORE[Excel/CSV Export Storage]
     
     %% Interactions - Students
     STU -->|Authenticates via JWT| SYS
     STU -->|Scans QR codes with device fingerprinting| SYS
-    STU -->|Views attendance history| SYS
+    STU -->|Views attendance history with offline support| SYS
     STU -->|Submits session feedback| SYS
-    SYS -->|Returns attendance status| STU
-    SYS -->|Displays feedback request notifications| STU
+    SYS -->|Returns attendance status with validation| STU
+    SYS -->|Displays feedback requests after sessions| STU
     
     %% Interactions - Lecturers
     LEC -->|Authenticates via JWT| SYS
-    LEC -->|Creates attendance sessions| SYS
+    LEC -->|Creates 1-hour attendance sessions| SYS
     LEC -->|Generates QR codes with 3-min refresh| SYS
-    LEC -->|Uses polling for attendance data updates| SYS
-    LEC -->|Exports attendance reports| SYS
-    SYS -->|Displays attendance data| LEC
-    SYS -->|Provides unit/course analytics| LEC
+    LEC -->|Polls for attendance updates| SYS
+    LEC -->|Exports Excel attendance reports| SYS
+    SYS -->|Displays real-time attendance data| LEC
+    SYS -->|Provides unit analytics with Chart.js| LEC
     
     %% Interactions - Admins
     ADM -->|Authenticates via JWT| SYS
-    ADM -->|Manages user accounts| SYS
+    ADM -->|Manages user accounts with bulk import| SYS
     ADM -->|Configures courses/units/departments| SYS
-    ADM -->|Views system analytics| SYS
+    ADM -->|Views system-wide analytics| SYS
     SYS -->|Provides administrative reports| ADM
     
     %% Interactions - External Systems
-    SYS <-->|Stores/retrieves data| DB
-    SYS -->|Generates exportable reports| STORE
+    SYS <-->|Stores/retrieves via Mongoose ODM| DB
+    SYS -->|Generates Excel/CSV exports| STORE
     
     %% Styling
     classDef system fill:#f96,stroke:#333,stroke-width:2px;
@@ -120,153 +128,230 @@ graph TD
     class DB,STORE external;
 ```
 
-Data Flow Implementation (Mermaid Compatible):
+Internal Data Flow Diagram
+This diagram illustrates the actual internal data flows between components as implemented in the system's codebase. It shows the specific services, data pathways, and security mechanisms that were implemented in the production system:
 
 ```mermaid
 flowchart TB
-    %% Core Entities
+    %% Core Application Components
     Student[Student Interface]
     Lecturer[Lecturer Dashboard]
     Admin[Admin Portal]
-    System[Core System]
+    
+    %% Backend Components
+    AuthService[Authentication Service]
+    QRService[QR Generator Service]
+    AttendanceService[Attendance Service]
+    AnalyticsService[Analytics Engine]
+    ExportService[Report Export Service]
+    
+    %% Data Storage
     DB[(MongoDB Atlas)]
-    Storage[File Storage]
-
-    %% Student Flows
-    Student -->|Login/Auth| System
-    Student -->|Scan QR Code| System
-    Student -->|Submit Feedback| System
-    Student -->|View Analytics| System
-    System -->|Session Status| Student
-    System -->|Attendance Records| Student
-    System -->|Notifications| Student
-
-    %% Lecturer Flows
-    Lecturer -->|Create Session| System
-    Lecturer -->|Generate QR| System
-    Lecturer -->|Poll Attendance| System
-    System -->|Attendance Data| Lecturer
-    System -->|Analytics| Lecturer
-    System -->|Export Reports| Lecturer
-
-    %% Admin Flows
-    Admin -->|User Management| System
-    Admin -->|Course Config| System
-    Admin -->|View Analytics| System
-    System -->|System Stats| Admin
-    System -->|Reports| Admin
-
-    %% System Flows
-    System -->|Store Data| DB
-    System -->|Query Data| DB
-    System -->|Store Reports| Storage
-
+    LocalStorage[(Browser LocalStorage)]
+    
+    %% Student Data Flows
+    Student -->|1. JWT Authentication| AuthService
+    Student -->|2. QR Code Scanning| AttendanceService
+    Student -->|3. Feedback Submission| AttendanceService
+    AttendanceService -->|4. Status Validation| Student
+    AttendanceService -->|5. Attendance Records| Student
+    AnalyticsService -->|6. Personal Stats| Student
+    
+    %% Lecturer Data Flows
+    Lecturer -->|1. JWT Authentication| AuthService
+    Lecturer -->|2. Session Creation| QRService
+    QRService -->|3. Time-limited QR| Lecturer
+    Lecturer -->|4. Polling Updates| AttendanceService
+    AttendanceService -->|5. Attendance List| Lecturer
+    AnalyticsService -->|6. Unit Reports| Lecturer
+    Lecturer -->|7. Export Request| ExportService
+    ExportService -->|8. Excel Reports| Lecturer
+    
+    %% Admin Data Flows
+    Admin -->|1. JWT Authentication| AuthService
+    Admin -->|2. User Management| AuthService
+    Admin -->|3. Course Configuration| AttendanceService
+    AnalyticsService -->|4. System Reports| Admin
+    Admin -->|5. Export Request| ExportService
+    ExportService -->|6. Bulk Reports| Admin
+    
+    %% Service Interactions
+    AuthService <-->|User Validation| DB
+    QRService -->|Store Session & QR Data| DB
+    QRService -->|Store Session Info| LocalStorage
+    AttendanceService <-->|Record Management| DB
+    AttendanceService -->|Cache Attendance| LocalStorage
+    AnalyticsService -->|Aggregate Queries| DB
+    ExportService -->|Data Retrieval| DB
+    
     %% Security Layer
-    Security{Security Layer}
+    Security{JWT, Device Fingerprinting & IP Validation}
     Student & Lecturer & Admin --> Security
-    Security --> System
+    Security --> AuthService & QRService & AttendanceService
+    
+    %% Rate Limiting
+    RateLimiting[15 requests/minute Rate Limiting]
+    AttendanceService --> RateLimiting
+    
+    %% Styling
+    classDef interface fill:#bbf,stroke:#333,stroke-width:1px;
+    classDef service fill:#f96,stroke:#333,stroke-width:1px;
+    classDef storage fill:#bfb,stroke:#333,stroke-width:1px;
+    classDef security fill:#fcf,stroke:#333,stroke-width:1px;
+    classDef limiter fill:#fdd,stroke:#333,stroke-width:1px;
+    
+    class Student,Lecturer,Admin interface;
+    class AuthService,QRService,AttendanceService,AnalyticsService,ExportService service;
+    class DB,LocalStorage storage;
+    class Security security;
+    class RateLimiting limiter;
 ```
 
 Input Design (User Interfaces)
 
+The QRollCall system implements intuitive and responsive user interfaces optimized for both mobile and desktop use. The interface design focuses on usability, accessibility, and efficiency while maintaining visual consistency through the Ant Design component library with custom theming.
+
 1. Authentication Interface
    a) Login Form:
-      - Username/Registration Number field (required)
-      - Password field with show/hide toggle (required)
-      - Role selection dropdown (Admin/Lecturer/Student)
-      - Remember me checkbox
-      - Forgot password link
-      - Login button with loading state
+      - Username/Registration Number field with validation (required)
+      - Password field with show/hide toggle using Ant Design Input.Password
+      - Role selection dropdown (Admin/Lecturer/Student) with icons
+      - Remember me checkbox persisting to localStorage
+      - Forgot password link with modal dialog
+      - Login button with loading state during authentication
+      - Form validation with clear error messages
+      - Light/dark theme toggle support
+      
+      ![Login Form](https://i.imgur.com/vXk3LG7.png)
+      *Login form with responsive layout and validation*
    
    b) Password Recovery:
-      - Email/Registration Number input (required)
-      - Security questions verification
-      - New password input with strength indicator
-      - Password confirmation field
+      - Email/Registration Number input with format validation
+      - Security questions with dynamic generation based on user
+      - New password input with strength indicator bar
+      - Password confirmation field with match validation
       - Reset button with confirmation dialog
+      - Step-by-step process with progress indicator
 
 2. Session Management Interface
    a) Session Creation (Lecturer):
-      - Unit selection dropdown (required)
-      - Duration setting (15/30/45/60 minutes)
-      - Session type (Lecture/Lab/Tutorial)
-      - Location input (optional)
-      - Notes/Description field
-      - Generate QR button
+      - Unit selection dropdown with search functionality
+      - Default 60-minute session duration with custom options
+      - Location input with autocomplete suggestions
+      - Notes/Description rich text field
+      - Generate QR button with loading state
+      - Session preview with summary details
+      - Save to calendar integration option
+      
+      ![Session Creation](https://i.imgur.com/8GhQZbf.png)
+      *Session creation interface with unit selection and QR generation*
    
    b) QR Display:
-      - Dynamic QR code with auto-refresh
-      - Countdown timer
-      - Student count indicator
-      - Manual refresh button
-      - End session button with confirmation
+      - Dynamically generated QR code with 3-minute auto-refresh
+      - Countdown timer showing remaining time until refresh
+      - Student attendance counter with real-time updates
+      - Manual refresh button with success animation
+      - End session button with confirmation dialog
+      - Session information display panel
+      - Shareable link option with copy button
    
    c) Real-time Monitoring:
-      - Live attendance count
-      - Present students list
-      - Search and filter options
-      - Export attendance button
-      - Session status indicator
+      - Live attendance count with percentage calculation
+      - Present/absent student lists with search functionality
+      - Tabbed interface for different viewing options
+      - Status column with color-coded indicators
+      - Export options (Excel/CSV) with file naming options
+      - Session status indicator with color-coding
+      - Device filtering for potential duplicate detection
 
 3. Student Interface
    a) QR Scanner:
-      - Camera permission request
-      - Scanner viewport with guidelines
-      - Flash toggle (if available)
-      - Manual code input fallback
-      - Scan status indicator
+      - Camera permission request with fallback instructions
+      - Scanner viewport with positioning guidelines overlay
+      - Flash toggle for low-light environments
+      - Manual code input option for camera issues
+      - Status indicators (scanning, success, error)
+      - Scan history with timestamps
+      - Device status monitoring for compatibility
+      
+      ![QR Scanner](https://i.imgur.com/RTd9hgX.png)
+      *QR scanner with positioning overlay and status indicators*
    
    b) Attendance History:
-      - Calendar view with attendance markers
-      - List view with filters:
-        • Date range selector
-        • Unit filter
-        • Status filter (Present/Absent)
-      - Attendance percentage calculator
-      - Export personal records button
+      - Dashboard view with attendance statistics cards
+      - Calendar view with color-coded attendance markers
+      - List view with the following filters:
+        • Date range picker with presets (today, this week, this month)
+        • Unit multi-select dropdown with search
+        • Status filter buttons (Present/Absent/All)
+      - Attendance percentage visualization per unit
+      - Personal records export to PDF or Excel
+      - Timeline view with chronological attendance events
+      
+      ![Student Dashboard](https://i.imgur.com/J7ML4pP.png)
+      *Student dashboard with attendance statistics and unit cards*
    
    c) Feedback Form:
-      - Session rating (1-5 stars)
-      - Pace rating (Too Slow/Just Right/Too Fast)
-      - Understanding check (Yes/Partial/No)
-      - Comments text area
-      - Anonymous submission toggle
-      - Submit button with confirmation
+      - Session information display with unit and lecturer details
+      - Overall experience rating using 5-star component
+      - Pace rating slider (Too Slow/Just Right/Too Fast)
+      - Understanding checkbox group with multiple options
+      - Comments text area with character counter
+      - Anonymous submission toggle switch
+      - Submit button with confirmation and success message
+      
+      ![Feedback Form](https://i.imgur.com/RzW2Lpd.png)
+      *Feedback submission form with multiple input types*
 
 4. Administrative Interface
    a) User Management:
-      - User creation form with role assignment
-      - Bulk import interface (CSV)
-      - User search with filters
-      - Edit/Delete actions with confirmation
-      - Permission management grid
+      - User creation form with role-based field display
+      - Bulk import interface with CSV template download
+      - User search with multiple filter combinations
+      - Data table with sortable, filterable columns
+      - Edit/Delete actions with confirmation safeguards
+      - Permission management through role assignment
+      - Batch action tools for multiple user operations
+      
+      ![Admin Dashboard](https://i.imgur.com/kLDJ9mH.png)
+      *Admin dashboard with user management and analytics*
    
    b) Course Management:
-      - Course creation wizard
-      - Unit assignment interface
-      - Lecturer allocation form
-      - Student enrollment manager
-      - Course analytics dashboard
+      - Course creation wizard with step indicators
+      - Unit assignment interface with drag-and-drop support
+      - Lecturer allocation with search and filter
+      - Student enrollment manager with batch operations
+      - Course analytics dashboard with attendance metrics
+      - Department organization hierarchy view
+      - Academic calendar integration
 
 5. Common Interface Elements
    a) Navigation:
-      - Responsive sidebar/navbar
-      - Breadcrumb trail
-      - Quick action buttons
-      - Profile dropdown menu
+      - Collapsible sidebar with responsive breakpoints
+      - Breadcrumb trail showing current location
+      - Quick action floating buttons for common tasks
+      - Profile dropdown menu with user information
+      - Back-to-top button on scrollable pages
+      - Mobile-optimized menu with larger touch targets
    
    b) Notifications:
-      - Toast messages for actions
-      - Status alerts
-      - Session reminders
-      - System notifications
+      - Toast messages for actions using Ant Design message
+      - Status alerts with appropriate severity levels
+      - Session reminders with countdown timers
+      - System notifications for important events
+      - Offline indicator when connectivity is lost
+      - Error handling with user-friendly messages
    
    c) Data Tables:
-      - Sortable columns
-      - Search functionality
-      - Pagination controls
-      - Bulk action tools
-      - Export options
+      - Sortable columns with multiple sort support
+      - Global and column-specific search functionality
+      - Pagination controls with items-per-page options
+      - Bulk action toolbars for selected rows
+      - Export options with format selection
+      - Responsive design with horizontal scrolling on mobile
+      - Row highlighting for new or updated data
+
+The interface design implements accessibility features including keyboard navigation, screen reader support, and sufficient color contrast. All input forms include proper validation with clear error messages and success states. The responsive design ensures usability across device types from mobile phones to desktop computers.
 
 Process Design
 
@@ -395,7 +480,6 @@ flowchart TD
     QR <-..-> FS
 ```
 
-
 4. Detailed Authentication Flow:
 
 ```mermaid
@@ -520,6 +604,7 @@ erDiagram
         boolean ended
         array attendees
         boolean feedbackEnabled
+        timestamps: true
     }
 
     Attendance {

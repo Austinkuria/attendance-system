@@ -56,6 +56,8 @@ Feedback: Comments or input students give after class, collected to boost engage
 
 Dashboard: A visual tool showing attendance data and trends for educators and administrators.
 
+
+CHAPTER TWO
 2.2 Related Literature Review
 QR code-based attendance systems have come a long way lately, bringing fresh ways to track students in schools. This section looks at what’s out there—existing systems and studies—checking their strengths and weaknesses to pinpoint where my Smart QR Code Based Student Attendance System can step in. Built on the MERN stack (MongoDB, Express.js, React, Node.js), it’s designed to improve accuracy, security, offline support, and student involvement.
 Classroom Attendance by QR Code (CATQR) is a free mobile app aimed at schools, letting students scan class-specific QR codes with their phones to log attendance, sometimes with geolocation checks. It’s handy but falters when internet drops, delaying updates, and its optional geolocation feature can turn off privacy-wary students. My system will tackle this with strong offline support—saving data locally and syncing later—for broader reach and accuracy. CATQR’s calendar logs past scans for teachers to review trends, per its App Store page (App Store), but my approach automates real-time analytics to save time.
@@ -63,6 +65,7 @@ SEAtS Software ramps up attendance and engagement with QR codes, GPS, and instan
 OneTap Check-In uses QR codes and NFC to speed things up across industries, including education, but its engagement tools—like optional surveys—are thin, and offline mode needs setup, with kiosks adding costs. Patel et al. (2019) stress engagement’s role in participation, a gap my system fills with feedback and affordability.
 AccuClass, from Engineerica Systems, offers QR code or proximity tracking for schools with a mobile app. It handles custom schedules but lags on reporting without internet, and its offline mode only works with pre-loaded data, which can confuse users. My system will keep offline marking seamless and easy to use.
 CourseKey targets vocational schools with real-time tracking via QR codes, biometrics, and sound. It automates well but leaves proxy attendance risks due to spotty authentication, and its offline mode flops without connectivity, plus it’s pricey. My system will deliver steady security and low-cost offline options, making it more practical.
+
 References
 Here’s the APA-formatted references section for my final-year project proposal, listing all verified or replaced citations alphabetically with links where possible. "Ng & Kee, 2021" is a placeholder pending confirmation.
 Federal Trade Commission. (2023). FTC warns about misuses of biometric information and harm to consumers. https://www.ftc.gov/legal-library/browse/2023/05/ftc-warns-about-misuses-biometric-information-harm-consumers
