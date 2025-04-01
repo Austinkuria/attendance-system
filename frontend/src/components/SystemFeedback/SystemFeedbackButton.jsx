@@ -10,7 +10,7 @@ const useStyles = (themeColors) => ({
     feedbackButton: css`
     position: fixed;
     bottom: 20px;
-    right: 20px;
+    left: 20px;
     z-index: 1000;
     background: ${themeColors.primary};
     color: white;
