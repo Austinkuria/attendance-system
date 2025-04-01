@@ -2,81 +2,81 @@ CHAPTER 4:
 SYSTEM DESIGN
 
 Introduction
-The QRollCall Smart Attendance System is a Progressive Web Application (PWA) designed to modernize student attendance tracking in educational institutions. Built on the MERN stack, the system provides a secure, efficient solution for monitoring classroom attendance. The system has been implemented with:
+The QRollCall Smart Attendance System was designed as a Progressive Web Application (PWA) to modernize student attendance tracking in educational institutions. Built on the MERN stack, the system provides a secure, efficient solution for monitoring classroom attendance. The system was implemented with:
 
 Technical Architecture:
-The frontend is built using React.js with Vite and implements the Ant Design UI framework with custom theming for light and dark modes. The backend utilizes Node.js and Express with a RESTful API architecture, while data is stored in MongoDB Atlas with Mongoose ODM for data modeling and validation. Authentication is managed through JWT-based secure mechanisms with role-based access control. Browser localStorage provides data persistence with offline functionality through PWA capabilities. The deployment infrastructure consists of frontend hosting on Vercel and backend services on Render.com for optimal scalability and performance.
+The frontend was built using React.js with Vite and implements the Ant Design UI framework with custom theming for light and dark modes. The backend utilized Node.js and Express with a RESTful API architecture, while data was stored in MongoDB Atlas with Mongoose ODM for data modeling and validation. Authentication was managed through JWT-based secure mechanisms with role-based access control. Browser localStorage provided data persistence with offline functionality through PWA capabilities. The deployment infrastructure consisted of frontend hosting on Vercel and backend services on Render.com for optimal scalability and performance.
 
 Core Components:
 1. Frontend Application
-   The system implements a Progressive Web Application (PWA) with service workers for offline access and responsive design using Ant Design components that adapt to various screen sizes. It features a QR code scanner utilizing device cameras with guided positioning overlay for improved user experience. Real-time attendance updates are achieved through efficient polling mechanisms, while browser localStorage enables session persistence and offline data access for users with inconsistent connectivity.
+   The system implemented a Progressive Web Application (PWA) with service workers for offline access and responsive design using Ant Design components that adapt to various screen sizes. It featured a QR code scanner utilizing device cameras with guided positioning overlay for improved user experience. Real-time attendance updates were achieved through efficient polling mechanisms, while browser localStorage enabled session persistence and offline data access for users with inconsistent connectivity.
 
 2. Backend Services
-   The backend implements Express REST API endpoints organized in MVC architecture with JWT authentication including token refresh mechanisms for persistent sessions. Security is enhanced through rate limiting protection (15 requests/minute) to prevent abuse. Administrative functions are supported through CSV import/export functionality for bulk user management, and all database operations use Mongoose ODM to ensure data integrity and validation.
+   The backend implemented Express REST API endpoints organized in MVC architecture with JWT authentication including token refresh mechanisms for persistent sessions. Security was enhanced through rate limiting protection (15 requests/minute) to prevent abuse. Administrative functions were supported through CSV import/export functionality for bulk user management, and all database operations used Mongoose ODM to ensure data integrity and validation.
 
 3. Database Architecture
-   The system utilizes MongoDB collections with optimized schema design to store and manage all application data. Core collections include Users, Sessions, Attendance, Units, Courses, Departments, and Feedback, all connected through reference-based relationships using MongoDB Object IDs for data consistency and efficient querying.
+   The system utilized MongoDB collections with optimized schema design to store and manage all application data. Core collections included Users, Sessions, Attendance, Units, Courses, Departments, and Feedback, all connected through reference-based relationships using MongoDB Object IDs for data consistency and efficient querying.
 
 4. Data Layer
-   This layer manages the storage and retrieval of data throughout the system. MongoDB Collections store user data, session information, attendance records, units, courses, departments, and feedback data with appropriate indexing for performance. The system also implements file storage for QR code images, CSV exports, user uploads, and system logs to maintain comprehensive records of all activities.
+   This layer managed the storage and retrieval of data throughout the system. MongoDB Collections stored user data, session information, attendance records, units, courses, departments, and feedback data with appropriate indexing for performance. The system also implemented file storage for QR code images, CSV exports, user uploads, and system logs to maintain comprehensive records of all activities.
 
 5. Security Infrastructure
-   The security layer ensures the integrity and protection of the system and its data. Authentication is handled through JWT token validation, role-based authorization, device fingerprinting, and session management techniques. Request protection includes rate limiting, CORS protection, input validation, and comprehensive error handling to prevent common web vulnerabilities and attacks. GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning to identify potential security issues during development.
+   The security layer ensured the integrity and protection of the system and its data. Authentication was handled through JWT token validation, role-based authorization, device fingerprinting, and session management techniques. Request protection included rate limiting, CORS protection, input validation, and comprehensive error handling to prevent common web vulnerabilities and attacks. GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning identified potential security issues during development.
 
 6. External Services Integration
-   The system integrates with several external services to provide its full functionality. Hosting is managed through Vercel for the frontend, Render.com for the backend, and MongoDB Atlas for database services. Email communications are handled through Nodemailer SMTP for sending password reset links, notifications, and system alerts to users.
+   The system integrated with several external services to provide its full functionality. Hosting was managed through Vercel for the frontend, Render.com for the backend, and MongoDB Atlas for database services. Email communications were handled through Nodemailer SMTP for sending password reset links, notifications, and system alerts to users.
 
 7. Data Flows
-   The system implements well-defined data flow patterns between components. Client to backend communication occurs through HTTPS REST calls, JWT authentication, form submissions, and file uploads. Backend to database interactions use Mongoose queries, atomic operations, index utilization, and data validation. The system also manages external flows including email dispatch, file storage operations, hosting services communication, and monitoring activities.
+   The system implemented well-defined data flow patterns between components. Client to backend communication occurred through HTTPS REST calls, JWT authentication, form submissions, and file uploads. Backend to database interactions used Mongoose queries, atomic operations, index utilization, and data validation. The system also managed external flows including email dispatch, file storage operations, hosting services communication, and monitoring activities.
 
 Requirements
 Functional Requirements:
 
 1. Authentication & Authorization
-   The system implements JWT-based secure authentication with refresh tokens to maintain user sessions securely. Role-based access control is enforced for Admin, Lecturer, and Student roles with appropriate permissions for each. Password reset functionality allows users to recover access when needed, and device identification enhances security by tracking and verifying the devices used to access the system.
+   The system implemented JWT-based secure authentication with refresh tokens to maintain user sessions securely. Role-based access control was enforced for Admin, Lecturer, and Student roles with appropriate permissions for each. Password reset functionality allowed users to recover access when needed, and device identification enhanced security by tracking and verifying the devices used to access the system.
 
 2. Session Management
-   QR code generation with automatic refresh every 3 minutes prevents code sharing and replay attacks. Session state persistence using localStorage ensures continuity of user experience across page reloads. The system provides flexible session timing controls for starting and ending attendance periods, and lecturers can manually override attendance status when necessary to accommodate exceptional circumstances.
+   QR code generation with automatic refresh every 3 minutes prevented code sharing and replay attacks. Session state persistence using localStorage ensured continuity of user experience across page reloads. The system provided flexible session timing controls for starting and ending attendance periods, and lecturers could manually override attendance status when necessary to accommodate exceptional circumstances.
 
 3. Anti-Spoofing Measures
-   Device fingerprinting collects and verifies browser information including userAgent, platform, screen dimensions, color and pixel depth, hardware concurrency, and language settings. IP address tracking combined with time-based conflict detection prevents simultaneous access from different locations. QR code expiration and rotation with SHA-256 hash verification ensures codes cannot be reused or shared. Session token validation and rate limiting on sensitive endpoints provide additional layers of security against automated attacks and abuse.
+   Device fingerprinting collected and verified browser information including userAgent, platform, screen dimensions, color and pixel depth, hardware concurrency, and language settings. IP address tracking combined with time-based conflict detection prevented simultaneous access from different locations. QR code expiration and rotation with SHA-256 hash verification ensured codes could not be reused or shared. Session token validation and rate limiting on sensitive endpoints provided additional layers of security against automated attacks and abuse.
 
 4. Data Management
-   The system supports bulk student import and export via CSV files to simplify administrative tasks. Comprehensive course and unit management tools allow institutions to maintain their academic structure accurately. Department organization features provide higher-level management of institutional hierarchy. Attendance records can be exported in CSV or Excel format for reporting and record-keeping, and the system includes basic analytics and reporting functions to track attendance trends and patterns.
+   The system supported bulk student import and export via CSV files to simplify administrative tasks. Comprehensive course and unit management tools allowed institutions to maintain their academic structure accurately. Department organization features provided higher-level management of institutional hierarchy. Attendance records could be exported in CSV or Excel format for reporting and record-keeping, and the system included basic analytics and reporting functions to track attendance trends and patterns.
 
 5. User Experience
-   Responsive design ensures optimal display and functionality on both mobile and desktop devices. Light and dark theme support accommodates user preferences and reduces eye strain in different lighting conditions. Offline access to previously loaded data allows users to review information even without internet connectivity. Basic caching mechanisms enhance performance by reducing load times for frequently accessed content.
+   Responsive design ensured optimal display and functionality on both mobile and desktop devices. Light and dark theme support accommodated user preferences and reduced eye strain in different lighting conditions. Offline access to previously loaded data allowed users to review information even without internet connectivity. Basic caching mechanisms enhanced performance by reducing load times for frequently accessed content.
 
 Non-Functional Requirements:
 
 1. Security
-   The system prioritizes security through secure authentication with JWT technology to protect user sessions and access. Device fingerprinting validation adds an additional layer of identity verification to prevent unauthorized access. Role-based access control ensures users can only access functions appropriate to their position. Input validation and sanitization protect against injection attacks and malformed data. API rate limiting prevents abuse through excessive requests that could degrade system performance.
+   The system prioritized security through secure authentication with JWT technology to protect user sessions and access. Device fingerprinting validation added an additional layer of identity verification to prevent unauthorized access. Role-based access control ensured users could only access functions appropriate to their position. Input validation and sanitization protected against injection attacks and malformed data. API rate limiting prevented abuse through excessive requests that could degrade system performance.
 
 2. Performance
-   Database queries are optimized through appropriate indexing and query structure to ensure rapid response times even with large datasets. Client-side caching of frequently accessed data reduces server load and improves user experience. Offline functionality through localStorage enables basic system use during connectivity interruptions. Automatic data refresh mechanisms ensure users always see current information without manual intervention.
+   Database queries were optimized through appropriate indexing and query structure to ensure rapid response times even with large datasets. Client-side caching of frequently accessed data reduced server load and improved user experience. Offline functionality through localStorage enabled basic system use during connectivity interruptions. Automatic data refresh mechanisms ensured users always saw current information without manual intervention.
 
 3. Usability
-   The system implements a responsive mobile-first design approach to ensure optimal display and functionality across all device types and screen sizes. The intuitive user interface built with Ant Design components provides familiar interaction patterns and clear visual hierarchy. Theme customization with light and dark modes accommodates user preferences and different viewing environments. Cross-browser compatibility ensures consistent functionality in Chrome, Safari, Firefox, and other modern browsers.
+   The system implemented a responsive mobile-first design approach to ensure optimal display and functionality across all device types and screen sizes. The intuitive user interface built with Ant Design components provided familiar interaction patterns and clear visual hierarchy. Theme customization with light and dark modes accommodated user preferences and different viewing environments. Cross-browser compatibility ensured consistent functionality in Chrome, Safari, Firefox, and other modern browsers.
 
 4. Reliability
-   Comprehensive error handling provides clear feedback to users when problems occur. Automatic session cleanup prevents resource leakage and ensures system stability. Token refresh mechanisms maintain user sessions without requiring frequent re-authentication. Data validation at both client and server levels prevents corruption of the database and ensures information integrity throughout the system.
+   Comprehensive error handling provided clear feedback to users when problems occurred. Automatic session cleanup prevented resource leakage and ensured system stability. Token refresh mechanisms maintained user sessions without requiring frequent re-authentication. Data validation at both client and server levels prevented corruption of the database and ensured information integrity throughout the system.
 
 5. Scalability
-   The modular architecture allows components to be updated or replaced without affecting the entire system. Separation of frontend and backend enables independent scaling based on different resource requirements. Cloud deployment readiness ensures the system can expand to accommodate growing user bases. The API-based architecture provides a foundation for future extensibility and integration with other systems.
+   The modular architecture allowed components to be updated or replaced without affecting the entire system. Separation of frontend and backend enabled independent scaling based on different resource requirements. Cloud deployment readiness ensured the system could expand to accommodate growing user bases. The API-based architecture provided a foundation for future extensibility and integration with other systems.
 
 6. Maintainability
-   Component-based frontend design simplifies updates and feature additions by isolating functionality into manageable units. The MVC pattern in the backend creates clear separation of concerns for easier debugging and enhancement. Central configuration management simplifies deployment across different environments. Environment variable management allows configuration changes without code modifications.
+   Component-based frontend design simplified updates and feature additions by isolating functionality into manageable units. The MVC pattern in the backend created clear separation of concerns for easier debugging and enhancement. Central configuration management simplified deployment across different environments. Environment variable management allowed configuration changes without code modifications.
 
 Context Level Diagram
-The context level diagram provides a high-level overview of the QRollCall Smart Attendance System, illustrating how external actors interact with the system and the flow of information between them based on the actual implementation. The system interfaces with Students, Lecturers, Administrators, and external systems like MongoDB Atlas and file storage.
+The context level diagram provided a high-level overview of the QRollCall Smart Attendance System, illustrating how external actors interacted with the system and the flow of information between them based on the actual implementation. The system interfaced with Students, Lecturers, Administrators, and external systems like MongoDB Atlas and file storage.
 
-Students interact with the system through JWT authentication, QR code scanning with device fingerprinting validation, attendance history viewing, and feedback submission. As implemented in the student dashboards and API controllers, the system validates attendance with composite fingerprinting and IP checks, provides real-time session status through polling mechanisms, and prompts for session feedback when appropriate.
+Students interacted with the system through JWT authentication, QR code scanning with device fingerprinting validation, attendance history viewing, and feedback submission. As implemented in the student dashboards and API controllers, the system validated attendance with composite fingerprinting and IP checks, provided real-time session status through polling mechanisms, and prompted for session feedback when appropriate.
 
-Lecturers use the system to create and manage attendance sessions, generating QR codes that automatically refresh every 3 minutes as implemented in the session controller. They monitor attendance data through real-time updates using polling mechanisms (not WebSockets) and can export attendance reports in Excel format. The system provides unit-specific analytics visualized with Chart.js components.
+Lecturers used the system to create and manage attendance sessions, generating QR codes that automatically refreshed every 3 minutes as implemented in the session controller. They monitored attendance data through real-time updates using polling mechanisms (not WebSockets) and could export attendance reports in Excel format. The system provided unit-specific analytics visualized with Chart.js components.
 
-Administrators manage users, courses, and departments through comprehensive management interfaces. They access system-wide analytics and can generate various reports through the export functionality implemented in the attendance controller.
+Administrators managed users, courses, and departments through comprehensive management interfaces. They accessed system-wide analytics and could generate various reports through the export functionality implemented in the attendance controller.
 
-The system interacts with MongoDB Atlas using Mongoose ODM for all data operations and uses file storage for QR code images and attendance export generation. All authentication is handled through JWT tokens with appropriate expiration and refresh mechanisms.
+The system interacted with MongoDB Atlas using Mongoose ODM for all data operations and used file storage for QR code images and attendance export generation. All authentication was handled through JWT tokens with appropriate expiration and refresh mechanisms.
 
 ```mermaid
 graph TD
@@ -129,7 +129,7 @@ graph TD
 ```
 
 Internal Data Flow Diagram
-This diagram illustrates the actual internal data flows between components as implemented in the system's codebase. It shows the specific services, data pathways, and security mechanisms that were implemented in the production system:
+This diagram illustrated the actual internal data flows between components as implemented in the system's codebase. It showed the specific services, data pathways, and security mechanisms that were implemented in the production system:
 
 ```mermaid
 flowchart TB
@@ -209,18 +209,18 @@ flowchart TB
 
 Input Design (User Interfaces)
 
-The QRollCall system's user interfaces were designed with a focus on usability, responsiveness, and consistent design language across the application. The UI implementation leverages Ant Design components with custom theming for visual consistency, enhanced with CSS-in-JS styling via Emotion and Styled Components for component-specific styling needs.
+The QRollCall system's user interfaces were designed with a focus on usability, responsiveness, and consistent design language across the application. The UI implementation leveraged Ant Design components with custom theming for visual consistency, enhanced with CSS-in-JS styling via Emotion and Styled Components for component-specific styling needs.
 
 1. Authentication Interfaces
 
 Login Interface:
 - Implemented as a card-based form with email and password inputs
-- Features role-specific login with secure password input field
-- Provides real-time validation feedback and error handling
-- Includes "Remember me" functionality with localStorage persistence
-- Offers password reset and signup navigation links
-- Adapts responsively to screen sizes with optimized layouts for mobile devices
-- Implements network status detection with offline mode alerts
+- Featured role-specific login with secure password input field
+- Provided real-time validation feedback and error handling
+- Included "Remember me" functionality with localStorage persistence
+- Offered password reset and signup navigation links
+- Adapted responsively to screen sizes with optimized layouts for mobile devices
+- Implemented network status detection with offline mode alerts
 
 ```jsx
 // Authentication form implementation example
@@ -286,29 +286,29 @@ Login Interface:
 
 Password Reset Interface:
 - Implemented as a two-step process (request and reset)
-- Features email validation with real-time feedback
-- Provides secure token-based reset link generation
-- Includes password strength indicator with visual feedback
-- Implements comprehensive validation for password security requirements
-- Offers clear success/error messaging with redirect functionality
+- Featured email validation with real-time feedback
+- Provided secure token-based reset link generation
+- Included password strength indicator with visual feedback
+- Implemented comprehensive validation for password security requirements
+- Offered clear success/error messaging with redirect functionality
 
 Signup Interface:
-- Features role selection with appropriate field sets for each role
-- Implements comprehensive form validation with real-time feedback
-- Provides password strength visualization with multi-factor criteria
-- Adapts field visibility based on selected role (student/lecturer/admin)
-- Includes terms of service agreement checkbox
-- Features responsive design that adapts to mobile screens
+- Featured role selection with appropriate field sets for each role
+- Implemented comprehensive form validation with real-time feedback
+- Provided password strength visualization with multi-factor criteria
+- Adapted field visibility based on selected role (student/lecturer/admin)
+- Included terms of service agreement checkbox
+- Featured responsive design that adapted to mobile screens
 
 2. Student Interfaces
 
 Dashboard Interface:
 - Implemented as a card-based grid with unit enrollment information
-- Features attendance statistics with visual indicators (progress circles)
-- Provides color-coded attendance status indicators (green/yellow/red)
-- Includes quick-access QR scanning button with prominent placement
-- Implements dark/light theme support with context-based styling
-- Features responsive grid layout that adapts from 1-4 columns based on screen width
+- Featured attendance statistics with visual indicators (progress circles)
+- Provided color-coded attendance status indicators (green/yellow/red)
+- Included quick-access QR scanning button with prominent placement
+- Implemented dark/light theme support with context-based styling
+- Featured responsive grid layout that adapted from 1-4 columns based on screen width
 
 ```jsx
 // Student dashboard card implementation example
@@ -360,39 +360,39 @@ Dashboard Interface:
 
 QR Scanner Interface:
 - Implemented with device camera access and permission handling
-- Features visual scanning guide overlay for positioning assistance
-- Provides real-time feedback during scanning process
-- Implements responsive design that works across device orientations
-- Includes error handling for various camera/permission scenarios
-- Features loading states during QR processing
-- Provides clear success/failure messages with specific error details
+- Featured visual scanning guide overlay for positioning assistance
+- Provided real-time feedback during scanning process
+- Implemented responsive design that worked across device orientations
+- Included error handling for various camera/permission scenarios
+- Featured loading states during QR processing
+- Provided clear success/failure messages with specific error details
 
 Attendance History Interface:
 - Implemented as a filterable, sortable table with session information
-- Features date range filters for historical queries
-- Includes status indicators for attended/missed sessions
-- Implements pagination for efficient data loading
-- Provides export options for personal attendance records
-- Adapts to screen size with responsive column hiding/reordering
+- Featured date range filters for historical queries
+- Included status indicators for attended/missed sessions
+- Implemented pagination for efficient data loading
+- Provided export options for personal attendance records
+- Adapted to screen size with responsive column hiding/reordering
 
 Profile Management Interface:
-- Features personal information display with editable fields
-- Implements form validation for profile updates
-- Provides visual avatar/initials generation based on user name
-- Includes course/department information display
-- Features password change functionality with validation
-- Implements theme preference controls
+- Featured personal information display with editable fields
+- Implemented form validation for profile updates
+- Provided visual avatar/initials generation based on user name
+- Included course/department information display
+- Featured password change functionality with validation
+- Implemented theme preference controls
 
 3. Lecturer Interfaces
 
 Session Management Interface:
-- Features unit selection dropdown for session creation
-- Implements session duration controls with default values
-- Provides QR code display with auto-refresh countdown timer
-- Includes real-time attendance tracking table with student information
-- Features search and filter capabilities for student list
-- Implements session control buttons (end session, mark absentees)
-- Provides session statistics summary (present, absent, total)
+- Featured unit selection dropdown for session creation
+- Implemented session duration controls with default values
+- Provided QR code display with auto-refresh countdown timer
+- Included real-time attendance tracking table with student information
+- Featured search and filter capabilities for student list
+- Implemented session control buttons (end session, mark absentees)
+- Provided session statistics summary (present, absent, total)
 
 ```jsx
 // QR code display with refresh timer implementation example
@@ -454,29 +454,29 @@ Session Management Interface:
 
 Unit Management Interface:
 - Implemented as tabbed interface with unit information and enrolled students
-- Features student enrollment management with add/remove capabilities
-- Provides unit statistics with attendance performance metrics
-- Includes batch operations for student management
-- Implements search and filter functionality for student lists
-- Features export options for unit-based reports
+- Featured student enrollment management with add/remove capabilities
+- Provided unit statistics with attendance performance metrics
+- Included batch operations for student management
+- Implemented search and filter functionality for student lists
+- Featured export options for unit-based reports
 
 Analytics Dashboard Interface:
 - Implemented with interactive charts using Chart.js/Recharts
-- Features multiple visualization types (bar, line, pie charts)
-- Provides filtering capabilities by date range, unit, and student cohorts
-- Includes data export options for various report formats
-- Implements chart customization options with legend toggling
-- Features responsive design that adapts chart layouts to screen size
+- Featured multiple visualization types (bar, line, pie charts)
+- Provided filtering capabilities by date range, unit, and student cohorts
+- Included data export options for various report formats
+- Implemented chart customization options with legend toggling
+- Featured responsive design that adapted chart layouts to screen size
 
 4. Admin Interfaces
 
 User Management Interface:
 - Implemented as a comprehensive CRUD interface for user accounts
-- Features batch operations with CSV import/export functionality
-- Provides role-based filtering and search capabilities
-- Includes detailed user information with edit/delete actions
-- Implements form validation for user creation and editing
-- Features pagination for large user datasets
+- Featured batch operations with CSV import/export functionality
+- Provided role-based filtering and search capabilities
+- Included detailed user information with edit/delete actions
+- Implemented form validation for user creation and editing
+- Featured pagination for large user datasets
 
 ```jsx
 // Admin user management table implementation example
@@ -552,25 +552,25 @@ User Management Interface:
 ```
 
 Course/Department Management Interface:
-- Features hierarchical organization of departments, courses, and units
-- Implements drag-and-drop functionality for organizational changes
-- Provides nested data display with expandable rows
-- Includes creation and editing forms with validation
-- Features search and filter capabilities
-- Implements batch operations for efficient management
+- Featured hierarchical organization of departments, courses, and units
+- Implemented drag-and-drop functionality for organizational changes
+- Provided nested data display with expandable rows
+- Included creation and editing forms with validation
+- Featured search and filter capabilities
+- Implemented batch operations for efficient management
 
 System Feedback Interface:
 - Implemented as a central system feedback collection form
-- Features category selection with priority indicators
-- Provides rich text input for detailed feedback
-- Includes screenshot upload capability
-- Implements sentiment analysis for feedback categorization
-- Features administrator response mechanism
+- Featured category selection with priority indicators
+- Provided rich text input for detailed feedback
+- Included screenshot upload capability
+- Implemented sentiment analysis for feedback categorization
+- Featured administrator response mechanism
 
 5. Common UI Components
 
 Navigation Components:
-- Responsive side menu that collapses to icon-only on small screens
+- Responsive side menu that collapsed to icon-only on small screens
 - Top header bar with user profile menu and theme toggle
 - Breadcrumb navigation for location awareness
 - Back buttons for multi-step processes
@@ -593,7 +593,7 @@ Layout Components:
 - Tab interfaces for content organization
 - Collapsible panels for space-efficient information display
 
-Each interface component was designed with accessibility in mind, implementing proper ARIA attributes, keyboard navigation support, and focus management. The system maintains consistent styling through a centralized theme context that provides color variables and styling functions to all components, enabling seamless theme switching between light and dark modes.
+Each interface component was designed with accessibility in mind, implementing proper ARIA attributes, keyboard navigation support, and focus management. The system maintained consistent styling through a centralized theme context that provided color variables and styling functions to all components, enabling seamless theme switching between light and dark modes.
 
 Process Design
 
@@ -938,19 +938,19 @@ Database Design
 Normalization Analysis:
 
 1. First Normal Form (1NF)
-   - All implemented tables have primary keys (_id using MongoDB ObjectId)
-   - Each column contains atomic values (no arrays except for reference collections)
+   - All implemented tables had primary keys (_id using MongoDB ObjectId)
+   - Each column contained atomic values (no arrays except for reference collections)
    - No repeating groups within data fields
 
 2. Second Normal Form (2NF)
-   - Meets 1NF requirements
-   - No partial dependencies exist in implemented schemas
-   - Non-key attributes depend on the entire primary key
+   - Met 1NF requirements
+   - No partial dependencies existed in implemented schemas
+   - Non-key attributes depended on the entire primary key
 
 3. Third Normal Form (3NF)
-   - Meets 2NF requirements
+   - Met 2NF requirements
    - No transitive dependencies in implemented schema design
-   - Each non-key attribute directly depends on the primary key
+   - Each non-key attribute directly depended on the primary key
 
 Entity Relationship Diagram:
 
@@ -1084,10 +1084,10 @@ erDiagram
 
 Output Design (Report Specifications)
 
-The system generates various reports to provide insights into attendance data. Each report has been carefully designed to address specific user needs:
+The system generated various reports to provide insights into attendance data. Each report was carefully designed to address specific user needs:
 
 1. Unit Attendance Report
-   - **Purpose**: Summarize attendance for a specific course unit
+   - **Purpose**: Summarized attendance for a specific course unit
    - **Format**: Excel (.xlsx) and CSV
    - **Target Users**: Lecturers, Administrators
    - **Content Structure**:
@@ -1099,7 +1099,7 @@ The system generates various reports to provide insights into attendance data. E
    - **Visual Elements**: Color-coding for attendance rates (>80% green, 60-80% yellow, <60% red)
 
 2. Session Detailed Report
-   - **Purpose**: Provide attendance details for a specific session
+   - **Purpose**: Provided attendance details for a specific session
    - **Format**: Excel (.xlsx) and CSV
    - **Target Users**: Lecturers
    - **Content Structure**:
@@ -1111,7 +1111,7 @@ The system generates various reports to provide insights into attendance data. E
    - **Visual Elements**: Icons for attendance status, Timestamp formatting
 
 3. Student Attendance Summary
-   - **Purpose**: Show individual student attendance across all units
+   - **Purpose**: Showed individual student attendance across all units
    - **Format**: PDF, Excel (.xlsx)
    - **Target Users**: Students, Administrators
    - **Content Structure**:
@@ -1122,7 +1122,7 @@ The system generates various reports to provide insights into attendance data. E
    - **Visual Elements**: Progress bars for attendance rates, Trend graphs showing attendance patterns
 
 4. Departmental Analytics Report
-   - **Purpose**: Provide high-level attendance analytics for departments
+   - **Purpose**: Provided high-level attendance analytics for departments
    - **Format**: PDF with embedded charts, Excel (.xlsx) with pivot tables
    - **Target Users**: Administrators, Department Heads
    - **Content Structure**:
@@ -1137,7 +1137,7 @@ The system generates various reports to provide insights into attendance data. E
      - Pivot tables for interactive analysis in Excel format
 
 5. Feedback Summary Report
-   - **Purpose**: Summarize student feedback for sessions
+   - **Purpose**: Summarized student feedback for sessions
    - **Format**: PDF, Excel (.xlsx)
    - **Target Users**: Lecturers, Administrators
    - **Content Structure**:
@@ -1155,15 +1155,15 @@ The system generates various reports to provide insights into attendance data. E
      - Word clouds for comment analysis (in PDF version only)
 
 Report Generation Process:
-1. Data is aggregated from relevant collections based on query parameters
-2. Calculated fields (attendance rates, averages, etc.) are computed server-side
-3. Data is formatted according to report specifications
-4. Excel reports utilize templating with cell styling and conditional formatting
-5. PDF reports include header/footer with institutional branding
-6. All exports are validated for data integrity before delivery
-7. Large reports implement pagination and chunked downloads to optimize performance
+1. Data was aggregated from relevant collections based on query parameters
+2. Calculated fields (attendance rates, averages, etc.) were computed server-side
+3. Data was formatted according to report specifications
+4. Excel reports utilized templating with cell styling and conditional formatting
+5. PDF reports included header/footer with institutional branding
+6. All exports were validated for data integrity before delivery
+7. Large reports implemented pagination and chunked downloads to optimize performance
 
-Each report design follows institutional branding guidelines and incorporates accessibility features such as proper table headers, consistent color schemes, and text alternatives for visual elements in digital formats.
+Each report design followed institutional branding guidelines and incorporated accessibility features such as proper table headers, consistent color schemes, and text alternatives for visual elements in digital formats.
 
 CHAPTER 5: 
 SYSTEM TESTING AND IMPLEMENTATION
@@ -1569,7 +1569,7 @@ Collaboration Tools:
 - Google Docs: Shared documentation and planning
 - Google Meet: Virtual meetings and pair programming sessions
 
-The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions. The development approach prioritized modularity, code reusability, and adherence to best practices for maintainability and future expansion.
+The implementation followed the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leveraged Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions. The development approach prioritized modularity, code reusability, and adherence to best practices for maintainability and future expansion.
 
 System Screenshots
 
@@ -1577,101 +1577,101 @@ Home/Landing Page
 ![Home Page](https://i.imgur.com/vNgK6xW.png)
 *Figure 5.1: QRollCall system landing page with feature highlights*
 
-The landing page provides an introduction to the QRollCall system, highlighting its key features and benefits for different user types. The responsive design adapts to both desktop and mobile devices, featuring an intuitive navigation that guides new users to either sign up or log in. The page includes informative sections about the system's anti-spoofing measures, real-time monitoring capabilities, and cross-platform support.
+The landing page provided an introduction to the QRollCall system, highlighting its key features and benefits for different user types. The responsive design adapted to both desktop and mobile devices, featuring an intuitive navigation that guided new users to either sign up or log in. The page included informative sections about the system's anti-spoofing measures, real-time monitoring capabilities, and cross-platform support.
 
 Authentication Interface
 ![Login Screen](https://i.imgur.com/vXk3LG7.png)
 *Figure 5.2: Login screen with role selection and secure authentication*
 
-The login screen features JavaScript Object Notation Web Token (JWT)-based authentication with role selection for students, lecturers, and administrators. The responsive design adapts to both mobile and desktop views with a clean, intuitive interface that includes password visibility toggle and validation feedback.
+The login screen featured JavaScript Object Notation Web Token (JWT)-based authentication with role selection for students, lecturers, and administrators. The responsive design adapted to both mobile and desktop views with a clean, intuitive interface that included password visibility toggle and validation feedback.
 
 Password Reset Interface
 ![Password Reset](https://i.imgur.com/dFrj5X8.png)
 *Figure 5.3: Password reset request page with email validation*
 
-The password reset workflow provides a secure mechanism for users to regain access to their accounts through a validated email link. The system implements strict validation checks and provides clear feedback on request status, with token-based secure reset links that expire after 24 hours.
+The password reset workflow provided a secure mechanism for users to regain access to their accounts through a validated email link. The system implemented strict validation checks and provided clear feedback on request status, with token-based secure reset links that expired after 24 hours.
 
 Student Dashboard
 ![Student Dashboard](https://i.imgur.com/J7ML4pP.png)
 *Figure 5.4: Student Dashboard with unit cards and attendance statistics*
 
-The student dashboard provides a comprehensive overview of enrolled units with color-coded attendance metrics, real-time active session indicators, and quick access to Quick Response (QR) scanning. The interface incorporates Ant Design components with a custom theme system supporting both light and dark modes.
+The student dashboard provided a comprehensive overview of enrolled units with color-coded attendance metrics, real-time active session indicators, and quick access to Quick Response (QR) scanning. The interface incorporated Ant Design components with a custom theme system supporting both light and dark modes.
 
 Quick Response (QR) Code Scanning Interface
 ![QR Scanner](https://i.imgur.com/RTd9hgX.png)
 *Figure 5.5: Quick Response (QR) code scanner with overlay and real-time feedback*
 
-The Quick Response (QR) scanning interface utilizes device camera access with a guided overlay to assist positioning. The scanner includes real-time validation feedback and device fingerprinting to prevent proxy attendance, with clear success/error states to guide users.
+The Quick Response (QR) scanning interface utilized device camera access with a guided overlay to assist positioning. The scanner included real-time validation feedback and device fingerprinting to prevent proxy attendance, with clear success/error states to guide users.
 
 Lecturer Session Management
 ![Session Management](https://i.imgur.com/8GhQZbf.png)
 *Figure 5.6: Lecturer's session management with Quick Response (QR) code generation*
 
-Lecturers can create and manage attendance sessions with automatic Quick Response (QR) code generation that refreshes every 3 minutes. The interface displays real-time attendance counts, student status updates, and session timers with options to end sessions and mark absentees.
+Lecturers could create and manage attendance sessions with automatic Quick Response (QR) code generation that refreshed every 3 minutes. The interface displayed real-time attendance counts, student status updates, and session timers with options to end sessions and mark absentees.
 
 Unit Management Interface
 ![Unit Management](https://i.imgur.com/kP8HgN2.png)
 *Figure 5.7: Unit management interface with enrolled students list*
 
-The unit management interface allows lecturers and administrators to configure units, associate them with courses, and manage enrolled students. The responsive design provides filtering options, bulk actions, and detailed unit information, all accessible through an intuitive tabbed interface.
+The unit management interface allowed lecturers and administrators to configure units, associate them with courses, and manage enrolled students. The responsive design provided filtering options, bulk actions, and detailed unit information, all accessible through an intuitive tabbed interface.
 
 Attendance Analytics
 ![Analytics Dashboard](https://i.imgur.com/wP6JcP4.png)
 *Figure 5.8: Attendance analytics with interactive charts*
 
-The analytics interface provides interactive charts and visualizations for attendance trends across different time periods. Lecturers and administrators can filter data by date range, unit, or student status to gain insights into attendance patterns.
+The analytics interface provided interactive charts and visualizations for attendance trends across different time periods. Lecturers and administrators could filter data by date range, unit, or student status to gain insights into attendance patterns.
 
 Administration Interface
 ![Admin Dashboard](https://i.imgur.com/kLDJ9mH.png)
 *Figure 5.9: Administrator dashboard for system management*
 
-The administration dashboard offers comprehensive user, course, and department management with bulk import/export capabilities. The interface includes search functionality, filtering, and detailed analytics for institution-wide attendance monitoring.
+The administration dashboard offered comprehensive user, course, and department management with bulk import/export capabilities. The interface included search functionality, filtering, and detailed analytics for institution-wide attendance monitoring.
 
 User Management Interface
 ![User Management](https://i.imgur.com/qLhBdRe.png)
 *Figure 5.10: User management interface with bulk operations*
 
-Administrators can manage all system users through this interface, which provides capabilities for adding, editing, and removing users across all roles. The interface supports CSV import/export for bulk operations, role assignment, and detailed user information management with appropriate validation.
+Administrators could manage all system users through this interface, which provided capabilities for adding, editing, and removing users across all roles. The interface supported CSV import/export for bulk operations, role assignment, and detailed user information management with appropriate validation.
 
 Feedback System
 ![Feedback Interface](https://i.imgur.com/RzW2Lpd.png)
 *Figure 5.11: Student feedback submission form*
 
-The feedback system enables students to provide ratings and comments after attended sessions, with options for anonymous submissions. Collected feedback is visualized for lecturers through analytical reports and sentiment analysis.
+The feedback system enabled students to provide ratings and comments after attended sessions, with options for anonymous submissions. Collected feedback was visualized for lecturers through analytical reports and sentiment analysis.
 
 Mobile Responsiveness
 ![Mobile View](https://i.imgur.com/Nq3C2UK.png)
 *Figure 5.12: Mobile responsive design of the Quick Response (QR) scanner*
 
-The system's Progressive Web Application (PWA) capabilities ensure full functionality across devices, with responsive layouts that adapt to different screen sizes. The mobile interface maintains usability while preserving essential features.
+The system's Progressive Web Application (PWA) capabilities ensured full functionality across devices, with responsive layouts that adapted to different screen sizes. The mobile interface maintained usability while preserving essential features.
 
 System Settings and Theme Customization
 ![System Settings](https://i.imgur.com/3RKbNjh.png)
 *Figure 5.13: System settings with theme customization options*
 
-Users can personalize their experience through the settings interface, which provides options for theme customization (light/dark mode), notification preferences, and account management. The settings are synchronized across devices through the user profile stored in the database.
+Users could personalize their experience through the settings interface, which provided options for theme customization (light/dark mode), notification preferences, and account management. The settings were synchronized across devices through the user profile stored in the database.
 
 Offline Mode Interface
 ![Offline Mode](https://i.imgur.com/PjrCSvV.png)
 *Figure 5.14: System interface in offline mode with cached data*
 
-When network connectivity is lost, the system automatically transitions to offline mode, displaying cached data and providing clear visual indicators of limited functionality. Users can still view previously loaded attendance records, unit information, and other cached content until connectivity is restored.
+When network connectivity was lost, the system automatically transitioned to offline mode, displaying cached data and providing clear visual indicators of limited functionality. Users could still view previously loaded attendance records, unit information, and other cached content until connectivity was restored.
 
 CONCLUSION
 
-The implementation and testing phase of the Quick Response Code (QR Code)-based Smart Attendance System demonstrated successful realization of the project's core objectives. The system effectively addresses the challenges identified in traditional and existing digital attendance systems through several key innovations:
+The implementation and testing phase of the Quick Response Code (QR Code)-based Smart Attendance System demonstrated successful realization of the project's core objectives. The system effectively addressed the challenges identified in traditional and existing digital attendance systems through several key innovations:
 
-Anti-Spoofing Security: The implemented device fingerprinting and Quick Response (QR) code rotation mechanisms proved highly effective in preventing proxy attendance, with testing confirming the system's ability to detect and reject unauthorized attendance attempts. The 3-minute Quick Response (QR) code expiration and composite fingerprint validation created a robust security layer that significantly improves attendance authenticity.
+Anti-Spoofing Security: The implemented device fingerprinting and Quick Response (QR) code rotation mechanisms proved highly effective in preventing proxy attendance, with testing confirming the system's ability to detect and reject unauthorized attendance attempts. The 3-minute Quick Response (QR) code expiration and composite fingerprint validation created a robust security layer that significantly improved attendance authenticity.
 
-Real-time Processing: Performance testing revealed acceptable response times across all core functionalities, with Quick Response (QR) code generation averaging 320ms and attendance marking completing in under 600ms. These metrics ensure the system remains fluid and responsive even during peak usage periods with multiple concurrent users.
+Real-time Processing: Performance testing revealed acceptable response times across all core functionalities, with Quick Response (QR) code generation averaging 320ms and attendance marking completing in under 600ms. These metrics ensured the system remained fluid and responsive even during peak usage periods with multiple concurrent users.
 
 Cross-platform Accessibility: The Progressive Web Application (PWA) implementation successfully delivered a consistent experience across various devices and browsers, with offline capabilities functioning as designed. Testing confirmed proper functionality on both Android and iOS devices using Chrome, Safari, and Firefox browsers, ensuring broad accessibility without requiring native app installation.
 
-User Experience Optimization: User acceptance testing with actual lecturers and students confirmed the system's intuitive interface design and workflow. The responsive layouts adapt appropriately to different screen sizes, and the implementation of dark/light theme options provides visual comfort across different environments and preferences.
+User Experience Optimization: User acceptance testing with actual lecturers and students confirmed the system's intuitive interface design and workflow. The responsive layouts adapted appropriately to different screen sizes, and the implementation of dark/light theme options provided visual comfort across different environments and preferences.
 
 Data Management Efficiency: Database performance testing validated the system's ability to handle large datasets efficiently, with optimized queries leveraging appropriate indexes. The MongoDB architecture demonstrated scalability potential while maintaining sub-200ms response times for common operations.
 
-The deployment configuration utilizing Vercel for frontend hosting, Render.com for backend services, and MongoDB Atlas for database storage provides a cost-effective yet scalable infrastructure that meets the project's requirements. This cloud-based approach ensures accessibility, reliability, and maintainability without significant infrastructure investment.
+The deployment configuration utilizing Vercel for frontend hosting, Render.com for backend services, and MongoDB Atlas for database storage provided a cost-effective yet scalable infrastructure that met the project's requirements. This cloud-based approach ensured accessibility, reliability, and maintainability without significant infrastructure investment.
 
 While the testing phase identified approximately 25 issues requiring resolution before full deployment, these were primarily minor User Interface (UI) inconsistencies and edge-case handling rather than fundamental architectural or security concerns. All critical functionality was successfully implemented and validated through comprehensive testing.
 
@@ -1684,23 +1684,23 @@ CONCLUSION AND RECOMMENDATIONS
 
 This chapter presents the culmination of the Quick Response Code (QR Code)-based Smart Attendance System project, summarizing the key outcomes, reflecting on challenges overcome, and providing recommendations for future enhancements. The development of this system addressed critical needs in academic attendance management through innovative technology integration. By implementing a Progressive Web Application (PWA) with Quick Response (QR) code scanning capabilities, device fingerprinting for enhanced security, and real-time attendance tracking, the project has successfully modernized traditional attendance processes.
 
-The chapter will evaluate how effectively the system has met its original objectives, identify the limitations encountered during development and implementation, and propose strategic recommendations for continued improvement and expansion. Additionally, it outlines potential future work to extend the system's capabilities, references that guided the development process, and appendices containing technical documentation and supplementary materials.
+The chapter evaluates how effectively the system has met its original objectives, identifies the limitations encountered during development and implementation, and proposes strategic recommendations for continued improvement and expansion. Additionally, it outlines potential future work to extend the system's capabilities, references that guided the development process, and appendices containing technical documentation and supplementary materials.
 
 6.2 Conclusion
 
 The Quick Response Code (QR Code)-based Smart Attendance System has successfully achieved its primary objectives of creating a secure, efficient, and user-friendly attendance tracking solution for academic institutions. The project outcomes can be evaluated against the initial objectives as follows:
 
-Automation of Attendance Processes: The system has successfully eliminated manual attendance marking by implementing Quick Response (QR) code scanning technology, reducing the time spent on administrative tasks by approximately 80% in test environments. This automation has significantly improved efficiency for both lecturers and administrators while providing real-time attendance visibility.
+Automation of Attendance Processes: The system successfully eliminated manual attendance marking by implementing Quick Response (QR) code scanning technology, reducing the time spent on administrative tasks by approximately 80% in test environments. This automation significantly improved efficiency for both lecturers and administrators while providing real-time attendance visibility.
 
-Prevention of Proxy Attendance: The implementation of advanced anti-spoofing measures, including 3-minute Quick Response (QR) code expiration, device fingerprinting, and composite verification techniques, has proven highly effective in preventing unauthorized attendance marking. Testing demonstrated a 95% success rate in detecting proxy attempts, significantly enhancing attendance accountability.
+Prevention of Proxy Attendance: The implementation of advanced anti-spoofing measures, including 3-minute Quick Response (QR) code expiration, device fingerprinting, and composite verification techniques, proved highly effective in preventing unauthorized attendance marking. Testing demonstrated a 95% success rate in detecting proxy attempts, significantly enhancing attendance accountability.
 
-Real-time Attendance Monitoring: The system provides immediate attendance updates to lecturers through polling mechanisms, allowing them to monitor student presence with regular refresh intervals. This near real-time capability enables better classroom management and timely intervention for attendance issues.
+Real-time Attendance Monitoring: The system provided immediate attendance updates to lecturers through polling mechanisms, allowing them to monitor student presence with regular refresh intervals. This near real-time capability enabled better classroom management and timely intervention for attendance issues.
 
-Comprehensive Reporting: The analytics dashboard successfully delivers visual representations of attendance patterns across units, courses, and departments, with exportable reports that support administrative decision-making and compliance with academic requirements.
+Comprehensive Reporting: The analytics dashboard successfully delivered visual representations of attendance patterns across units, courses, and departments, with exportable reports that support administrative decision-making and compliance with academic requirements.
 
-Cross-platform Accessibility: As a Progressive Web Application (PWA), the system functions seamlessly across various devices and operating systems, eliminating the need for native applications while maintaining full functionality on both mobile and desktop platforms.
+Cross-platform Accessibility: As a Progressive Web Application (PWA), the system functioned seamlessly across various devices and operating systems, eliminating the need for native applications while maintaining full functionality on both mobile and desktop platforms.
 
-Student Engagement: The feedback mechanism has successfully gathered valuable insights from students following attended sessions, creating a communication channel that promotes continuous improvement in teaching methods and course delivery.
+Student Engagement: The feedback mechanism successfully gathered valuable insights from students following attended sessions, creating a communication channel that promotes continuous improvement in teaching methods and course delivery.
 
 The development process revealed several key insights:
 
