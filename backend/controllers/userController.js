@@ -820,7 +820,7 @@ const sendResetLink = async (req, res) => {
 
     // Email Template
     const mailOptions = {
-      from: `"Smart QR Code Attendance System" <${process.env.SMTP_USER}>`,
+      from: `"Smart QR Code based Student Attendance System" <${process.env.SMTP_USER}>`,
       to: user.email,
       subject: "Password Reset Request",
       html: `
@@ -831,7 +831,7 @@ const sendResetLink = async (req, res) => {
               <img src="cid:logo" alt="QRollCall Logo" 
                 style="width: 80px; height: 80px; border-radius: 10px; border: 3px solid #6C63FF; padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: white;" />
             </div>
-            <h2 style="color: #6C63FF; margin: 10px 0;">Smart QR Code Attendance System</h2>
+            <h2 style="color: #6C63FF; margin: 10px 0;">Smart QR Code based Student Attendance System</h2>
           </div>
     
           <!-- Main Content -->
@@ -871,7 +871,7 @@ const sendResetLink = async (req, res) => {
             <!-- Thank You & Auto-Reply Notice -->
             <div style="margin-top: 30px;">
               <p style="margin: 0 0 15px 0; color: #2d3956; line-height: 1.6;">
-                Thank you for choosing Smart QR Code Attendance System.<br>
+                Thank you for choosing Smart QR Code based Student Attendance System.<br>
                 <strong>Best regards,</strong><br>
                 <span style="color: #6C63FF;">Customer Support Team</span>
               </p>
@@ -887,7 +887,7 @@ const sendResetLink = async (req, res) => {
           <div style="padding: 25px 20px; background-color: #2d3956; color: #ffffff; text-align: center;">
             <div style="margin-bottom: 15px;">
               <a href="https://attendance-system123.vercel.app/" style="color: #ffffff; text-decoration: none; font-weight: 500;">
-                Smart QR Code Attendance System
+                Smart QR Code based Student Attendance System
               </a>
             </div>
             
@@ -898,7 +898,7 @@ const sendResetLink = async (req, res) => {
                 📞 <a href="tel:+254797561978" style="color: #cbd5e1; text-decoration: none;">+254 797 561978</a>
               </p>
               <p style="margin: 15px 0 0; color: #94a3b8;">
-                © ${new Date().getFullYear()} Smart QR Code Attendance System. All rights reserved
+                © ${new Date().getFullYear()} Smart QR Code based Student Attendance System. All rights reserved
               </p>
             </div>
           </div>

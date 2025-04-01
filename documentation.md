@@ -1185,77 +1185,91 @@ Collaboration Tools:
 
 The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions. The development approach prioritized modularity, code reusability, and adherence to best practices for maintainability and future expansion.
 
-System home page or other relevant pages
-
 System Screenshots
+
+Home/Landing Page
+![Home Page](https://i.imgur.com/vNgK6xW.png)
+*Figure 5.1: QRollCall system landing page with feature highlights*
+
+The landing page provides an introduction to the QRollCall system, highlighting its key features and benefits for different user types. The responsive design adapts to both desktop and mobile devices, featuring an intuitive navigation that guides new users to either sign up or log in. The page includes informative sections about the system's anti-spoofing measures, real-time monitoring capabilities, and cross-platform support.
 
 Authentication Interface
 ![Login Screen](https://i.imgur.com/vXk3LG7.png)
-*Figure 5.1: Login screen with role selection and secure authentication*
+*Figure 5.2: Login screen with role selection and secure authentication*
 
 The login screen features JavaScript Object Notation Web Token (JWT)-based authentication with role selection for students, lecturers, and administrators. The responsive design adapts to both mobile and desktop views with a clean, intuitive interface that includes password visibility toggle and validation feedback.
 
+Password Reset Interface
+![Password Reset](https://i.imgur.com/dFrj5X8.png)
+*Figure 5.3: Password reset request page with email validation*
+
+The password reset workflow provides a secure mechanism for users to regain access to their accounts through a validated email link. The system implements strict validation checks and provides clear feedback on request status, with token-based secure reset links that expire after 24 hours.
+
 Student Dashboard
 ![Student Dashboard](https://i.imgur.com/J7ML4pP.png)
-*Figure 5.2: Student Dashboard with unit cards and attendance statistics*
+*Figure 5.4: Student Dashboard with unit cards and attendance statistics*
 
 The student dashboard provides a comprehensive overview of enrolled units with color-coded attendance metrics, real-time active session indicators, and quick access to Quick Response (QR) scanning. The interface incorporates Ant Design components with a custom theme system supporting both light and dark modes.
 
 Quick Response (QR) Code Scanning Interface
 ![QR Scanner](https://i.imgur.com/RTd9hgX.png)
-*Figure 5.3: Quick Response (QR) code scanner with overlay and real-time feedback*
+*Figure 5.5: Quick Response (QR) code scanner with overlay and real-time feedback*
 
 The Quick Response (QR) scanning interface utilizes device camera access with a guided overlay to assist positioning. The scanner includes real-time validation feedback and device fingerprinting to prevent proxy attendance, with clear success/error states to guide users.
 
 Lecturer Session Management
 ![Session Management](https://i.imgur.com/8GhQZbf.png)
-*Figure 5.4: Lecturer's session management with Quick Response (QR) code generation*
+*Figure 5.6: Lecturer's session management with Quick Response (QR) code generation*
 
 Lecturers can create and manage attendance sessions with automatic Quick Response (QR) code generation that refreshes every 3 minutes. The interface displays real-time attendance counts, student status updates, and session timers with options to end sessions and mark absentees.
 
+Unit Management Interface
+![Unit Management](https://i.imgur.com/kP8HgN2.png)
+*Figure 5.7: Unit management interface with enrolled students list*
+
+The unit management interface allows lecturers and administrators to configure units, associate them with courses, and manage enrolled students. The responsive design provides filtering options, bulk actions, and detailed unit information, all accessible through an intuitive tabbed interface.
+
 Attendance Analytics
 ![Analytics Dashboard](https://i.imgur.com/wP6JcP4.png)
-*Figure 5.5: Attendance analytics with interactive charts*
+*Figure 5.8: Attendance analytics with interactive charts*
 
 The analytics interface provides interactive charts and visualizations for attendance trends across different time periods. Lecturers and administrators can filter data by date range, unit, or student status to gain insights into attendance patterns.
 
 Administration Interface
 ![Admin Dashboard](https://i.imgur.com/kLDJ9mH.png)
-*Figure 5.6: Administrator dashboard for system management*
+*Figure 5.9: Administrator dashboard for system management*
 
 The administration dashboard offers comprehensive user, course, and department management with bulk import/export capabilities. The interface includes search functionality, filtering, and detailed analytics for institution-wide attendance monitoring.
 
+User Management Interface
+![User Management](https://i.imgur.com/qLhBdRe.png)
+*Figure 5.10: User management interface with bulk operations*
+
+Administrators can manage all system users through this interface, which provides capabilities for adding, editing, and removing users across all roles. The interface supports CSV import/export for bulk operations, role assignment, and detailed user information management with appropriate validation.
+
 Feedback System
 ![Feedback Interface](https://i.imgur.com/RzW2Lpd.png)
-*Figure 5.7: Student feedback submission form*
+*Figure 5.11: Student feedback submission form*
 
 The feedback system enables students to provide ratings and comments after attended sessions, with options for anonymous submissions. Collected feedback is visualized for lecturers through analytical reports and sentiment analysis.
 
 Mobile Responsiveness
 ![Mobile View](https://i.imgur.com/Nq3C2UK.png)
-*Figure 5.8: Mobile responsive design of the Quick Response (QR) scanner*
+*Figure 5.12: Mobile responsive design of the Quick Response (QR) scanner*
 
 The system's Progressive Web Application (PWA) capabilities ensure full functionality across devices, with responsive layouts that adapt to different screen sizes. The mobile interface maintains usability while preserving essential features.
 
-Chapter Conclusion
+System Settings and Theme Customization
+![System Settings](https://i.imgur.com/3RKbNjh.png)
+*Figure 5.13: System settings with theme customization options*
 
-The implementation and testing phase of the Quick Response Code (QR Code)-based Smart Attendance System demonstrated successful realization of the project's core objectives. The system effectively addresses the challenges identified in traditional and existing digital attendance systems through several key innovations:
+Users can personalize their experience through the settings interface, which provides options for theme customization (light/dark mode), notification preferences, and account management. The settings are synchronized across devices through the user profile stored in the database.
 
-Anti-Spoofing Security: The implemented device fingerprinting and Quick Response (QR) code rotation mechanisms proved highly effective in preventing proxy attendance, with testing confirming the system's ability to detect and reject unauthorized attendance attempts. The 3-minute Quick Response (QR) code expiration and composite fingerprint validation created a robust security layer that significantly improves attendance authenticity.
+Offline Mode Interface
+![Offline Mode](https://i.imgur.com/PjrCSvV.png)
+*Figure 5.14: System interface in offline mode with cached data*
 
-Real-time Processing: Performance testing revealed acceptable response times across all core functionalities, with Quick Response (QR) code generation averaging 320ms and attendance marking completing in under 600ms. These metrics ensure the system remains fluid and responsive even during peak usage periods with multiple concurrent users.
-
-Cross-platform Accessibility: The Progressive Web Application (PWA) implementation successfully delivered a consistent experience across various devices and browsers, with offline capabilities functioning as designed. Testing confirmed proper functionality on both Android and iOS devices using Chrome, Safari, and Firefox browsers, ensuring broad accessibility without requiring native app installation.
-
-User Experience Optimization: User acceptance testing with actual lecturers and students confirmed the system's intuitive interface design and workflow. The responsive layouts adapt appropriately to different screen sizes, and the implementation of dark/light theme options provides visual comfort across different environments and preferences.
-
-Data Management Efficiency: Database performance testing validated the system's ability to handle large datasets efficiently, with optimized queries leveraging appropriate indexes. The MongoDB architecture demonstrated scalability potential while maintaining sub-200ms response times for common operations.
-
-The deployment configuration utilizing Vercel for frontend hosting, Render.com for backend services, and MongoDB Atlas for database storage provides a cost-effective yet scalable infrastructure that meets the project's requirements. This cloud-based approach ensures accessibility, reliability, and maintainability without significant infrastructure investment.
-
-While the testing phase identified approximately 25 issues requiring resolution before full deployment, these were primarily minor User Interface (UI) inconsistencies and edge-case handling rather than fundamental architectural or security concerns. All critical functionality was successfully implemented and validated through comprehensive testing.
-
-The system is now ready for phased deployment, beginning with controlled pilot testing in selected courses before institution-wide implementation. Feedback mechanisms are in place to gather ongoing user insights that will inform future enhancements and optimizations, ensuring the system continues to evolve based on real-world usage patterns and requirements.
+When network connectivity is lost, the system automatically transitions to offline mode, displaying cached data and providing clear visual indicators of limited functionality. Users can still view previously loaded attendance records, unit information, and other cached content until connectivity is restored.
 
 CHAPTER 6: 
 CONCLUSION AND RECOMMENDATIONS
