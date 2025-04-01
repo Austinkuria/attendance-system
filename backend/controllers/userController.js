@@ -542,16 +542,26 @@ const downloadStudents = async (req, res) => {
   }
 };
 
-// Get user profile
+// Get user profile - Update to include enrolled units
 const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId)
       .populate('course', 'name')
-      .populate('department', 'name') // Populate department name
-      .select('firstName lastName email regNo year department semester course role');
+      .populate('department', 'name')
+      .populate({
+        path: 'enrolledUnits',
+        select: 'name code course year semester',
+        populate: {
+          path: 'course',
+          select: 'name'
+        }
+      })
+      .select('firstName lastName email regNo year department semester course role enrolledUnits');
+    
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    
     res.json(user);
   } catch (error) {
     console.error(error);

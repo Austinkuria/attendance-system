@@ -289,7 +289,7 @@ export const loginUser = async (credentials) => {
   }
 };
 
-// get userprofile
+// get userprofile - update to handle enrolledUnits
 export const getUserProfile = async () => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -311,6 +311,11 @@ export const getUserProfile = async () => {
       }
     });
 
+    // Store enrolledUnits in units store for access by other components
+    if (response.data && response.data.enrolledUnits && response.data.enrolledUnits.length > 0) {
+      await storeInIndexedDB('units', 'studentUnits', response.data.enrolledUnits);
+    }
+    
     // Cache the profile data
     await storeInIndexedDB('profile', 'userProfile', response.data);
     return response.data;
