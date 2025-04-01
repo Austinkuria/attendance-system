@@ -493,114 +493,7 @@ flowchart TD
     end
 ```
 
-Entity Relationship Diagram (Actual Implementation):
-```mermaid
-erDiagram
-    User ||--o{ Attendance : "marks"
-    User ||--o{ Feedback : "submits"
-    User ||--o{ Session : "creates"
-    User }|--|| Course : "enrolls"
-    User }|--|| Department : "belongs"
-    User ||--o{ Unit : "teaches"
-    
-    Department ||--|{ Course : "contains"
-    Course ||--|{ Unit : "has"
-    
-    Unit ||--|{ Session : "has"
-    Session ||--|{ Attendance : "tracks"
-    Session ||--|{ Feedback : "receives"
-
-    User {
-        ObjectId _id
-        string role
-        string firstName
-        string lastName
-        string regNo
-        string email
-        string password
-        number year
-        number semester
-        ObjectId department
-        ObjectId course
-        array enrolledUnits
-        array assignedUnits
-        string deviceId
-    }
-
-    Session {
-        ObjectId _id
-        ObjectId unit
-        ObjectId lecturer
-        date startTime
-        date endTime
-        string qrCode
-        string qrToken
-        date qrExpiresAt
-        boolean ended
-        array attendees
-        boolean feedbackEnabled
-        timestamps: true
-    }
-
-    Attendance {
-        ObjectId _id
-        ObjectId session
-        ObjectId student
-        date timestamp
-        string status
-        string deviceId
-        string fingerprint
-        string compositeFingerprint
-        string qrToken
-        date attendedAt
-        string ipAddress
-        boolean feedbackSubmitted
-        string rejectionReason
-        string browserInfo
-    }
-
-    Department {
-        ObjectId _id
-        string name
-        array courses
-    }
-
-    Course {
-        ObjectId _id
-        string name
-        string code
-        ObjectId department
-        array units
-    }
-
-    Unit {
-        ObjectId _id
-        string name
-        string code
-        ObjectId course
-        number year
-        number semester
-        ObjectId lecturer
-        array studentsEnrolled
-    }
-
-    Feedback {
-        ObjectId _id
-        ObjectId sessionId
-        ObjectId studentId
-        ObjectId unit
-        ObjectId course
-        number rating
-        string feedbackText
-        number pace
-        number interactivity
-        boolean clarity
-        string resources
-        boolean anonymous
-    }
-```
-
-6. Database Operations Flow (Actual Implementation):
+6. Database Operations Flow :
 
 ```mermaid
 flowchart LR
@@ -620,6 +513,7 @@ flowchart LR
         Primary[(MongoDB Atlas)]
         Cache[(Browser Cache)]
         LocalStorage[(Local Storage)]
+        IDB[(IndexedDB)]
     end
     
     Create & Update & Delete --> Schema
@@ -632,110 +526,172 @@ flowchart LR
     
     Cache -->|Read| API_Response[API Response]
     Primary -->|Miss| API_Response
+    
+    Attendance[Attendance Records] -->|Store Offline| IDB
+    Units[Course Units] -->|Cache for Offline| IDB
+    
+    LocalStorage & IDB -->|Sync When Online| Primary
+    
+    subgraph Offline_Operations[Offline Handling]
+        Queue[Queue Operations]
+        Merge[Resolve Conflicts]
+        Sync[Background Sync]
+    end
+    
+    API_Response -->|Network Unavailable| Queue
+    Queue --> IDB
+    IDB --> Sync
+    Sync -->|Network Available| Primary
+    Primary --> Merge
 ```
+
 Database Design
+
 Normalization Analysis:
 
 1. First Normal Form (1NF)
-   - All tables have primary keys (_id)
-   - Each column contains atomic values
-   - No repeating groups
-   
+   - All implemented tables have primary keys (_id using MongoDB ObjectId)
+   - Each column contains atomic values (no arrays except for reference collections)
+   - No repeating groups within data fields
+
 2. Second Normal Form (2NF)
-   - Meets 1NF
-   - No partial dependencies
-   - Tables organized by complete functional dependencies
-   
+   - Meets 1NF requirements
+   - No partial dependencies exist in implemented schemas
+   - Non-key attributes depend on the entire primary key
+
 3. Third Normal Form (3NF)
-   - Meets 2NF
-   - No transitive dependencies
-   - Each non-key attribute directly depends on primary key
+   - Meets 2NF requirements
+   - No transitive dependencies in implemented schema design
+   - Each non-key attribute directly depends on the primary key
 
-Collections and Relationships (Implemented MongoDB Schema):
+Entity Relationship Diagram (Actual Implementation):
 
-1. Users Collection
-   ```javascript
-   - _id: ObjectId
-   - role: { type: String, enum: ["student", "lecturer", "admin"], required: true }
-   - firstName: { type: String, required: true }
-   - lastName: { type: String, required: true }
-   - regNo: { type: String, unique: true, sparse: true } // Only for students
-   - email: { type: String, unique: true, required: true }
-   - password: { type: String, required: true }
-   - year: { type: Number, min: 1, max: 4, default: 1, required for students }
-   - semester: { type: Number, min: 1, max: 3, default: 1, required for students }
-   - department: { type: ObjectId, ref: "Department" } // For lecturers/admins
-   - course: { type: ObjectId, ref: "Course" } // For students
-   - enrolledUnits: [{ type: ObjectId, ref: "Unit" }] // Students
-   - assignedUnits: [{ type: ObjectId, ref: "Unit" }] // Lecturers
-   - deviceId: String
-   - timestamps: true
-   ```
+```mermaid
+erDiagram
+    User ||--o{ Attendance : "marks"
+    User ||--o{ Feedback : "submits"
+    User ||--o{ Session : "creates"
+    User }|--|| Course : "enrolls"
+    User }|--|| Department : "belongs to"
+    User ||--o{ Unit : "teaches"
+    
+    Department ||--|{ Course : "contains"
+    Course ||--|{ Unit : "has"
+    
+    Unit ||--|{ Session : "hosts"
+    Session ||--|{ Attendance : "tracks"
+    Session ||--|{ Feedback : "collects"
+    
+    SystemFeedback }|--|| User : "submitted by"
 
-2. Sessions Collection
-   ```javascript
-   - _id: ObjectId
-   - unit: { type: ObjectId, ref: "Unit", required: true }
-   - lecturer: { type: ObjectId, ref: "User", required: true }
-   - startTime: { type: Date, required: true }
-   - endTime: { type: Date, required: true }
-   - qrCode: String // PNG for display
-   - qrToken: String // Raw base64 JSON
-   - qrExpiresAt: Date
-   - ended: { type: Boolean, default: false }
-   - attendees: [{
-       student: { type: ObjectId, ref: "User" },
-       attendedAt: { type: Date, default: Date.now }
-     }]
-   - feedbackEnabled: { type: Boolean, default: false }
-   - timestamps: true
-   ```
+    User {
+        ObjectId _id PK
+        string role
+        string firstName
+        string lastName
+        string regNo
+        string email
+        string password
+        number year
+        number semester
+        ObjectId department FK
+        ObjectId course FK
+        array[ObjectId] enrolledUnits FK
+        array[ObjectId] assignedUnits FK
+        string deviceId
+        timestamps createdAt,updatedAt
+    }
 
-3. Attendance Collection
-   ```javascript
-   - _id: ObjectId
-   - session: { type: ObjectId, ref: "Session", required: true, index: true }
-   - student: { type: ObjectId, ref: "User", required: true, index: true }
-   - timestamp: { type: Date, default: Date.now, index: true }
-   - status: { type: String, enum: ["Present", "Absent", "Rejected"], default: "Present", required: true }
-   - deviceId: { type: String, required: true, index: true }
-   - compositeFingerprint: { type: String, required: true, index: true }
-   - qrToken: { type: String, required: true }
-   - attendedAt: Date
-   - ipAddress: String
-   - browserInfo: Object
-   - feedbackSubmitted: { type: Boolean, default: false }
-   - rejectionReason: String
-   - conflictType: String
-   - conflictingStudent: { type: ObjectId, ref: "User" }
-   - timestamps: true
-   ```
+    Session {
+        ObjectId _id PK
+        ObjectId unit FK
+        ObjectId lecturer FK
+        date startTime
+        date endTime
+        string qrCode
+        string qrToken
+        date qrExpiresAt
+        boolean ended
+        array attendees
+        boolean feedbackEnabled
+        timestamps createdAt,updatedAt
+    }
 
-Implemented Indexes:
-```javascript
-// Attendance Indexes
-- { session: 1, status: 1 }
-- { session: 1, deviceId: 1 }
-- { session: 1, compositeFingerprint: 1 }
-- { student: 1 }
-- { deviceId: 1 }
-- { compositeFingerprint: 1 }
-- { timestamp: 1 }
+    Attendance {
+        ObjectId _id PK
+        ObjectId session FK
+        ObjectId student FK
+        date timestamp
+        string status
+        string deviceId
+        string fingerprint
+        string compositeFingerprint
+        string qrToken
+        date attendedAt
+        string ipAddress
+        boolean feedbackSubmitted
+        string rejectionReason
+        string browserInfo
+        timestamps createdAt,updatedAt
+    }
 
-// Units Indexes
-- { code: 1 } // unique
-- { lecturer: 1 }
-- { course: 1 }
+    Department {
+        ObjectId _id PK
+        string name
+        string code
+        array[ObjectId] courses FK
+        timestamps createdAt,updatedAt
+    }
 
-// Courses Indexes
-- { code: 1 } // unique
-- { department: 1 }
+    Course {
+        ObjectId _id PK
+        string name
+        string code
+        ObjectId department FK
+        array[ObjectId] units FK
+        timestamps createdAt,updatedAt
+    }
 
-// Feedback Indexes
-- { sessionId: 1 }
-- { unit: 1 }
-- { course: 1 }
-- { studentId: 1 }
+    Unit {
+        ObjectId _id PK
+        string name
+        string code
+        ObjectId course FK
+        number year
+        number semester
+        ObjectId lecturer FK
+        array[ObjectId] studentsEnrolled FK
+        timestamps createdAt,updatedAt
+    }
+
+    Feedback {
+        ObjectId _id PK
+        ObjectId sessionId FK
+        ObjectId studentId FK
+        ObjectId unit FK
+        ObjectId course FK
+        number rating
+        string feedbackText
+        number pace
+        number interactivity
+        boolean clarity
+        string resources
+        boolean anonymous
+        timestamps createdAt,updatedAt
+    }
+    
+    SystemFeedback {
+        ObjectId _id PK
+        ObjectId userId FK
+        string userRole
+        string title
+        string category
+        string description
+        number severity
+        string status
+        string screenshot
+        timestamps createdAt,updatedAt
+    }
 ```
 
 Chapter Conclusion
