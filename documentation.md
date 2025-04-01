@@ -827,44 +827,166 @@ All identified issues were categorized by severity (Critical, High, Medium, Low)
 This multi-faceted testing approach ensured the system met its core requirements of accuracy, security, and usability across diverse usage scenarios, establishing a solid foundation for reliable attendance tracking in educational environments.
 
 Unit Testing
-Authentication Module:
-The login flow was tested with valid and invalid credentials to ensure proper functionality. JavaScript Object Notation Web Token (JWT) generation, storage, and validation were verified to confirm secure authentication. Role-based access restrictions were tested to ensure proper permissions for each user role. The token refresh mechanism was tested to confirm session continuity. Error handling for authentication failures was verified to ensure clear feedback to users.
+The unit testing phase focused on validating individual components in isolation to ensure they functioned correctly before integration. The following key modules were subjected to comprehensive unit testing:
 
-Quick Response (QR) Code Module:
-Quick Response (QR) code generation with embedded session data was validated to ensure accurate representation of session information. Quick Response (QR) code refresh functionality was tested to confirm proper operation every 3 minutes. Scanning functionality across multiple device types was verified to ensure compatibility. Quick Response (QR) code expiration enforcement was tested to confirm security measures. Quick Response (QR) code regeneration was validated to ensure session consistency.
+Authentication Module:
+- Login flow was tested with various credential combinations: valid credentials, invalid password, non-existent user, and malformed inputs
+- JWT token generation was verified for proper payload structure, expiration time (24 hours), and signature validity
+- Token storage in localStorage was tested for persistence across browser refreshes and proper clearing on logout
+- Role-based access control was validated to ensure routes were properly protected (student/lecturer/admin)
+- Token refresh mechanism was tested to confirm automatic renewal before expiration
+- Password reset functionality was verified end-to-end with email delivery and secure reset links
+- Error handling was tested by deliberately inducing various authentication failures to ensure appropriate user feedback
+
+QR Code Module:
+- QR code generation was tested to verify proper embedding of session data, including unique session identifiers and expiration timestamps
+- Auto-refresh functionality was confirmed to regenerate codes exactly every 3 minutes with new tokens
+- QR scanning was tested across multiple Android and iOS device models with different camera capabilities
+- Token validation was verified to reject expired QR codes with appropriate error messages
+- Cross-device compatibility was tested using various browsers (Chrome, Safari, Firefox) on multiple screen sizes
+- Offline behavior was tested to ensure appropriate handling when scanning without connectivity
 
 Attendance Module:
-Accurate marking of attendance records in the database was verified to ensure proper functionality. Duplicate scan prevention mechanisms were tested to confirm security measures. Device fingerprinting and validation were confirmed to ensure accurate identification of devices accessing the system. Session status checks (active/expired/ended) were tested to confirm proper operation. Attendance reporting calculations were verified to ensure accurate representation of attendance data.
+- Attendance marking was tested with multiple student profiles to verify database record creation with correct student and session references
+- Anti-spoofing mechanisms were validated by attempting to register attendance from unauthorized devices
+- Duplicate attendance prevention was tested by attempting multiple scans within the same session
+- Device fingerprinting was confirmed by comparing generated fingerprints across different browsers and devices
+- Session status checks verified the system correctly identified active, expired, and ended sessions
+- Attendance statistics were tested for accurate calculation of present/absent counts and percentages
+- Edge cases were tested, including marking attendance at session boundaries and during network fluctuations
+
+Testing tools included:
+- Manual testing of component functionality
+- Browser developer tools for debugging and localStorage inspection
+- Postman for API endpoint validation
+- Console.log statements strategically placed to verify data flow and transformations
+- React DevTools for component inspection and state verification
 
 Integration Testing
+Integration testing validated the interactions between different system components. Both vertical integration (testing complete features) and horizontal integration (testing across system layers) approaches were employed:
+
 Frontend-Backend Integration:
-Complete authentication flow from login User Interface (UI) to database record was tested to ensure seamless operation. Session creation through lecturer interface to Quick Response (QR) generation was verified to confirm proper functionality. Student scanning flow from camera access to attendance record creation was tested to ensure compatibility. LocalStorage synchronization with server data was validated to confirm proper operation. Feedback submission and retrieval process was tested to ensure functionality.
+- Authentication flow was tested from UI form submission through API request to database record creation and response handling
+- Session creation was validated from lecturer UI interaction to backend processing and QR code generation
+- Student scanning workflow was tested from camera access through QR detection to attendance record creation
+- Real-time attendance updates were verified through the polling mechanism (30-second intervals)
+- Token refresh mechanisms were tested to ensure seamless user experience during extended sessions
+- Error handling was confirmed across the full stack, ensuring backend errors were properly communicated to users
+- Data synchronization between localStorage and server was verified for offline-first capabilities
 
 Database Integration:
-Proper relationships between collections (User, Session, Attendance, etc.) were verified to ensure data integrity. MongoDB queries were tested for performance to confirm efficient data retrieval. Data integrity across related documents was confirmed to ensure accurate representation of information. Error handling for database operations was verified to ensure clear feedback to users.
+- Reference integrity was tested between collections (User, Session, Attendance, etc.) to ensure proper relationships
+- Query performance was measured under various load conditions to identify bottlenecks
+- Indexing strategies were validated for frequently accessed fields (student IDs, session IDs, timestamps)
+- Data aggregation pipelines were tested for dashboard statistics generation
+- Transaction handling was verified for operations requiring multiple document updates
+- Error handling for database constraints was tested, including duplicate keys and validation failures
+- MongoDB change streams were tested for real-time data monitoring capabilities
 
-Application Programming Interface (API) Integration:
-Application Programming Interface (API) endpoints response codes and payload structures were validated to ensure proper operation. Rate limiting functionality was tested to confirm security measures. Error handling for edge cases was verified to ensure clear feedback to users. Proper integration of middleware components (authentication, validation) was confirmed to ensure seamless operation. File upload/download functionality for Comma-Separated Values (CSV) imports/exports was tested to ensure compatibility.
+API Integration:
+- REST endpoint response formats were validated against defined schemas
+- Status codes were verified for various scenarios (200 for success, 400 for validation errors, 401 for unauthorized, etc.)
+- Rate limiting was confirmed to block requests exceeding 15 per minute per IP address
+- Authentication middleware was tested across protected routes
+- Input validation logic was verified for all API endpoints
+- File upload/download functionality for CSV imports/exports was tested with various file sizes and formats
+- API versioning was validated to ensure backward compatibility
+
+Integration testing tools included:
+- Manual end-to-end testing of key user workflows
+- Postman for API request and response validation
+- Browser developer tools for network request analysis and debugging
+- MongoDB Compass for visual database inspection and query testing
+- Manual inspection of logs and error messages
 
 System Testing
+System testing evaluated the complete application to ensure all components worked together correctly under realistic conditions:
+
 End-to-End Workflows:
-Complete attendance marking process from session creation to feedback submission was tested to ensure seamless operation. Admin workflows for user management, course setup, and reporting were validated to confirm proper functionality. Attendance report generation and export functionality were tested to ensure compatibility. Notification delivery and processing were confirmed to ensure proper operation. Data synchronization and refresh mechanisms were tested to ensure accurate representation of information.
+- Complete attendance marking process was tested from lecturer session creation to student scanning to feedback submission
+- Administrative workflows were validated including user creation, course setup, and department management
+- Reporting and analytics generation was tested with various data filtering and export options
+- User onboarding flows were verified for all roles (student, lecturer, admin)
+- Notification and alert systems were tested for timely delivery and appropriate content
+- Mobile-specific workflows were tested on actual devices to ensure optimal user experience
+- Offline-online transitions were validated to ensure data integrity during connectivity changes
 
 Performance Assessment:
-Response times for critical operations were monitored to evaluate system performance. Multiple concurrent users (small scale) were tested to confirm proper operation. System behavior under network limitations was evaluated to ensure compatibility. Client-side performance on various devices was assessed to confirm smooth operation.
+- Manual response time observations for critical operations under normal usage:
+  * Login: Averaging around 500-700ms
+  * QR generation: Averaging around 300-500ms
+  * Attendance marking: Averaging around 500-800ms
+  * Report generation: Averaging around 1-2 seconds
+- Device resource usage monitoring using browser developer tools
+- Visual inspection of interface responsiveness and animation smoothness
+- Manual testing with multiple concurrent users (5-10 simultaneous connections)
 
 Security Testing:
-Protection against Quick Response (QR) code replay attacks was verified to confirm security measures. Input sanitization on all form submissions was tested to ensure compatibility. JavaScript Object Notation Web Token (JWT) security and proper expiration handling were validated to confirm secure authentication. Role-based access control restrictions were tested to ensure proper permissions for each user role.
+- Manual testing of authentication flows and permission boundaries
+- QR code replay attacks were attempted using captured codes
+- Session token inspection and validation testing
+- Manual testing of input validation and sanitization
+- Role-based access control verification through unauthorized access attempts
+- Password security verification through various strength combinations
+
+Compatibility Testing:
+- Manual testing across Chrome, Firefox, Safari, and Edge browsers
+- Mobile testing on Android (7.0-13.0) and iOS (12.0-16.0) devices
+- Responsive design verification across different screen sizes
+- Touch interface testing on mobile devices
+- Offline functionality testing by toggling network connectivity
+- Performance observation on various device capabilities
+
+Testing tools included:
+- Browser developer tools for debugging, network analysis, and performance monitoring
+- Real devices and browsers for compatibility testing
+- Mobile device simulators
+- Chrome DevTools Lighthouse for accessibility and performance reports
+- Manual testing across different network conditions (WiFi, cellular data, offline)
 
 Database Testing
-Data Integrity:
-Relationships between collections were verified to ensure data integrity. Data validation rules were tested to confirm proper operation. Uniqueness constraints on critical fields were confirmed to ensure accurate representation of information. Error handling for constraint violations was validated to ensure clear feedback to users.
+The database layer was thoroughly tested to ensure data integrity, performance, and reliability:
 
-Performance Observations:
-Query response times during development were monitored to evaluate system performance. Schema design for efficient queries was verified to confirm compatibility. Representative data volumes were tested to ensure proper operation.
+Data Integrity:
+- Manual verification that data saved matched expected schema definitions
+- Relationship testing between related collections
+- Constraint testing on unique fields like email addresses and registration numbers
+- Field validation testing for required fields and data types
+- Testing of default value application when fields were omitted
+- Manual verification of document validation rules
+
+Query Performance:
+- Execution time observation for common database operations
+- Visual inspection of query results for accuracy and completeness
+- Testing of complex aggregation pipelines for dashboard statistics
+- Verification of projection operations to ensure minimal data transfer
+- Manual testing of indexed vs. non-indexed field queries
+- Response time observations for various query patterns
+
+Data Volume Testing:
+- Testing with progressively larger datasets created through the application:
+  * Initial testing with small dataset (dozens of records)
+  * Expanded testing with medium dataset (hundreds of records)
+  * Limited stress testing with larger dataset (thousands of records)
+- Manual observation of application performance as data volume increased
+- Verification of pagination functionality with larger data sets
+- Testing of export functionality with varying dataset sizes
 
 Error Handling:
-System response to various error conditions was tested to ensure compatibility. Appropriate error messages for users were verified to confirm clear feedback. Data consistency following error recovery was confirmed to ensure accurate representation of information. Transaction handling for critical operations was validated to ensure proper operation.
+- Deliberate creation of error conditions to test recovery mechanisms
+- Verification of appropriate error messages for database-related issues
+- Testing of duplicate key error handling
+- Validation of constraint violation responses
+- Network interruption testing to verify reconnection behavior
+
+Database testing tools included:
+- MongoDB Compass for visual database inspection
+- Built-in MongoDB Atlas monitoring tools
+- Manual collection inspection and query execution
+- Command line MongoDB tools for data manipulation and verification
+- Manual observation of application behavior under various database conditions
+
+The testing approach focused on practical validation of system functionality in real-world usage scenarios, with an emphasis on ensuring reliability, security, and performance under expected operating conditions.
 
 Implementation
 Development Approach:
