@@ -346,46 +346,35 @@ export const updateUserProfile = async (profileData) => {
   }
 };
 
-// Fetch units for a student based on their course, year, and semester
+// Fetch units for a student based on their enrolled units
 export const getStudentUnits = async (token) => {
   try {
-    // First try the new endpoint which uses User.enrolledUnits
-    const response = await axios.get(`${API_URL}/students/${localStorage.getItem('userId')}/units`, {
+    // First try to get from API
+    const response = await axios.get(`${API_URL}/unit/student/units`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
     
-    // If successful and has data, return it
-    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
-      return response.data;
-    }
+    // Cache the units data for offline use
+    await storeInIndexedDB('units', 'studentUnits', response.data);
     
-    // Fall back to the old endpoint which uses Unit.studentsEnrolled
-    const oldResponse = await axios.get(`${API_URL}/unit/student/units`, {
-      headers: {
-        Authorization: `Bearer ${token}`,
-      },
-    });
-    
-    return oldResponse.data;
+    return response.data;
   } catch (error) {
-    // If the new endpoint fails, try the old one
-    if (error.response && error.response.status === 404) {
+    console.error("Error fetching units:", error);
+    
+    // If offline, try to get from IndexedDB
+    if (!navigator.onLine) {
       try {
-        const oldResponse = await axios.get(`${API_URL}/unit/student/units`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        });
-        return oldResponse.data;
-      } catch (fallbackError) {
-        console.error("Error fetching units (fallback):", fallbackError);
-        return [];
+        const cachedUnits = await getFromIndexedDB('units', 'studentUnits');
+        if (cachedUnits) {
+          return cachedUnits;
+        }
+      } catch (cacheError) {
+        console.error("Error retrieving cached units:", cacheError);
       }
     }
     
-    console.error("Error fetching units:", error.response || error);
     return [];
   }
 };
