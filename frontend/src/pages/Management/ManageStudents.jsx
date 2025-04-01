@@ -77,6 +77,7 @@ const ManageStudents = () => {
   const [courses, setCourses] = useState([]);
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [alertVisible, setAlertVisible] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -167,6 +168,16 @@ const ManageStudents = () => {
       isMounted = false;
     };
   }, [navigate]);
+
+  useEffect(() => {
+    if (globalError) {
+      setAlertVisible(true);
+      const timer = setTimeout(() => {
+        setAlertVisible(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [globalError]);
 
   const availableCourses = useMemo(() => {
     return courses.map((course) => ({
@@ -839,12 +850,12 @@ const ManageStudents = () => {
             />
           )}
 
-          {globalError && (
+          {globalError && alertVisible && (
             <Alert
               message={globalError}
               type="error"
               closable
-              onClose={() => setGlobalError("")}
+              onClose={() => setAlertVisible(false)}
               style={{ marginBottom: 16 }}
             />
           )}

@@ -1,0 +1,7 @@
+2025-04-01 19:12:37 [info]: Loading system feedback routes... {"service":"attendance-system"}
+2025-04-01 19:12:37 [info]: Loading main routes... {"service":"attendance-system"}
+2025-04-01 19:12:37 [debug]: Loading attendance routes {"service":"attendance-system"}
+2025-04-01 19:12:37 [info]: Uploads folder created successfully! {"service":"attendance-system"}
+2025-04-01 19:12:37 [debug]: Public assets folder already exists. {"service":"attendance-system"}
+2025-04-01 19:12:38 [info]: Server running on port 5000 {"service":"attendance-system"}
+2025-04-01 19:12:41 [info]: MongoDB Connected {"service":"attendance-system"}
