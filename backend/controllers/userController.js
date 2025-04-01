@@ -1039,10 +1039,28 @@ const getStudentUnits = async (req, res) => {
       return res.status(404).json({ message: "Student not found" });
     }
 
-    // Get enrolled units with details
-    const units = await Unit.find({
-      _id: { $in: student.enrolledUnits }
-    });
+    let units = [];
+    
+    // First, try to get units from student.enrolledUnits (new approach)
+    if (student.enrolledUnits && student.enrolledUnits.length > 0) {
+      units = await Unit.find({
+        _id: { $in: student.enrolledUnits }
+      });
+    }
+    
+    // If no units found, try the original approach (studentsEnrolled field in Unit model)
+    if (units.length === 0) {
+      units = await Unit.find({
+        studentsEnrolled: studentId
+      });
+      
+      // If units are found via this method, sync them to student.enrolledUnits for future consistency
+      if (units.length > 0) {
+        student.enrolledUnits = units.map(unit => unit._id);
+        await student.save();
+        console.log(`Synced ${units.length} units to student.enrolledUnits for student ${studentId}`);
+      }
+    }
 
     res.status(200).json(units);
   } catch (error) {
@@ -1054,24 +1072,6 @@ const getStudentUnits = async (req, res) => {
 // Enroll student in a unit
 const enrollStudentInUnit = async (req, res) => {
   try {
-    const { studentId } = req.params;
-    const { unitId } = req.body;
-    
-    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(unitId)) {
-      return res.status(400).json({ message: "Invalid ID format" });
-    }
-
-    // Find the student
-    const student = await User.findById(studentId);
-    if (!student) {
-      return res.status(404).json({ message: "Student not found" });
-    }
-
-    // Find the unit
-    const unit = await Unit.findById(unitId);
-    if (!unit) {
-      return res.status(404).json({ message: "Unit not found" });
-    }
 
     // Check if student is already enrolled in this unit
     if (student.enrolledUnits.includes(unitId)) {

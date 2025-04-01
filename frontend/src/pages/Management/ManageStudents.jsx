@@ -430,6 +430,7 @@ const ManageStudents = () => {
       setSelectedStudentForUnits(student);
       
       const token = localStorage.getItem("token");
+      // Use the enhanced endpoint that checks both enrolledUnits and studentsEnrolled
       const response = await api.get(`/students/${student._id}/units`, {
         headers: { Authorization: `Bearer ${token}` },
       });

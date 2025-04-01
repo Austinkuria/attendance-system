@@ -349,13 +349,42 @@ export const updateUserProfile = async (profileData) => {
 // Fetch units for a student based on their course, year, and semester
 export const getStudentUnits = async (token) => {
   try {
-    const response = await axios.get("https://attendance-system-w70n.onrender.com/api/unit/student/units", {
+    // First try the new endpoint which uses User.enrolledUnits
+    const response = await axios.get(`${API_URL}/students/${localStorage.getItem('userId')}/units`, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    return response.data;
+    
+    // If successful and has data, return it
+    if (response.data && Array.isArray(response.data) && response.data.length > 0) {
+      return response.data;
+    }
+    
+    // Fall back to the old endpoint which uses Unit.studentsEnrolled
+    const oldResponse = await axios.get(`${API_URL}/unit/student/units`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    });
+    
+    return oldResponse.data;
   } catch (error) {
+    // If the new endpoint fails, try the old one
+    if (error.response && error.response.status === 404) {
+      try {
+        const oldResponse = await axios.get(`${API_URL}/unit/student/units`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        });
+        return oldResponse.data;
+      } catch (fallbackError) {
+        console.error("Error fetching units (fallback):", fallbackError);
+        return [];
+      }
+    }
+    
     console.error("Error fetching units:", error.response || error);
     return [];
   }

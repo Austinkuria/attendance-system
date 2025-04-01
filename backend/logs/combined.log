@@ -5,3 +5,11 @@
 2025-04-01 19:12:37 [debug]: Public assets folder already exists. {"service":"attendance-system"}
 2025-04-01 19:12:38 [info]: Server running on port 5000 {"service":"attendance-system"}
 2025-04-01 19:12:41 [info]: MongoDB Connected {"service":"attendance-system"}
+2025-04-01 21:38:04 [info]: ::1 - latifa@gmail.com [01/Apr/2025:18:38:04 +0000] "POST /api/create HTTP/1.1" 401 61 "-" "PostmanRuntime/7.43.3" {"service":"attendance-system"}
+2025-04-01 21:44:18 [info]: ::1 - latifa@gmail.com [01/Apr/2025:18:44:18 +0000] "POST /api/auth/login HTTP/1.1" 200 284 "-" "PostmanRuntime/7.43.3" {"service":"attendance-system"}
+2025-04-01 21:46:01 [info]: ::1 - - [01/Apr/2025:18:46:01 +0000] "POST /api/department/create HTTP/1.1" 201 45 "-" "PostmanRuntime/7.43.3" {"service":"attendance-system"}
+2025-04-01 21:47:10 [info]: ::1 - - [01/Apr/2025:18:47:10 +0000] "POST /api/department/create HTTP/1.1" 201 45 "-" "PostmanRuntime/7.43.3" {"service":"attendance-system"}
+2025-04-01 21:47:23 [info]: ::1 - - [01/Apr/2025:18:47:23 +0000] "POST /api/department/create HTTP/1.1" 201 45 "-" "PostmanRuntime/7.43.3" {"service":"attendance-system"}
+2025-04-01 22:28:26 [info]: ::1 - - [01/Apr/2025:19:28:26 +0000] "POST /api/department/create HTTP/1.1" 201 45 "-" "PostmanRuntime/7.43.3" {"service":"attendance-system"}
+2025-04-01 22:39:13 [warn]: MongoDB disconnected {"service":"attendance-system"}
+2025-04-01 22:39:29 [warn]: MongoDB disconnected {"service":"attendance-system"}
