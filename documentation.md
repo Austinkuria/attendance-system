@@ -209,7 +209,7 @@ flowchart TB
 
 Process Design
 
-1. Detailed Authentication Flow (Actual Implementation):
+1. Detailed Authentication Flow :
 
 ```mermaid
 sequenceDiagram
@@ -564,7 +564,7 @@ Normalization Analysis:
    - No transitive dependencies in implemented schema design
    - Each non-key attribute directly depends on the primary key
 
-Entity Relationship Diagram (Actual Implementation):
+Entity Relationship Diagram:
 
 ```mermaid
 erDiagram
@@ -694,9 +694,88 @@ erDiagram
     }
 ```
 
-Chapter Conclusion
+Output Design (Report Specifications)
 
-The Smart QR Code-based Student Attendance System design establishes a robust architecture that effectively addresses modern attendance tracking challenges in educational environments. The implementation of JWT authentication, device fingerprinting, and auto-refreshing QR codes creates a multi-layered security approach that prevents proxy attendance while maintaining user convenience. By leveraging Progressive Web Application principles with service workers and local storage, the system maintains functionality even under unreliable network conditions common in educational settings. The MongoDB schema design with carefully planned relationships and indexes supports efficient queries while allowing flexibility for future feature expansion. The separation of presentation layer (React frontend), application logic (Express API), and data storage (MongoDB) enables independent scaling and targeted security hardening. This architecture provides a solid foundation for implementation while remaining adaptable to real-world deployment challenges.
+The system generates various reports to provide insights into attendance data. Each report has been carefully designed to address specific user needs:
+
+1. Unit Attendance Report
+   - **Purpose**: Summarize attendance for a specific course unit
+   - **Format**: Excel (.xlsx) and CSV
+   - **Target Users**: Lecturers, Administrators
+   - **Content Structure**:
+     - Header: Unit code, Unit name, Lecturer name, Date range
+     - Body: Table with columns for Reg Number, Student Name, Total Sessions, Sessions Attended, Attendance Rate (%)
+     - Footer: Summary statistics, Generated date, Page numbers
+   - **Sorting Options**: By student name, By attendance rate (ascending/descending)
+   - **Filtering Options**: By date range, By attendance status
+   - **Visual Elements**: Color-coding for attendance rates (>80% green, 60-80% yellow, <60% red)
+
+2. Session Detailed Report
+   - **Purpose**: Provide attendance details for a specific session
+   - **Format**: Excel (.xlsx) and CSV
+   - **Target Users**: Lecturers
+   - **Content Structure**:
+     - Header: Unit code, Unit name, Session date/time, Lecturer name
+     - Body: Table with columns for Reg Number, Student Name, Attendance Status, Time Marked, Device Info
+     - Footer: Present count, Absent count, Attendance rate, Generated date
+   - **Sorting Options**: By time marked, By registration number
+   - **Filtering Options**: By status (Present/Absent/Late)
+   - **Visual Elements**: Icons for attendance status, Timestamp formatting
+
+3. Student Attendance Summary
+   - **Purpose**: Show individual student attendance across all units
+   - **Format**: PDF, Excel (.xlsx)
+   - **Target Users**: Students, Administrators
+   - **Content Structure**:
+     - Header: Student name, Registration number, Course, Year/Semester
+     - Body: Table with columns for Unit Code, Unit Name, Total Sessions, Sessions Attended, Attendance Rate
+     - Footer: Overall attendance rate, Generated date
+   - **Sorting Options**: By unit code, By attendance rate
+   - **Visual Elements**: Progress bars for attendance rates, Trend graphs showing attendance patterns
+
+4. Departmental Analytics Report
+   - **Purpose**: Provide high-level attendance analytics for departments
+   - **Format**: PDF with embedded charts, Excel (.xlsx) with pivot tables
+   - **Target Users**: Administrators, Department Heads
+   - **Content Structure**:
+     - Header: Department name, Date range, Report type
+     - Body: Multiple sections with tables and charts showing attendance patterns
+     - Sections: Course comparison, Lecturer comparison, Time-based trends
+     - Footer: Summary statistics, Generated date
+   - **Visual Elements**: 
+     - Bar charts comparing courses by attendance rate
+     - Line graphs showing attendance trends over time
+     - Heat maps showing attendance patterns by day/time
+     - Pivot tables for interactive analysis in Excel format
+
+5. Feedback Summary Report
+   - **Purpose**: Summarize student feedback for sessions
+   - **Format**: PDF, Excel (.xlsx)
+   - **Target Users**: Lecturers, Administrators
+   - **Content Structure**:
+     - Header: Unit details, Date range, Lecturer name
+     - Body: 
+       - Numerical summaries (average ratings)
+       - Distribution of ratings (1-5 stars)
+       - Session pace feedback summary
+       - Content clarity metrics
+       - Anonymized comments
+     - Footer: Response rate, Generated date
+   - **Visual Elements**: 
+     - Radar charts for multidimensional feedback visualization
+     - Bar charts for rating distributions
+     - Word clouds for comment analysis (in PDF version only)
+
+Report Generation Process:
+1. Data is aggregated from relevant collections based on query parameters
+2. Calculated fields (attendance rates, averages, etc.) are computed server-side
+3. Data is formatted according to report specifications
+4. Excel reports utilize templating with cell styling and conditional formatting
+5. PDF reports include header/footer with institutional branding
+6. All exports are validated for data integrity before delivery
+7. Large reports implement pagination and chunked downloads to optimize performance
+
+Each report design follows institutional branding guidelines and incorporates accessibility features such as proper table headers, consistent color schemes, and text alternatives for visual elements in digital formats.
 
 CHAPTER 5: 
 SYSTEM TESTING AND IMPLEMENTATION
