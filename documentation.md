@@ -21,7 +21,7 @@ Core Components:
    This layer manages the storage and retrieval of data throughout the system. MongoDB Collections store user data, session information, attendance records, units, courses, departments, and feedback data with appropriate indexing for performance. The system also implements file storage for QR code images, CSV exports, user uploads, and system logs to maintain comprehensive records of all activities.
 
 5. Security Infrastructure
-   The security layer ensures the integrity and protection of the system and its data. Authentication is handled through JWT token validation, role-based authorization, device fingerprinting, and session management techniques. Request protection includes rate limiting, CORS protection, input validation, and comprehensive error handling to prevent common web vulnerabilities and attacks.
+   The security layer ensures the integrity and protection of the system and its data. Authentication is handled through JWT token validation, role-based authorization, device fingerprinting, and session management techniques. Request protection includes rate limiting, CORS protection, input validation, and comprehensive error handling to prevent common web vulnerabilities and attacks. GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning to identify potential security issues during development.
 
 6. External Services Integration
    The system integrates with several external services to provide its full functionality. Hosting is managed through Vercel for the frontend, Render.com for the backend, and MongoDB Atlas for database services. Email communications are handled through Nodemailer SMTP for sending password reset links, notifications, and system alerts to users.
@@ -928,6 +928,9 @@ Security Testing:
 - Manual testing of input validation and sanitization
 - Role-based access control verification through unauthorized access attempts
 - Password security verification through various strength combinations
+- GitHub CodeQL security scanning for automated vulnerability detection in codebase
+- Dependency vulnerability scanning using GitHub's Dependabot alerts
+- Common web security check using OWASP guidelines as reference
 
 Compatibility Testing:
 - Manual testing across Chrome, Firefox, Safari, and Edge browsers
@@ -990,13 +993,13 @@ The testing approach focused on practical validation of system functionality in 
 
 Implementation
 Development Approach:
-Modular development with component-based architecture was implemented to simplify updates and feature additions. Iterative implementation with regular testing was conducted to ensure compatibility. Continuous integration using GitHub workflows was performed to confirm proper operation. Environment-based configuration for development/production was implemented to ensure compatibility.
+Modular development with component-based architecture was implemented to simplify updates and feature additions. Iterative implementation with regular testing was conducted to ensure compatibility. Continuous integration using GitHub workflows was performed to confirm proper operation. Environment-based configuration for development/production was implemented to ensure compatibility. Security-first approach using GitHub CodeQL and dependency scanning to identify potential vulnerabilities early in the development cycle.
 
 Deployment Strategy:
-Frontend deployed on Vercel was confirmed to ensure compatibility. Backend deployed on Render.com was validated to confirm proper operation. MongoDB Atlas for database hosting was tested to ensure compatibility. Environment variable management for configuration was implemented to ensure compatibility.
+Frontend deployed on Vercel was confirmed to ensure compatibility. Backend deployed on Render.com free tier with awareness of resource constraints and cold start implications. MongoDB Atlas M0 free tier for database hosting was tested to ensure compatibility within storage and connection limits. Environment variable management for configuration was implemented to ensure compatibility.
 
 Post-Deployment Monitoring:
-Manual system health checks were conducted to evaluate system performance. Error logging and monitoring were performed to confirm proper operation. Performance assessment under real usage was conducted to ensure compatibility. User feedback collection for improvements was implemented to ensure compatibility.
+Manual system health checks were conducted to evaluate system performance. Free tier Render.com and MongoDB Atlas monitoring tools were utilized to track resource usage within free tier limitations. Error logging and monitoring were performed to confirm proper operation. Performance assessment under real usage was conducted to ensure compatibility. User feedback collection for improvements was implemented to ensure compatibility.
 
 Implementation Requirements
 
@@ -1021,16 +1024,29 @@ Database Structure:
 Database: MongoDB with Mongoose Object Data Modeling (ODM). Collections: As implemented in provided schemas. Users: Student, lecturer, admin profiles. Sessions: With Quick Response (QR) code data and expiry. Attendance: Records with device verification. Units, Courses, Departments: Academic hierarchy. Feedback: Post-session student responses. Indexing: Optimized fields based on query patterns.
 
 Security Measures:
-Authentication: JavaScript Object Notation Web Token (JWT) implementation with proper expiration. Password hashing with bcrypt. Role-based access control. Anti-Spoofing: 3-minute Quick Response (QR) code expiry as implemented. Device fingerprinting validation. Session-scoped tokens. Data Protection: Input validation and sanitization. Hypertext Transfer Protocol Secure (HTTPS) for all communications. Rate limiting on sensitive endpoints.
+Authentication: JavaScript Object Notation Web Token (JWT) implementation with proper expiration. Password hashing with bcrypt. Role-based access control. Anti-Spoofing: 3-minute Quick Response (QR) code expiry as implemented. Device fingerprinting validation. Session-scoped tokens. Data Protection: Input validation and sanitization. Hypertext Transfer Protocol Secure (HTTPS) for all communications. Rate limiting on sensitive endpoints. GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning to identify potential security issues during development.
 
 Deployment Configuration:
 Frontend (Progressive Web Application (PWA)): Hosting: Vercel (as specified in methodology). Build Process: Vite build with Progressive Web Application (PWA) capabilities. Domain: Custom project domain or Vercel subdomain.
 
 Backend Application Programming Interface (API):
-Hosting: Render.com (as specified in methodology). Environment: Node.js runtime. Configuration: Environment variables for secrets.
+Hosting: Render.com Web Service (free tier) with the following specifications and limitations:
+- 512MB RAM allocation with shared CPU resources
+- 90-minute inactivity spin-down with cold start latency on first request after inactivity
+- Limited to 750 service hours per month
+- Automatic HTTPS with TLS certificates
+- Build times limited to 20 minutes
+- Continuous deployment from GitHub repository
+Environment: Node.js runtime. Configuration: Environment variables for secrets.
 
 Database:
-Service: MongoDB Atlas (as specified in methodology). Configuration: M0 free tier cluster. Security: IP whitelisting, username/password authentication.
+Service: MongoDB Atlas (M0 free tier) with the following specifications:
+- 512MB storage limitation
+- Shared RAM and CPU resources
+- Maximum 100 connections limit
+- Automated backups not available on free tier
+- Performance limitations for complex aggregation queries
+Configuration: M0 free tier cluster. Security: IP whitelisting, username/password authentication.
 
 Coding Tools
 
@@ -1183,8 +1199,11 @@ Expand Progressive Web Application (PWA) capabilities to support complete offlin
 Performance Optimization:
 Upgrade to paid-tier cloud services for improved performance as user base grows. Implement database sharding strategies for handling larger datasets more efficiently. Adopt edge computing principles to reduce latency for geographically dispersed users. Optimize bundle sizes through code splitting and lazy loading for faster initial load times.
 
+Infrastructure Improvements:
+Upgrade from Render.com free tier to paid tier to eliminate cold starts and increase resource limits. The current free tier implementation experiences 90-minute spin-down periods, resulting in significant latency for initial requests after inactivity. Moving to the paid tier would provide continuous operation, faster response times, and more consistent performance. Similarly, upgrading MongoDB Atlas from M0 free tier to M10 tier would remove the 512MB storage limitation and support automated backups, ensuring better data protection and system reliability for production use.
+
 Security Hardening:
-Implement additional location-based validation to verify student proximity to classroom. Add two-factor authentication options for administrative accounts. Conduct regular penetration testing and vulnerability assessments. Enhance audit logging for better security incident tracking and response.
+Implement additional location-based validation to verify student proximity to classroom. Add two-factor authentication options for administrative accounts. Conduct regular penetration testing and vulnerability assessments. Enhance audit logging for better security incident tracking and response. Expand GitHub CodeQL scanning with custom security queries specific to attendance system requirements. Set up automated dependency scanning with stricter security policies to prevent supply chain attacks.
 
 Feature Additions
 
