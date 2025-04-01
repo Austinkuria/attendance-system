@@ -782,31 +782,49 @@ SYSTEM TESTING AND IMPLEMENTATION
 
 Introduction
 
-The testing phase for the Quick Response Code (QR Code)-based Smart Attendance System employed a practical approach focused on real-world usability and security validation. Our testing prioritized critical features and core functionality to ensure a reliable system for everyday academic use.
+The testing phase for the QRollCall Smart Attendance System employed a systematic approach focused on real-world usability, security validation, and system reliability. Given the system's critical role in academic environments, testing prioritized accuracy, security, and performance under varied network conditions to ensure dependable attendance tracking.
 
-Our testing focused on three critical aspects essential to the system's success:
-1. Attendance tracking accuracy and Quick Response (QR) code reliability
-2. Anti-spoofing mechanism effectiveness
-3. User experience across different devices and network conditions
+Testing Objectives:
+1. Verify the accuracy and reliability of attendance tracking mechanisms
+2. Ensure effectiveness of anti-spoofing and security measures
+3. Validate user experience across different devices and network conditions
+4. Confirm system performance under various load scenarios
+5. Test offline capabilities and data synchronization
+
+Testing Methodology:
+Testing followed a combination of formal and practical approaches, utilizing both manual and automated techniques. Manual testing focused on user workflows and interface interactions, while automated tests verified API endpoints and database operations. Test cases were derived from user requirements and potential attack vectors, with security testing given particular emphasis.
 
 Testing Environment:
-Various mobile devices including Android smartphones and iPhones were used to test the system under different network conditions such as WiFi, 4G/5G, and low connectivity. Multiple browsers including Chrome, Safari, and Firefox were tested to ensure cross-platform compatibility.
+- Mobile Devices: Multiple Android (versions 7.0-13.0) and iOS (versions 12.0-16.0) smartphones
+- Desktop Platforms: Windows 10/11, macOS, Linux (Ubuntu)
+- Browsers: Chrome, Safari, Firefox, Edge
+- Network Conditions: WiFi, 4G/5G, limited connectivity, simulated offline modes
+- Screen Sizes: Various configurations from 4" smartphones to 27" desktop monitors
 
-Key Testing Activities:
+Key Testing Phases:
 
-Functional Testing:
-Manual testing of Quick Response (QR) code generation, scanning, and validation was conducted to ensure the system's reliability. User role-based access control verification was performed to confirm proper permissions for Admin, Lecturer, and Student roles. End-to-end attendance session flow validation ensured seamless operation from session creation to attendance marking. Feedback submission and analysis workflows were tested to verify functionality.
+1. Development Testing:
+   - Unit testing of critical components (authentication, QR code generation)
+   - Component-level testing for each module
+   - Integration testing of connected components
+   - Code reviews focused on security and performance optimization
 
-Security Testing:
-Manual Quick Response (QR) code replay attempt tests were conducted to validate anti-spoofing measures. Device fingerprinting verification ensured accurate identification of devices accessing the system. Multiple session access attempts from the same device were tested to confirm proper session management. JavaScript Object Notation Web Token (JWT) validation was performed to ensure secure authentication.
+2. System Testing:
+   - End-to-end workflow validation
+   - Security penetration testing on critical endpoints
+   - Performance benchmarking under expected loads
+   - Cross-browser and cross-device compatibility verification
 
-Performance Assessment:
-Response time measurements under normal usage conditions were conducted to evaluate system performance. Database query optimization verification ensured efficient data retrieval. Client-side rendering performance was assessed to confirm smooth operation across devices.
+3. User Acceptance Testing:
+   - Testing sessions with representative users from each role
+   - Scenario-based testing in simulated classroom environments
+   - Usability evaluations with feedback collection
+   - Edge case testing based on stakeholder feedback
 
-User Acceptance Testing:
-Interface testing with stakeholders was conducted to gather feedback on usability. Usability assessment across devices ensured consistent functionality. Error handling and recovery testing verified the system's ability to handle unexpected conditions.
+Issue Management:
+All identified issues were categorized by severity (Critical, High, Medium, Low) and tracked through GitHub Issues. Critical security concerns and functional blockers were addressed immediately, while lower-priority enhancements were scheduled for future releases. Each fixed issue underwent regression testing to ensure no new problems were introduced.
 
-The testing process identified and addressed various issues before deployment, with prioritization given to critical security concerns and core functionality problems. Manual testing ensured that essential features worked reliably in real-world conditions.
+This multi-faceted testing approach ensured the system met its core requirements of accuracy, security, and usability across diverse usage scenarios, establishing a solid foundation for reliable attendance tracking in educational environments.
 
 Unit Testing
 Authentication Module:
