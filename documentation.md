@@ -696,86 +696,80 @@ erDiagram
 
 Output Design (Report Specifications)
 
-The system generates various reports to provide insights into attendance data. Each report has been carefully designed to address specific user needs:
+The system generates several reports and data exports to provide insights into attendance data. Each report has been implemented to address specific user needs based on their roles:
 
-1. Unit Attendance Report
-   - **Purpose**: Summarize attendance for a specific course unit
-   - **Format**: Excel (.xlsx) and CSV
-   - **Target Users**: Lecturers, Administrators
-   - **Content Structure**:
-     - Header: Unit code, Unit name, Lecturer name, Date range
-     - Body: Table with columns for Reg Number, Student Name, Total Sessions, Sessions Attended, Attendance Rate (%)
-     - Footer: Summary statistics, Generated date, Page numbers
-   - **Sorting Options**: By student name, By attendance rate (ascending/descending)
-   - **Filtering Options**: By date range, By attendance status
-   - **Visual Elements**: Color-coding for attendance rates (>80% green, 60-80% yellow, <60% red)
-
-2. Session Detailed Report
-   - **Purpose**: Provide attendance details for a specific session
-   - **Format**: Excel (.xlsx) and CSV
+1. Unit-based Attendance Report
+   - **Purpose**: Summarize attendance for sessions within a specific unit
+   - **Format**: Excel (.xlsx)
    - **Target Users**: Lecturers
    - **Content Structure**:
-     - Header: Unit code, Unit name, Session date/time, Lecturer name
-     - Body: Table with columns for Reg Number, Student Name, Attendance Status, Time Marked, Device Info
-     - Footer: Present count, Absent count, Attendance rate, Generated date
-   - **Sorting Options**: By time marked, By registration number
-   - **Filtering Options**: By status (Present/Absent/Late)
-   - **Visual Elements**: Icons for attendance status, Timestamp formatting
+     - Header: Unit code, Unit name, Lecturer name
+     - Body: Table with columns for Student Reg Number, Student Name, Attendance Status (Present/Absent), Time Marked
+     - Footer: Summary statistics (Present count, Absent count, Attendance rate)
+   - **Implementation**: Accessible via the lecturer dashboard through the "Download Session Report" button
+   - **Data Source**: Direct MongoDB aggregation query of attendance records filtered by unit and session
+   - **Technical Features**: Server-side generation using Excel.js with optimized memory usage
 
-3. Student Attendance Summary
-   - **Purpose**: Show individual student attendance across all units
-   - **Format**: PDF, Excel (.xlsx)
-   - **Target Users**: Students, Administrators
+2. Session-specific Attendance Export
+   - **Purpose**: Provide detailed attendance records for a selected session
+   - **Format**: Excel (.xlsx)
+   - **Target Users**: Lecturers
    - **Content Structure**:
-     - Header: Student name, Registration number, Course, Year/Semester
-     - Body: Table with columns for Unit Code, Unit Name, Total Sessions, Sessions Attended, Attendance Rate
-     - Footer: Overall attendance rate, Generated date
-   - **Sorting Options**: By unit code, By attendance rate
-   - **Visual Elements**: Progress bars for attendance rates, Trend graphs showing attendance patterns
+     - Sortable columns for Registration Number, First Name, Last Name, Time Scanned, and Status
+     - Color-coded status indicators (green for Present, red for Absent)
+   - **Implementation**: Available through the Past Sessions section of the lecturer dashboard
+   - **Filtering Options**: By session date and time
+   - **Technical Features**: Formatted with consistent styling and conditional formatting for status cells
 
-4. Departmental Analytics Report
-   - **Purpose**: Provide high-level attendance analytics for departments
-   - **Format**: PDF with embedded charts, Excel (.xlsx) with pivot tables
-   - **Target Users**: Administrators, Department Heads
-   - **Content Structure**:
-     - Header: Department name, Date range, Report type
-     - Body: Multiple sections with tables and charts showing attendance patterns
-     - Sections: Course comparison, Lecturer comparison, Time-based trends
-     - Footer: Summary statistics, Generated date
-   - **Visual Elements**: 
-     - Bar charts comparing courses by attendance rate
-     - Line graphs showing attendance trends over time
-     - Heat maps showing attendance patterns by day/time
-     - Pivot tables for interactive analysis in Excel format
-
-5. Feedback Summary Report
-   - **Purpose**: Summarize student feedback for sessions
-   - **Format**: PDF, Excel (.xlsx)
+3. Date Range Attendance Report
+   - **Purpose**: Comprehensive attendance analysis over a selected time period
+   - **Format**: Excel (.xlsx)
    - **Target Users**: Lecturers, Administrators
    - **Content Structure**:
-     - Header: Unit details, Date range, Lecturer name
-     - Body: 
-       - Numerical summaries (average ratings)
-       - Distribution of ratings (1-5 stars)
-       - Session pace feedback summary
-       - Content clarity metrics
-       - Anonymized comments
-     - Footer: Response rate, Generated date
-   - **Visual Elements**: 
-     - Radar charts for multidimensional feedback visualization
-     - Bar charts for rating distributions
-     - Word clouds for comment analysis (in PDF version only)
+     - Multiple sheets organizing attendance by date, student, and status
+     - Summary statistics showing attendance trends
+   - **Implementation**: Generated through the date range report modal in the lecturer dashboard
+   - **Data Selection**: Custom date range picker with optional unit selection
+   - **Technical Features**: Background processing for larger date ranges with progress indicator
 
-Report Generation Process:
-1. Data is aggregated from relevant collections based on query parameters
-2. Calculated fields (attendance rates, averages, etc.) are computed server-side
-3. Data is formatted according to report specifications
-4. Excel reports utilize templating with cell styling and conditional formatting
-5. PDF reports include header/footer with institutional branding
-6. All exports are validated for data integrity before delivery
-7. Large reports implement pagination and chunked downloads to optimize performance
+4. Administrative Student Reports
+   - **Purpose**: Facilitate student management and course assignment
+   - **Format**: CSV
+   - **Target Users**: Administrators
+   - **Content Structure**:
+     - Student details including registration number, name, email, course, year, and semester
+   - **Implementation**: Available through the Admin Panel's Student Management interface
+   - **Features**: Supports both export of existing students and template for bulk imports
+   - **Technical Notes**: Implements RFC 4180 compliant CSV formatting with proper header row
 
-Each report design follows institutional branding guidelines and incorporates accessibility features such as proper table headers, consistent color schemes, and text alternatives for visual elements in digital formats.
+5. Attendance Analytics Visualizations
+   - **Purpose**: Visualize attendance patterns and trends
+   - **Format**: Interactive in-app charts with export capabilities
+   - **Target Users**: Lecturers, Administrators
+   - **Chart Types**:
+     - Bar charts for attendance rates across units
+     - Line graphs for attendance trends over time
+     - Pie charts for present/absent distribution
+   - **Implementation**: Integrated into Admin Analytics and Lecturer Dashboards
+   - **Technical Implementation**: Chart.js with customized themes matching application style
+   - **Interactivity**: Dynamic filtering, hover tooltips, zooming capabilities
+
+The report generation process follows these steps:
+1. User selects report type and parameters (session, date range, unit, etc.)
+2. Backend validates request parameters and permissions
+3. MongoDB aggregation pipeline processes and filters relevant data
+4. Server formats data into appropriate output format (Excel/CSV)
+5. File is streamed to client for download with appropriate MIME type and filename
+6. Upon completion, success notification is displayed to user
+
+Performance considerations implemented in the reporting system include:
+- Paginated database queries to handle large datasets efficiently
+- Streaming response for file downloads to minimize memory usage
+- Background processing for complex reports with progress indicators
+- Client-side caching of frequently accessed analytics data
+- Resource throttling to prevent server overload during peak usage
+
+The system's export capabilities prioritize practical usability over aesthetic complexity, focusing on clear data presentation and compatibility with common spreadsheet applications. All exports include timestamps and filtering parameters to ensure proper context for the exported data.
 
 CHAPTER 5: 
 SYSTEM TESTING AND IMPLEMENTATION
@@ -963,7 +957,7 @@ Query Performance:
 - Visual inspection of query results for accuracy and completeness
 - Testing of complex aggregation pipelines for dashboard statistics
 - Verification of projection operations to ensure minimal data transfer
-- Manual testing of indexed vs. non-indexed field queries
+- Testing of indexed vs. non-indexed field queries
 - Response time observations for various query patterns
 
 Data Volume Testing:
@@ -1015,19 +1009,25 @@ Progressive Web Application (PWA) Implementation:
 Core Progressive Web Application (PWA) Features Implemented: Service Worker: For offline caching and background processing. Web Application Manifest: With icons, theme colors, and display settings. Installability: "Add to Home Screen" functionality. Caching Strategy: Application Shell Architecture: Core User Interface (UI) components cached for offline access. Application Programming Interface (API) Response Caching: For attendance history and user data. Static Asset Caching: For images, styles, and scripts. Offline Capabilities: View previously loaded attendance records. Access unit information and schedules. Store user profile and settings. Queue attendance marking attempts when offline.
 
 Frontend Implementation:
-Framework: React with functional components. Build Tool: Vite for development and production builds. User Interface (UI) Components: Ant Design library for consistent interface. Key Features: Quick Response (QR) Code Scanning: Using device camera. Real-time Updates: For attendance tracking. Responsive Design: Mobile-first approach. Theme Support: Light and dark mode options.
+Framework: React with functional components and React Hooks for state management. Build Tool: Vite for development and production builds with HMR (Hot Module Replacement) during development. User Interface (UI) Components: Ant Design library (version 5.x) for consistent interface with custom theming capabilities. State Management: Context API for theme and user authentication. Local state with useState and useReducer hooks for component-specific state. Key Features: Quick Response (QR) Code Scanning: Using device camera with jsQR library. Real-time Updates: For attendance tracking with optimized polling. Responsive Design: Mobile-first approach with CSS Grid and Flexbox. Theme Support: Light and dark mode options with dynamic theming system.
 
 Backend Implementation:
-Runtime: Node.js with Express framework. Application Programming Interface (API) Design: Representational State Transfer (RESTful) endpoints with proper status codes. Authentication: JavaScript Object Notation Web Token (JWT)-based with role validation. Security Features: Rate Limiting: 15 requests/minute as specified. Input Validation: For form submissions. Device Fingerprinting: For anti-spoofing. Data Sanitization: To prevent injection attacks.
+Runtime: Node.js (v16+) with Express framework (v4.17+). Application Programming Interface (API) Design: Representational State Transfer (RESTful) endpoints with proper status codes organized in a controller-based architecture. Authentication: JavaScript Object Notation Web Token (JWT)-based with role validation and token refresh mechanism. Security Features: Rate Limiting: 15 requests/minute with express-rate-limit middleware. Input Validation: For form submissions using express-validator. Device Fingerprinting: For anti-spoofing with browser fingerprinting techniques. Data Sanitization: To prevent injection attacks using mongo-sanitize. Error Handling: Centralized error handling middleware with appropriate status codes and messages. Logging: Morgan for HTTP request logging and custom logging for errors.
 
 Database Structure:
-Database: MongoDB with Mongoose Object Data Modeling (ODM). Collections: As implemented in provided schemas. Users: Student, lecturer, admin profiles. Sessions: With Quick Response (QR) code data and expiry. Attendance: Records with device verification. Units, Courses, Departments: Academic hierarchy. Feedback: Post-session student responses. Indexing: Optimized fields based on query patterns.
+Database: MongoDB with Mongoose Object Data Modeling (ODM) version 6.x. Collections: As implemented in provided schemas. Users: Student, lecturer, admin profiles with role-based permissions. Sessions: With Quick Response (QR) code data and expiry timestamps. Attendance: Records with device verification and validation flags. Units, Courses, Departments: Academic hierarchy with reference relationships. Feedback: Post-session student responses with anonymization support. Indexing: Optimized fields based on query patterns including compound indexes on frequently queried combinations. Schema Validation: Mongoose validators for data integrity and JavaScript Web Token (JWT) signature verification. Query Optimization: Projection to limit returned fields and pagination for large result sets.
 
 Security Measures:
-Authentication: JavaScript Object Notation Web Token (JWT) implementation with proper expiration. Password hashing with bcrypt. Role-based access control. Anti-Spoofing: 3-minute Quick Response (QR) code expiry as implemented. Device fingerprinting validation. Session-scoped tokens. Data Protection: Input validation and sanitization. Hypertext Transfer Protocol Secure (HTTPS) for all communications. Rate limiting on sensitive endpoints. GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning to identify potential security issues during development.
+Authentication: JavaScript Object Notation Web Token (JWT) implementation with proper expiration (24-hour tokens). Password hashing with bcrypt (10 rounds of salting). Role-based access control with middleware route protection. Anti-Spoofing: 3-minute Quick Response (QR) code expiry as implemented. Device fingerprinting validation with composite fingerprint generation. Session-scoped tokens with device binding. Data Protection: Input validation and sanitization to prevent NoSQL injection. Cross-site scripting (XSS) prevention with appropriate HTTP headers. Hypertext Transfer Protocol Secure (HTTPS) for all communications with TLS 1.3. Rate limiting on sensitive endpoints (15 requests per minute per IP). GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning to identify potential security issues during development. Dependency auditing with npm audit during build process.
 
 Deployment Configuration:
-Frontend (Progressive Web Application (PWA)): Hosting: Vercel (as specified in methodology). Build Process: Vite build with Progressive Web Application (PWA) capabilities. Domain: Custom project domain or Vercel subdomain.
+Frontend (Progressive Web Application (PWA)): 
+Hosting: Vercel (as specified in methodology). 
+Build Process: Vite build with Progressive Web Application (PWA) plugin for service worker generation. 
+Domain: Custom project domain or Vercel subdomain with automatic HTTPS.
+Environment Variables: Securely stored in Vercel project settings.
+Build Configuration: Optimized for performance with code splitting and tree shaking.
+CI/CD: Automated deployment on push to main branch with GitHub integration.
 
 Backend Application Programming Interface (API):
 Hosting: Render.com Web Service (free tier) with the following specifications and limitations:
@@ -1037,7 +1037,10 @@ Hosting: Render.com Web Service (free tier) with the following specifications an
 - Automatic HTTPS with TLS certificates
 - Build times limited to 20 minutes
 - Continuous deployment from GitHub repository
-Environment: Node.js runtime. Configuration: Environment variables for secrets.
+Environment: Node.js runtime (v16.x LTS).
+Configuration: Environment variables for secrets and configuration management.
+Process Management: Built-in process management by Render.com.
+Monitoring: Basic health checks and log access through Render dashboard.
 
 Database:
 Service: MongoDB Atlas (M0 free tier) with the following specifications:
@@ -1046,78 +1049,223 @@ Service: MongoDB Atlas (M0 free tier) with the following specifications:
 - Maximum 100 connections limit
 - Automated backups not available on free tier
 - Performance limitations for complex aggregation queries
-Configuration: M0 free tier cluster. Security: IP whitelisting, username/password authentication.
+Configuration: M0 free tier cluster with replica set for availability. 
+Security: IP whitelisting for API server access, username/password authentication with strong credentials.
+Connection Pooling: Mongoose connection pooling for efficient database connections.
+Monitoring: MongoDB Atlas monitoring tools for database performance and alerts.
 
 Coding Tools
 
 Development Environment:
-Primary Editor: Visual Studio Code. Version Control: Git with GitHub repository. Package Management: npm for dependencies.
+Primary Editor: Visual Studio Code with the following extensions:
+- ESLint for JavaScript linting
+- Prettier for code formatting
+- GitLens for Git integration
+- MongoDB for VS Code for database connectivity
+- Error Lens for inline error highlighting
+- ES7+ React snippets for React productivity
+- vscode-styled-components for styled-components support
+- JavaScript and TypeScript Nightly for latest JavaScript language features
+
+Version Control: 
+- Git with GitHub repository
+- GitHub Desktop for visual Git operations
+- GitHub Actions for continuous integration
+- Branch protection rules for main branch
+- Pull request workflow with code reviews
+
+Package Management: 
+- npm for dependencies with package-lock.json for version locking
+- npm scripts for development workflows
+- npx for running package binaries without installation
+
+Project Configuration:
+- ESLint configuration for code quality standards
+- Prettier for consistent code formatting
+- .env files for local environment variables
+- .gitignore for excluding files from version control
+- jsconfig.json for JavaScript configuration and module aliasing
 
 Frontend Development:
-Core Libraries: React: User Interface (UI) component library. react-router-dom: Navigation and routing. axios: Application Programming Interface (API) requests and interceptors. Ant Design: User Interface (UI) component framework. jsQR: Quick Response (QR) code scanning capability. day.js: Date manipulation utility. Progressive Web Application (PWA) Tools: Workbox/vite-pwa: Service Worker generation. Web Application Manifest configuration. Offline capability implementation.
+Core Libraries: 
+- React (v18.x): User Interface (UI) component library with React Hooks
+- react-router-dom (v6.x): Declarative routing with hooks-based API
+- axios (v1.x): Promise-based HTTP client with interceptors for API requests
+- Ant Design (v5.x): UI component framework with customizable theming
+- styled-components: CSS-in-JS styling solution
+- Chart.js with react-chartjs-2: Data visualization library
+- jsQR (v1.4.x): Quick Response (QR) code scanning capability
+- dayjs (v1.x): Lightweight date manipulation utility (alternative to moment.js)
+- react-csv: CSV export functionality
+- jwt-decode: Client-side JWT token parsing
+
+Progressive Web Application (PWA) Tools: 
+- vite-pwa-plugin: Service Worker generation for Vite
+- workbox-window: Service worker registration and updates
+- Web Application Manifest configuration with custom icons
+- IndexedDB for structured client-side storage
+- navigator.online API for connectivity detection
+
+Build Tools:
+- Vite: Fast development server and optimized production builds
+- PostCSS: For CSS processing and autoprefixing
+- Babel: JavaScript transpilation (integrated with Vite)
+- SWC: Fast JavaScript/TypeScript compilation
+- Terser: JavaScript minification for production builds
+
+Frontend Testing:
+- Manual browser testing across platforms
+- Lighthouse for performance and PWA audits
+- Chrome DevTools for debugging and performance profiling
+- axe DevTools for accessibility testing
 
 Backend Development:
-Core Libraries: Express: Web server framework. Mongoose: MongoDB Object Data Modeling (ODM). jsonwebtoken: JavaScript Object Notation Web Token (JWT) implementation. bcrypt: Password hashing. express-validator: Input validation. express-rate-limit: Request throttling. multer: File upload handling. nodemailer: Email service integration.
+Core Libraries: 
+- Express (v4.17+): Web server framework with middleware architecture
+- Mongoose (v6.x): MongoDB Object Data Modeling (ODM) with schema validation
+- jsonwebtoken (v9.x): JavaScript Object Notation Web Token (JWT) implementation with robust validation
+- bcrypt (v5.x): Password hashing with configurable salt rounds
+- express-validator: Request validation middleware
+- express-rate-limit: Request throttling for API protection
+- multer: File upload handling with disk storage engine
+- nodemailer: Email service integration for password reset
+- cors: Cross-Origin Resource Sharing middleware
+- helmet: HTTP security headers
+- compression: Response compression for improved performance
+- morgan: HTTP request logging
 
-Testing Tools:
-Manual Testing: Cross-browser compatibility checks. Browser DevTools: For Progressive Web Application (PWA) debugging and network analysis. Postman: Application Programming Interface (API) endpoint testing.
+API Development:
+- Insomnia/Postman: API testing and documentation
+- Express middleware patterns for authentication and validation
+- MVC architecture for route organization
+- Controller-based request handling
+- Service layer for business logic
+
+Database Tools:
+- MongoDB Compass: Visual database management and query optimization
+- MongoDB Atlas dashboard: Cloud database management and monitoring
+- Mongoose schemas with pre/post hooks
+- MongoDB aggregation pipelines for complex queries
+- Indexing strategies for performance optimization
+
+Backend Testing:
+- Manual API testing with Postman collections
+- Error logging and monitoring
+- Database query performance analysis
+- Load testing with simple concurrent request simulation
+
+Security Tools:
+- GitHub CodeQL for automated code scanning
+- npm audit for dependency vulnerability checking
+- OWASP ZAP for basic security testing
+- JWT debugging tools for token validation
+- bcrypt for secure password storage
+- Helmet.js for HTTP security headers
 
 Documentation:
-Markdown: For project documentation. JSDoc: Code-level documentation. Diagrams: Flow charts and entity relationships.
+- Markdown: For project documentation and README files
+- JSDoc: Code-level documentation with type annotations
+- Mermaid: Diagram generation for architecture and flows
+- draw.io/diagrams.net: Visual diagram creation
+- README templates for component and API documentation
+- Swagger/OpenAPI: API documentation (planned but not fully implemented)
 
-The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions.
+Collaboration Tools:
+- GitHub Issues: Bug tracking and feature requests
+- GitHub Projects: Kanban-style project management
+- Discord: Team communication and coordination
+- Google Docs: Shared documentation and planning
+- Google Meet: Virtual meetings and pair programming sessions
+
+The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions. The development approach prioritized modularity, code reusability, and adherence to best practices for maintainability and future expansion.
 
 System Screenshots
 
+Home/Landing Page
+![Home Page](https://i.imgur.com/vNgK6xW.png)
+*Figure 5.1: QRollCall system landing page with feature highlights*
+
+The landing page provides an introduction to the QRollCall system, highlighting its key features and benefits for different user types. The responsive design adapts to both desktop and mobile devices, featuring an intuitive navigation that guides new users to either sign up or log in. The page includes informative sections about the system's anti-spoofing measures, real-time monitoring capabilities, and cross-platform support.
+
 Authentication Interface
 ![Login Screen](https://i.imgur.com/vXk3LG7.png)
-*Figure 5.1: Login screen with role selection and secure authentication*
+*Figure 5.2: Login screen with role selection and secure authentication*
 
 The login screen features JavaScript Object Notation Web Token (JWT)-based authentication with role selection for students, lecturers, and administrators. The responsive design adapts to both mobile and desktop views with a clean, intuitive interface that includes password visibility toggle and validation feedback.
 
+Password Reset Interface
+![Password Reset](https://i.imgur.com/dFrj5X8.png)
+*Figure 5.3: Password reset request page with email validation*
+
+The password reset workflow provides a secure mechanism for users to regain access to their accounts through a validated email link. The system implements strict validation checks and provides clear feedback on request status, with token-based secure reset links that expire after 24 hours.
+
 Student Dashboard
 ![Student Dashboard](https://i.imgur.com/J7ML4pP.png)
-*Figure 5.2: Student Dashboard with unit cards and attendance statistics*
+*Figure 5.4: Student Dashboard with unit cards and attendance statistics*
 
 The student dashboard provides a comprehensive overview of enrolled units with color-coded attendance metrics, real-time active session indicators, and quick access to Quick Response (QR) scanning. The interface incorporates Ant Design components with a custom theme system supporting both light and dark modes.
 
 Quick Response (QR) Code Scanning Interface
 ![QR Scanner](https://i.imgur.com/RTd9hgX.png)
-*Figure 5.3: Quick Response (QR) code scanner with overlay and real-time feedback*
+*Figure 5.5: Quick Response (QR) code scanner with overlay and real-time feedback*
 
 The Quick Response (QR) scanning interface utilizes device camera access with a guided overlay to assist positioning. The scanner includes real-time validation feedback and device fingerprinting to prevent proxy attendance, with clear success/error states to guide users.
 
 Lecturer Session Management
 ![Session Management](https://i.imgur.com/8GhQZbf.png)
-*Figure 5.4: Lecturer's session management with Quick Response (QR) code generation*
+*Figure 5.6: Lecturer's session management with Quick Response (QR) code generation*
 
 Lecturers can create and manage attendance sessions with automatic Quick Response (QR) code generation that refreshes every 3 minutes. The interface displays real-time attendance counts, student status updates, and session timers with options to end sessions and mark absentees.
 
+Unit Management Interface
+![Unit Management](https://i.imgur.com/kP8HgN2.png)
+*Figure 5.7: Unit management interface with enrolled students list*
+
+The unit management interface allows lecturers and administrators to configure units, associate them with courses, and manage enrolled students. The responsive design provides filtering options, bulk actions, and detailed unit information, all accessible through an intuitive tabbed interface.
+
 Attendance Analytics
 ![Analytics Dashboard](https://i.imgur.com/wP6JcP4.png)
-*Figure 5.5: Attendance analytics with interactive charts*
+*Figure 5.8: Attendance analytics with interactive charts*
 
 The analytics interface provides interactive charts and visualizations for attendance trends across different time periods. Lecturers and administrators can filter data by date range, unit, or student status to gain insights into attendance patterns.
 
 Administration Interface
 ![Admin Dashboard](https://i.imgur.com/kLDJ9mH.png)
-*Figure 5.6: Administrator dashboard for system management*
+*Figure 5.9: Administrator dashboard for system management*
 
 The administration dashboard offers comprehensive user, course, and department management with bulk import/export capabilities. The interface includes search functionality, filtering, and detailed analytics for institution-wide attendance monitoring.
 
+User Management Interface
+![User Management](https://i.imgur.com/qLhBdRe.png)
+*Figure 5.10: User management interface with bulk operations*
+
+Administrators can manage all system users through this interface, which provides capabilities for adding, editing, and removing users across all roles. The interface supports CSV import/export for bulk operations, role assignment, and detailed user information management with appropriate validation.
+
 Feedback System
 ![Feedback Interface](https://i.imgur.com/RzW2Lpd.png)
-*Figure 5.7: Student feedback submission form*
+*Figure 5.11: Student feedback submission form*
 
 The feedback system enables students to provide ratings and comments after attended sessions, with options for anonymous submissions. Collected feedback is visualized for lecturers through analytical reports and sentiment analysis.
 
 Mobile Responsiveness
 ![Mobile View](https://i.imgur.com/Nq3C2UK.png)
-*Figure 5.8: Mobile responsive design of the Quick Response (QR) scanner*
+*Figure 5.12: Mobile responsive design of the Quick Response (QR) scanner*
 
 The system's Progressive Web Application (PWA) capabilities ensure full functionality across devices, with responsive layouts that adapt to different screen sizes. The mobile interface maintains usability while preserving essential features.
 
-Chapter Conclusion
+System Settings and Theme Customization
+![System Settings](https://i.imgur.com/3RKbNjh.png)
+*Figure 5.13: System settings with theme customization options*
+
+Users can personalize their experience through the settings interface, which provides options for theme customization (light/dark mode), notification preferences, and account management. The settings are synchronized across devices through the user profile stored in the database.
+
+Offline Mode Interface
+![Offline Mode](https://i.imgur.com/PjrCSvV.png)
+*Figure 5.14: System interface in offline mode with cached data*
+
+When network connectivity is lost, the system automatically transitions to offline mode, displaying cached data and providing clear visual indicators of limited functionality. Users can still view previously loaded attendance records, unit information, and other cached content until connectivity is restored.
+
+CONCLUSION
 
 The implementation and testing phase of the Quick Response Code (QR Code)-based Smart Attendance System demonstrated successful realization of the project's core objectives. The system effectively addresses the challenges identified in traditional and existing digital attendance systems through several key innovations:
 

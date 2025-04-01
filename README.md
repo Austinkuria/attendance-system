@@ -1,4 +1,4 @@
-# QRollCall - Smart QR Code Attendance System
+# QRollCall - Smart QR Code based Student Attendance System
 
 QRollCall is a comprehensive web-based attendance tracking application designed for educational institutions. It uses QR code technology for efficient attendance management, allowing lecturers to generate unique QR codes for each session that students can scan to mark their attendance.
 
