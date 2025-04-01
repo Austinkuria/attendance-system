@@ -207,280 +207,9 @@ flowchart TB
     class RateLimiting limiter;
 ```
 
-Input Design (User Interfaces)
-
-The QRollCall system implements intuitive and responsive user interfaces optimized for both mobile and desktop use. The interface design focuses on usability, accessibility, and efficiency while maintaining visual consistency through the Ant Design component library with custom theming.
-
-1. Authentication Interface
-   a) Login Form:
-      - Username/Registration Number field with validation (required)
-      - Password field with show/hide toggle using Ant Design Input.Password
-      - Role selection dropdown (Admin/Lecturer/Student) with icons
-      - Remember me checkbox persisting to localStorage
-      - Forgot password link with modal dialog
-      - Login button with loading state during authentication
-      - Form validation with clear error messages
-      - Light/dark theme toggle support
-      
-      ![Login Form](https://i.imgur.com/vXk3LG7.png)
-      *Login form with responsive layout and validation*
-   
-   b) Password Recovery:
-      - Email/Registration Number input with format validation
-      - Security questions with dynamic generation based on user
-      - New password input with strength indicator bar
-      - Password confirmation field with match validation
-      - Reset button with confirmation dialog
-      - Step-by-step process with progress indicator
-
-2. Session Management Interface
-   a) Session Creation (Lecturer):
-      - Unit selection dropdown with search functionality
-      - Default 60-minute session duration with custom options
-      - Location input with autocomplete suggestions
-      - Notes/Description rich text field
-      - Generate QR button with loading state
-      - Session preview with summary details
-      - Save to calendar integration option
-      
-      ![Session Creation](https://i.imgur.com/8GhQZbf.png)
-      *Session creation interface with unit selection and QR generation*
-   
-   b) QR Display:
-      - Dynamically generated QR code with 3-minute auto-refresh
-      - Countdown timer showing remaining time until refresh
-      - Student attendance counter with real-time updates
-      - Manual refresh button with success animation
-      - End session button with confirmation dialog
-      - Session information display panel
-      - Shareable link option with copy button
-   
-   c) Real-time Monitoring:
-      - Live attendance count with percentage calculation
-      - Present/absent student lists with search functionality
-      - Tabbed interface for different viewing options
-      - Status column with color-coded indicators
-      - Export options (Excel/CSV) with file naming options
-      - Session status indicator with color-coding
-      - Device filtering for potential duplicate detection
-
-3. Student Interface
-   a) QR Scanner:
-      - Camera permission request with fallback instructions
-      - Scanner viewport with positioning guidelines overlay
-      - Flash toggle for low-light environments
-      - Manual code input option for camera issues
-      - Status indicators (scanning, success, error)
-      - Scan history with timestamps
-      - Device status monitoring for compatibility
-      
-      ![QR Scanner](https://i.imgur.com/RTd9hgX.png)
-      *QR scanner with positioning overlay and status indicators*
-   
-   b) Attendance History:
-      - Dashboard view with attendance statistics cards
-      - Calendar view with color-coded attendance markers
-      - List view with the following filters:
-        • Date range picker with presets (today, this week, this month)
-        • Unit multi-select dropdown with search
-        • Status filter buttons (Present/Absent/All)
-      - Attendance percentage visualization per unit
-      - Personal records export to PDF or Excel
-      - Timeline view with chronological attendance events
-      
-      ![Student Dashboard](https://i.imgur.com/J7ML4pP.png)
-      *Student dashboard with attendance statistics and unit cards*
-   
-   c) Feedback Form:
-      - Session information display with unit and lecturer details
-      - Overall experience rating using 5-star component
-      - Pace rating slider (Too Slow/Just Right/Too Fast)
-      - Understanding checkbox group with multiple options
-      - Comments text area with character counter
-      - Anonymous submission toggle switch
-      - Submit button with confirmation and success message
-      
-      ![Feedback Form](https://i.imgur.com/RzW2Lpd.png)
-      *Feedback submission form with multiple input types*
-
-4. Administrative Interface
-   a) User Management:
-      - User creation form with role-based field display
-      - Bulk import interface with CSV template download
-      - User search with multiple filter combinations
-      - Data table with sortable, filterable columns
-      - Edit/Delete actions with confirmation safeguards
-      - Permission management through role assignment
-      - Batch action tools for multiple user operations
-      
-      ![Admin Dashboard](https://i.imgur.com/kLDJ9mH.png)
-      *Admin dashboard with user management and analytics*
-   
-   b) Course Management:
-      - Course creation wizard with step indicators
-      - Unit assignment interface with drag-and-drop support
-      - Lecturer allocation with search and filter
-      - Student enrollment manager with batch operations
-      - Course analytics dashboard with attendance metrics
-      - Department organization hierarchy view
-      - Academic calendar integration
-
-5. Common Interface Elements
-   a) Navigation:
-      - Collapsible sidebar with responsive breakpoints
-      - Breadcrumb trail showing current location
-      - Quick action floating buttons for common tasks
-      - Profile dropdown menu with user information
-      - Back-to-top button on scrollable pages
-      - Mobile-optimized menu with larger touch targets
-   
-   b) Notifications:
-      - Toast messages for actions using Ant Design message
-      - Status alerts with appropriate severity levels
-      - Session reminders with countdown timers
-      - System notifications for important events
-      - Offline indicator when connectivity is lost
-      - Error handling with user-friendly messages
-   
-   c) Data Tables:
-      - Sortable columns with multiple sort support
-      - Global and column-specific search functionality
-      - Pagination controls with items-per-page options
-      - Bulk action toolbars for selected rows
-      - Export options with format selection
-      - Responsive design with horizontal scrolling on mobile
-      - Row highlighting for new or updated data
-
-The interface design implements accessibility features including keyboard navigation, screen reader support, and sufficient color contrast. All input forms include proper validation with clear error messages and success states. The responsive design ensures usability across device types from mobile phones to desktop computers.
-
 Process Design
 
-1. Detailed Use Case Diagrams:
-
-```mermaid
-graph TB
-    %% Actors
-    Student((Student))
-    Lecturer((Lecturer))
-    Admin((Admin))
-    System[System]
-    
-    %% Student Use Cases
-    Student --> Auth1[Authentication]
-    Student --> QRScan[Scan QR Code]
-    Student --> ViewAttendance[View Attendance]
-    Student --> ManageProfile[Manage Profile]
-    Student --> SubmitFeedback[Submit Feedback]
-    Student --> ViewAnalytics[View Analytics]
-    Student --> ExportData[Export Data]
-    
-    %% Lecturer Use Cases
-    Lecturer --> Auth2[Authentication]
-    Lecturer --> CreateSession[Create Session]
-    Lecturer --> GenerateQR[Generate QR]
-    Lecturer --> MonitorLive[Monitor Live]
-    Lecturer --> ManageUnits[Manage Units]
-    Lecturer --> ViewReports[View Reports]
-    Lecturer --> ExportStats[Export Stats]
-    Lecturer --> ReviewFeedback[Review Feedback]
-    
-    %% Admin Use Cases
-    Admin --> Auth3[Authentication]
-    Admin --> ManageUsers[Manage Users]
-    Admin --> ManageCourses[Manage Courses]
-    Admin --> ConfigSystem[Configure System]
-    Admin --> ViewLogs[View Logs]
-    Admin --> BackupData[Backup Data]
-    Admin --> GenerateReports[Generate Reports]
-    
-    %% System Interactions
-    Auth1 & Auth2 & Auth3 --> System
-    QRScan --> System
-    CreateSession --> System
-    ManageUsers --> System
-    ViewAnalytics --> System
-```
-
-2. Detailed Session Flow:
-
-```mermaid
-stateDiagram-v2
-    [*] --> LecturerLogin: Start
-    LecturerLogin --> SessionCreation: Authenticate
-    SessionCreation --> QRGeneration: Configure
-    
-    state QRGeneration {
-        [*] --> Generate
-        Generate --> Display
-        Display --> Refresh: Every 3 min
-        Refresh --> Generate
-    }
-    
-    QRGeneration --> StudentScanning
-    
-    state StudentScanning {
-        [*] --> ScanAttempt
-        ScanAttempt --> DeviceCheck
-        DeviceCheck --> TokenValidation
-        TokenValidation --> AttendanceMark: Valid
-        TokenValidation --> RejectionError: Invalid
-        DeviceCheck --> RejectionError: Invalid
-    }
-    
-    StudentScanning --> AttendanceTracking
-    
-    state AttendanceTracking {
-        [*] --> RealTimeUpdates
-        RealTimeUpdates --> Statistics
-        Statistics --> FeedbackPrompt
-    }
-    
-    AttendanceTracking --> SessionEnd
-    SessionEnd --> [*]: Complete
-```
-
-3. System Architecture Flow:
-
-```mermaid
-flowchart TD
-    %% Define Client Layer
-    subgraph CL[Client Layer]
-        RF[React Frontend]
-        PF[PWA Features]
-        BC[Browser Cache]
-    end
-
-    %% Define Security Layer
-    subgraph SL[Security Layer]
-        JA[JWT Auth]
-        DF[Device Fingerprint]
-        RL[Rate Limiter]
-    end
-
-    %% Define Application Layer
-    subgraph AppLayer[Application Layer]
-        API[Express API]
-        QR[QR Service]
-        AttLogic[Attendance Logic]
-    end
-
-    %% Define Data Layer
-    subgraph DL[Data Layer]
-        DB[(MongoDB)]
-        FS[File Storage]
-    end
-
-    %% Define Layer Connections
-    CL -.-> SL
-    SL -.-> AppLayer
-    AppLayer -.-> DL
-
-    %% Define Cross-Layer Connections
-    API <-..-> DB
-    QR <-..-> FS
-```
-
-4. Detailed Authentication Flow:
+1. Detailed Authentication Flow (Actual Implementation):
 
 ```mermaid
 sequenceDiagram
@@ -497,65 +226,271 @@ sequenceDiagram
     
     alt Invalid Credentials
         A-->>C: 401 Unauthorized
-        C-->>U: Show Error
+        C-->>U: Show Error Alert
     else Valid Credentials
-        A->>T: Generate Tokens
-        T-->>A: JWT Tokens
-        A-->>D: Update Last Login
-        A-->>C: 200 OK + Tokens
-        C->>C: Store Tokens in localStorage
-        C-->>U: Redirect to Dashboard
+        A->>T: Generate JWT Token
+        T-->>A: Access Token + User Data
+        A-->>C: 200 OK + Token + User Profile
+        C->>C: Store Token in localStorage
+        C->>C: Store User Data in localStorage
+        C-->>U: Redirect to Role-Based Dashboard
     end
     
     Note over C,A: Subsequent Requests
-    C->>A: Request + JWT in Authorization header
+    C->>A: Request with Authorization: Bearer {token}
     A->>T: Verify Token
-    T-->>A: Token Valid
-    A->>D: Fetch Resources
-    D-->>A: Data
-    A-->>C: Response
+    
+    alt Token Valid
+        T-->>A: Token Valid
+        A->>D: Fetch Resources
+        D-->>A: Data
+        A-->>C: Response 200 OK
+    else Token Invalid/Expired
+        T-->>A: Token Invalid
+        A-->>C: Response 401 Unauthorized
+        C-->>U: Redirect to Login
+    end
 ```
 
-5. Attendance Marking Flow (Implemented Version):
+2. Session Management Flow (Actual Implementation):
+
+```mermaid
+stateDiagram-v2
+    [*] --> LecturerLogin: Start
+    LecturerLogin --> Dashboard: Authenticate
+    Dashboard --> UnitSelection: Select Unit
+    UnitSelection --> SessionCreation: Click "Create Session"
+    
+    SessionCreation --> SessionActive: API Success
+    
+    state SessionActive {
+        [*] --> GenerateQR
+        GenerateQR --> DisplayQR
+        DisplayQR --> QRRefresh: Every 3 minutes
+        QRRefresh --> GenerateQR
+        
+        state AttendanceMonitoring {
+            [*] --> PollAttendance
+            PollAttendance --> UpdateTable
+            UpdateTable --> HighlightNew
+            HighlightNew --> PollAttendance: Every 30s
+        }
+    }
+    
+    SessionActive --> EndSessionPrompt: Click "End Session"
+    EndSessionPrompt --> SessionEnd: Confirm
+    SessionEnd --> [*]: Complete
+```
+
+3. Attendance Marking Flow (Actual Implementation):
 
 ```mermaid
 flowchart TB
     Start([Start]) --> LecturerAuth[Lecturer Authentication]
-    LecturerAuth --> CreateSession[Create Session]
+    LecturerAuth --> UnitSelect[Select Unit]
+    UnitSelect --> CreateSession[Create 60-min Session]
     CreateSession --> GenerateQR[Generate QR Code]
     
-    subgraph QR_Management[QR Management]
-        GenerateQR --> DisplayQR[Display QR]
-        DisplayQR --> RefreshTimer{3min Timer}
-        RefreshTimer -->|Expired| GenerateQR
+    subgraph QR_Management[QR Code Management]
+        GenerateQR --> DisplayQR[Display QR Modal]
+        DisplayQR --> RefreshTimer{3-min Timer}
+        RefreshTimer -->|Expired| RegenerateQR[Regenerate QR]
         RefreshTimer -->|Valid| WaitScan[Wait for Scan]
+        RegenerateQR --> DisplayQR
     end
     
-    subgraph Student_Flow[Student Flow]
-        StudentScan[Student Scans] --> DeviceCheck{Device Fingerprinting}
+    subgraph Student_Flow[Student Attendance Process]
+        StudentLogin[Student Login] --> OpenScanner[Open QR Scanner]
+        OpenScanner --> CameraPermission{Camera Permission?}
+        CameraPermission -->|Denied| PermissionError[Show Permission Error]
+        CameraPermission -->|Granted| ScanAttempt[Scan QR Code]
+        
+        ScanAttempt --> DeviceCheck{Device Fingerprinting}
         DeviceCheck -->|Valid| TokenCheck{QR Token Valid?}
-        DeviceCheck -->|Invalid| RejectScan[Reject Scan]
+        DeviceCheck -->|Invalid| RejectScan[Reject: Device Mismatch]
         
-        TokenCheck -->|Yes| SessionStatus{Session Active?}
-        TokenCheck -->|No| RejectScan
+        TokenCheck -->|Yes| IPCheck{IP Address Check}
+        TokenCheck -->|No| InvalidToken[Reject: Invalid/Expired Token]
         
-        SessionStatus -->|Yes| MarkAttendance[Mark Present]
-        SessionStatus -->|No| RejectLate[Too Late]
+        IPCheck -->|Valid| SessionStatus{Session Active?}
+        IPCheck -->|Conflict| IPConflict[Reject: IP Conflict]
         
-        MarkAttendance --> UpdateStats[Update Statistics]
-        UpdateStats --> EnableFeedback[Enable Feedback]
+        SessionStatus -->|Yes| DuplicateCheck{Already Marked?}
+        SessionStatus -->|No| SessionEnded[Reject: Session Ended]
+        
+        DuplicateCheck -->|No| MarkAttendance[Mark Present]
+        DuplicateCheck -->|Yes| AlreadyMarked[Show Already Marked]
+        
+        MarkAttendance --> UpdateStats[Update Attendance Stats]
+        UpdateStats --> EnableFeedback[Enable Feedback Option]
     end
     
-    subgraph Realtime_Updates[Real-time Updates]
-        UpdateStats --> PollServer[Polling Update]
-        PollServer --> UpdateUI[Update UI]
-        UpdateUI --> NotifyLecturer[Notify Lecturer]
+    subgraph Realtime_Updates[Lecturer's Real-time View]
+        PollServer[Polling Server Every 30s] --> ProcessUpdate[Process Updates]
+        ProcessUpdate --> UpdateUI[Update Table]
+        UpdateUI --> HighlightNew[Highlight New Entries]
+        HighlightNew --> CalculateStats[Recalculate Statistics]
     end
     
-    RejectScan --> Error[Show Error]
-    RejectLate --> Error
-    EnableFeedback --> End([End])
-    NotifyLecturer --> End
+    RejectScan & InvalidToken & IPConflict & SessionEnded & AlreadyMarked --> ShowError[Show Specific Error Message]
+    ShowError --> RetryOption[Option to Retry]
+    
+    EnableFeedback --> FeedbackPrompt[Prompt for Session Feedback]
+    CalculateStats --> Dashboard[Update Dashboard]
+```
+
+4. Data Persistence Flow (Actual Implementation):
+
+```mermaid
+flowchart LR
+    subgraph Client_Storage[Client-Side Storage]
+        LS[(localStorage)]
+        IDB[(IndexedDB)]
+    end
+    
+    subgraph App_Components[Application Components]
+        Auth[Authentication]
+        Profile[User Profile]
+        Sessions[Active Sessions]
+        Attendance[Attendance Records]
+        Units[Course Units]
+        Settings[User Settings]
+    end
+    
+    subgraph Server_Storage[Server-Side Storage]
+        MongoDB[(MongoDB Atlas)]
+        FileStore[File Storage]
+    end
+    
+    Auth -->|Store JWT Token| LS
+    Auth -->|Store User Data| LS
+    
+    Profile -->|Cache Profile| LS
+    Settings -->|Store Theme Preference| LS
+    
+    Sessions -->|Store Active Session| LS
+    Sessions -->|QR Code Data| LS
+    
+    Attendance -->|Cache Recent Records| IDB
+    Units -->|Store Unit List| IDB
+    
+    LS & IDB -->|Sync When Online| MongoDB
+    MongoDB -->|Fetch Updates| LS & IDB
+    
+    Attendance -->|Export Reports| FileStore
+```
+
+5. Feedback Submission Flow (Actual Implementation):
+
+```mermaid
+sequenceDiagram
+    participant S as Student
+    participant C as Client
+    participant A as API
+    participant DB as Database
+    
+    Note over S,C: After Session Attendance
+    S->>C: Open Dashboard
+    
+    alt Has Unmarked Feedback
+        C->>A: GET /api/feedback/pending
+        A->>DB: Query Pending Feedback
+        DB-->>A: Return Sessions Without Feedback
+        A-->>C: Return Pending Feedback Sessions
+        C->>S: Show Feedback Prompt
+        
+        S->>C: Open Feedback Form
+        S->>C: Rate Experience (1-5 stars)
+        S->>C: Rate Session Pace (Slider)
+        S->>C: Rate Interactivity (Score)
+        S->>C: Toggle Content Clarity
+        S->>C: Optional Text Comments
+        S->>C: Toggle Anonymous Option
+        S->>C: Submit Feedback
+        
+        C->>A: POST /api/feedback/submit
+        A->>DB: Store Feedback Record
+        A->>DB: Update Attendance Record (feedbackSubmitted=true)
+        DB-->>A: Confirmation
+        A-->>C: Success Response
+        C->>S: Show Success Message
+    else No Pending Feedback
+        C->>S: Normal Dashboard View
+    end
+    
+    Note over S,C: For Lecturer
+    
+    C->>A: GET /api/feedback/session/{sessionId}
+    A->>DB: Fetch Session Feedback
+    DB-->>A: Return Anonymized Feedback Data
+    A-->>C: Return Feedback Summary
+    C->>S: Display Feedback Analytics
+```
+
+6. Administration Workflow (Actual Implementation):
+
+```mermaid
+flowchart TD
+    AdminLogin([Admin Login]) --> Dashboard[Admin Dashboard]
+    
+    Dashboard --> UserManagement[User Management]
+    Dashboard --> CourseManagement[Course & Unit Management]
+    Dashboard --> DepartmentManagement[Department Management]
+    Dashboard --> AttendanceAnalytics[Attendance Analytics]
+    
+    subgraph User_Management[User Management Interface]
+        UserManagement --> ManageStudents[Manage Students]
+        UserManagement --> ManageLecturers[Manage Lecturers]
+        UserManagement --> ManageAdmins[Manage Admins]
+        
+        ManageStudents --> StudentOperations[Student Operations]
+        StudentOperations --> AddStudent[Add Student]
+        StudentOperations --> EditStudent[Edit Student]
+        StudentOperations --> DeleteStudent[Delete Student]
+        StudentOperations --> CSVImport[Import from CSV]
+        StudentOperations --> CSVExport[Export to CSV]
+        StudentOperations --> AssignCourse[Assign to Course]
+        StudentOperations --> FilterStudents[Filter Students]
+        
+        ManageLecturers --> LecturerOperations[Lecturer Operations]
+        LecturerOperations --> AddLecturer[Add Lecturer]
+        LecturerOperations --> EditLecturer[Edit Lecturer]
+        LecturerOperations --> DeleteLecturer[Delete Lecturer]
+        LecturerOperations --> AssignDepartment[Assign to Department]
+        LecturerOperations --> AssignUnits[Assign Units]
+    end
+    
+    subgraph Course_Management[Course Management]
+        CourseManagement --> AddCourse[Add New Course]
+        CourseManagement --> EditCourse[Edit Course]
+        CourseManagement --> DeleteCourse[Delete Course]
+        CourseManagement --> AssignUnitsTo[Assign Units to Course]
+        CourseManagement --> AssignDeptTo[Assign to Department]
+        
+        AddCourse --> FillCourseDetails[Fill Course Details]
+        FillCourseDetails --> SelectDepartment[Select Department]
+        SelectDepartment --> SubmitCourse[Submit Course]
+    end
+    
+    subgraph Department_Management[Department Management]
+        DepartmentManagement --> AddDepartment[Add Department]
+        DepartmentManagement --> EditDepartment[Edit Department Details]
+        DepartmentManagement --> DeleteDepartment[Delete Department]
+        DepartmentManagement --> ViewDepartmentCourses[View Associated Courses]
+    end
+    
+    subgraph Analytics_Dashboard[Analytics Dashboard]
+        AttendanceAnalytics --> FilterData[Filter Data]
+        FilterData --> SelectCourse[Select Course]
+        FilterData --> SelectUnit[Select Unit]
+        FilterData --> SelectDateRange[Select Date Range]
+        FilterData --> SelectLecturer[Select Lecturer]
+        
+        SelectCourse & SelectUnit & SelectDateRange & SelectLecturer --> GenerateCharts[Generate Charts]
+        GenerateCharts --> AttendanceRateChart[Attendance Rate Chart]
+        GenerateCharts --> AttendanceTrendChart[Attendance Trend Chart]
+        GenerateCharts --> ExportReport[Export Analytics Report]
+    end
 ```
 
 Entity Relationship Diagram (Actual Implementation):
