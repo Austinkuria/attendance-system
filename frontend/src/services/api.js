@@ -838,6 +838,36 @@ export const getUnitsByCourse = async (courseId) => {
   }
 };
 
+// Enroll a student in a unit
+export const enrollStudentInUnit = async (studentId, unitId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/students/${studentId}/units`,
+      { unitId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error enrolling student in unit:', error);
+    throw error;
+  }
+};
+
+// Remove a student from a unit
+export const removeStudentFromUnit = async (studentId, unitId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.delete(
+      `${API_URL}/students/${studentId}/units/${unitId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error removing student from unit:', error);
+    throw error;
+  }
+};
 
 // addUnitToCourse
 export const addUnitToCourse = async (courseId, unitData) => {
