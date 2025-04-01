@@ -963,7 +963,7 @@ Query Performance:
 - Visual inspection of query results for accuracy and completeness
 - Testing of complex aggregation pipelines for dashboard statistics
 - Verification of projection operations to ensure minimal data transfer
-- Manual testing of indexed vs. non-indexed field queries
+- Testing of indexed vs. non-indexed field queries
 - Response time observations for various query patterns
 
 Data Volume Testing:
@@ -1015,19 +1015,25 @@ Progressive Web Application (PWA) Implementation:
 Core Progressive Web Application (PWA) Features Implemented: Service Worker: For offline caching and background processing. Web Application Manifest: With icons, theme colors, and display settings. Installability: "Add to Home Screen" functionality. Caching Strategy: Application Shell Architecture: Core User Interface (UI) components cached for offline access. Application Programming Interface (API) Response Caching: For attendance history and user data. Static Asset Caching: For images, styles, and scripts. Offline Capabilities: View previously loaded attendance records. Access unit information and schedules. Store user profile and settings. Queue attendance marking attempts when offline.
 
 Frontend Implementation:
-Framework: React with functional components. Build Tool: Vite for development and production builds. User Interface (UI) Components: Ant Design library for consistent interface. Key Features: Quick Response (QR) Code Scanning: Using device camera. Real-time Updates: For attendance tracking. Responsive Design: Mobile-first approach. Theme Support: Light and dark mode options.
+Framework: React with functional components and React Hooks for state management. Build Tool: Vite for development and production builds with HMR (Hot Module Replacement) during development. User Interface (UI) Components: Ant Design library (version 5.x) for consistent interface with custom theming capabilities. State Management: Context API for theme and user authentication. Local state with useState and useReducer hooks for component-specific state. Key Features: Quick Response (QR) Code Scanning: Using device camera with jsQR library. Real-time Updates: For attendance tracking with optimized polling. Responsive Design: Mobile-first approach with CSS Grid and Flexbox. Theme Support: Light and dark mode options with dynamic theming system.
 
 Backend Implementation:
-Runtime: Node.js with Express framework. Application Programming Interface (API) Design: Representational State Transfer (RESTful) endpoints with proper status codes. Authentication: JavaScript Object Notation Web Token (JWT)-based with role validation. Security Features: Rate Limiting: 15 requests/minute as specified. Input Validation: For form submissions. Device Fingerprinting: For anti-spoofing. Data Sanitization: To prevent injection attacks.
+Runtime: Node.js (v16+) with Express framework (v4.17+). Application Programming Interface (API) Design: Representational State Transfer (RESTful) endpoints with proper status codes organized in a controller-based architecture. Authentication: JavaScript Object Notation Web Token (JWT)-based with role validation and token refresh mechanism. Security Features: Rate Limiting: 15 requests/minute with express-rate-limit middleware. Input Validation: For form submissions using express-validator. Device Fingerprinting: For anti-spoofing with browser fingerprinting techniques. Data Sanitization: To prevent injection attacks using mongo-sanitize. Error Handling: Centralized error handling middleware with appropriate status codes and messages. Logging: Morgan for HTTP request logging and custom logging for errors.
 
 Database Structure:
-Database: MongoDB with Mongoose Object Data Modeling (ODM). Collections: As implemented in provided schemas. Users: Student, lecturer, admin profiles. Sessions: With Quick Response (QR) code data and expiry. Attendance: Records with device verification. Units, Courses, Departments: Academic hierarchy. Feedback: Post-session student responses. Indexing: Optimized fields based on query patterns.
+Database: MongoDB with Mongoose Object Data Modeling (ODM) version 6.x. Collections: As implemented in provided schemas. Users: Student, lecturer, admin profiles with role-based permissions. Sessions: With Quick Response (QR) code data and expiry timestamps. Attendance: Records with device verification and validation flags. Units, Courses, Departments: Academic hierarchy with reference relationships. Feedback: Post-session student responses with anonymization support. Indexing: Optimized fields based on query patterns including compound indexes on frequently queried combinations. Schema Validation: Mongoose validators for data integrity and JavaScript Web Token (JWT) signature verification. Query Optimization: Projection to limit returned fields and pagination for large result sets.
 
 Security Measures:
-Authentication: JavaScript Object Notation Web Token (JWT) implementation with proper expiration. Password hashing with bcrypt. Role-based access control. Anti-Spoofing: 3-minute Quick Response (QR) code expiry as implemented. Device fingerprinting validation. Session-scoped tokens. Data Protection: Input validation and sanitization. Hypertext Transfer Protocol Secure (HTTPS) for all communications. Rate limiting on sensitive endpoints. GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning to identify potential security issues during development.
+Authentication: JavaScript Object Notation Web Token (JWT) implementation with proper expiration (24-hour tokens). Password hashing with bcrypt (10 rounds of salting). Role-based access control with middleware route protection. Anti-Spoofing: 3-minute Quick Response (QR) code expiry as implemented. Device fingerprinting validation with composite fingerprint generation. Session-scoped tokens with device binding. Data Protection: Input validation and sanitization to prevent NoSQL injection. Cross-site scripting (XSS) prevention with appropriate HTTP headers. Hypertext Transfer Protocol Secure (HTTPS) for all communications with TLS 1.3. Rate limiting on sensitive endpoints (15 requests per minute per IP). GitHub Security Scanning: Automated vulnerability detection in codebase using GitHub CodeQL scanning to identify potential security issues during development. Dependency auditing with npm audit during build process.
 
 Deployment Configuration:
-Frontend (Progressive Web Application (PWA)): Hosting: Vercel (as specified in methodology). Build Process: Vite build with Progressive Web Application (PWA) capabilities. Domain: Custom project domain or Vercel subdomain.
+Frontend (Progressive Web Application (PWA)): 
+Hosting: Vercel (as specified in methodology). 
+Build Process: Vite build with Progressive Web Application (PWA) plugin for service worker generation. 
+Domain: Custom project domain or Vercel subdomain with automatic HTTPS.
+Environment Variables: Securely stored in Vercel project settings.
+Build Configuration: Optimized for performance with code splitting and tree shaking.
+CI/CD: Automated deployment on push to main branch with GitHub integration.
 
 Backend Application Programming Interface (API):
 Hosting: Render.com Web Service (free tier) with the following specifications and limitations:
@@ -1037,7 +1043,10 @@ Hosting: Render.com Web Service (free tier) with the following specifications an
 - Automatic HTTPS with TLS certificates
 - Build times limited to 20 minutes
 - Continuous deployment from GitHub repository
-Environment: Node.js runtime. Configuration: Environment variables for secrets.
+Environment: Node.js runtime (v16.x LTS).
+Configuration: Environment variables for secrets and configuration management.
+Process Management: Built-in process management by Render.com.
+Monitoring: Basic health checks and log access through Render dashboard.
 
 Database:
 Service: MongoDB Atlas (M0 free tier) with the following specifications:
@@ -1046,26 +1055,137 @@ Service: MongoDB Atlas (M0 free tier) with the following specifications:
 - Maximum 100 connections limit
 - Automated backups not available on free tier
 - Performance limitations for complex aggregation queries
-Configuration: M0 free tier cluster. Security: IP whitelisting, username/password authentication.
+Configuration: M0 free tier cluster with replica set for availability. 
+Security: IP whitelisting for API server access, username/password authentication with strong credentials.
+Connection Pooling: Mongoose connection pooling for efficient database connections.
+Monitoring: MongoDB Atlas monitoring tools for database performance and alerts.
 
 Coding Tools
 
 Development Environment:
-Primary Editor: Visual Studio Code. Version Control: Git with GitHub repository. Package Management: npm for dependencies.
+Primary Editor: Visual Studio Code with the following extensions:
+- ESLint for JavaScript linting
+- Prettier for code formatting
+- GitLens for Git integration
+- MongoDB for VS Code for database connectivity
+- Error Lens for inline error highlighting
+- ES7+ React snippets for React productivity
+- vscode-styled-components for styled-components support
+- JavaScript and TypeScript Nightly for latest JavaScript language features
+
+Version Control: 
+- Git with GitHub repository
+- GitHub Desktop for visual Git operations
+- GitHub Actions for continuous integration
+- Branch protection rules for main branch
+- Pull request workflow with code reviews
+
+Package Management: 
+- npm for dependencies with package-lock.json for version locking
+- npm scripts for development workflows
+- npx for running package binaries without installation
+
+Project Configuration:
+- ESLint configuration for code quality standards
+- Prettier for consistent code formatting
+- .env files for local environment variables
+- .gitignore for excluding files from version control
+- jsconfig.json for JavaScript configuration and module aliasing
 
 Frontend Development:
-Core Libraries: React: User Interface (UI) component library. react-router-dom: Navigation and routing. axios: Application Programming Interface (API) requests and interceptors. Ant Design: User Interface (UI) component framework. jsQR: Quick Response (QR) code scanning capability. day.js: Date manipulation utility. Progressive Web Application (PWA) Tools: Workbox/vite-pwa: Service Worker generation. Web Application Manifest configuration. Offline capability implementation.
+Core Libraries: 
+- React (v18.x): User Interface (UI) component library with React Hooks
+- react-router-dom (v6.x): Declarative routing with hooks-based API
+- axios (v1.x): Promise-based HTTP client with interceptors for API requests
+- Ant Design (v5.x): UI component framework with customizable theming
+- styled-components: CSS-in-JS styling solution
+- Chart.js with react-chartjs-2: Data visualization library
+- jsQR (v1.4.x): Quick Response (QR) code scanning capability
+- dayjs (v1.x): Lightweight date manipulation utility (alternative to moment.js)
+- react-csv: CSV export functionality
+- jwt-decode: Client-side JWT token parsing
+
+Progressive Web Application (PWA) Tools: 
+- vite-pwa-plugin: Service Worker generation for Vite
+- workbox-window: Service worker registration and updates
+- Web Application Manifest configuration with custom icons
+- IndexedDB for structured client-side storage
+- navigator.online API for connectivity detection
+
+Build Tools:
+- Vite: Fast development server and optimized production builds
+- PostCSS: For CSS processing and autoprefixing
+- Babel: JavaScript transpilation (integrated with Vite)
+- SWC: Fast JavaScript/TypeScript compilation
+- Terser: JavaScript minification for production builds
+
+Frontend Testing:
+- Manual browser testing across platforms
+- Lighthouse for performance and PWA audits
+- Chrome DevTools for debugging and performance profiling
+- axe DevTools for accessibility testing
 
 Backend Development:
-Core Libraries: Express: Web server framework. Mongoose: MongoDB Object Data Modeling (ODM). jsonwebtoken: JavaScript Object Notation Web Token (JWT) implementation. bcrypt: Password hashing. express-validator: Input validation. express-rate-limit: Request throttling. multer: File upload handling. nodemailer: Email service integration.
+Core Libraries: 
+- Express (v4.17+): Web server framework with middleware architecture
+- Mongoose (v6.x): MongoDB Object Data Modeling (ODM) with schema validation
+- jsonwebtoken (v9.x): JavaScript Object Notation Web Token (JWT) implementation with robust validation
+- bcrypt (v5.x): Password hashing with configurable salt rounds
+- express-validator: Request validation middleware
+- express-rate-limit: Request throttling for API protection
+- multer: File upload handling with disk storage engine
+- nodemailer: Email service integration for password reset
+- cors: Cross-Origin Resource Sharing middleware
+- helmet: HTTP security headers
+- compression: Response compression for improved performance
+- morgan: HTTP request logging
 
-Testing Tools:
-Manual Testing: Cross-browser compatibility checks. Browser DevTools: For Progressive Web Application (PWA) debugging and network analysis. Postman: Application Programming Interface (API) endpoint testing.
+API Development:
+- Insomnia/Postman: API testing and documentation
+- Express middleware patterns for authentication and validation
+- MVC architecture for route organization
+- Controller-based request handling
+- Service layer for business logic
+
+Database Tools:
+- MongoDB Compass: Visual database management and query optimization
+- MongoDB Atlas dashboard: Cloud database management and monitoring
+- Mongoose schemas with pre/post hooks
+- MongoDB aggregation pipelines for complex queries
+- Indexing strategies for performance optimization
+
+Backend Testing:
+- Manual API testing with Postman collections
+- Error logging and monitoring
+- Database query performance analysis
+- Load testing with simple concurrent request simulation
+
+Security Tools:
+- GitHub CodeQL for automated code scanning
+- npm audit for dependency vulnerability checking
+- OWASP ZAP for basic security testing
+- JWT debugging tools for token validation
+- bcrypt for secure password storage
+- Helmet.js for HTTP security headers
 
 Documentation:
-Markdown: For project documentation. JSDoc: Code-level documentation. Diagrams: Flow charts and entity relationships.
+- Markdown: For project documentation and README files
+- JSDoc: Code-level documentation with type annotations
+- Mermaid: Diagram generation for architecture and flows
+- draw.io/diagrams.net: Visual diagram creation
+- README templates for component and API documentation
+- Swagger/OpenAPI: API documentation (planned but not fully implemented)
 
-The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions.
+Collaboration Tools:
+- GitHub Issues: Bug tracking and feature requests
+- GitHub Projects: Kanban-style project management
+- Discord: Team communication and coordination
+- Google Docs: Shared documentation and planning
+- Google Meet: Virtual meetings and pair programming sessions
+
+The implementation follows the architecture outlined in the methodology document, focusing on security, offline capability, and responsive design. The system leverages Progressive Web Application (PWA) technologies to provide a native-like experience while ensuring accessibility across devices and network conditions. The development approach prioritized modularity, code reusability, and adherence to best practices for maintainability and future expansion.
+
+System home page or other relevant pages
 
 System Screenshots
 
