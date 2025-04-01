@@ -12,7 +12,6 @@ const crypto = require('crypto');
 const transporter = require("../config/emailConfig");
 const path = require('path');
 const Unit = require('../models/Unit'); // Added Unit model
-const { syncStudentUnitRelationship, getStudentEnrolledUnits } = require('../utils/unitRelationUtils');
 
 // Login API
 const login = async (req, res) => {
@@ -542,26 +541,16 @@ const downloadStudents = async (req, res) => {
   }
 };
 
-// Get user profile - Update to include enrolled units
+// Get user profile
 const getUserProfile = async (req, res) => {
   try {
     const user = await User.findById(req.user.userId)
       .populate('course', 'name')
-      .populate('department', 'name')
-      .populate({
-        path: 'enrolledUnits',
-        select: 'name code course year semester',
-        populate: {
-          path: 'course',
-          select: 'name'
-        }
-      })
-      .select('firstName lastName email regNo year department semester course role enrolledUnits');
-    
+      .populate('department', 'name') // Populate department name
+      .select('firstName lastName email regNo year department semester course role');
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
-    
     res.json(user);
   } catch (error) {
     console.error(error);
@@ -1044,8 +1033,17 @@ const getStudentUnits = async (req, res) => {
       return res.status(400).json({ message: "Invalid student ID format" });
     }
 
-    // Use the shared utility to get enrolled units
-    const units = await getStudentEnrolledUnits(studentId);
+    // Find the student
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Get enrolled units with details
+    const units = await Unit.find({
+      _id: { $in: student.enrolledUnits }
+    });
+
     res.status(200).json(units);
   } catch (error) {
     console.error("Error fetching student units:", error);
@@ -1076,12 +1074,19 @@ const enrollStudentInUnit = async (req, res) => {
     }
 
     // Check if student is already enrolled in this unit
-    if (student.enrolledUnits && student.enrolledUnits.some(id => id.toString() === unitId)) {
+    if (student.enrolledUnits.includes(unitId)) {
       return res.status(400).json({ message: "Student is already enrolled in this unit" });
     }
 
-    // Sync the relationship between student and unit
-    await syncStudentUnitRelationship(studentId, unitId, true);
+    // Add unit to student's enrolledUnits array
+    student.enrolledUnits.push(unitId);
+    await student.save();
+
+    // Add student to unit's studentsEnrolled array
+    if (!unit.studentsEnrolled.includes(studentId)) {
+      unit.studentsEnrolled.push(studentId);
+      await unit.save();
+    }
 
     res.status(200).json({ message: "Unit enrolled successfully" });
   } catch (error) {
@@ -1099,8 +1104,27 @@ const removeStudentFromUnit = async (req, res) => {
       return res.status(400).json({ message: "Invalid ID format" });
     }
 
-    // Sync the relationship removal between student and unit
-    await syncStudentUnitRelationship(studentId, unitId, false);
+    // Find the student
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Find the unit
+    const unit = await Unit.findById(unitId);
+    if (!unit) {
+      return res.status(404).json({ message: "Unit not found" });
+    }
+
+    // Remove unit from student's enrolledUnits array
+    student.enrolledUnits = student.enrolledUnits.filter(id => id.toString() !== unitId.toString());
+    await student.save();
+
+    // Remove student from unit's studentsEnrolled array
+    if (unit.studentsEnrolled) {
+      unit.studentsEnrolled = unit.studentsEnrolled.filter(id => id.toString() !== studentId.toString());
+      await unit.save();
+    }
 
     res.status(200).json({ message: "Unit removed successfully" });
   } catch (error) {

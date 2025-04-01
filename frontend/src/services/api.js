@@ -289,7 +289,7 @@ export const loginUser = async (credentials) => {
   }
 };
 
-// get userprofile - update to handle enrolledUnits
+// get userprofile
 export const getUserProfile = async () => {
   const token = localStorage.getItem('token');
   if (!token) {
@@ -311,11 +311,6 @@ export const getUserProfile = async () => {
       }
     });
 
-    // Store enrolledUnits in units store for access by other components
-    if (response.data && response.data.enrolledUnits && response.data.enrolledUnits.length > 0) {
-      await storeInIndexedDB('units', 'studentUnits', response.data.enrolledUnits);
-    }
-    
     // Cache the profile data
     await storeInIndexedDB('profile', 'userProfile', response.data);
     return response.data;
@@ -351,35 +346,17 @@ export const updateUserProfile = async (profileData) => {
   }
 };
 
-// Fetch units for a student based on their enrolled units
+// Fetch units for a student based on their course, year, and semester
 export const getStudentUnits = async (token) => {
   try {
-    // First try to get from API
-    const response = await axios.get(`${API_URL}/unit/student/units`, {
+    const response = await axios.get("https://attendance-system-w70n.onrender.com/api/unit/student/units", {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
-    
-    // Cache the units data for offline use
-    await storeInIndexedDB('units', 'studentUnits', response.data);
-    
     return response.data;
   } catch (error) {
-    console.error("Error fetching units:", error);
-    
-    // If offline, try to get from IndexedDB
-    if (!navigator.onLine) {
-      try {
-        const cachedUnits = await getFromIndexedDB('units', 'studentUnits');
-        if (cachedUnits) {
-          return cachedUnits;
-        }
-      } catch (cacheError) {
-        console.error("Error retrieving cached units:", cacheError);
-      }
-    }
-    
+    console.error("Error fetching units:", error.response || error);
     return [];
   }
 };

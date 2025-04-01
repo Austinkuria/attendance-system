@@ -4,7 +4,6 @@ const Course = require("../models/Course");
 const authenticate = require("../middleware/authMiddleware");
 const router = require("express").Router();
 const mongoose = require("mongoose");
-const { getStudentEnrolledUnits } = require('../utils/unitRelationUtils');
 
 // Add a new unit
 const addUnit = async (req, res) => {
@@ -69,25 +68,20 @@ const deleteUnit = async (req, res) => {
 
 const getStudentUnits = async (req, res) => {
     try {
-        // Get student ID from JWT token
-        const studentId = req.user.id;
-        if (!studentId) {
-            return res.status(401).json({ message: "Unauthorized. Student ID not found in token." });
-        }
-        
-        // Use the shared utility to get enrolled units
-        const units = await getStudentEnrolledUnits(studentId);
-        
-        if (!units || units.length === 0) {
-            return res.status(404).json({ message: "No units found for this student." });
-        }
-      
-        res.set("Cache-Control", "no-store"); // Prevent caching
-        res.json(units);
+      const studentId = req.user.id; // Get student ID from JWT
+      const student = await User.findById(studentId).populate("units");
+  
+      if (!student || !student.units.length) {
+        return res.status(404).json({ message: "No units found for this student." });
+      }
+  
+      res.set("Cache-Control", "no-store"); // Prevent caching of the response
+      res.json(student.units);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(500).json({ message: error.message });
     }
-};
+  };
+  
 
 // Get all units (for admin)
 const getUnits = async (req, res) => {
@@ -101,6 +95,33 @@ const getUnits = async (req, res) => {
 };
 
 // Fetch units for a specific lecturer
+// const getLecturerUnits = async (req, res) => {
+//     try {
+//       const { lecturerId } = req.params;
+//       const lecturer = await User.findById(lecturerId);
+  
+//       if (!lecturer) {
+//         return res.status(404).json({ message: "Lecturer not found" });
+//       }
+  
+//       // Fetch units assigned to the lecturer with studentsEnrolled populated
+//       const units = await Unit.find({ lecturer: lecturerId })
+//         .populate({
+//           path: 'course',
+//           select: 'name'
+//         })
+//         .select('name code course year semester studentsEnrolled');
+  
+//       res.status(200).json(units);
+//     } catch (error) {
+//       console.error("Error fetching lecturer units:", error);
+//       res.status(500).json({ 
+//         message: "Error fetching lecturer units", 
+//         error: error.message 
+//       });
+//     }
+//   };
+  
 const getLecturerUnits = async (req, res) => {
     try {
       const { lecturerId } = req.params;
@@ -126,30 +147,30 @@ const getLecturerUnits = async (req, res) => {
     }
   };
 
-const getUnitsByCourse = async (req, res) => {
-    try {
-        const { courseId } = req.params;
-        console.log("Received courseId:", courseId);
-
-        if (!mongoose.Types.ObjectId.isValid(courseId)) {
-            return res.status(400).json({ message: "Invalid course ID format" });
-        }
-
-        const course = await Course.findById(new mongoose.Types.ObjectId(courseId));
-        console.log("Found course:", course);
-
-        if (!course) {
-            return res.status(404).json({ message: "Course not found" });
-        }
-
-        const units = await Unit.find({ course: courseId }).populate("lecturer");
-        console.log("Units found:", units);
-
-        res.status(200).json(units);
-    } catch (error) {
-        console.error("Error fetching units:", error.message);
-        res.status(500).json({ message: "Error fetching units", error: error.message });
-    }
-};  
-
-module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits, getUnitsByCourse, getLecturerUnits };
+  const getUnitsByCourse = async (req, res) => {
+      try {
+          const { courseId } = req.params;
+          console.log("Received courseId:", courseId);
+  
+          if (!mongoose.Types.ObjectId.isValid(courseId)) {
+              return res.status(400).json({ message: "Invalid course ID format" });
+          }
+  
+          const course = await Course.findById(new mongoose.Types.ObjectId(courseId));
+          console.log("Found course:", course);
+  
+          if (!course) {
+              return res.status(404).json({ message: "Course not found" });
+          }
+  
+          const units = await Unit.find({ course: courseId }).populate("lecturer");
+          console.log("Units found:", units);
+  
+          res.status(200).json(units);
+      } catch (error) {
+          console.error("Error fetching units:", error.message);
+          res.status(500).json({ message: "Error fetching units", error: error.message });
+      }
+  };  
+  
+module.exports = { addUnit, getUnit, updateUnit, deleteUnit, getStudentUnits, getUnits,getUnitsByCourse, getLecturerUnits };
