@@ -207,6 +207,394 @@ flowchart TB
     class RateLimiting limiter;
 ```
 
+Input Design (User Interfaces)
+
+The QRollCall system's user interfaces were designed with a focus on usability, responsiveness, and consistent design language across the application. The UI implementation leverages Ant Design components with custom theming for visual consistency, enhanced with CSS-in-JS styling via Emotion and Styled Components for component-specific styling needs.
+
+1. Authentication Interfaces
+
+Login Interface:
+- Implemented as a card-based form with email and password inputs
+- Features role-specific login with secure password input field
+- Provides real-time validation feedback and error handling
+- Includes "Remember me" functionality with localStorage persistence
+- Offers password reset and signup navigation links
+- Adapts responsively to screen sizes with optimized layouts for mobile devices
+- Implements network status detection with offline mode alerts
+
+```jsx
+// Authentication form implementation example
+<Form
+  form={form}
+  name="login"
+  layout="vertical"
+  onFinish={handleLogin}
+  disabled={loading || !networkStatus}
+>
+  <Form.Item
+    name="email"
+    rules={[
+      { required: true, message: 'Please enter your email!' },
+      {
+        pattern: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+        message: 'Enter a valid email format!'
+      }
+    ]}
+  >
+    <StyledInput
+      prefix={<MailOutlined />}
+      placeholder="Email address"
+      size="large"
+      autoFocus
+    />
+  </Form.Item
+  
+  <Form.Item
+    name="password"
+    rules={[
+      { required: true, message: 'Please enter your password!' },
+      { min: 8, message: 'Password must be at least 8 characters long!' },
+      { pattern: /[a-z]/, message: 'Password must contain lowercase letters!' },
+      { pattern: /[0-9]/, message: 'Password must contain numbers!' }
+    ]}
+  >
+    <StyledPasswordInput
+      prefix={<LockOutlined />}
+      placeholder="Password"
+      size="large"
+    />
+  </Form.Item>
+  
+  <Form.Item name="remember" valuePropName="checked">
+    <Checkbox>Remember me</Checkbox>
+  </Form.Item>
+  
+  <Form.Item>
+    <StyledButton
+      type="primary"
+      htmlType="submit"
+      size="large"
+      block
+      loading={loading}
+      icon={loading ? <LoadingOutlined /> : <ArrowRightOutlined />}
+    >
+      {loading ? 'Logging in...' : 'Login'}
+    </StyledButton>
+  </Form.Item>
+</Form>
+```
+
+Password Reset Interface:
+- Implemented as a two-step process (request and reset)
+- Features email validation with real-time feedback
+- Provides secure token-based reset link generation
+- Includes password strength indicator with visual feedback
+- Implements comprehensive validation for password security requirements
+- Offers clear success/error messaging with redirect functionality
+
+Signup Interface:
+- Features role selection with appropriate field sets for each role
+- Implements comprehensive form validation with real-time feedback
+- Provides password strength visualization with multi-factor criteria
+- Adapts field visibility based on selected role (student/lecturer/admin)
+- Includes terms of service agreement checkbox
+- Features responsive design that adapts to mobile screens
+
+2. Student Interfaces
+
+Dashboard Interface:
+- Implemented as a card-based grid with unit enrollment information
+- Features attendance statistics with visual indicators (progress circles)
+- Provides color-coded attendance status indicators (green/yellow/red)
+- Includes quick-access QR scanning button with prominent placement
+- Implements dark/light theme support with context-based styling
+- Features responsive grid layout that adapts from 1-4 columns based on screen width
+
+```jsx
+// Student dashboard card implementation example
+<Card
+  className={`${styles.card} ${styles.unitCard}`}
+  hoverable
+  onClick={() => handleUnitClick(unit._id)}
+  style={{ marginBottom: 16 }}
+>
+  <div className={styles.unitHeader}>
+    <Title level={4}>{unit.name}</Title>
+    <Tag color={getStatusColor(unit.attendanceRate)}>
+      {unit.code}
+    </Tag>
+  </div>
+  
+  <div className={styles.attendanceStats}>
+    <Progress
+      type="circle"
+      percent={Math.round(unit.attendanceRate * 100)}
+      width={80}
+      strokeColor={getStrokeColor(unit.attendanceRate)}
+      format={percent => `${percent}%`}
+    />
+    <div className={styles.statsDetails}>
+      <Statistic 
+        title="Sessions Attended" 
+        value={unit.sessionsAttended} 
+        suffix={`/ ${unit.totalSessions}`}
+        valueStyle={{ fontSize: '16px' }}
+      />
+      <Text type="secondary">
+        Last session: {formatDate(unit.lastSession)}
+      </Text>
+    </div>
+  </div>
+  
+  {unit.activeSession && (
+    <Button 
+      type="primary" 
+      icon={<ScanOutlined />}
+      className={styles.scanButton}
+    >
+      Attend Active Session
+    </Button>
+  )}
+</Card>
+```
+
+QR Scanner Interface:
+- Implemented with device camera access and permission handling
+- Features visual scanning guide overlay for positioning assistance
+- Provides real-time feedback during scanning process
+- Implements responsive design that works across device orientations
+- Includes error handling for various camera/permission scenarios
+- Features loading states during QR processing
+- Provides clear success/failure messages with specific error details
+
+Attendance History Interface:
+- Implemented as a filterable, sortable table with session information
+- Features date range filters for historical queries
+- Includes status indicators for attended/missed sessions
+- Implements pagination for efficient data loading
+- Provides export options for personal attendance records
+- Adapts to screen size with responsive column hiding/reordering
+
+Profile Management Interface:
+- Features personal information display with editable fields
+- Implements form validation for profile updates
+- Provides visual avatar/initials generation based on user name
+- Includes course/department information display
+- Features password change functionality with validation
+- Implements theme preference controls
+
+3. Lecturer Interfaces
+
+Session Management Interface:
+- Features unit selection dropdown for session creation
+- Implements session duration controls with default values
+- Provides QR code display with auto-refresh countdown timer
+- Includes real-time attendance tracking table with student information
+- Features search and filter capabilities for student list
+- Implements session control buttons (end session, mark absentees)
+- Provides session statistics summary (present, absent, total)
+
+```jsx
+// QR code display with refresh timer implementation example
+<Modal
+  title={`Attendance Session QR Code - ${selectedUnit?.name}`}
+  visible={isQRModalOpen}
+  onCancel={handleCloseQRModal}
+  footer={[
+    <Button key="end" type="primary" danger onClick={handleEndSession}>
+      End Session
+    </Button>,
+  ]}
+  width={400}
+>
+  <div className={styles.qrContainer}>
+    <div className={styles.qrCode}>
+      {qrData ? (
+        <QRCode
+          value={qrData}
+          size={250}
+          level="H"
+          imageSettings={{
+            src: '/logo.png',
+            height: 40,
+            width: 40,
+            excavate: true,
+          }}
+        />
+      ) : (
+        <Spin size="large" />
+      )}
+    </div>
+    
+    <div className={styles.qrTimer}>
+      <Progress
+        type="circle"
+        percent={Math.round((qrTimeLeft / 180) * 100)}
+        format={() => `${qrTimeLeft}s`}
+        width={80}
+        strokeColor={qrTimeLeft < 60 ? 'orange' : 'green'}
+      />
+      <Text>QR code refreshes in {qrTimeLeft} seconds</Text>
+    </div>
+    
+    <div className={styles.sessionStats}>
+      <Statistic
+        title="Students Present"
+        value={presentCount}
+        valueStyle={{ color: themeColors.success }}
+      />
+      <Statistic
+        title="Total Enrolled"
+        value={totalStudents}
+      />
+    </div>
+  </div>
+</Modal>
+```
+
+Unit Management Interface:
+- Implemented as tabbed interface with unit information and enrolled students
+- Features student enrollment management with add/remove capabilities
+- Provides unit statistics with attendance performance metrics
+- Includes batch operations for student management
+- Implements search and filter functionality for student lists
+- Features export options for unit-based reports
+
+Analytics Dashboard Interface:
+- Implemented with interactive charts using Chart.js/Recharts
+- Features multiple visualization types (bar, line, pie charts)
+- Provides filtering capabilities by date range, unit, and student cohorts
+- Includes data export options for various report formats
+- Implements chart customization options with legend toggling
+- Features responsive design that adapts chart layouts to screen size
+
+4. Admin Interfaces
+
+User Management Interface:
+- Implemented as a comprehensive CRUD interface for user accounts
+- Features batch operations with CSV import/export functionality
+- Provides role-based filtering and search capabilities
+- Includes detailed user information with edit/delete actions
+- Implements form validation for user creation and editing
+- Features pagination for large user datasets
+
+```jsx
+// Admin user management table implementation example
+<Table
+  columns={[
+    {
+      title: 'Name',
+      key: 'name',
+      render: (_, record) => `${record.firstName} ${record.lastName}`,
+      sorter: (a, b) => a.firstName.localeCompare(b.firstName),
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+      sorter: (a, b) => a.email.localeCompare(b.email),
+    },
+    {
+      title: 'Role',
+      dataIndex: 'role',
+      key: 'role',
+      filters: [
+        { text: 'Student', value: 'student' },
+        { text: 'Lecturer', value: 'lecturer' },
+        { text: 'Admin', value: 'admin' },
+      ],
+      onFilter: (value, record) => record.role === value,
+      render: (role) => (
+        <Tag color={
+          role === 'admin' ? 'purple' : 
+          role === 'lecturer' ? 'blue' : 'green'
+        }>
+          {role.toUpperCase()}
+        </Tag>
+      ),
+    },
+    {
+      title: 'Department',
+      dataIndex: ['department', 'name'],
+      key: 'department',
+      ellipsis: true,
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (_, record) => (
+        <Space>
+          <Button
+            type="link"
+            icon={<EditOutlined />}
+            onClick={() => handleEditUser(record)}
+          />
+          <Button
+            type="link"
+            danger
+            icon={<DeleteOutlined />}
+            onClick={() => handleDeleteUser(record)}
+          />
+        </Space>
+      ),
+    },
+  ]}
+  dataSource={users}
+  rowKey="_id"
+  pagination={{ 
+    pageSize: 10,
+    showSizeChanger: true,
+    showTotal: (total) => `Total: ${total} users`
+  }}
+  loading={loading}
+  scroll={{ x: 'max-content' }}
+/>
+```
+
+Course/Department Management Interface:
+- Features hierarchical organization of departments, courses, and units
+- Implements drag-and-drop functionality for organizational changes
+- Provides nested data display with expandable rows
+- Includes creation and editing forms with validation
+- Features search and filter capabilities
+- Implements batch operations for efficient management
+
+System Feedback Interface:
+- Implemented as a central system feedback collection form
+- Features category selection with priority indicators
+- Provides rich text input for detailed feedback
+- Includes screenshot upload capability
+- Implements sentiment analysis for feedback categorization
+- Features administrator response mechanism
+
+5. Common UI Components
+
+Navigation Components:
+- Responsive side menu that collapses to icon-only on small screens
+- Top header bar with user profile menu and theme toggle
+- Breadcrumb navigation for location awareness
+- Back buttons for multi-step processes
+
+Form Components:
+- Standardized input fields with consistent validation patterns
+- Custom styled selectors and dropdowns with search functionality
+- Date and time pickers with locale awareness
+- File upload components with preview capability
+
+Notification Components:
+- Toast messages for action confirmations
+- Modal dialogs for confirmations and detailed forms
+- Alert components for important system messages
+- Badge indicators for counters and status
+
+Layout Components:
+- Responsive grid system using Ant Design's Row and Col components
+- Card components with consistent styling across the application
+- Tab interfaces for content organization
+- Collapsible panels for space-efficient information display
+
+Each interface component was designed with accessibility in mind, implementing proper ARIA attributes, keyboard navigation support, and focus management. The system maintains consistent styling through a centralized theme context that provides color variables and styling functions to all components, enabling seamless theme switching between light and dark modes.
+
 Process Design
 
 1. Detailed Authentication Flow :
@@ -696,80 +1084,86 @@ erDiagram
 
 Output Design (Report Specifications)
 
-The system generates several reports and data exports to provide insights into attendance data. Each report has been implemented to address specific user needs based on their roles:
+The system generates various reports to provide insights into attendance data. Each report has been carefully designed to address specific user needs:
 
-1. Unit-based Attendance Report
-   - **Purpose**: Summarize attendance for sessions within a specific unit
-   - **Format**: Excel (.xlsx)
-   - **Target Users**: Lecturers
-   - **Content Structure**:
-     - Header: Unit code, Unit name, Lecturer name
-     - Body: Table with columns for Student Reg Number, Student Name, Attendance Status (Present/Absent), Time Marked
-     - Footer: Summary statistics (Present count, Absent count, Attendance rate)
-   - **Implementation**: Accessible via the lecturer dashboard through the "Download Session Report" button
-   - **Data Source**: Direct MongoDB aggregation query of attendance records filtered by unit and session
-   - **Technical Features**: Server-side generation using Excel.js with optimized memory usage
-
-2. Session-specific Attendance Export
-   - **Purpose**: Provide detailed attendance records for a selected session
-   - **Format**: Excel (.xlsx)
-   - **Target Users**: Lecturers
-   - **Content Structure**:
-     - Sortable columns for Registration Number, First Name, Last Name, Time Scanned, and Status
-     - Color-coded status indicators (green for Present, red for Absent)
-   - **Implementation**: Available through the Past Sessions section of the lecturer dashboard
-   - **Filtering Options**: By session date and time
-   - **Technical Features**: Formatted with consistent styling and conditional formatting for status cells
-
-3. Date Range Attendance Report
-   - **Purpose**: Comprehensive attendance analysis over a selected time period
-   - **Format**: Excel (.xlsx)
+1. Unit Attendance Report
+   - **Purpose**: Summarize attendance for a specific course unit
+   - **Format**: Excel (.xlsx) and CSV
    - **Target Users**: Lecturers, Administrators
    - **Content Structure**:
-     - Multiple sheets organizing attendance by date, student, and status
-     - Summary statistics showing attendance trends
-   - **Implementation**: Generated through the date range report modal in the lecturer dashboard
-   - **Data Selection**: Custom date range picker with optional unit selection
-   - **Technical Features**: Background processing for larger date ranges with progress indicator
+     - Header: Unit code, Unit name, Lecturer name, Date range
+     - Body: Table with columns for Reg Number, Student Name, Total Sessions, Sessions Attended, Attendance Rate (%)
+     - Footer: Summary statistics, Generated date, Page numbers
+   - **Sorting Options**: By student name, By attendance rate (ascending/descending)
+   - **Filtering Options**: By date range, By attendance status
+   - **Visual Elements**: Color-coding for attendance rates (>80% green, 60-80% yellow, <60% red)
 
-4. Administrative Student Reports
-   - **Purpose**: Facilitate student management and course assignment
-   - **Format**: CSV
-   - **Target Users**: Administrators
+2. Session Detailed Report
+   - **Purpose**: Provide attendance details for a specific session
+   - **Format**: Excel (.xlsx) and CSV
+   - **Target Users**: Lecturers
    - **Content Structure**:
-     - Student details including registration number, name, email, course, year, and semester
-   - **Implementation**: Available through the Admin Panel's Student Management interface
-   - **Features**: Supports both export of existing students and template for bulk imports
-   - **Technical Notes**: Implements RFC 4180 compliant CSV formatting with proper header row
+     - Header: Unit code, Unit name, Session date/time, Lecturer name
+     - Body: Table with columns for Reg Number, Student Name, Attendance Status, Time Marked, Device Info
+     - Footer: Present count, Absent count, Attendance rate, Generated date
+   - **Sorting Options**: By time marked, By registration number
+   - **Filtering Options**: By status (Present/Absent/Late)
+   - **Visual Elements**: Icons for attendance status, Timestamp formatting
 
-5. Attendance Analytics Visualizations
-   - **Purpose**: Visualize attendance patterns and trends
-   - **Format**: Interactive in-app charts with export capabilities
+3. Student Attendance Summary
+   - **Purpose**: Show individual student attendance across all units
+   - **Format**: PDF, Excel (.xlsx)
+   - **Target Users**: Students, Administrators
+   - **Content Structure**:
+     - Header: Student name, Registration number, Course, Year/Semester
+     - Body: Table with columns for Unit Code, Unit Name, Total Sessions, Sessions Attended, Attendance Rate
+     - Footer: Overall attendance rate, Generated date
+   - **Sorting Options**: By unit code, By attendance rate
+   - **Visual Elements**: Progress bars for attendance rates, Trend graphs showing attendance patterns
+
+4. Departmental Analytics Report
+   - **Purpose**: Provide high-level attendance analytics for departments
+   - **Format**: PDF with embedded charts, Excel (.xlsx) with pivot tables
+   - **Target Users**: Administrators, Department Heads
+   - **Content Structure**:
+     - Header: Department name, Date range, Report type
+     - Body: Multiple sections with tables and charts showing attendance patterns
+     - Sections: Course comparison, Lecturer comparison, Time-based trends
+     - Footer: Summary statistics, Generated date
+   - **Visual Elements**: 
+     - Bar charts comparing courses by attendance rate
+     - Line graphs showing attendance trends over time
+     - Heat maps showing attendance patterns by day/time
+     - Pivot tables for interactive analysis in Excel format
+
+5. Feedback Summary Report
+   - **Purpose**: Summarize student feedback for sessions
+   - **Format**: PDF, Excel (.xlsx)
    - **Target Users**: Lecturers, Administrators
-   - **Chart Types**:
-     - Bar charts for attendance rates across units
-     - Line graphs for attendance trends over time
-     - Pie charts for present/absent distribution
-   - **Implementation**: Integrated into Admin Analytics and Lecturer Dashboards
-   - **Technical Implementation**: Chart.js with customized themes matching application style
-   - **Interactivity**: Dynamic filtering, hover tooltips, zooming capabilities
+   - **Content Structure**:
+     - Header: Unit details, Date range, Lecturer name
+     - Body: 
+       - Numerical summaries (average ratings)
+       - Distribution of ratings (1-5 stars)
+       - Session pace feedback summary
+       - Content clarity metrics
+       - Anonymized comments
+     - Footer: Response rate, Generated date
+   - **Visual Elements**: 
+     - Radar charts for multidimensional feedback visualization
+     - Bar charts for rating distributions
+     - Word clouds for comment analysis (in PDF version only)
 
-The report generation process follows these steps:
-1. User selects report type and parameters (session, date range, unit, etc.)
-2. Backend validates request parameters and permissions
-3. MongoDB aggregation pipeline processes and filters relevant data
-4. Server formats data into appropriate output format (Excel/CSV)
-5. File is streamed to client for download with appropriate MIME type and filename
-6. Upon completion, success notification is displayed to user
+Report Generation Process:
+1. Data is aggregated from relevant collections based on query parameters
+2. Calculated fields (attendance rates, averages, etc.) are computed server-side
+3. Data is formatted according to report specifications
+4. Excel reports utilize templating with cell styling and conditional formatting
+5. PDF reports include header/footer with institutional branding
+6. All exports are validated for data integrity before delivery
+7. Large reports implement pagination and chunked downloads to optimize performance
 
-Performance considerations implemented in the reporting system include:
-- Paginated database queries to handle large datasets efficiently
-- Streaming response for file downloads to minimize memory usage
-- Background processing for complex reports with progress indicators
-- Client-side caching of frequently accessed analytics data
-- Resource throttling to prevent server overload during peak usage
-
-The system's export capabilities prioritize practical usability over aesthetic complexity, focusing on clear data presentation and compatibility with common spreadsheet applications. All exports include timestamps and filtering parameters to ensure proper context for the exported data.
+Each report design follows institutional branding guidelines and incorporates accessibility features such as proper table headers, consistent color schemes, and text alternatives for visual elements in digital formats.
 
 CHAPTER 5: 
 SYSTEM TESTING AND IMPLEMENTATION
