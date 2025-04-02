@@ -1,14 +1,16 @@
 import { useState, useEffect, useContext } from 'react';
-import { Drawer, Typography, List, Tag, Spin, Empty, Button, Tooltip, Alert } from 'antd';
+import { Drawer, Typography, List, Tag, Spin, Empty, Button, Tooltip, Alert, Tabs } from 'antd';
 import { SyncOutlined, LoginOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
 import { getUserSystemFeedback } from '../../services/api';
+import { getAnonymousFeedback } from '../../utils/feedbackUtils';
 import { ThemeContext } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
 import { css } from '@emotion/css';
 import moment from 'moment';
 
 const { Title, Text } = Typography;
+const { TabPane } = Tabs;
 
 const useStyles = (themeColors) => ({
     drawer: css`
@@ -61,14 +63,28 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
     const styles = useStyles(themeColors);
 
     const [feedback, setFeedback] = useState([]);
+    const [localFeedback, setLocalFeedback] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (visible && isAuthenticated) {
-            fetchFeedback();
+        if (visible) {
+            loadLocalFeedback();
+            if (isAuthenticated) {
+                fetchFeedback();
+            }
         }
     }, [visible, isAuthenticated]);
+
+    const loadLocalFeedback = () => {
+        try {
+            const anonymousFeedback = getAnonymousFeedback();
+            setLocalFeedback(anonymousFeedback);
+        } catch (error) {
+            console.error('Error loading local feedback:', error);
+            setLocalFeedback([]);
+        }
+    };
 
     const fetchFeedback = async () => {
         if (!isAuthenticated) {
@@ -129,19 +145,53 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
         }
     };
 
+    const renderFeedbackItem = (item) => (
+        <List.Item className={styles.item}>
+            <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Title level={5} className={styles.title}>{item.title || 'No Title'}</Title>
+                    <Tag color={statusColors[item.status] || 'default'}>{item.status || 'Submitted'}</Tag>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                    <Tag>{item.category || 'Other'}</Tag>
+                    <Tag color={item.severity > 3 ? 'red' : item.severity > 2 ? 'orange' : 'green'}>
+                        Severity: {item.severity || 0}/5
+                    </Tag>
+                </div>
+                <Tooltip title={item.description || 'No description provided'}>
+                    <Text className={styles.description}>
+                        {item.description
+                            ? (item.description.length > 100
+                                ? `${item.description.substring(0, 100)}...`
+                                : item.description)
+                            : 'No description provided'}
+                    </Text>
+                </Tooltip>
+                <Text className={styles.date}>
+                    Submitted: {item.createdAt
+                        ? moment(item.createdAt).format('YYYY-MM-DD HH:mm')
+                        : item.localTimestamp
+                            ? moment(item.localTimestamp).format('YYYY-MM-DD HH:mm')
+                            : 'Unknown date'}
+                </Text>
+            </div>
+        </List.Item>
+    );
+
     return (
         <Drawer
             title={
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <Title level={4} style={{ margin: 0, color: themeColors.text }}>Your Feedback History</Title>
-                    <Button
-                        type="text"
-                        icon={<SyncOutlined />}
-                        onClick={fetchFeedback}
-                        loading={loading}
-                        className={styles.refreshButton}
-                        disabled={!isAuthenticated}
-                    />
+                    {isAuthenticated && (
+                        <Button
+                            type="text"
+                            icon={<SyncOutlined />}
+                            onClick={fetchFeedback}
+                            loading={loading}
+                            className={styles.refreshButton}
+                        />
+                    )}
                 </div>
             }
             placement="right"
@@ -151,52 +201,42 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
             className={styles.drawer}
         >
             <Spin spinning={loading}>
-                {!isAuthenticated ? (
+                {!isAuthenticated && localFeedback.length === 0 ? (
                     <Alert
-                        message="Authentication Required"
-                        description="Please log in to view your feedback history."
+                        message="Note about anonymous feedback"
+                        description="Your anonymous feedback is stored locally in your browser. To maintain a permanent history and receive responses, please log in."
                         type="info"
                         showIcon
                         icon={<LoginOutlined />}
                     />
-                ) : error ? (
-                    <Empty description={error} />
-                ) : feedback.length === 0 ? (
-                    <Empty description="No feedback submitted yet" />
                 ) : (
-                    <List
-                        dataSource={feedback}
-                        renderItem={(item) => (
-                            <List.Item className={styles.item}>
-                                <div style={{ width: '100%' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Title level={5} className={styles.title}>{item.title || 'No Title'}</Title>
-                                        <Tag color={statusColors[item.status] || 'default'}>{item.status || 'Unknown'}</Tag>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                                        <Tag>{item.category || 'Other'}</Tag>
-                                        <Tag color={item.severity > 3 ? 'red' : item.severity > 2 ? 'orange' : 'green'}>
-                                            Severity: {item.severity || 0}/5
-                                        </Tag>
-                                    </div>
-                                    <Tooltip title={item.description || 'No description provided'}>
-                                        <Text className={styles.description}>
-                                            {item.description
-                                                ? (item.description.length > 100
-                                                    ? `${item.description.substring(0, 100)}...`
-                                                    : item.description)
-                                                : 'No description provided'}
-                                        </Text>
-                                    </Tooltip>
-                                    <Text className={styles.date}>
-                                        Submitted: {item.createdAt
-                                            ? moment(item.createdAt).format('YYYY-MM-DD HH:mm')
-                                            : 'Unknown date'}
-                                    </Text>
-                                </div>
-                            </List.Item>
+                    <Tabs defaultActiveKey={isAuthenticated ? "account" : "local"}>
+                        {isAuthenticated && (
+                            <TabPane tab="Account Feedback" key="account">
+                                {error ? (
+                                    <Empty description={error} />
+                                ) : feedback.length === 0 ? (
+                                    <Empty description="No feedback submitted with your account yet" />
+                                ) : (
+                                    <List
+                                        dataSource={feedback}
+                                        renderItem={renderFeedbackItem}
+                                    />
+                                )}
+                            </TabPane>
                         )}
-                    />
+
+                        <TabPane tab="Local Feedback" key="local">
+                            {localFeedback.length === 0 ? (
+                                <Empty description="No local feedback history" />
+                            ) : (
+                                <List
+                                    dataSource={localFeedback}
+                                    renderItem={renderFeedbackItem}
+                                />
+                            )}
+                        </TabPane>
+                    </Tabs>
                 )}
             </Spin>
         </Drawer>

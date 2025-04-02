@@ -1,9 +1,11 @@
 import { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
-import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Divider } from 'antd';
+import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Divider, Checkbox } from 'antd';
 import { UploadOutlined, BugOutlined, BulbOutlined, ToolOutlined } from '@ant-design/icons';
 import { submitSystemFeedback } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';
+import { AuthContext } from '../../context/AuthContext';
+import { saveAnonymousFeedback } from '../../utils/feedbackUtils';
 import { css } from '@emotion/css';
 
 const { Option } = Select;
@@ -12,17 +14,49 @@ const { Title, Text } = Typography;
 
 const useStyles = (themeColors) => ({
     form: css`
-    max-width: 600px;
+    width: 100%;
+    max-width: 800px; /* Increased from 600px for larger screens */
     margin: 0 auto;
     padding: 24px;
     border-radius: 8px;
     background: ${themeColors.cardBg};
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    
+    @media (min-width: 1200px) {
+      max-width: 900px; /* Even wider on very large screens */
+      padding: 30px;
+    }
+    
+    @media (max-width: 992px) {
+      max-width: 700px;
+    }
+    
+    @media (max-width: 768px) {
+      padding: 16px;
+      margin: 0;
+      max-width: none;
+    }
+    
+    @media (max-width: 480px) {
+      padding: 12px;
+      border-radius: 4px;
+    }
   `,
     title: css`
     color: ${themeColors.text};
     text-align: center;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
+    font-size: 24px;
+    
+    @media (max-width: 768px) {
+      font-size: 20px;
+      margin-bottom: 16px;
+    }
+    
+    @media (max-width: 480px) {
+      font-size: 18px;
+      margin-bottom: 12px;
+    }
   `,
     submitButton: css`
     margin-top: 16px;
@@ -31,10 +65,21 @@ const useStyles = (themeColors) => ({
     rateLabel: css`
     color: ${themeColors.text};
     margin-right: 8px;
+    font-size: 14px;
+    
+    @media (max-width: 480px) {
+      display: block;
+      margin-top: 4px;
+      font-size: 12px;
+    }
   `,
     divider: css`
-    margin: 24px 0 16px;
+    margin: 20px 0 16px;
     border-color: ${themeColors.text}30;
+    
+    @media (max-width: 480px) {
+      margin: 12px 0;
+    }
   `,
     uploadBtn: css`
     width: 100%;
@@ -53,25 +98,81 @@ const useStyles = (themeColors) => ({
   `,
     description: css`
     color: ${themeColors.text}CC;
-    margin-bottom: 24px;
+    margin-bottom: 20px;
     text-align: center;
+    font-size: 14px;
+    
+    @media (max-width: 768px) {
+      margin-bottom: 16px;
+    }
+    
+    @media (max-width: 480px) {
+      font-size: 12px;
+      margin-bottom: 12px;
+    }
   `,
     categoryIcon: css`
     margin-right: 8px;
   `,
     formLabel: css`
     color: ${themeColors.text};
+    font-size: 14px;
+    
+    @media (max-width: 480px) {
+      font-size: 13px;
+    }
+  `,
+    formItem: css`
+    margin-bottom: 16px;
+    
+    @media (max-width: 480px) {
+      margin-bottom: 12px;
+    }
+  `,
+    uploadWrapper: css`
+    .ant-upload-list-picture-card .ant-upload-list-item,
+    .ant-upload-select-picture-card {
+      width: 100%;
+      max-width: 150px;
+      height: auto;
+      margin-right: 8px;
+      
+      @media (max-width: 480px) {
+        max-width: 100px;
+      }
+    }
+  `,
+    modalImage: css`
+    width: 100%;
+    height: auto;
+  `,
+    formContainer: css`
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+  `,
+    twoColumnLayout: css`
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
+      gap: 0;
+    }
   `
 });
 
 const SystemFeedbackForm = ({ onClose }) => {
     const { themeColors } = useContext(ThemeContext);
+    const { isAuthenticated } = useContext(AuthContext);
     const styles = useStyles(themeColors);
     const [form] = Form.useForm();
     const [loading, setLoading] = useState(false);
     const [imageUrl, setImageUrl] = useState('');
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
+    const [isAnonymous, setIsAnonymous] = useState(false);
 
     const getBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -116,13 +217,31 @@ const SystemFeedbackForm = ({ onClose }) => {
             setLoading(true);
             console.log('Submitting feedback with values:', values);
 
-            const response = await submitSystemFeedback({
+            const feedbackData = {
                 title: values.title,
                 category: values.category,
                 description: values.description,
                 severity: values.severity,
                 screenshot: imageUrl // Include the image if provided
-            });
+            };
+
+            if (!isAuthenticated || isAnonymous) {
+                // Save anonymous feedback locally
+                const saved = saveAnonymousFeedback(feedbackData);
+                if (saved) {
+                    message.success('Anonymous feedback saved locally');
+                    form.resetFields();
+                    setImageUrl('');
+                    if (onClose) onClose();
+                    return;
+                } else {
+                    message.error('Failed to save anonymous feedback');
+                    return;
+                }
+            }
+
+            // Submit to server if authenticated and not anonymous
+            const response = await submitSystemFeedback(feedbackData);
 
             message.success('Feedback submitted successfully!');
             form.resetFields();
@@ -156,112 +275,154 @@ const SystemFeedbackForm = ({ onClose }) => {
     );
 
     return (
-        <div className={styles.form}>
-            <Title level={3} className={styles.title}>
-                Help Us Improve
-            </Title>
+        <div className={styles.formContainer}>
+            <div className={styles.form}>
+                <Title level={3} className={styles.title}>
+                    Help Us Improve
+                </Title>
 
-            <Text className={styles.description}>
-                Your feedback helps us enhance the attendance system. Please share your thoughts, suggestions, or report any issues you encounter.
-            </Text>
+                <Text className={styles.description}>
+                    Your feedback helps us enhance the attendance system. Please share your thoughts, suggestions, or report any issues you encounter.
+                </Text>
 
-            <Form
-                form={form}
-                layout="vertical"
-                onFinish={handleSubmit}
-                initialValues={{ severity: 3 }}
-            >
-                <Form.Item
-                    name="category"
-                    label={<span className={styles.formLabel}>Category</span>}
-                    rules={[{ required: true, message: 'Please select a category' }]}
+                <Form
+                    form={form}
+                    layout="vertical"
+                    onFinish={handleSubmit}
+                    initialValues={{ severity: 3 }}
+                    size="middle"
+                    style={{ width: '100%' }}
                 >
-                    <Select placeholder="Select the type of feedback">
-                        <Option value="Bug">
-                            <BugOutlined className={styles.categoryIcon} /> Bug or Error
-                        </Option>
-                        <Option value="Feature Request">
-                            <BulbOutlined className={styles.categoryIcon} /> Feature Request
-                        </Option>
-                        <Option value="UI Improvement">
-                            <ToolOutlined className={styles.categoryIcon} /> UI Improvement
-                        </Option>
-                        <Option value="Performance Issue">
-                            <ToolOutlined className={styles.categoryIcon} /> Performance Issue
-                        </Option>
-                        <Option value="Other">Other</Option>
-                    </Select>
-                </Form.Item>
+                    {/* Use a grid layout for form fields on larger screens */}
+                    <div className={styles.twoColumnLayout}>
+                        <Form.Item
+                            name="category"
+                            label={<span className={styles.formLabel}>Category</span>}
+                            rules={[{ required: true, message: 'Please select a category' }]}
+                            className={styles.formItem}
+                        >
+                            <Select placeholder="Select the type of feedback">
+                                <Option value="Bug">
+                                    <BugOutlined className={styles.categoryIcon} /> Bug or Error
+                                </Option>
+                                <Option value="Feature Request">
+                                    <BulbOutlined className={styles.categoryIcon} /> Feature Request
+                                </Option>
+                                <Option value="UI Improvement">
+                                    <ToolOutlined className={styles.categoryIcon} /> UI Improvement
+                                </Option>
+                                <Option value="Performance Issue">
+                                    <ToolOutlined className={styles.categoryIcon} /> Performance Issue
+                                </Option>
+                                <Option value="Other">Other</Option>
+                            </Select>
+                        </Form.Item>
 
-                <Form.Item
-                    name="title"
-                    label={<span className={styles.formLabel}>Title</span>}
-                    rules={[{ required: true, message: 'Please provide a title' }]}
-                >
-                    <Input placeholder="Brief summary of your feedback" />
-                </Form.Item>
-
-                <Form.Item
-                    name="description"
-                    label={<span className={styles.formLabel}>Description</span>}
-                    rules={[{ required: true, message: 'Please provide a description' }]}
-                >
-                    <TextArea
-                        placeholder="Please describe the issue or suggestion in detail..."
-                        rows={4}
-                    />
-                </Form.Item>
-
-                <Form.Item
-                    name="severity"
-                    label={<span className={styles.formLabel}>Severity/Importance</span>}
-                    rules={[{ required: true, message: 'Please rate the severity' }]}
-                >
-                    <div>
-                        <Rate />
-                        <span className={styles.rateLabel}>(1 = Low, 5 = Critical)</span>
+                        <Form.Item
+                            name="title"
+                            label={<span className={styles.formLabel}>Title</span>}
+                            rules={[{ required: true, message: 'Please provide a title' }]}
+                            className={styles.formItem}
+                        >
+                            <Input placeholder="Brief summary of your feedback" />
+                        </Form.Item>
                     </div>
-                </Form.Item>
 
-                <Divider className={styles.divider} />
-
-                <Form.Item label={<span className={styles.formLabel}>Screenshot</span>}>
-                    <Upload
-                        listType="picture-card"
-                        showUploadList={true}
-                        beforeUpload={beforeUpload}
-                        onChange={handleChange}
-                        onPreview={handleImagePreview}
-                        maxCount={1}
-                        accept="image/*"
+                    <Form.Item
+                        name="description"
+                        label={<span className={styles.formLabel}>Description</span>}
+                        rules={[{ required: true, message: 'Please provide a description' }]}
+                        className={styles.formItem}
                     >
-                        {imageUrl ? null : uploadButton}
-                    </Upload>
-                </Form.Item>
+                        <TextArea
+                            placeholder="Please describe the issue or suggestion in detail..."
+                            rows={4}
+                            autoSize={{ minRows: 3, maxRows: 6 }}
+                        />
+                    </Form.Item>
 
-                <Form.Item>
-                    <Button
-                        type="primary"
-                        htmlType="submit"
-                        loading={loading}
-                        className={styles.submitButton}
-                    >
-                        Submit Feedback
-                    </Button>
-                </Form.Item>
-            </Form>
+                    <div className={styles.twoColumnLayout}>
+                        <Form.Item
+                            name="severity"
+                            label={<span className={styles.formLabel}>Severity/Importance</span>}
+                            rules={[{ required: true, message: 'Please rate the severity' }]}
+                            className={styles.formItem}
+                        >
+                            <div>
+                                <Rate />
+                                <span className={styles.rateLabel}>(1 = Low, 5 = Critical)</span>
+                            </div>
+                        </Form.Item>
 
-            <Modal
-                open={previewOpen}
-                title="Screenshot Preview"
-                footer={null}
-                onCancel={() => setPreviewOpen(false)}
-            >
-                <img alt="Preview" style={{ width: '100%' }} src={previewImage} />
-            </Modal>
+                        <Form.Item
+                            label={<span className={styles.formLabel}>Screenshot</span>}
+                            className={styles.formItem}
+                        >
+                            <div className={styles.uploadWrapper}>
+                                <Upload
+                                    listType="picture-card"
+                                    showUploadList={true}
+                                    beforeUpload={beforeUpload}
+                                    onChange={handleChange}
+                                    onPreview={handleImagePreview}
+                                    maxCount={1}
+                                    accept="image/*"
+                                >
+                                    {imageUrl ? null : uploadButton}
+                                </Upload>
+                            </div>
+                        </Form.Item>
+                    </div>
+
+                    {/* Add anonymous checkbox for authenticated users */}
+                    {isAuthenticated && (
+                        <Form.Item name="anonymous" className={styles.formItem}>
+                            <Checkbox
+                                checked={isAnonymous}
+                                onChange={e => setIsAnonymous(e.target.checked)}
+                            >
+                                Submit anonymously
+                            </Checkbox>
+                        </Form.Item>
+                    )}
+
+                    {/* If not authenticated, show info text */}
+                    {!isAuthenticated && (
+                        <Form.Item className={styles.formItem}>
+                            <Text type="secondary" style={{ fontSize: '13px' }}>
+                                You are not logged in. Feedback will be saved anonymously on this device.
+                            </Text>
+                        </Form.Item>
+                    )}
+
+                    <Form.Item className={styles.formItem}>
+                        <Button
+                            type="primary"
+                            htmlType="submit"
+                            loading={loading}
+                            className={styles.submitButton}
+                        >
+                            Submit Feedback
+                        </Button>
+                    </Form.Item>
+                </Form>
+
+                <Modal
+                    open={previewOpen}
+                    title="Screenshot Preview"
+                    footer={null}
+                    onCancel={() => setPreviewOpen(false)}
+                    width="auto"
+                    style={{ maxWidth: '95vw' }}
+                    centered
+                >
+                    <img alt="Preview" className={styles.modalImage} src={previewImage} />
+                </Modal>
+            </div>
         </div>
     );
 };
+
 SystemFeedbackForm.propTypes = {
     onClose: PropTypes.func
 };
