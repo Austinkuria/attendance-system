@@ -68,55 +68,39 @@ Non-Functional Requirements:
    Component-based frontend design simplified updates and feature additions by isolating functionality into manageable units. The MVC pattern in the backend created clear separation of concerns for easier debugging and enhancement. Central configuration management simplified deployment across different environments. Environment variable management allowed configuration changes without code modifications.
 
 Context Level Diagram
-The context level diagram provided a high-level overview of the QRollCall Smart Attendance System, illustrating how external actors interacted with the system and the flow of information between them based on the actual implementation. The system interfaced with Students, Lecturers, Administrators, and external systems like MongoDB Atlas and file storage.
-
-Students interacted with the system through JWT authentication, QR code scanning with device fingerprinting validation, attendance history viewing, and feedback submission. As implemented in the student dashboards and API controllers, the system validated attendance with composite fingerprinting and IP checks, provided real-time session status through polling mechanisms, and prompted for session feedback when appropriate.
-
-Lecturers used the system to create and manage attendance sessions, generating QR codes that automatically refreshed every 3 minutes as implemented in the session controller. They monitored attendance data through real-time updates using polling mechanisms (not WebSockets) and could export attendance reports in Excel format. The system provided unit-specific analytics visualized with Chart.js components.
-
-Administrators managed users, courses, and departments through comprehensive management interfaces. They accessed system-wide analytics and could generate various reports through the export functionality implemented in the attendance controller.
-
-The system interacted with MongoDB Atlas using Mongoose ODM for all data operations and used file storage for QR code images and attendance export generation. All authentication was handled through JWT tokens with appropriate expiration and refresh mechanisms.
+The context level diagram provides a high-level overview of the QRollCall Smart Attendance System, illustrating how external actors interact with the system.
 
 ```mermaid
 graph TD
     %% Main System
-    SYS[QRollCall Smart Attendance System] 
+    SYS[QRollCall System] 
     
     %% External Actors
     STU[Student]
     LEC[Lecturer]
     ADM[Administrator]
-    DB[(MongoDB Atlas)]
-    STORE[Excel/CSV Export Storage]
+    DB[(Database)]
     
-    %% Interactions - Students
-    STU -->|Authenticates via JWT| SYS
-    STU -->|Scans QR codes with device fingerprinting| SYS
-    STU -->|Views attendance history with offline support| SYS
-    STU -->|Submits session feedback| SYS
-    SYS -->|Returns attendance status with validation| STU
-    SYS -->|Displays feedback requests after sessions| STU
+    %% Student Interactions
+    STU -->|Login| SYS
+    STU -->|Scan QR| SYS
+    STU -->|View History| SYS
+    SYS -->|Attendance Status| STU
     
-    %% Interactions - Lecturers
-    LEC -->|Authenticates via JWT| SYS
-    LEC -->|Creates 1-hour attendance sessions| SYS
-    LEC -->|Generates QR codes with 3-min refresh| SYS
-    LEC -->|Polls for attendance updates| SYS
-    LEC -->|Exports Excel attendance reports| SYS
-    SYS -->|Displays real-time attendance data| LEC
-    SYS -->|Provides unit analytics with Chart.js| LEC
+    %% Lecturer Interactions
+    LEC -->|Login| SYS
+    LEC -->|Create Sessions| SYS
+    LEC -->|Monitor Attendance| SYS
+    SYS -->|Reports & Analytics| LEC
     
-    %% Interactions - Admins
-    ADM -->|Authenticates via JWT| SYS
-    ADM -->|Manages user accounts with bulk import| SYS
-    ADM -->|Configures courses/units/departments| SYS
-    ADM -->|Views system-wide analytics| SYS
-    SYS -->|Provides administrative reports| ADM
+    %% Admin Interactions
+    ADM -->|Login| SYS
+    ADM -->|Manage Users| SYS
+    ADM -->|Configure System| SYS
+    SYS -->|System Reports| ADM
     
-    %% Interactions - External Systems
-    SYS <-->|Stores/retrieves via Mongoose ODM| DB
-    SYS -->|Generates Excel/CSV exports| STORE
+    %% External Systems
+    SYS <-->|Data Storage| DB
     
     %% Styling
     classDef system fill:#f96,stroke:#333,stroke-width:2px;
@@ -125,7 +109,7 @@ graph TD
     
     class SYS system;
     class STU,LEC,ADM users;
-    class DB,STORE external;
+    class DB external;
 ```
 
 Internal Data Flow Diagram
@@ -845,7 +829,9 @@ erDiagram
 
 Output Design (Report Specifications)
 
-The system generated various reports to provide insights into attendance data. Each report was carefully designed to address specific user needs:
+Output design refers to the systematic creation and organization of information that users receive from the system. It involves determining how data is presented, formatted, and delivered to meet user requirements effectively. In the QRollCall system, output design focused on creating meaningful, accessible, and visually effective reports that transform raw attendance data into actionable insights for different stakeholders.
+
+The system was designed to generate the following reports, though it's important to note that these represent the conceptual report specifications rather than fully implemented features in the current version. These report designs serve as a blueprint for future development:
 
 1. Unit Attendance Report
    - **Purpose**: Summarized attendance for a specific course unit
