@@ -2,7 +2,13 @@ CHAPTER 4:
 SYSTEM DESIGN
 
 Introduction
-The QRollCall Smart Attendance System was designed as a Progressive Web Application (PWA) to modernize student attendance tracking in educational institutions. Built on the MERN stack, the system provides a secure, efficient solution for monitoring classroom attendance. The system was implemented with:
+The QRollCall Smart Attendance System was designed as a Progressive Web Application (PWA) to modernize student attendance tracking in educational institutions. Built on the MERN stack, the system provides a secure, efficient solution for monitoring classroom attendance. The primary objectives accomplished in this implementation were:
+
+1. Enhancement of real-time attendance accuracy through QR code technology with automatic 3-minute refreshing.
+2. Prevention of proxy attendance through device fingerprinting, IP tracking, and user authentication.
+3. Improvement of student engagement using post-attendance tools like feedback mechanisms and interactive dashboards.
+
+The system was implemented with:
 
 Technical Architecture:
 The frontend was built using React.js with Vite and implements the Ant Design UI framework with custom theming for light and dark modes. The backend utilized Node.js and Express with a RESTful API architecture, while data was stored in MongoDB Atlas with Mongoose ODM for data modeling and validation. Authentication was managed through JWT-based secure mechanisms with role-based access control. Browser localStorage provided data persistence with offline functionality through PWA capabilities. The deployment infrastructure consisted of frontend hosting on Vercel and backend services on Render.com for optimal scalability and performance.
@@ -841,12 +847,6 @@ The system was designed to generate the following reports, though it's important
      - Header: Unit code, Unit name, Lecturer name, Date range
      - Body: Table with columns for Reg Number, Student Name, Total Sessions, Sessions Attended, Attendance Rate (%)
      - Footer: Summary statistics, Generated date, Page numbers
-   - **Sorting Options**: By student name, By attendance rate (ascending/descending)
-   - **Filtering Options**: By date range, By attendance status
-   - **Visual Elements**: Color-coding for attendance rates (>80% green, 60-80% yellow, <60% red)
-
-2. Session Detailed Report
-   - **Purpose**: Provided attendance details for a specific session
    - **Format**: Excel (.xlsx) and CSV
    - **Target Users**: Lecturers
    - **Content Structure**:
