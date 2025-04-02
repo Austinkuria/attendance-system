@@ -1,14 +1,14 @@
 import { useState, useEffect, useContext } from 'react';
-// Remove the unused Badge import
-import { Drawer, List, Tag, Typography, Spin, Empty, Tooltip, Button } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
+import { Drawer, Typography, List, Tag, Spin, Empty, Button, Tooltip, Alert } from 'antd';
+import { SyncOutlined, LoginOutlined } from '@ant-design/icons';
+import PropTypes from 'prop-types';
 import { getUserSystemFeedback } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';
-import PropTypes from 'prop-types';
-import moment from 'moment';
+import { AuthContext } from '../../context/AuthContext';
 import { css } from '@emotion/css';
+import moment from 'moment';
 
-const { Text, Title } = Typography;
+const { Title, Text } = Typography;
 
 const useStyles = (themeColors) => ({
     drawer: css`
@@ -57,24 +57,73 @@ const statusColors = {
 
 const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
     const { themeColors } = useContext(ThemeContext);
+    const { isAuthenticated } = useContext(AuthContext);
     const styles = useStyles(themeColors);
 
     const [feedback, setFeedback] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
-        if (visible) {
+        if (visible && isAuthenticated) {
             fetchFeedback();
         }
-    }, [visible]);
+    }, [visible, isAuthenticated]);
 
     const fetchFeedback = async () => {
+        if (!isAuthenticated) {
+            setError('Please log in to view your feedback history');
+            setFeedback([]);
+            return;
+        }
+
         try {
             setLoading(true);
-            const data = await getUserSystemFeedback();
-            setFeedback(data);
+            setError(null);
+            const response = await getUserSystemFeedback();
+
+            console.log('API Response:', response);
+
+            const data = response?.data || response;
+
+            if (Array.isArray(data)) {
+                setFeedback(data);
+            } else if (data && typeof data === 'object') {
+                if (Array.isArray(data.feedback)) {
+                    setFeedback(data.feedback);
+                } else if (Array.isArray(data.items)) {
+                    setFeedback(data.items);
+                } else if (data.title || data.description || data.category) {
+                    setFeedback([data]);
+                } else if (Object.values(data).length > 0 && typeof Object.values(data)[0] === 'object') {
+                    const feedbackArray = Object.values(data).filter(item =>
+                        item && typeof item === 'object' && (item.title || item.description || item.category)
+                    );
+                    if (feedbackArray.length > 0) {
+                        setFeedback(feedbackArray);
+                    } else {
+                        setFeedback([]);
+                        setError('No feedback items found');
+                    }
+                } else {
+                    setFeedback([]);
+                    setError('No feedback data available');
+                }
+            } else {
+                console.warn('Unexpected response type from server:', data);
+                setFeedback([]);
+                setError('No feedback data available');
+            }
         } catch (error) {
             console.error('Error fetching feedback history:', error);
+
+            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                setError('You need to be logged in to view your feedback history');
+            } else {
+                setError('Failed to load feedback history. Please try again later.');
+            }
+
+            setFeedback([]);
         } finally {
             setLoading(false);
         }
@@ -91,6 +140,7 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
                         onClick={fetchFeedback}
                         loading={loading}
                         className={styles.refreshButton}
+                        disabled={!isAuthenticated}
                     />
                 </div>
             }
@@ -101,7 +151,17 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
             className={styles.drawer}
         >
             <Spin spinning={loading}>
-                {feedback.length === 0 ? (
+                {!isAuthenticated ? (
+                    <Alert
+                        message="Authentication Required"
+                        description="Please log in to view your feedback history."
+                        type="info"
+                        showIcon
+                        icon={<LoginOutlined />}
+                    />
+                ) : error ? (
+                    <Empty description={error} />
+                ) : feedback.length === 0 ? (
                     <Empty description="No feedback submitted yet" />
                 ) : (
                     <List
@@ -110,24 +170,28 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
                             <List.Item className={styles.item}>
                                 <div style={{ width: '100%' }}>
                                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Title level={5} className={styles.title}>{item.title}</Title>
-                                        <Tag color={statusColors[item.status]}>{item.status}</Tag>
+                                        <Title level={5} className={styles.title}>{item.title || 'No Title'}</Title>
+                                        <Tag color={statusColors[item.status] || 'default'}>{item.status || 'Unknown'}</Tag>
                                     </div>
                                     <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                                        <Tag>{item.category}</Tag>
+                                        <Tag>{item.category || 'Other'}</Tag>
                                         <Tag color={item.severity > 3 ? 'red' : item.severity > 2 ? 'orange' : 'green'}>
-                                            Severity: {item.severity}/5
+                                            Severity: {item.severity || 0}/5
                                         </Tag>
                                     </div>
-                                    <Tooltip title={item.description}>
+                                    <Tooltip title={item.description || 'No description provided'}>
                                         <Text className={styles.description}>
-                                            {item.description.length > 100
-                                                ? `${item.description.substring(0, 100)}...`
-                                                : item.description}
+                                            {item.description
+                                                ? (item.description.length > 100
+                                                    ? `${item.description.substring(0, 100)}...`
+                                                    : item.description)
+                                                : 'No description provided'}
                                         </Text>
                                     </Tooltip>
                                     <Text className={styles.date}>
-                                        Submitted: {moment(item.createdAt).format('YYYY-MM-DD HH:mm')}
+                                        Submitted: {item.createdAt
+                                            ? moment(item.createdAt).format('YYYY-MM-DD HH:mm')
+                                            : 'Unknown date'}
                                     </Text>
                                 </div>
                             </List.Item>
