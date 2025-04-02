@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
-import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Divider, Checkbox } from 'antd';
-import { UploadOutlined, BugOutlined, BulbOutlined, ToolOutlined } from '@ant-design/icons';
+import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Divider, Checkbox, Radio, Space, Tooltip } from 'antd';
+import { UploadOutlined, BugOutlined, BulbOutlined, ToolOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { submitSystemFeedback } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';
 import { AuthContext } from '../../context/AuthContext';
@@ -173,6 +173,7 @@ const SystemFeedbackForm = ({ onClose }) => {
     const [previewOpen, setPreviewOpen] = useState(false);
     const [previewImage, setPreviewImage] = useState('');
     const [isAnonymous, setIsAnonymous] = useState(false);
+    const [anonymousOption, setAnonymousOption] = useState('local'); // 'local' or 'server'
 
     const getBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -225,11 +226,22 @@ const SystemFeedbackForm = ({ onClose }) => {
                 screenshot: imageUrl // Include the image if provided
             };
 
+            // If not authenticated or choosing to submit anonymously
             if (!isAuthenticated || isAnonymous) {
-                // Save anonymous feedback locally
-                const saved = saveAnonymousFeedback(feedbackData);
-                if (saved) {
-                    message.success('Anonymous feedback saved locally');
+                const serverSubmit = anonymousOption === 'server';
+
+                // Save feedback locally and optionally to server
+                const result = await saveAnonymousFeedback(feedbackData, serverSubmit);
+
+                if (result.success) {
+                    if (serverSubmit && result.serverSubmitted) {
+                        message.success('Anonymous feedback submitted to developers successfully!');
+                    } else if (serverSubmit && !result.serverSubmitted) {
+                        message.warning('Feedback saved locally but server submission failed.');
+                    } else {
+                        message.success('Anonymous feedback saved locally.');
+                    }
+
                     form.resetFields();
                     setImageUrl('');
                     if (onClose) onClose();
@@ -289,7 +301,7 @@ const SystemFeedbackForm = ({ onClose }) => {
                     form={form}
                     layout="vertical"
                     onFinish={handleSubmit}
-                    initialValues={{ severity: 3 }}
+                    initialValues={{ severity: 3, anonymousOption: 'local' }}
                     size="middle"
                     style={{ width: '100%' }}
                 >
@@ -374,8 +386,8 @@ const SystemFeedbackForm = ({ onClose }) => {
                         </Form.Item>
                     </div>
 
-                    {/* Add anonymous checkbox for authenticated users */}
-                    {isAuthenticated && (
+                    {/* Anonymous options section */}
+                    {isAuthenticated ? (
                         <Form.Item name="anonymous" className={styles.formItem}>
                             <Checkbox
                                 checked={isAnonymous}
@@ -383,15 +395,59 @@ const SystemFeedbackForm = ({ onClose }) => {
                             >
                                 Submit anonymously
                             </Checkbox>
-                        </Form.Item>
-                    )}
 
-                    {/* If not authenticated, show info text */}
-                    {!isAuthenticated && (
+                            {isAnonymous && (
+                                <div style={{ marginTop: 8, marginLeft: 24 }}>
+                                    <Radio.Group
+                                        value={anonymousOption}
+                                        onChange={e => setAnonymousOption(e.target.value)}
+                                    >
+                                        <Space direction="vertical">
+                                            <Radio value="local">
+                                                Store locally only (developers won&apos;t see this)
+                                            </Radio>
+                                            <Radio value="server">
+                                                Submit to developers anonymously
+                                                <Tooltip title="Your feedback will be sent to the development team without your personal information.">
+                                                    <InfoCircleOutlined style={{ marginLeft: 8 }} />
+                                                </Tooltip>
+                                            </Radio>
+                                        </Space>
+                                    </Radio.Group>
+                                </div>
+                            )}
+                        </Form.Item>
+                    ) : (
                         <Form.Item className={styles.formItem}>
-                            <Text type="secondary" style={{ fontSize: '13px' }}>
-                                You are not logged in. Feedback will be saved anonymously on this device.
+                            <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: 8 }}>
+                                You are not logged in. How would you like to submit your feedback?
                             </Text>
+
+                            <Radio.Group
+                                value={anonymousOption}
+                                onChange={e => setAnonymousOption(e.target.value)}
+                            >
+                                <Space direction="vertical">
+                                    <Radio value="local">
+                                        Store locally only (developers won&apos;t see this)
+                                    </Radio>
+                                    <Radio value="server">
+                                        Submit to developers anonymously
+                                        <Tooltip title="Your feedback will be sent to the development team without your personal information.">
+                                            <InfoCircleOutlined style={{ marginLeft: 8 }} />
+                                        </Tooltip>
+                                    </Radio>
+                                </Space>
+                            </Radio.Group>
+
+                            <div style={{ marginTop: 8 }}>
+                                <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                                    For better tracking and to receive updates on your feedback, consider
+                                    <Button type="link" style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }} onClick={() => window.location.href = '/auth/login'}>
+                                        logging in
+                                    </Button>
+                                </Text>
+                            </div>
                         </Form.Item>
                     )}
 
@@ -402,7 +458,7 @@ const SystemFeedbackForm = ({ onClose }) => {
                             loading={loading}
                             className={styles.submitButton}
                         >
-                            Submit Feedback
+                            {anonymousOption === 'server' ? 'Submit Feedback' : 'Save Feedback'}
                         </Button>
                     </Form.Item>
                 </Form>

@@ -9,6 +9,9 @@ logger.info('Loading system feedback routes...');
 // Root POST endpoint - authentication first, then controller
 router.post('/', authenticate, systemFeedbackController.submitFeedback);
 
+// Anonymous feedback endpoint - no authentication required
+router.post('/anonymous', systemFeedbackController.submitAnonymousFeedback);
+
 // Get all feedback - admin only
 router.get('/all', authenticate, systemFeedbackController.getAllFeedback);
 

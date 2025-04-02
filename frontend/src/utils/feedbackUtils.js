@@ -1,15 +1,17 @@
 /**
  * Saves anonymous feedback to localStorage
  * @param {Object} feedbackData - The feedback data to save
- * @returns {boolean} - Success status
+ * @param {boolean} [serverSubmit=false] - Whether to also submit to server
+ * @returns {Promise<Object>} - Result of the operation
  */
-export const saveAnonymousFeedback = (feedbackData) => {
+export const saveAnonymousFeedback = async (feedbackData, serverSubmit = false) => {
     try {
         // Add timestamp and default status for local tracking
         const feedbackWithTimestamp = {
             ...feedbackData,
             localTimestamp: new Date().toISOString(),
-            status: 'Submitted' // Default status for local feedback
+            status: 'Submitted', // Default status for local feedback
+            anonymous: true
         };
 
         // Get existing feedback
@@ -22,10 +24,34 @@ export const saveAnonymousFeedback = (feedbackData) => {
         // Store back in localStorage (limit to 10 most recent to save space)
         localStorage.setItem('anonymousFeedback', JSON.stringify(feedbackArray.slice(0, 10)));
 
-        return true;
+        // If serverSubmit is true, also send to server
+        if (serverSubmit) {
+            // Import here to avoid circular dependency
+            const { submitAnonymousSystemFeedback } = await import('../services/api');
+            try {
+                const response = await submitAnonymousSystemFeedback({
+                    ...feedbackData,
+                    anonymous: true
+                });
+                return {
+                    success: true,
+                    serverSubmitted: true,
+                    response
+                };
+            } catch (serverError) {
+                console.error('Error submitting to server:', serverError);
+                return {
+                    success: true,
+                    serverSubmitted: false,
+                    error: serverError
+                };
+            }
+        }
+
+        return { success: true, serverSubmitted: false };
     } catch (error) {
         console.error('Error saving feedback to localStorage:', error);
-        return false;
+        return { success: false, error };
     }
 };
 

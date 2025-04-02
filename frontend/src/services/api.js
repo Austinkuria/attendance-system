@@ -1804,4 +1804,28 @@ export const suppressVercelAnalyticsErrors = () => {
 // Call this function early in the app initialization
 suppressVercelAnalyticsErrors();
 
+// Submit system feedback anonymously (no authentication required)
+export const submitAnonymousSystemFeedback = async (feedbackData) => {
+  try {
+    // Add basic device info to help with debugging
+    const deviceInfo = {
+      userAgent: navigator.userAgent,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      language: navigator.language,
+      platform: navigator.platform,
+      timestamp: new Date().toISOString()
+    };
+
+    const response = await axios.post(`${API_URL}/system-feedback/anonymous`, {
+      ...feedbackData,
+      deviceInfo
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting anonymous feedback:', error);
+    throw error;
+  }
+};
+
 export default api;
