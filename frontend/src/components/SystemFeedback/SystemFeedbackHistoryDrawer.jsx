@@ -96,21 +96,26 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
         try {
             setLoading(true);
             setError(null);
-            const response = await getUserSystemFeedback();
 
-            // Log the response for debugging
+            // Add a timeout to handle potential hanging requests
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request timed out')), 15000)
+            );
+
+            // Race between the actual request and the timeout
+            const response = await Promise.race([
+                getUserSystemFeedback(),
+                timeoutPromise
+            ]);
+
             console.log('API Response:', response);
 
-            // Handle possible response formats
             if (Array.isArray(response)) {
-                // Response is already an array
                 setFeedback(response);
             } else if (response && response.authRequired) {
-                // Auth required response
                 setError(response.message || 'Please log in to view your feedback history');
                 setFeedback([]);
             } else if (response && typeof response === 'object') {
-                // Check for various object structures
                 if (Array.isArray(response.data)) {
                     setFeedback(response.data);
                 } else if (Array.isArray(response.feedback)) {
@@ -118,10 +123,8 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
                 } else if (Array.isArray(response.items)) {
                     setFeedback(response.items);
                 } else if (response.title || response.description || response.category) {
-                    // Single feedback item
                     setFeedback([response]);
                 } else {
-                    // Try to extract nested data
                     const possibleArrays = Object.values(response).filter(value =>
                         Array.isArray(value) && value.length > 0
                     );
@@ -133,13 +136,17 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
                     }
                 }
             } else {
-                // Handle empty or invalid response
                 setFeedback([]);
             }
         } catch (error) {
             console.error('Error fetching feedback history:', error);
 
-            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            // Improve error message for network issues
+            if (error.message && (error.message.includes('Network') || error.message.includes('CORS'))) {
+                setError('Network issue when retrieving feedback. Your browser might be blocking cross-origin requests.');
+            } else if (error.message === 'Request timed out') {
+                setError('Request timed out. The server might be unavailable or slow to respond.');
+            } else if (error.response && (error.response.status === 401 || error.response.status === 403)) {
                 setError('You need to be logged in to view your feedback history');
             } else {
                 setError('Failed to load feedback history. Please try again later.');

@@ -1664,7 +1664,6 @@ export const getUserSystemFeedback = async () => {
     // First check if user is authenticated
     if (!isUserAuthenticated()) {
       console.warn('User is not authenticated. Cannot fetch feedback.');
-      // Return a special object indicating auth required instead of an empty array
       return {
         authRequired: true,
         message: 'Please log in to view your feedback history'
@@ -1681,43 +1680,42 @@ export const getUserSystemFeedback = async () => {
 
     console.log('Fetching user system feedback data...');
 
-    // Make direct axios call with proper headers
+    // Make direct axios call WITHOUT the problematic cache-control header
     const response = await axios.get(`${API_URL}/system-feedback/user`, {
       headers: {
         Authorization: `Bearer ${token}`,
-        'Content-Type': 'application/json',
-        'Cache-Control': 'no-cache' // Prevent caching issues
+        'Content-Type': 'application/json'
       },
       timeout: 15000 // 15 second timeout
     });
 
     console.log('User feedback API response:', response.data);
 
-    // Check if the response is valid
+    // Rest of the function remains the same
     if (response.data) {
-      // If the response is an array, return it directly
       if (Array.isArray(response.data)) {
         return response.data;
-      }
-      // If it's an object, see if it contains an array we can use
-      else if (typeof response.data === 'object') {
-        // Check for common array properties
+      } else if (typeof response.data === 'object') {
         if (Array.isArray(response.data.feedback)) {
           return response.data.feedback;
         } else if (Array.isArray(response.data.items)) {
           return response.data.items;
         }
-        // Return the object as is - may be a single feedback item
         return response.data;
       }
     }
 
-    // Default to empty array if response format is unexpected
     return [];
   } catch (error) {
     console.error('Error fetching user system feedback:', error);
 
-    // If it's an auth error, return the special auth required object
+    // Add better CORS error handling
+    if (error.message && error.message.includes('Network Error')) {
+      console.warn('Possible CORS or network issue. Returning empty array.');
+      // Return empty array instead of error object for CORS issues
+      return [];
+    }
+
     if (error.response?.status === 401 || error.response?.status === 403) {
       return {
         authRequired: true,
@@ -1725,7 +1723,6 @@ export const getUserSystemFeedback = async () => {
       };
     }
 
-    // Return empty array for other errors
     return [];
   }
 };
