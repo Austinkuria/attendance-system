@@ -29,10 +29,14 @@ export const saveAnonymousFeedback = async (feedbackData, serverSubmit = false) 
             // Import here to avoid circular dependency
             const { submitAnonymousSystemFeedback } = await import('../services/api');
             try {
+                // Make sure we're explicitly marking this as completely anonymous feedback
+                // by someone who is NOT authenticated
                 const response = await submitAnonymousSystemFeedback({
                     ...feedbackData,
-                    anonymous: true
+                    anonymous: true,
+                    isPublicAnonymous: true // This flag helps differentiate between auth and non-auth anonymous submissions
                 });
+
                 return {
                     success: true,
                     serverSubmitted: true,
@@ -40,6 +44,16 @@ export const saveAnonymousFeedback = async (feedbackData, serverSubmit = false) 
                 };
             } catch (serverError) {
                 console.error('Error submitting to server:', serverError);
+                // Check if this was an auth error that we can ignore
+                if (serverError.response?.status === 401) {
+                    // If it's a 401, it means the anonymous endpoint requires auth - fallback to local storage only
+                    console.warn('Anonymous submissions require authentication. Falling back to local storage only.');
+                    return {
+                        success: true,
+                        serverSubmitted: false,
+                        error: 'Anonymous submissions currently unavailable. Feedback saved locally only.'
+                    };
+                }
                 return {
                     success: true,
                     serverSubmitted: false,

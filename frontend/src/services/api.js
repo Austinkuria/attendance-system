@@ -1812,20 +1812,40 @@ export const submitAnonymousSystemFeedback = async (feedbackData) => {
       timestamp: new Date().toISOString()
     };
 
-    // Use a direct axios call instead of the api instance which adds authentication headers
-    const response = await axios.post(`${API_URL}/system-feedback/anonymous`, {
-      ...feedbackData,
-      deviceInfo
-    }, {
-      // Explicitly don't send authentication headers
+    // Create a modified axios instance specifically for anonymous requests
+    // This ensures we don't send any authentication headers from the default api instance
+    const anonymousAxios = axios.create({
+      baseURL: API_URL,
       headers: {
         'Content-Type': 'application/json'
-      }
+      },
+      timeout: 10000
+    });
+
+    // Make sure we're not sending auth headers
+    delete anonymousAxios.defaults.headers.common['Authorization'];
+    
+    console.log('Sending anonymous feedback without auth headers');
+    
+    const response = await anonymousAxios.post(`/system-feedback/anonymous`, {
+      ...feedbackData,
+      userRole: 'anonymous', // Explicitly set role to anonymous
+      anonymous: true, // Ensure this flag is set
+      isPublicAnonymous: true, // New flag to help the backend distinguish completely anonymous users
+      deviceInfo
     });
 
     return response.data;
   } catch (error) {
     console.error('Error submitting anonymous feedback:', error);
+    
+    // If we get a 401 error, the backend might be requiring authentication
+    if (error.response && error.response.status === 401) {
+      console.warn('Anonymous feedback endpoint requires auth. Server configuration issue.');
+      // Return a specific error message for easier handling
+      throw new Error('Anonymous submissions currently require authentication. This is a server configuration issue.');
+    }
+    
     throw error;
   }
 };

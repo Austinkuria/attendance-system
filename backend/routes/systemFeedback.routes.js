@@ -11,7 +11,13 @@ logger.info('Loading system feedback routes...');
 router.post('/', authenticate, systemFeedbackLimiter, systemFeedbackController.submitFeedback);
 
 // Anonymous feedback endpoint - NO authentication but with rate limiting
-router.post('/anonymous', systemFeedbackLimiter, systemFeedbackController.submitAnonymousFeedback);
+// Make sure no other middleware is adding authentication requirements
+router.post('/anonymous', systemFeedbackLimiter, (req, res, next) => {
+    // Log the request to help with debugging
+    logger.info('Anonymous feedback request received');
+    // Explicitly skip authentication for this route
+    next();
+}, systemFeedbackController.submitAnonymousFeedback);
 
 // Get all feedback - admin only
 router.get('/all', authenticate, systemFeedbackController.getAllFeedback);

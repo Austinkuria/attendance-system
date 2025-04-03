@@ -10,7 +10,6 @@ import { css } from '@emotion/css';
 import moment from 'moment';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
 
 const useStyles = (themeColors) => ({
     drawer: css`
@@ -97,12 +96,10 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
             setLoading(true);
             setError(null);
 
-            // Add a timeout to handle potential hanging requests
             const timeoutPromise = new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timed out')), 15000)
             );
 
-            // Race between the actual request and the timeout
             const response = await Promise.race([
                 getUserSystemFeedback(),
                 timeoutPromise
@@ -141,7 +138,6 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
         } catch (error) {
             console.error('Error fetching feedback history:', error);
 
-            // Improve error message for network issues
             if (error.message && (error.message.includes('Network') || error.message.includes('CORS'))) {
                 setError('Network issue when retrieving feedback. Your browser might be blocking cross-origin requests.');
             } else if (error.message === 'Request timed out') {
@@ -191,6 +187,42 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
         </List.Item>
     );
 
+    const getTabItems = () => {
+        const items = [];
+
+        if (isAuthenticated) {
+            items.push({
+                key: "account",
+                label: "Account Feedback",
+                children: error ? (
+                    <Empty description={error} />
+                ) : feedback.length === 0 ? (
+                    <Empty description="No feedback submitted with your account yet" />
+                ) : (
+                    <List
+                        dataSource={feedback}
+                        renderItem={renderFeedbackItem}
+                    />
+                )
+            });
+        }
+
+        items.push({
+            key: "local",
+            label: "Local Feedback",
+            children: localFeedback.length === 0 ? (
+                <Empty description="No local feedback history" />
+            ) : (
+                <List
+                    dataSource={localFeedback}
+                    renderItem={renderFeedbackItem}
+                />
+            )
+        });
+
+        return items;
+    };
+
     return (
         <Drawer
             title={
@@ -223,33 +255,10 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
                         icon={<LoginOutlined />}
                     />
                 ) : (
-                    <Tabs defaultActiveKey={isAuthenticated ? "account" : "local"}>
-                        {isAuthenticated && (
-                            <TabPane tab="Account Feedback" key="account">
-                                {error ? (
-                                    <Empty description={error} />
-                                ) : feedback.length === 0 ? (
-                                    <Empty description="No feedback submitted with your account yet" />
-                                ) : (
-                                    <List
-                                        dataSource={feedback}
-                                        renderItem={renderFeedbackItem}
-                                    />
-                                )}
-                            </TabPane>
-                        )}
-
-                        <TabPane tab="Local Feedback" key="local">
-                            {localFeedback.length === 0 ? (
-                                <Empty description="No local feedback history" />
-                            ) : (
-                                <List
-                                    dataSource={localFeedback}
-                                    renderItem={renderFeedbackItem}
-                                />
-                            )}
-                        </TabPane>
-                    </Tabs>
+                    <Tabs
+                        defaultActiveKey={isAuthenticated ? "account" : "local"}
+                        items={getTabItems()}
+                    />
                 )}
             </Spin>
         </Drawer>
