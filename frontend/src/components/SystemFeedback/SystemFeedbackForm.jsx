@@ -321,8 +321,7 @@ const SystemFeedbackForm = ({ onClose }) => {
                     onFinish={handleSubmit}
                     initialValues={{ severity: 3, anonymousOption: 'local' }}
                     size="middle"
-                    style={{ widt
-                        h: '100%' }}
+                    style={{ width: '100%' }}
                 >
                     {/* Use a grid layout for form fields on larger screens */}
                     <div className={styles.twoColumnLayout}>

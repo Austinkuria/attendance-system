@@ -98,37 +98,43 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
             setError(null);
             const response = await getUserSystemFeedback();
 
+            // Log the response for debugging
             console.log('API Response:', response);
 
-            const data = response?.data || response;
-
-            if (Array.isArray(data)) {
-                setFeedback(data);
-            } else if (data && typeof data === 'object') {
-                if (Array.isArray(data.feedback)) {
-                    setFeedback(data.feedback);
-                } else if (Array.isArray(data.items)) {
-                    setFeedback(data.items);
-                } else if (data.title || data.description || data.category) {
-                    setFeedback([data]);
-                } else if (Object.values(data).length > 0 && typeof Object.values(data)[0] === 'object') {
-                    const feedbackArray = Object.values(data).filter(item =>
-                        item && typeof item === 'object' && (item.title || item.description || item.category)
+            // Handle possible response formats
+            if (Array.isArray(response)) {
+                // Response is already an array
+                setFeedback(response);
+            } else if (response && response.authRequired) {
+                // Auth required response
+                setError(response.message || 'Please log in to view your feedback history');
+                setFeedback([]);
+            } else if (response && typeof response === 'object') {
+                // Check for various object structures
+                if (Array.isArray(response.data)) {
+                    setFeedback(response.data);
+                } else if (Array.isArray(response.feedback)) {
+                    setFeedback(response.feedback);
+                } else if (Array.isArray(response.items)) {
+                    setFeedback(response.items);
+                } else if (response.title || response.description || response.category) {
+                    // Single feedback item
+                    setFeedback([response]);
+                } else {
+                    // Try to extract nested data
+                    const possibleArrays = Object.values(response).filter(value =>
+                        Array.isArray(value) && value.length > 0
                     );
-                    if (feedbackArray.length > 0) {
-                        setFeedback(feedbackArray);
+
+                    if (possibleArrays.length > 0) {
+                        setFeedback(possibleArrays[0]);
                     } else {
                         setFeedback([]);
-                        setError('No feedback items found');
                     }
-                } else {
-                    setFeedback([]);
-                    setError('No feedback data available');
                 }
             } else {
-                console.warn('Unexpected response type from server:', data);
+                // Handle empty or invalid response
                 setFeedback([]);
-                setError('No feedback data available');
             }
         } catch (error) {
             console.error('Error fetching feedback history:', error);

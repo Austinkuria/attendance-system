@@ -1671,52 +1671,49 @@ export const getUserSystemFeedback = async () => {
       };
     }
 
-    // Add retry logic for more reliable fetching
-    let attempts = 0;
-    const maxAttempts = 3;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return {
+        authRequired: true,
+        message: 'Please log in to view your feedback history'
+      };
+    }
 
-    while (attempts < maxAttempts) {
-      attempts++;
-      try {
-        const token = localStorage.getItem('token');
-        // This should never happen given our check above, but just to be safe
-        if (!token) {
-          return {
-            authRequired: true,
-            message: 'Please log in to view your feedback history'
-          };
+    console.log('Fetching user system feedback data...');
+
+    // Make direct axios call with proper headers
+    const response = await axios.get(`${API_URL}/system-feedback/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache' // Prevent caching issues
+      },
+      timeout: 15000 // 15 second timeout
+    });
+
+    console.log('User feedback API response:', response.data);
+
+    // Check if the response is valid
+    if (response.data) {
+      // If the response is an array, return it directly
+      if (Array.isArray(response.data)) {
+        return response.data;
+      }
+      // If it's an object, see if it contains an array we can use
+      else if (typeof response.data === 'object') {
+        // Check for common array properties
+        if (Array.isArray(response.data.feedback)) {
+          return response.data.feedback;
+        } else if (Array.isArray(response.data.items)) {
+          return response.data.items;
         }
-
-        // Use direct axios call with detailed debugging
-        console.log(`Attempt ${attempts}: Fetching user system feedback`);
-
-        const response = await axios.get(`${API_URL}/system-feedback/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-cache' // Prevent caching
-          }
-        });
-
-        console.log('User feedback response:', response.data);
-        return Array.isArray(response.data) ? response.data : [];
-      } catch (error) {
-        // Handle 401/403 errors specifically
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.warn('Authentication error when fetching feedback:', error.response.status);
-          return {
-            authRequired: true,
-            message: 'Please log in to view your feedback history'
-          };
-        }
-
-        if (attempts >= maxAttempts) throw error;
-        console.warn(`Attempt ${attempts} failed, retrying...`, error);
-        // Wait before retry with exponential backoff
-        await new Promise(r => setTimeout(r, 1000 * attempts));
+        // Return the object as is - may be a single feedback item
+        return response.data;
       }
     }
 
-    return []; // Fallback empty array
+    // Default to empty array if response format is unexpected
+    return [];
   } catch (error) {
     console.error('Error fetching user system feedback:', error);
 
@@ -1728,7 +1725,8 @@ export const getUserSystemFeedback = async () => {
       };
     }
 
-    return []; // Return empty array for other errors
+    // Return empty array for other errors
+    return [];
   }
 };
 
