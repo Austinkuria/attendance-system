@@ -8,10 +8,10 @@ const { systemFeedbackLimiter } = require('../middleware/rateLimiter');
 logger.info('Loading system feedback routes...');
 
 // Root POST endpoint - authentication first, then controller
-router.post('/', authenticate,systemFeedbackLimiter, systemFeedbackController.submitFeedback);
+router.post('/', authenticate, systemFeedbackLimiter, systemFeedbackController.submitFeedback);
 
-// Anonymous feedback endpoint - no authentication required
-router.post('/anonymous', systemFeedbackController.submitAnonymousFeedback);
+// Anonymous feedback endpoint - NO authentication but with rate limiting
+router.post('/anonymous', systemFeedbackLimiter, systemFeedbackController.submitAnonymousFeedback);
 
 // Get all feedback - admin only
 router.get('/all', authenticate, systemFeedbackController.getAllFeedback);

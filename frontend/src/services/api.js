@@ -1817,10 +1817,17 @@ export const submitAnonymousSystemFeedback = async (feedbackData) => {
       timestamp: new Date().toISOString()
     };
 
+    // Use a direct axios call instead of the api instance which adds authentication headers
     const response = await axios.post(`${API_URL}/system-feedback/anonymous`, {
       ...feedbackData,
       deviceInfo
+    }, {
+      // Explicitly don't send authentication headers
+      headers: {
+        'Content-Type': 'application/json'
+      }
     });
+
     return response.data;
   } catch (error) {
     console.error('Error submitting anonymous feedback:', error);

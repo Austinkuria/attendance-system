@@ -85,9 +85,39 @@ const useStyles = (themeColors) => ({
     width: 100%;
     border-color: ${themeColors.primary};
     color: ${themeColors.primary};
+    height: auto;
+    padding: 6px;
+    white-space: normal;
+    line-height: 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     &:hover {
       border-color: ${themeColors.primary}CC;
       color: ${themeColors.primary}CC;
+    }
+  `,
+    uploadIcon: css`
+    margin-bottom: 4px;
+    font-size: 16px;
+  `,
+    uploadText: css`
+    font-size: 11px;
+    text-align: center;
+  `,
+    uploadWrapper: css`
+    .ant-upload-list-picture-card .ant-upload-list-item,
+    .ant-upload-select-picture-card {
+      width: 100%;
+      max-width: 150px;
+      height: auto;
+      min-height: 104px;
+      margin-right: 8px;
+      
+      @media (max-width: 480px) {
+        max-width: 100px;
+        min-height: 90px;
+      }
     }
   `,
     imagePreview: css`
@@ -127,19 +157,6 @@ const useStyles = (themeColors) => ({
     
     @media (max-width: 480px) {
       margin-bottom: 12px;
-    }
-  `,
-    uploadWrapper: css`
-    .ant-upload-list-picture-card .ant-upload-list-item,
-    .ant-upload-select-picture-card {
-      width: 100%;
-      max-width: 150px;
-      height: auto;
-      margin-right: 8px;
-      
-      @media (max-width: 480px) {
-        max-width: 100px;
-      }
     }
   `,
     modalImage: css`
@@ -281,8 +298,9 @@ const SystemFeedbackForm = ({ onClose }) => {
     };
 
     const uploadButton = (
-        <Button className={styles.uploadBtn} icon={<UploadOutlined />}>
-            Upload Screenshot (Optional)
+        <Button className={styles.uploadBtn} type="button">
+            <UploadOutlined className={styles.uploadIcon} />
+            <span className={styles.uploadText}>Upload Screenshot (Optional)</span>
         </Button>
     );
 
@@ -386,7 +404,7 @@ const SystemFeedbackForm = ({ onClose }) => {
                         </Form.Item>
                     </div>
 
-                    {/* Anonymous options section */}
+                    {/* Anonymous options section - Fix the styling conflict here */}
                     {isAuthenticated ? (
                         <Form.Item name="anonymous" className={styles.formItem}>
                             <Checkbox
@@ -397,7 +415,10 @@ const SystemFeedbackForm = ({ onClose }) => {
                             </Checkbox>
 
                             {isAnonymous && (
-                                <div style={{ marginTop: 8, marginLeft: 24 }}>
+                                <div style={{
+                                    paddingTop: 8,
+                                    paddingLeft: 24  // Use paddingLeft instead of marginLeft
+                                }}>
                                     <Radio.Group
                                         value={anonymousOption}
                                         onChange={e => setAnonymousOption(e.target.value)}
@@ -434,13 +455,13 @@ const SystemFeedbackForm = ({ onClose }) => {
                                     <Radio value="server">
                                         Submit to developers anonymously
                                         <Tooltip title="Your feedback will be sent to the development team without your personal information.">
-                                            <InfoCircleOutlined style={{ marginLeft: 8 }} />
+                                            <InfoCircleOutlined style={{ paddingLeft: 8 }} />
                                         </Tooltip>
                                     </Radio>
                                 </Space>
                             </Radio.Group>
 
-                            <div style={{ marginTop: 8 }}>
+                            <div style={{ paddingTop: 8 }}>
                                 <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
                                     For better tracking and to receive updates on your feedback, consider
                                     <Button type="link" style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }} onClick={() => window.location.href = '/auth/login'}>
