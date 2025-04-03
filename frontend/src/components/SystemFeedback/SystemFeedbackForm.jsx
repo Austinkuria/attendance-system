@@ -321,7 +321,8 @@ const SystemFeedbackForm = ({ onClose }) => {
                     onFinish={handleSubmit}
                     initialValues={{ severity: 3, anonymousOption: 'local' }}
                     size="middle"
-                    style={{ width: '100%' }}
+                    style={{ widt
+                        h: '100%' }}
                 >
                     {/* Use a grid layout for form fields on larger screens */}
                     <div className={styles.twoColumnLayout}>
@@ -404,63 +405,48 @@ const SystemFeedbackForm = ({ onClose }) => {
                         </Form.Item>
                     </div>
 
-                    {/* Anonymous options section - Fix the styling conflict here */}
-                    {isAuthenticated ? (
-                        <Form.Item name="anonymous" className={styles.formItem}>
+                    {/* Anonymous options section - Unified experience for auth/non-auth users */}
+                    <Form.Item name="anonymous" className={styles.formItem}>
+                        {isAuthenticated ? (
                             <Checkbox
                                 checked={isAnonymous}
                                 onChange={e => setIsAnonymous(e.target.checked)}
                             >
                                 Submit anonymously
                             </Checkbox>
-
-                            {isAnonymous && (
-                                <div style={{
-                                    paddingTop: 8,
-                                    paddingLeft: 24  // Use paddingLeft instead of marginLeft
-                                }}>
-                                    <Radio.Group
-                                        value={anonymousOption}
-                                        onChange={e => setAnonymousOption(e.target.value)}
-                                    >
-                                        <Space direction="vertical">
-                                            <Radio value="local">
-                                                Store locally only (developers won&apos;t see this)
-                                            </Radio>
-                                            <Radio value="server">
-                                                Submit to developers anonymously
-                                                <Tooltip title="Your feedback will be sent to the development team without your personal information.">
-                                                    <InfoCircleOutlined style={{ marginLeft: 8 }} />
-                                                </Tooltip>
-                                            </Radio>
-                                        </Space>
-                                    </Radio.Group>
-                                </div>
-                            )}
-                        </Form.Item>
-                    ) : (
-                        <Form.Item className={styles.formItem}>
+                        ) : (
                             <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: 8 }}>
                                 You are not logged in. How would you like to submit your feedback?
                             </Text>
+                        )}
 
-                            <Radio.Group
-                                value={anonymousOption}
-                                onChange={e => setAnonymousOption(e.target.value)}
-                            >
-                                <Space direction="vertical">
-                                    <Radio value="local">
-                                        Store locally only (developers won&apos;t see this)
-                                    </Radio>
-                                    <Radio value="server">
-                                        Submit to developers anonymously
-                                        <Tooltip title="Your feedback will be sent to the development team without your personal information.">
-                                            <InfoCircleOutlined style={{ paddingLeft: 8 }} />
-                                        </Tooltip>
-                                    </Radio>
-                                </Space>
-                            </Radio.Group>
+                        {/* Show radio options either if not authenticated OR if authenticated and anonymous is checked */}
+                        {(!isAuthenticated || (isAuthenticated && isAnonymous)) && (
+                            <div style={{
+                                paddingTop: 8,
+                                paddingLeft: isAuthenticated ? 24 : 0
+                            }}>
+                                <Radio.Group
+                                    value={anonymousOption}
+                                    onChange={e => setAnonymousOption(e.target.value)}
+                                >
+                                    <Space direction="vertical">
+                                        <Radio value="local">
+                                            Store locally only (developers won&apos;t see this)
+                                        </Radio>
+                                        <Radio value="server">
+                                            Submit to developers anonymously
+                                            <Tooltip title="Your feedback will be sent to the development team without your personal information.">
+                                                <InfoCircleOutlined style={{ marginLeft: 8 }} />
+                                            </Tooltip>
+                                        </Radio>
+                                    </Space>
+                                </Radio.Group>
+                            </div>
+                        )}
 
+                        {/* Only show login encouragement if not authenticated */}
+                        {!isAuthenticated && (
                             <div style={{ paddingTop: 8 }}>
                                 <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
                                     For better tracking and to receive updates on your feedback, consider
@@ -469,8 +455,8 @@ const SystemFeedbackForm = ({ onClose }) => {
                                     </Button>
                                 </Text>
                             </div>
-                        </Form.Item>
-                    )}
+                        )}
+                    </Form.Item>
 
                     <Form.Item className={styles.formItem}>
                         <Button
