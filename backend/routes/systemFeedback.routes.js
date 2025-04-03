@@ -16,7 +16,7 @@ router.post('/anonymous', systemFeedbackLimiter, systemFeedbackController.submit
 // Get all feedback - admin only
 router.get('/all', authenticate, systemFeedbackController.getAllFeedback);
 
-// Get user's feedback - fix this route
+// Get user's feedback - authentication required
 router.get('/user', authenticate, systemFeedbackController.getUserFeedback);
 
 // Update feedback status - admin only
