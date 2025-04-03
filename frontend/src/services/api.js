@@ -1649,37 +1649,6 @@ export const submitSystemFeedback = async (feedbackData) => {
   }
 };
 
-// Submit system feedback anonymously (no authentication required)
-export const submitAnonymousSystemFeedback = async (feedbackData) => {
-  try {
-    // Add basic device info to help with debugging
-    const deviceInfo = {
-      userAgent: navigator.userAgent,
-      screenWidth: window.screen.width,
-      screenHeight: window.screen.height,
-      language: navigator.language,
-      platform: navigator.platform,
-      timestamp: new Date().toISOString()
-    };
-
-    // Use a direct axios call instead of the api instance which adds authentication headers
-    const response = await axios.post(`${API_URL}/system-feedback/anonymous`, {
-      ...feedbackData,
-      deviceInfo
-    }, {
-      // Explicitly don't send authentication headers
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    });
-
-    return response.data;
-  } catch (error) {
-    console.error('Error submitting anonymous feedback:', error);
-    throw error;
-  }
-};
-
 /**
  * Check if user is authenticated by checking for a valid token
  * @returns {boolean} True if user is authenticated, false otherwise
