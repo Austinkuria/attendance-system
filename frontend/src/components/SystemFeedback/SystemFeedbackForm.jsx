@@ -1,6 +1,6 @@
 import { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
-import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Divider, Checkbox, Radio, Space, Tooltip } from 'antd';
+import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Checkbox, Radio, Space, Tooltip } from 'antd';
 import { UploadOutlined, BugOutlined, BulbOutlined, ToolOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { submitSystemFeedback } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';

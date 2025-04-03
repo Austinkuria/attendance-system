@@ -3,11 +3,12 @@ const router = express.Router();
 const systemFeedbackController = require('../controllers/systemFeedback.controller');
 const authenticate = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
+const { systemFeedbackLimiter } = require('../middleware/rateLimiter');
 
 logger.info('Loading system feedback routes...');
 
 // Root POST endpoint - authentication first, then controller
-router.post('/', authenticate, systemFeedbackController.submitFeedback);
+router.post('/', authenticate,systemFeedbackLimiter, systemFeedbackController.submitFeedback);
 
 // Anonymous feedback endpoint - no authentication required
 router.post('/anonymous', systemFeedbackController.submitAnonymousFeedback);
