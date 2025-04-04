@@ -172,9 +172,9 @@ npm run build
 4. Import or add lecturers and students
 
 #### User Management
-1. Navigate to the Admin Panel > Manage Users
+1. Navigate to the Admin Panel > Manage Students/courses/Lecturers
 2. Create, edit, or delete users as needed
-3. Bulk import users via CSV templates (available for download)
+3. Bulk import users via CSV/excel templates(available for download)
 
 #### System Configuration
 1. Manage departments and courses
@@ -305,8 +305,8 @@ The system implements several security measures:
 ## Contributors
 
 - [Austin Kuria](https://github.com/Austinkuria)
+- [Larry Bett](https://github.com/LlaryBett)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE]
-(https://github.com/Austinkuria/attendance-system/LICENSE) file for details
+This project is licensed under the MIT License - see the file for details
