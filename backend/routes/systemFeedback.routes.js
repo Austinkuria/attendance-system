@@ -3,21 +3,27 @@ const router = express.Router();
 const systemFeedbackController = require('../controllers/systemFeedback.controller');
 const authenticate = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
-const rateLimit = require('express-rate-limit');
+
+const { systemFeedbackLimiter } = require('../middleware/rateLimiter');
 
 logger.info('Loading system feedback routes...');
-
-// Rate limiter: maximum of 100 requests per 15 minutes
-const feedbackLimiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100, // limit each IP to 100 requests per windowMs
-});
 
 // Root POST endpoint - authentication first, then controller
 router.post('/', authenticate, feedbackLimiter, systemFeedbackController.submitFeedback);
 
 // Anonymous feedback endpoint - no authentication required
 router.post('/anonymous', systemFeedbackController.submitAnonymousFeedback);
+
+router.post('/', authenticate, systemFeedbackLimiter, systemFeedbackController.submitFeedback);
+
+// Anonymous feedback endpoint - NO authentication but with rate limiting
+// Make sure no other middleware is adding authentication requirements
+router.post('/anonymous', systemFeedbackLimiter, (req, res, next) => {
+    // Log the request to help with debugging
+    logger.info('Anonymous feedback request received');
+    // Explicitly skip authentication for this route
+    next();
+}, systemFeedbackController.submitAnonymousFeedback);
 
 // Get all feedback - admin only
 router.get('/all', authenticate, systemFeedbackController.getAllFeedback);

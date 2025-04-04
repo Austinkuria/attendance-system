@@ -26,7 +26,7 @@ exports.submitFeedback = async (req, res) => {
       return res.status(403).json({ message: 'Feedback can only be submitted for the latest session' });
     }
 
-    const existingFeedback = await Feedback.findOne({ sessionId, studentId });
+    const existingFeedback = await Feedback.findOne({ sessionId: { $eq: sessionId }, studentId });
     if (existingFeedback) {
       return res.status(400).json({ message: 'Feedback already submitted for this session' });
     }

@@ -10,7 +10,6 @@ import { css } from '@emotion/css';
 import moment from 'moment';
 
 const { Title, Text } = Typography;
-const { TabPane } = Tabs;
 
 const useStyles = (themeColors) => ({
     drawer: css`
@@ -96,44 +95,54 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
         try {
             setLoading(true);
             setError(null);
-            const response = await getUserSystemFeedback();
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request timed out')), 15000)
+            );
+
+            const response = await Promise.race([
+                getUserSystemFeedback(),
+                timeoutPromise
+            ]);
 
             console.log('API Response:', response);
 
-            const data = response?.data || response;
-
-            if (Array.isArray(data)) {
-                setFeedback(data);
-            } else if (data && typeof data === 'object') {
-                if (Array.isArray(data.feedback)) {
-                    setFeedback(data.feedback);
-                } else if (Array.isArray(data.items)) {
-                    setFeedback(data.items);
-                } else if (data.title || data.description || data.category) {
-                    setFeedback([data]);
-                } else if (Object.values(data).length > 0 && typeof Object.values(data)[0] === 'object') {
-                    const feedbackArray = Object.values(data).filter(item =>
-                        item && typeof item === 'object' && (item.title || item.description || item.category)
+            if (Array.isArray(response)) {
+                setFeedback(response);
+            } else if (response && response.authRequired) {
+                setError(response.message || 'Please log in to view your feedback history');
+                setFeedback([]);
+            } else if (response && typeof response === 'object') {
+                if (Array.isArray(response.data)) {
+                    setFeedback(response.data);
+                } else if (Array.isArray(response.feedback)) {
+                    setFeedback(response.feedback);
+                } else if (Array.isArray(response.items)) {
+                    setFeedback(response.items);
+                } else if (response.title || response.description || response.category) {
+                    setFeedback([response]);
+                } else {
+                    const possibleArrays = Object.values(response).filter(value =>
+                        Array.isArray(value) && value.length > 0
                     );
-                    if (feedbackArray.length > 0) {
-                        setFeedback(feedbackArray);
+
+                    if (possibleArrays.length > 0) {
+                        setFeedback(possibleArrays[0]);
                     } else {
                         setFeedback([]);
-                        setError('No feedback items found');
                     }
-                } else {
-                    setFeedback([]);
-                    setError('No feedback data available');
                 }
             } else {
-                console.warn('Unexpected response type from server:', data);
                 setFeedback([]);
-                setError('No feedback data available');
             }
         } catch (error) {
             console.error('Error fetching feedback history:', error);
 
-            if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+            if (error.message && (error.message.includes('Network') || error.message.includes('CORS'))) {
+                setError('Network issue when retrieving feedback. Your browser might be blocking cross-origin requests.');
+            } else if (error.message === 'Request timed out') {
+                setError('Request timed out. The server might be unavailable or slow to respond.');
+            } else if (error.response && (error.response.status === 401 || error.response.status === 403)) {
                 setError('You need to be logged in to view your feedback history');
             } else {
                 setError('Failed to load feedback history. Please try again later.');
@@ -178,6 +187,42 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
         </List.Item>
     );
 
+    const getTabItems = () => {
+        const items = [];
+
+        if (isAuthenticated) {
+            items.push({
+                key: "account",
+                label: "Account Feedback",
+                children: error ? (
+                    <Empty description={error} />
+                ) : feedback.length === 0 ? (
+                    <Empty description="No feedback submitted with your account yet" />
+                ) : (
+                    <List
+                        dataSource={feedback}
+                        renderItem={renderFeedbackItem}
+                    />
+                )
+            });
+        }
+
+        items.push({
+            key: "local",
+            label: "Local Feedback",
+            children: localFeedback.length === 0 ? (
+                <Empty description="No local feedback history" />
+            ) : (
+                <List
+                    dataSource={localFeedback}
+                    renderItem={renderFeedbackItem}
+                />
+            )
+        });
+
+        return items;
+    };
+
     return (
         <Drawer
             title={
@@ -210,33 +255,10 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
                         icon={<LoginOutlined />}
                     />
                 ) : (
-                    <Tabs defaultActiveKey={isAuthenticated ? "account" : "local"}>
-                        {isAuthenticated && (
-                            <TabPane tab="Account Feedback" key="account">
-                                {error ? (
-                                    <Empty description={error} />
-                                ) : feedback.length === 0 ? (
-                                    <Empty description="No feedback submitted with your account yet" />
-                                ) : (
-                                    <List
-                                        dataSource={feedback}
-                                        renderItem={renderFeedbackItem}
-                                    />
-                                )}
-                            </TabPane>
-                        )}
-
-                        <TabPane tab="Local Feedback" key="local">
-                            {localFeedback.length === 0 ? (
-                                <Empty description="No local feedback history" />
-                            ) : (
-                                <List
-                                    dataSource={localFeedback}
-                                    renderItem={renderFeedbackItem}
-                                />
-                            )}
-                        </TabPane>
-                    </Tabs>
+                    <Tabs
+                        defaultActiveKey={isAuthenticated ? "account" : "local"}
+                        items={getTabItems()}
+                    />
                 )}
             </Spin>
         </Drawer>

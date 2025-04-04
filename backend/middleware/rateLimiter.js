@@ -89,6 +89,18 @@ const attendanceMarkLimiter = rateLimit({
   }
 });
 
+// Rate limiter: maximum of 100 requests per 15 minutes
+const systemFeedbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
+// Rate limiter: maximum of 100 requests per 15 minutes
+const feedbackLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
+
 module.exports = {
   apiLimiter,
   sensitiveLimiter,
@@ -98,4 +110,6 @@ module.exports = {
   resetPasswordLimiter,
   sendResetLinkLimiter,
   attendanceMarkLimiter,
+  systemFeedbackLimiter,
+  feedbackLimiter
 };

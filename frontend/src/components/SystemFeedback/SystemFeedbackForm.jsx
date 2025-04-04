@@ -1,6 +1,6 @@
 import { useState, useContext } from 'react';
 import PropTypes from 'prop-types';
-import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Divider, Checkbox, Radio, Space, Tooltip } from 'antd';
+import { Form, Input, Button, Select, Rate, Upload, Modal, message, Typography, Checkbox, Radio, Space, Tooltip } from 'antd';
 import { UploadOutlined, BugOutlined, BulbOutlined, ToolOutlined, InfoCircleOutlined } from '@ant-design/icons';
 import { submitSystemFeedback } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -85,9 +85,39 @@ const useStyles = (themeColors) => ({
     width: 100%;
     border-color: ${themeColors.primary};
     color: ${themeColors.primary};
+    height: auto;
+    padding: 6px;
+    white-space: normal;
+    line-height: 1.2;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
     &:hover {
       border-color: ${themeColors.primary}CC;
       color: ${themeColors.primary}CC;
+    }
+  `,
+    uploadIcon: css`
+    margin-bottom: 4px;
+    font-size: 16px;
+  `,
+    uploadText: css`
+    font-size: 11px;
+    text-align: center;
+  `,
+    uploadWrapper: css`
+    .ant-upload-list-picture-card .ant-upload-list-item,
+    .ant-upload-select-picture-card {
+      width: 100%;
+      max-width: 150px;
+      height: auto;
+      min-height: 104px;
+      margin-right: 8px;
+      
+      @media (max-width: 480px) {
+        max-width: 100px;
+        min-height: 90px;
+      }
     }
   `,
     imagePreview: css`
@@ -129,19 +159,6 @@ const useStyles = (themeColors) => ({
       margin-bottom: 12px;
     }
   `,
-    uploadWrapper: css`
-    .ant-upload-list-picture-card .ant-upload-list-item,
-    .ant-upload-select-picture-card {
-      width: 100%;
-      max-width: 150px;
-      height: auto;
-      margin-right: 8px;
-      
-      @media (max-width: 480px) {
-        max-width: 100px;
-      }
-    }
-  `,
     modalImage: css`
     width: 100%;
     height: auto;
@@ -174,6 +191,7 @@ const SystemFeedbackForm = ({ onClose }) => {
     const [previewImage, setPreviewImage] = useState('');
     const [isAnonymous, setIsAnonymous] = useState(false);
     const [anonymousOption, setAnonymousOption] = useState('local'); // 'local' or 'server'
+    const [anonymousSubmitType, setAnonymousSubmitType] = useState('local'); // 'local' or 'server'
 
     const getBase64 = (file) => {
         return new Promise((resolve, reject) => {
@@ -228,7 +246,8 @@ const SystemFeedbackForm = ({ onClose }) => {
 
             // If not authenticated or choosing to submit anonymously
             if (!isAuthenticated || isAnonymous) {
-                const serverSubmit = anonymousOption === 'server';
+                // Use anonymousSubmitType for non-authenticated users and anonymousOption for authenticated users
+                const serverSubmit = isAuthenticated ? (anonymousOption === 'server') : (anonymousSubmitType === 'server');
 
                 // Save feedback locally and optionally to server
                 const result = await saveAnonymousFeedback(feedbackData, serverSubmit);
@@ -237,7 +256,12 @@ const SystemFeedbackForm = ({ onClose }) => {
                     if (serverSubmit && result.serverSubmitted) {
                         message.success('Anonymous feedback submitted to developers successfully!');
                     } else if (serverSubmit && !result.serverSubmitted) {
-                        message.warning('Feedback saved locally but server submission failed.');
+                        if (result.error && result.error.includes('authentication')) {
+                            // Specific message for auth errors
+                            message.warning('Server requires authentication for anonymous submissions. Your feedback has been saved locally only.');
+                        } else {
+                            message.warning('Feedback saved locally but server submission failed.');
+                        }
                     } else {
                         message.success('Anonymous feedback saved locally.');
                     }
@@ -262,14 +286,22 @@ const SystemFeedbackForm = ({ onClose }) => {
         } catch (error) {
             console.error('Error submitting feedback:', error);
 
+            // Improved error handling with specific messages
             if (error.response) {
                 if (error.response.status === 405) {
                     message.error('The server does not allow this operation. Please contact support.');
                 } else if (error.response.status === 401) {
-                    message.error('You need to be logged in to submit feedback.');
+                    if (!isAuthenticated && anonymousSubmitType === 'server') {
+                        message.warning('Anonymous submissions to server are currently unavailable. Your feedback has been saved locally.');
+                    } else {
+                        message.error('You need to be logged in to submit feedback.');
+                    }
                 } else {
                     message.error(`Failed to submit feedback: ${error.response.data?.message || 'Server error'}`);
                 }
+            } else if (error.message && error.message.includes('authentication')) {
+                // Special handling for our specific authentication error
+                message.warning('Anonymous submissions to server are currently unavailable. Your feedback has been saved locally.');
             } else if (error.request) {
                 message.error('Network error. Please check your connection and try again.');
             } else {
@@ -281,8 +313,9 @@ const SystemFeedbackForm = ({ onClose }) => {
     };
 
     const uploadButton = (
-        <Button className={styles.uploadBtn} icon={<UploadOutlined />}>
-            Upload Screenshot (Optional)
+        <Button className={styles.uploadBtn} type="button">
+            <UploadOutlined className={styles.uploadIcon} />
+            <span className={styles.uploadText}>Upload Screenshot (Optional)</span>
         </Button>
     );
 
@@ -301,7 +334,7 @@ const SystemFeedbackForm = ({ onClose }) => {
                     form={form}
                     layout="vertical"
                     onFinish={handleSubmit}
-                    initialValues={{ severity: 3, anonymousOption: 'local' }}
+                    initialValues={{ severity: 3 }}
                     size="middle"
                     style={{ width: '100%' }}
                 >
@@ -386,46 +419,36 @@ const SystemFeedbackForm = ({ onClose }) => {
                         </Form.Item>
                     </div>
 
-                    {/* Anonymous options section */}
+                    {/* Fix anonymous options section - Unified experience for auth/non-auth users */}
                     {isAuthenticated ? (
-                        <Form.Item name="anonymous" className={styles.formItem}>
+                        <Form.Item name="isAnonymous" className={styles.formItem}>
                             <Checkbox
                                 checked={isAnonymous}
                                 onChange={e => setIsAnonymous(e.target.checked)}
                             >
                                 Submit anonymously
                             </Checkbox>
-
-                            {isAnonymous && (
-                                <div style={{ marginTop: 8, marginLeft: 24 }}>
-                                    <Radio.Group
-                                        value={anonymousOption}
-                                        onChange={e => setAnonymousOption(e.target.value)}
-                                    >
-                                        <Space direction="vertical">
-                                            <Radio value="local">
-                                                Store locally only (developers won&apos;t see this)
-                                            </Radio>
-                                            <Radio value="server">
-                                                Submit to developers anonymously
-                                                <Tooltip title="Your feedback will be sent to the development team without your personal information.">
-                                                    <InfoCircleOutlined style={{ marginLeft: 8 }} />
-                                                </Tooltip>
-                                            </Radio>
-                                        </Space>
-                                    </Radio.Group>
-                                </div>
-                            )}
                         </Form.Item>
                     ) : (
                         <Form.Item className={styles.formItem}>
                             <Text type="secondary" style={{ fontSize: '13px', display: 'block', marginBottom: 8 }}>
                                 You are not logged in. How would you like to submit your feedback?
                             </Text>
+                        </Form.Item>
+                    )}
 
+                    {/* Show radio options either if not authenticated OR if authenticated and anonymous is checked */}
+                    {(!isAuthenticated || (isAuthenticated && isAnonymous)) && (
+                        <Form.Item name="anonymousType" className={styles.formItem}>
                             <Radio.Group
-                                value={anonymousOption}
-                                onChange={e => setAnonymousOption(e.target.value)}
+                                value={isAuthenticated ? anonymousOption : anonymousSubmitType}
+                                onChange={e => {
+                                    if (isAuthenticated) {
+                                        setAnonymousOption(e.target.value);
+                                    } else {
+                                        setAnonymousSubmitType(e.target.value);
+                                    }
+                                }}
                             >
                                 <Space direction="vertical">
                                     <Radio value="local">
@@ -439,15 +462,18 @@ const SystemFeedbackForm = ({ onClose }) => {
                                     </Radio>
                                 </Space>
                             </Radio.Group>
+                        </Form.Item>
+                    )}
 
-                            <div style={{ marginTop: 8 }}>
-                                <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
-                                    For better tracking and to receive updates on your feedback, consider
-                                    <Button type="link" style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }} onClick={() => window.location.href = '/auth/login'}>
-                                        logging in
-                                    </Button>
-                                </Text>
-                            </div>
+                    {/* Only show login encouragement if not authenticated */}
+                    {!isAuthenticated && (
+                        <Form.Item className={styles.formItem}>
+                            <Text type="secondary" style={{ fontSize: '12px', fontStyle: 'italic' }}>
+                                For better tracking and to receive updates on your feedback, consider
+                                <Button type="link" style={{ padding: '0 4px', fontSize: '12px', height: 'auto' }} onClick={() => window.location.href = '/auth/login'}>
+                                    logging in
+                                </Button>
+                            </Text>
                         </Form.Item>
                     )}
 
