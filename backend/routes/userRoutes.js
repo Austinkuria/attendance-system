@@ -1,5 +1,6 @@
 const express = require("express");
 const { check } = require('express-validator');
+const rateLimit = require('express-rate-limit');
 const {
   login,
   signup,
@@ -25,6 +26,12 @@ const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
 const router = express.Router();
 // const { passwordValidation } = require("../validators/authValidation");
+
+// Configure rate limiter: maximum of 100 requests per 15 minutes
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // limit each IP to 100 requests per windowMs
+});
 
 // Auth routes
 router.post("/auth/login", [
@@ -57,7 +64,7 @@ router.post("/auth/signup", [
   // .matches(/[@$!%*?&]/)
   // .withMessage("Password must contain at least one special character (@$!%*?&)"),
   check("email").isEmail().withMessage("Enter a valid email address(e.g., example@domain.com"),
-],signup);
+], limiter, signup);
 
 // Profile routes
 router.get("/users/profile", authenticate, getUserProfile);
