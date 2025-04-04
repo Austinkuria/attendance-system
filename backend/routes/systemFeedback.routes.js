@@ -3,15 +3,16 @@ const router = express.Router();
 const systemFeedbackController = require('../controllers/systemFeedback.controller');
 const authenticate = require('../middleware/authMiddleware');
 const logger = require('../utils/logger');
+
 const { systemFeedbackLimiter } = require('../middleware/rateLimiter');
 
 logger.info('Loading system feedback routes...');
 
 // Root POST endpoint - authentication first, then controller
-router.post('/', authenticate, systemFeedbackLimiter, systemFeedbackController.submitFeedback);
+router.post('/', authenticate,systemFeedbackLimiter, systemFeedbackController.submitFeedback);
+
 
 // Anonymous feedback endpoint - NO authentication but with rate limiting
-// Make sure no other middleware is adding authentication requirements
 router.post('/anonymous', systemFeedbackLimiter, (req, res, next) => {
     // Log the request to help with debugging
     logger.info('Anonymous feedback request received');
