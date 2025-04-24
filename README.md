@@ -6,7 +6,7 @@ QRollCall is a comprehensive web-based attendance tracking application designed 
 
 ![QRollCall Admin Dashboard](Images/admin.png)
 
-![QRollCall Lecturer Dashboard](Images/lec.png)
+![QRollCall Lecturer Dashboard](https://github.com/Austinkuria/attendance-system/blob/main/Images/lecturer%20dash.png)
 
 ## Table of Contents
 - [Features](#features)
