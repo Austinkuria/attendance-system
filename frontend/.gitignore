@@ -27,3 +27,4 @@ dist-ssr
 frontend/.env
 frontend/qr-attendance-123-firebase-adminsdk-123.json
 .vercel
+backend/.env
