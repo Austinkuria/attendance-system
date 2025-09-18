@@ -8,12 +8,15 @@ const systemFeedbackSchema = new mongoose.Schema(
     userId: {
       type: ObjectId,
       ref: 'User',
-      required: true,
+      // Make userId optional for anonymous feedback
+      required: function () {
+        return !this.anonymous; // Only required if not anonymous
+      },
       index: true // Add index for better query performance
     },
     userRole: {
       type: String,
-      enum: ['student', 'lecturer', 'admin'],
+      enum: ['student', 'lecturer', 'admin', 'anonymous'],
       required: true
     },
     title: {
@@ -46,6 +49,16 @@ const systemFeedbackSchema = new mongoose.Schema(
     },
     screenshot: {
       type: String // URL or Base64 encoded image
+    },
+    // Add field to indicate anonymous feedback
+    anonymous: {
+      type: Boolean,
+      default: false
+    },
+    // Optional device info for anonymous submissions
+    deviceInfo: {
+      type: Object,
+      default: null
     }
   },
   {
@@ -54,7 +67,7 @@ const systemFeedbackSchema = new mongoose.Schema(
     toJSON: {
       transform: (doc, ret) => {
         ret.id = ret._id.toString();
-        // Make sure userId is always a string
+        // Make sure userId is always a string when present
         if (ret.userId && typeof ret.userId === 'object' && ret.userId._id) {
           ret.userId = ret.userId._id.toString();
         } else if (ret.userId) {

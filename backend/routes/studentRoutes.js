@@ -7,7 +7,10 @@ const {
   importStudents,
   downloadStudents,
   registerUser,
-  updateStudentV2 // Add import for new function
+  updateStudentV2,
+  getStudentUnits,
+  enrollStudentInUnit,
+  removeStudentFromUnit
 } = require("../controllers/userController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
@@ -52,6 +55,11 @@ router.get("/download", authenticate, authorize(['admin']), downloadStudents);
 router.post("/upload", authenticate, authorize(['admin']), upload.single('csvFile'), importStudents);
 
 router.post("/", authenticate, authorize(["admin"]), registerUser);
+
+// Student-unit management routes
+router.get("/:studentId/units", authenticate, authorize(['admin']), getStudentUnits);
+router.post("/:studentId/units", authenticate, authorize(['admin']), enrollStudentInUnit);
+router.delete("/:studentId/units/:unitId", authenticate, authorize(['admin']), removeStudentFromUnit);
 
 router.use("/departments", departmentRoutes);
 

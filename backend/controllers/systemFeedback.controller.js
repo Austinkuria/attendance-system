@@ -65,6 +65,51 @@ exports.submitFeedback = async (req, res) => {
   }
 };
 
+// Submit anonymous system feedback
+exports.submitAnonymousFeedback = async (req, res) => {
+  try {
+    console.log('submitAnonymousFeedback called with body:', req.body);
+    const { title, category, description, severity, screenshot, deviceInfo } = req.body;
+
+    // Validate required fields
+    if (!title || !category || !description || !severity) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields: title, category, description, and severity are required'
+      });
+    }
+
+    // Create new feedback with anonymous settings
+    const feedback = new SystemFeedback({
+      userRole: 'anonymous',
+      anonymous: true,
+      title,
+      category,
+      description,
+      severity,
+      screenshot,
+      deviceInfo: deviceInfo || null,
+      status: 'New' // Default status
+    });
+
+    await feedback.save();
+    console.log('Anonymous feedback saved:', feedback);
+
+    return res.status(201).json({
+      success: true,
+      message: 'Anonymous feedback submitted successfully',
+      data: feedback
+    });
+  } catch (error) {
+    console.error('Error submitting anonymous system feedback:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to submit anonymous feedback',
+      error: error.message
+    });
+  }
+};
+
 // Get all feedback (for admins)
 exports.getAllFeedback = async (req, res) => {
   try {

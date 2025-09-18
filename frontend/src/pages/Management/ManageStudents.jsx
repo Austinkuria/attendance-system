@@ -13,6 +13,8 @@ import {
   Row,
   Col,
   Spin,
+  Tag,
+  Typography,
 } from "antd";
 import {
   ImportOutlined,
@@ -29,17 +31,27 @@ import {
   CalendarOutlined,
   BookOutlined,
   UserOutlined,
-  NumberOutlined
+  NumberOutlined,
+  UnorderedListOutlined,
 } from "@ant-design/icons";
 import { ThemeContext } from '../../context/ThemeContext';
 // import ThemeToggle from '../../components/ThemeToggle';
-import { getStudents, deleteStudent, downloadStudents, updateStudentV2 } from "../../services/api";
+import { 
+  getStudents, 
+  deleteStudent, 
+  downloadStudents, 
+  updateStudentV2, 
+  getUnits,
+  enrollStudentInUnit, 
+  removeStudentFromUnit 
+} from "../../services/api";
 import api from "../../services/api";
 import { useTableStyles } from '../../components/SharedTableStyles';
 import { useModalStyles } from '../../components/SharedModalStyles';
 
 const { Content } = Layout;
 const { Option } = Select;
+const { Title, Text } = Typography;
 
 const ManageStudents = () => {
   const navigate = useNavigate();
@@ -77,6 +89,14 @@ const ManageStudents = () => {
   const [courses, setCourses] = useState([]);
   const [addForm] = Form.useForm();
   const [editForm] = Form.useForm();
+  const [alertVisible, setAlertVisible] = useState(true);
+
+  const [isUnitsModalVisible, setIsUnitsModalVisible] = useState(false);
+  const [selectedStudentForUnits, setSelectedStudentForUnits] = useState(null);
+  const [availableUnits, setAvailableUnits] = useState([]);
+  const [studentUnits, setStudentUnits] = useState([]);
+  const [unitForm] = Form.useForm();
+  const [loadingUnits, setLoadingUnits] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -166,6 +186,32 @@ const ManageStudents = () => {
     return () => {
       isMounted = false;
     };
+  }, [navigate]);
+
+  useEffect(() => {
+    if (globalError) {
+      setAlertVisible(true);
+      const timer = setTimeout(() => {
+        setAlertVisible(false);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [globalError]);
+
+  useEffect(() => {
+    const fetchUnits = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) return navigate("/auth/login");
+        
+        const response = await getUnits();
+        setAvailableUnits(response || []);
+      } catch (err) {
+        console.error("Error fetching units:", err);
+        setGlobalError("Failed to fetch units");
+      }
+    };
+    fetchUnits();
   }, [navigate]);
 
   const availableCourses = useMemo(() => {
@@ -378,6 +424,66 @@ const ManageStudents = () => {
     }
   };
 
+  const openUnitsModal = async (student) => {
+    try {
+      setLoadingUnits(true);
+      setSelectedStudentForUnits(student);
+      
+      const token = localStorage.getItem("token");
+      const response = await api.get(`/students/${student._id}/units`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      setStudentUnits(response.data || []);
+      unitForm.resetFields();
+      setIsUnitsModalVisible(true);
+    } catch (err) {
+      console.error("Error fetching student units:", err);
+      message.error("Failed to fetch student enrolled units");
+    } finally {
+      setLoadingUnits(false);
+    }
+  };
+
+  const handleEnrollUnit = async () => {
+    try {
+      const values = await unitForm.validateFields();
+      setLoadingUnits(true);
+      
+      await enrollStudentInUnit(selectedStudentForUnits._id, values.unit);
+      
+      const token = localStorage.getItem("token");
+      const response = await api.get(`/students/${selectedStudentForUnits._id}/units`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      
+      setStudentUnits(response.data || []);
+      unitForm.resetFields();
+      message.success("Student enrolled in unit successfully");
+    } catch (err) {
+      console.error("Error enrolling student in unit:", err);
+      message.error(err.response?.data?.message || "Failed to enroll student in unit");
+    } finally {
+      setLoadingUnits(false);
+    }
+  };
+
+  const handleRemoveUnit = async (unitId) => {
+    try {
+      setLoadingUnits(true);
+      
+      await removeStudentFromUnit(selectedStudentForUnits._id, unitId);
+      
+      setStudentUnits(studentUnits.filter(unit => unit._id !== unitId));
+      message.success("Unit removed successfully");
+    } catch (err) {
+      console.error("Error removing unit:", err);
+      message.error("Failed to remove unit");
+    } finally {
+      setLoadingUnits(false);
+    }
+  };
+
   const filteredStudents = useMemo(() => {
     return students.filter((student) => {
       const searchLower = searchQuery.toLowerCase().trim();
@@ -451,7 +557,7 @@ const ManageStudents = () => {
       zIndex: 1000,
       background: themeColors.primary,
       borderColor: themeColors.primary,
-      color: themeColors.text, // Changed from #fff to use theme color
+      color: themeColors.text,
     },
     table: {
       borderRadius: 8,
@@ -499,7 +605,7 @@ const ManageStudents = () => {
       }
       .ant-input::placeholder,
       .ant-select-selection-placeholder {
-        color: ${isDarkMode ? themeColors.textSecondary : "#999"} !important; // Changed from hardcoded #a0a0a0 to use theme color
+        color: ${isDarkMode ? themeColors.textSecondary : "#999"} !important;
       }
       .ant-form-item {
         background: transparent !important;
@@ -649,7 +755,6 @@ const ManageStudents = () => {
           margin-bottom: 8px !important;
         }
       }
-      /* Consistent table styling */
       .ant-table {
         background: ${isDarkMode ? themeColors.cardBg : "#fff"} !important;
         color: ${themeColors.text} !important;
@@ -731,7 +836,19 @@ const ManageStudents = () => {
       title: "Actions",
       key: "actions",
       render: (_, record) => (
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: "8px" }}>
+          <Button
+            type="primary"
+            icon={<UnorderedListOutlined />}
+            size="small"
+            style={{ 
+              background: themeColors.secondary,
+              borderColor: themeColors.secondary 
+            }}
+            onClick={() => openUnitsModal(record)}
+          >
+            Units
+          </Button>
           <Button
             type="primary"
             icon={<EditOutlined />}
@@ -839,12 +956,12 @@ const ManageStudents = () => {
             />
           )}
 
-          {globalError && (
+          {globalError && alertVisible && (
             <Alert
               message={globalError}
               type="error"
               closable
-              onClose={() => setGlobalError("")}
+              onClose={() => setAlertVisible(false)}
               style={{ marginBottom: 16 }}
             />
           )}
@@ -1274,6 +1391,90 @@ const ManageStudents = () => {
               </Select>
             </Form.Item>
           </Form>
+        </Spin>
+      </Modal>
+
+      <Modal
+        title={
+          <div style={{ ...modalStyles.modalTitle, color: themeColors.textInvert }}>
+            <UnorderedListOutlined style={{ marginRight: 8 }} />
+            Manage Units for {selectedStudentForUnits?.firstName} {selectedStudentForUnits?.lastName}
+          </div>
+        }
+        open={isUnitsModalVisible}
+        onCancel={() => setIsUnitsModalVisible(false)}
+        footer={null}
+        width={700}
+        styles={{
+          header: modalStyles.modalHeader,
+          body: modalStyles.modalBody,
+          footer: modalStyles.modalFooter,
+          content: modalStyles.modalContainer
+        }}
+        className="units-modal"
+      >
+        <Spin spinning={loadingUnits} tip="Loading units data...">
+          <Form form={unitForm} layout="vertical" style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}>
+            <Form.Item
+              name="unit"
+              label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Add Unit</span>}
+              rules={[{ required: true, message: "Please select a unit to enroll" }]}
+            >
+              <Select
+                placeholder="Select Unit to Enroll"
+                style={{ width: "100%" }}
+                dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
+              >
+                {availableUnits
+                  .filter(unit => !studentUnits.some(enrolledUnit => enrolledUnit._id === unit._id))
+                  .map(unit => (
+                    <Option key={unit._id} value={unit._id}>
+                      {unit.name} ({unit.code})
+                    </Option>
+                  ))}
+              </Select>
+            </Form.Item>
+            <Form.Item>
+              <Button
+                type="primary"
+                onClick={handleEnrollUnit}
+                loading={loadingUnits}
+                style={{
+                  background: themeColors.primary,
+                  borderColor: themeColors.primary,
+                  color: themeColors.textInvert
+                }}
+              >
+                Enroll in Unit
+              </Button>
+            </Form.Item>
+          </Form>
+
+          <div style={{ marginTop: 24 }}>
+            <Title level={5} style={{ color: themeColors.text }}>
+              Currently Enrolled Units
+            </Title>
+            {studentUnits.length === 0 ? (
+              <Text style={{ color: themeColors.text }}>Student is not enrolled in any units.</Text>
+            ) : (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 16 }}>
+                {studentUnits.map(unit => (
+                  <Tag
+                    key={unit._id}
+                    color={themeColors.secondary}
+                    style={{ padding: "4px 8px", margin: "4px" }}
+                    closable
+                    onClose={() => handleRemoveUnit(unit._id)}
+                  >
+                    <div style={{ display: "flex", alignItems: "center" }}>
+                      <BookOutlined style={{ marginRight: 8 }} />
+                      {unit.name} ({unit.code || 'N/A'})
+                    </div>
+                  </Tag>
+                ))}
+              </div>
+            )}
+          </div>
         </Spin>
       </Modal>
 

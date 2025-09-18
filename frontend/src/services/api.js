@@ -201,6 +201,94 @@ api.interceptors.response.use(
   }
 );
 
+// Add a dedicated login function with better error handling
+export const loginUser = async (credentials) => {
+  try {
+    console.log('Attempting login with:', { email: credentials.email, passwordLength: credentials.password?.length });
+
+    // Create a cancellable request with timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000); // 30-second timeout
+
+    const response = await axios.post(`${API_URL}/auth/login`, credentials, {
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      signal: controller.signal,
+      timeout: 30000 // 30 second timeout
+    });
+
+    // Clear the timeout since we got a response
+    clearTimeout(timeoutId);
+
+    console.log('Login response status:', response.status);
+
+    if (response.data && response.data.token) {
+      // Store auth data
+      localStorage.setItem('token', response.data.token);
+      if (response.data.refreshToken) {
+        localStorage.setItem('refreshToken', response.data.refreshToken);
+      }
+
+      // Store user data if available
+      if (response.data.user) {
+        const userData = {
+          id: response.data.user.id || response.data.user._id,
+          role: response.data.user.role,
+          firstName: response.data.user.firstName,
+          lastName: response.data.user.lastName,
+          email: response.data.user.email,
+          lastLogin: new Date().toISOString()
+        };
+        localStorage.setItem('userData', JSON.stringify(userData));
+        localStorage.setItem('userId', userData.id);
+        localStorage.setItem('role', userData.role);
+      }
+
+      return response.data;
+    }
+
+    throw new Error('Invalid response format from server');
+  } catch (error) {
+    console.error('Login error details:', {
+      name: error.name,
+      message: error.message,
+      status: error.response?.status,
+      data: error.response?.data,
+      code: error.code,
+      url: `${API_URL}/auth/login`
+    });
+
+    // Create a more user-friendly error message
+    let errorMessage = 'Login failed. Please check your credentials and try again.';
+
+    if (error.name === 'AbortError' || error.code === 'ECONNABORTED') {
+      errorMessage = 'Login request timed out. The server might be slow or unreachable.';
+    } else if (!navigator.onLine) {
+      errorMessage = 'You appear to be offline. Please check your internet connection.';
+    } else if (error.response) {
+      // Server responded with an error
+      if (error.response.status === 401) {
+        errorMessage = 'Invalid email or password. Please try again.';
+      } else if (error.response.status === 429) {
+        errorMessage = 'Too many login attempts. Please try again later.';
+      } else if (error.response.data?.message) {
+        errorMessage = error.response.data.message;
+      } else if (error.response.status >= 500) {
+        errorMessage = 'Server error. Please try again later.';
+      }
+    } else if (error.message.includes('Network Error')) {
+      errorMessage = 'Network error. The server might be down or unreachable.';
+    }
+
+    throw {
+      message: errorMessage,
+      originalError: error,
+      status: error.response?.status || 0
+    };
+  }
+};
+
 // get userprofile
 export const getUserProfile = async () => {
   const token = localStorage.getItem('token');
@@ -750,6 +838,36 @@ export const getUnitsByCourse = async (courseId) => {
   }
 };
 
+// Enroll a student in a unit
+export const enrollStudentInUnit = async (studentId, unitId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.post(
+      `${API_URL}/students/${studentId}/units`,
+      { unitId },
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error enrolling student in unit:', error);
+    throw error;
+  }
+};
+
+// Remove a student from a unit
+export const removeStudentFromUnit = async (studentId, unitId) => {
+  try {
+    const token = localStorage.getItem('token');
+    const response = await axios.delete(
+      `${API_URL}/students/${studentId}/units/${unitId}`,
+      { headers: { Authorization: `Bearer ${token}` } }
+    );
+    return response.data;
+  } catch (error) {
+    console.error('Error removing student from unit:', error);
+    throw error;
+  }
+};
 
 // addUnitToCourse
 export const addUnitToCourse = async (courseId, unitData) => {
@@ -1546,63 +1664,58 @@ export const getUserSystemFeedback = async () => {
     // First check if user is authenticated
     if (!isUserAuthenticated()) {
       console.warn('User is not authenticated. Cannot fetch feedback.');
-      // Return a special object indicating auth required instead of an empty array
       return {
         authRequired: true,
         message: 'Please log in to view your feedback history'
       };
     }
 
-    // Add retry logic for more reliable fetching
-    let attempts = 0;
-    const maxAttempts = 3;
+    const token = localStorage.getItem('token');
+    if (!token) {
+      return {
+        authRequired: true,
+        message: 'Please log in to view your feedback history'
+      };
+    }
 
-    while (attempts < maxAttempts) {
-      attempts++;
-      try {
-        const token = localStorage.getItem('token');
-        // This should never happen given our check above, but just to be safe
-        if (!token) {
-          return {
-            authRequired: true,
-            message: 'Please log in to view your feedback history'
-          };
+    console.log('Fetching user system feedback data...');
+
+    // Make direct axios call WITHOUT the problematic cache-control header
+    const response = await axios.get(`${API_URL}/system-feedback/user`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json'
+      },
+      timeout: 15000 // 15 second timeout
+    });
+
+    console.log('User feedback API response:', response.data);
+
+    // Rest of the function remains the same
+    if (response.data) {
+      if (Array.isArray(response.data)) {
+        return response.data;
+      } else if (typeof response.data === 'object') {
+        if (Array.isArray(response.data.feedback)) {
+          return response.data.feedback;
+        } else if (Array.isArray(response.data.items)) {
+          return response.data.items;
         }
-
-        // Use direct axios call with detailed debugging
-        console.log(`Attempt ${attempts}: Fetching user system feedback`);
-
-        const response = await axios.get(`${API_URL}/system-feedback/user`, {
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Cache-Control': 'no-cache' // Prevent caching
-          }
-        });
-
-        console.log('User feedback response:', response.data);
-        return Array.isArray(response.data) ? response.data : [];
-      } catch (error) {
-        // Handle 401/403 errors specifically
-        if (error.response?.status === 401 || error.response?.status === 403) {
-          console.warn('Authentication error when fetching feedback:', error.response.status);
-          return {
-            authRequired: true,
-            message: 'Please log in to view your feedback history'
-          };
-        }
-
-        if (attempts >= maxAttempts) throw error;
-        console.warn(`Attempt ${attempts} failed, retrying...`, error);
-        // Wait before retry with exponential backoff
-        await new Promise(r => setTimeout(r, 1000 * attempts));
+        return response.data;
       }
     }
 
-    return []; // Fallback empty array
+    return [];
   } catch (error) {
     console.error('Error fetching user system feedback:', error);
 
-    // If it's an auth error, return the special auth required object
+    // Add better CORS error handling
+    if (error.message && error.message.includes('Network Error')) {
+      console.warn('Possible CORS or network issue. Returning empty array.');
+      // Return empty array instead of error object for CORS issues
+      return [];
+    }
+
     if (error.response?.status === 401 || error.response?.status === 403) {
       return {
         authRequired: true,
@@ -1610,7 +1723,7 @@ export const getUserSystemFeedback = async () => {
       };
     }
 
-    return []; // Return empty array for other errors
+    return [];
   }
 };
 
@@ -1685,5 +1798,56 @@ export const suppressVercelAnalyticsErrors = () => {
 
 // Call this function early in the app initialization
 suppressVercelAnalyticsErrors();
+
+// Submit system feedback anonymously (no authentication required)
+export const submitAnonymousSystemFeedback = async (feedbackData) => {
+  try {
+    // Add basic device info to help with debugging
+    const deviceInfo = {
+      userAgent: navigator.userAgent,
+      screenWidth: window.screen.width,
+      screenHeight: window.screen.height,
+      language: navigator.language,
+      platform: navigator.platform,
+      timestamp: new Date().toISOString()
+    };
+
+    // Create a modified axios instance specifically for anonymous requests
+    // This ensures we don't send any authentication headers from the default api instance
+    const anonymousAxios = axios.create({
+      baseURL: API_URL,
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      timeout: 10000
+    });
+
+    // Make sure we're not sending auth headers
+    delete anonymousAxios.defaults.headers.common['Authorization'];
+    
+    console.log('Sending anonymous feedback without auth headers');
+    
+    const response = await anonymousAxios.post(`/system-feedback/anonymous`, {
+      ...feedbackData,
+      userRole: 'anonymous', // Explicitly set role to anonymous
+      anonymous: true, // Ensure this flag is set
+      isPublicAnonymous: true, // New flag to help the backend distinguish completely anonymous users
+      deviceInfo
+    });
+
+    return response.data;
+  } catch (error) {
+    console.error('Error submitting anonymous feedback:', error);
+    
+    // If we get a 401 error, the backend might be requiring authentication
+    if (error.response && error.response.status === 401) {
+      console.warn('Anonymous feedback endpoint requires auth. Server configuration issue.');
+      // Return a specific error message for easier handling
+      throw new Error('Anonymous submissions currently require authentication. This is a server configuration issue.');
+    }
+    
+    throw error;
+  }
+};
 
 export default api;

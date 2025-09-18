@@ -1,8 +1,12 @@
-# QRollCall - Smart QR Code Attendance System
+# QRollCall - Smart QR Code based Student Attendance System
 
 QRollCall is a comprehensive web-based attendance tracking application designed for educational institutions. It uses QR code technology for efficient attendance management, allowing lecturers to generate unique QR codes for each session that students can scan to mark their attendance.
 
-![QRollCall Dashboard](https://i.imgur.com/exampleimage.jpg)
+![QRollCall Student Dashboard](Images/student.png)
+
+![QRollCall Admin Dashboard](Images/admin.png)
+
+![QRollCall Lecturer Dashboard](https://github.com/Austinkuria/attendance-system/blob/main/Images/lecturer%20dash.png)
 
 ## Table of Contents
 - [Features](#features)
@@ -172,9 +176,9 @@ npm run build
 4. Import or add lecturers and students
 
 #### User Management
-1. Navigate to the Admin Panel > Manage Users
+1. Navigate to the Admin Panel > Manage Students/courses/Lecturers
 2. Create, edit, or delete users as needed
-3. Bulk import users via CSV templates (available for download)
+3. Bulk import users via CSV/excel templates(available for download)
 
 #### System Configuration
 1. Manage departments and courses
@@ -305,8 +309,8 @@ The system implements several security measures:
 ## Contributors
 
 - [Austin Kuria](https://github.com/Austinkuria)
+- [Larry Bett](https://github.com/LlaryBett)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE]
-(https://github.com/Austinkuria/attendance-system/LICENSE) file for details
+This project is licensed under the MIT License - see the file for details

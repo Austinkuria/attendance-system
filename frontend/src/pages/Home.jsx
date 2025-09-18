@@ -568,7 +568,7 @@ const Home = () => {
         </section>
 
         {/* Video Demo Section */}
-        <section style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
+        {/* <section style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
           <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
             See It in Action
           </Title>
@@ -597,7 +597,7 @@ const Home = () => {
               </Text>
             </Col>
           </Row>
-        </section>
+        </section> */}
 
         {/* Testimonials - Fixed block attribute warning */}
         <section id="testimonials" style={{ padding: '60px 16px', background: themeColors.cardBg, width: '100%', boxSizing: 'border-box' }}>

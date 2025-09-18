@@ -1,14 +1,15 @@
 import { useState, useEffect, useContext } from 'react';
-// Remove the unused Badge import
-import { Drawer, List, Tag, Typography, Spin, Empty, Tooltip, Button } from 'antd';
-import { SyncOutlined } from '@ant-design/icons';
-import { getUserSystemFeedback } from '../../services/api';
-import { ThemeContext } from '../../context/ThemeContext';
+import { Drawer, Typography, List, Tag, Spin, Empty, Button, Tooltip, Alert, Tabs } from 'antd';
+import { SyncOutlined, LoginOutlined } from '@ant-design/icons';
 import PropTypes from 'prop-types';
-import moment from 'moment';
+import { getUserSystemFeedback } from '../../services/api';
+import { getAnonymousFeedback } from '../../utils/feedbackUtils';
+import { ThemeContext } from '../../context/ThemeContext';
+import { AuthContext } from '../../context/AuthContext';
 import { css } from '@emotion/css';
+import moment from 'moment';
 
-const { Text, Title } = Typography;
+const { Title, Text } = Typography;
 
 const useStyles = (themeColors) => ({
     drawer: css`
@@ -57,27 +58,169 @@ const statusColors = {
 
 const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
     const { themeColors } = useContext(ThemeContext);
+    const { isAuthenticated } = useContext(AuthContext);
     const styles = useStyles(themeColors);
 
     const [feedback, setFeedback] = useState([]);
+    const [localFeedback, setLocalFeedback] = useState([]);
     const [loading, setLoading] = useState(false);
+    const [error, setError] = useState(null);
 
     useEffect(() => {
         if (visible) {
-            fetchFeedback();
+            loadLocalFeedback();
+            if (isAuthenticated) {
+                fetchFeedback();
+            }
         }
-    }, [visible]);
+    }, [visible, isAuthenticated]);
+
+    const loadLocalFeedback = () => {
+        try {
+            const anonymousFeedback = getAnonymousFeedback();
+            setLocalFeedback(anonymousFeedback);
+        } catch (error) {
+            console.error('Error loading local feedback:', error);
+            setLocalFeedback([]);
+        }
+    };
 
     const fetchFeedback = async () => {
+        if (!isAuthenticated) {
+            setError('Please log in to view your feedback history');
+            setFeedback([]);
+            return;
+        }
+
         try {
             setLoading(true);
-            const data = await getUserSystemFeedback();
-            setFeedback(data);
+            setError(null);
+
+            const timeoutPromise = new Promise((_, reject) =>
+                setTimeout(() => reject(new Error('Request timed out')), 15000)
+            );
+
+            const response = await Promise.race([
+                getUserSystemFeedback(),
+                timeoutPromise
+            ]);
+
+            console.log('API Response:', response);
+
+            if (Array.isArray(response)) {
+                setFeedback(response);
+            } else if (response && response.authRequired) {
+                setError(response.message || 'Please log in to view your feedback history');
+                setFeedback([]);
+            } else if (response && typeof response === 'object') {
+                if (Array.isArray(response.data)) {
+                    setFeedback(response.data);
+                } else if (Array.isArray(response.feedback)) {
+                    setFeedback(response.feedback);
+                } else if (Array.isArray(response.items)) {
+                    setFeedback(response.items);
+                } else if (response.title || response.description || response.category) {
+                    setFeedback([response]);
+                } else {
+                    const possibleArrays = Object.values(response).filter(value =>
+                        Array.isArray(value) && value.length > 0
+                    );
+
+                    if (possibleArrays.length > 0) {
+                        setFeedback(possibleArrays[0]);
+                    } else {
+                        setFeedback([]);
+                    }
+                }
+            } else {
+                setFeedback([]);
+            }
         } catch (error) {
             console.error('Error fetching feedback history:', error);
+
+            if (error.message && (error.message.includes('Network') || error.message.includes('CORS'))) {
+                setError('Network issue when retrieving feedback. Your browser might be blocking cross-origin requests.');
+            } else if (error.message === 'Request timed out') {
+                setError('Request timed out. The server might be unavailable or slow to respond.');
+            } else if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+                setError('You need to be logged in to view your feedback history');
+            } else {
+                setError('Failed to load feedback history. Please try again later.');
+            }
+
+            setFeedback([]);
         } finally {
             setLoading(false);
         }
+    };
+
+    const renderFeedbackItem = (item) => (
+        <List.Item className={styles.item}>
+            <div style={{ width: '100%' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <Title level={5} className={styles.title}>{item.title || 'No Title'}</Title>
+                    <Tag color={statusColors[item.status] || 'default'}>{item.status || 'Submitted'}</Tag>
+                </div>
+                <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
+                    <Tag>{item.category || 'Other'}</Tag>
+                    <Tag color={item.severity > 3 ? 'red' : item.severity > 2 ? 'orange' : 'green'}>
+                        Severity: {item.severity || 0}/5
+                    </Tag>
+                </div>
+                <Tooltip title={item.description || 'No description provided'}>
+                    <Text className={styles.description}>
+                        {item.description
+                            ? (item.description.length > 100
+                                ? `${item.description.substring(0, 100)}...`
+                                : item.description)
+                            : 'No description provided'}
+                    </Text>
+                </Tooltip>
+                <Text className={styles.date}>
+                    Submitted: {item.createdAt
+                        ? moment(item.createdAt).format('YYYY-MM-DD HH:mm')
+                        : item.localTimestamp
+                            ? moment(item.localTimestamp).format('YYYY-MM-DD HH:mm')
+                            : 'Unknown date'}
+                </Text>
+            </div>
+        </List.Item>
+    );
+
+    const getTabItems = () => {
+        const items = [];
+
+        if (isAuthenticated) {
+            items.push({
+                key: "account",
+                label: "Account Feedback",
+                children: error ? (
+                    <Empty description={error} />
+                ) : feedback.length === 0 ? (
+                    <Empty description="No feedback submitted with your account yet" />
+                ) : (
+                    <List
+                        dataSource={feedback}
+                        renderItem={renderFeedbackItem}
+                    />
+                )
+            });
+        }
+
+        items.push({
+            key: "local",
+            label: "Local Feedback",
+            children: localFeedback.length === 0 ? (
+                <Empty description="No local feedback history" />
+            ) : (
+                <List
+                    dataSource={localFeedback}
+                    renderItem={renderFeedbackItem}
+                />
+            )
+        });
+
+        return items;
     };
 
     return (
@@ -85,13 +228,15 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
             title={
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                     <Title level={4} style={{ margin: 0, color: themeColors.text }}>Your Feedback History</Title>
-                    <Button
-                        type="text"
-                        icon={<SyncOutlined />}
-                        onClick={fetchFeedback}
-                        loading={loading}
-                        className={styles.refreshButton}
-                    />
+                    {isAuthenticated && (
+                        <Button
+                            type="text"
+                            icon={<SyncOutlined />}
+                            onClick={fetchFeedback}
+                            loading={loading}
+                            className={styles.refreshButton}
+                        />
+                    )}
                 </div>
             }
             placement="right"
@@ -101,37 +246,18 @@ const SystemFeedbackHistoryDrawer = ({ visible, onClose }) => {
             className={styles.drawer}
         >
             <Spin spinning={loading}>
-                {feedback.length === 0 ? (
-                    <Empty description="No feedback submitted yet" />
+                {!isAuthenticated && localFeedback.length === 0 ? (
+                    <Alert
+                        message="Note about anonymous feedback"
+                        description="Your anonymous feedback is stored locally in your browser. To maintain a permanent history and receive responses, please log in."
+                        type="info"
+                        showIcon
+                        icon={<LoginOutlined />}
+                    />
                 ) : (
-                    <List
-                        dataSource={feedback}
-                        renderItem={(item) => (
-                            <List.Item className={styles.item}>
-                                <div style={{ width: '100%' }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                        <Title level={5} className={styles.title}>{item.title}</Title>
-                                        <Tag color={statusColors[item.status]}>{item.status}</Tag>
-                                    </div>
-                                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginBottom: '8px' }}>
-                                        <Tag>{item.category}</Tag>
-                                        <Tag color={item.severity > 3 ? 'red' : item.severity > 2 ? 'orange' : 'green'}>
-                                            Severity: {item.severity}/5
-                                        </Tag>
-                                    </div>
-                                    <Tooltip title={item.description}>
-                                        <Text className={styles.description}>
-                                            {item.description.length > 100
-                                                ? `${item.description.substring(0, 100)}...`
-                                                : item.description}
-                                        </Text>
-                                    </Tooltip>
-                                    <Text className={styles.date}>
-                                        Submitted: {moment(item.createdAt).format('YYYY-MM-DD HH:mm')}
-                                    </Text>
-                                </div>
-                            </List.Item>
-                        )}
+                    <Tabs
+                        defaultActiveKey={isAuthenticated ? "account" : "local"}
+                        items={getTabItems()}
                     />
                 )}
             </Spin>

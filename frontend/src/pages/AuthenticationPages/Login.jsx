@@ -1,11 +1,10 @@
 import { useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
-import { jwtDecode } from 'jwt-decode';
-import { Card, Input, Button, Typography, Alert, Form } from 'antd';
-import { LockOutlined, MailOutlined, ArrowRightOutlined } from '@ant-design/icons';
+import { Card, Input, Button, Typography, Alert, Form, message, Checkbox } from 'antd';
+import { LockOutlined, MailOutlined, ArrowRightOutlined, LoadingOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
 import { ThemeContext } from '../../context/ThemeContext';
+import { loginUser } from '../../services/api';
 
 const { Title, Text } = Typography;
 
@@ -238,83 +237,108 @@ const Login = () => {
   const { themeColors, isDarkMode } = useContext(ThemeContext);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [networkStatus, setNetworkStatus] = useState(navigator.onLine);
   const navigate = useNavigate();
   const [form] = Form.useForm();
-  
-  // Clear any existing tokens when the login page loads
+
+  // Check network status
   useEffect(() => {
-    localStorage.clear();
-  }, []);
+    const handleOnline = () => setNetworkStatus(true);
+    const handleOffline = () => setNetworkStatus(false);
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    // Check if the user is already logged in
+    const token = localStorage.getItem('token');
+    if (token) {
+      const userData = localStorage.getItem('userData');
+      if (userData) {
+        try {
+          const user = JSON.parse(userData);
+          if (user && user.role) {
+            // Redirect to appropriate dashboard based on role
+            switch (user.role) {
+              case 'student': navigate('/student-dashboard'); break;
+              case 'lecturer': navigate('/lecturer-dashboard'); break;
+              case 'admin': navigate('/admin'); break;
+              default: // Do nothing, stay on login page
+            }
+          }
+        } catch (e) {
+          // If parsing fails, clear localStorage
+          console.error("Error parsing user data:", e);
+          localStorage.clear();
+        }
+      }
+    }
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [navigate]);
 
   const handleLogin = async (values) => {
-    const { email, password } = values;
+    if (!navigator.onLine) {
+      setError('You are currently offline. Please check your internet connection and try again.');
+      return;
+    }
 
+    const { email, password, remember } = values;
     setLoading(true);
     setError(null);
 
     try {
-      // Create a cancellable request with timeout
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15-second timeout
+      // Use our new login function
+      const response = await loginUser({ email, password });
 
-      const response = await axios.post(
-        'https://attendance-system-w70n.onrender.com/api/auth/login',
-        { email, password },
-        {
-          signal: controller.signal,
-          headers: { 'Content-Type': 'application/json' }
-        }
-      );
+      // Store email in localStorage if remember is checked
+      if (remember) {
+        localStorage.setItem('rememberedEmail', email);
+      } else {
+        localStorage.removeItem('rememberedEmail');
+      }
 
-      clearTimeout(timeoutId);
-
-      // Store token and user data efficiently
-      const { token } = response.data;  // Removed unused 'user' variable
-
-      // Store essential data only
-      localStorage.setItem('token', token);
-
-      // Pre-decode token to avoid duplicate work across components
-      const decodedToken = jwtDecode(token);
-      const role = decodedToken.role;
-      const userId = decodedToken.userId;
-
-      // Store minimal user data
-      const userData = JSON.stringify({
-        id: userId,
-        role: role,
-        lastLogin: new Date().toISOString()
-      });
-
-      localStorage.setItem('userData', userData);
-      localStorage.setItem('role', role);
-      localStorage.setItem('userId', userId);
+      // Show success message
+      message.success('Login successful! Redirecting...');
 
       // Redirect based on role
+      const { role } = response.user;
       switch (role) {
-        case 'student':
-          navigate('/student-dashboard');
+        case 'admin':
+          navigate('/admin');
           break;
         case 'lecturer':
           navigate('/lecturer-dashboard');
           break;
-        case 'admin':
-          navigate('/admin');
+        case 'student':
+          navigate('/student-dashboard');
           break;
         default:
-          navigate('/'); // Fallback
+          console.warn('Unknown role:', role);
+          navigate('/');
       }
     } catch (error) {
-      if (error.name === 'AbortError') {
-        setError('Login request timed out. Please check your internet connection and try again.');
-      } else {
-        console.error("Login error:", error.response ? error.response.data : error.message);
-        setError(error.response?.data?.message || 'Invalid email or password. Please try again.');
+      console.error('Login error:', error);
+      setError(error.message || 'Failed to login. Please try again later.');
+
+      // If it looks like a CORS error
+      if (error.originalError && error.originalError.message?.includes('Network Error')) {
+        setError('Cannot connect to the server. This might be due to network issues or CORS restrictions.');
       }
     } finally {
       setLoading(false);
     }
   };
+
+  // Pre-fill email if remembered
+  useEffect(() => {
+    const rememberedEmail = localStorage.getItem('rememberedEmail');
+    if (rememberedEmail) {
+      form.setFieldsValue({ email: rememberedEmail });
+    }
+  }, [form]);
 
   return (
     <PageContainer theme={themeColors}>
@@ -326,6 +350,20 @@ const Login = () => {
           Login to access your account
         </ResponsiveText>
 
+        {!networkStatus && (
+          <Alert
+            message="You are offline"
+            description="Please check your internet connection to log in."
+            type="warning"
+            showIcon
+            style={{
+              marginBottom: 24,
+              fontSize: '16px',
+              borderRadius: '8px'
+            }}
+          />
+        )}
+
         {error && (
           <Alert
             message={error}
@@ -333,7 +371,7 @@ const Login = () => {
             showIcon
             closable
             style={{
-              marginBottom: 24, /* Reduced margin */
+              marginBottom: 24,
               fontSize: '16px',
               borderRadius: '8px'
             }}
@@ -345,7 +383,7 @@ const Login = () => {
           name="login"
           layout="vertical"
           onFinish={handleLogin}
-          disabled={loading}
+          disabled={loading || !networkStatus}
           style={{ color: themeColors.text }}
         >
           <FormItemStyled
@@ -357,7 +395,7 @@ const Login = () => {
                 message: 'Enter a valid email format (e.g., user@example.com)!'
               }
             ]}
-            style={{ marginBottom: 20 }} /* Reduced margin */
+            style={{ marginBottom: 20 }}
             theme={themeColors}
           >
             <StyledInput
@@ -378,7 +416,7 @@ const Login = () => {
               { pattern: /[a-z]/, message: 'Password must contain at least one lowercase letter!' },
               { pattern: /[0-9]/, message: 'Password must contain at least one number!' }
             ]}
-            style={{ marginBottom: 24 }} /* Reduced margin */
+            style={{ marginBottom: 24 }}
             theme={themeColors}
           >
             <StyledPasswordInput
@@ -390,23 +428,29 @@ const Login = () => {
             />
           </FormItemStyled>
 
-          <Form.Item style={{ marginTop: 16 }}> {/* Reduced margin */}
+          <Form.Item name="remember" valuePropName="checked" style={{ marginBottom: 16 }}>
+            <Checkbox style={{ color: themeColors.text }}>Remember me</Checkbox>
+          </Form.Item>
+
+          <Form.Item style={{ marginTop: 16 }}>
             <StyledButton
               type="primary"
               htmlType="submit"
               size="large"
               block
               loading={loading}
+              disabled={!networkStatus}
               theme={themeColors}
+              icon={loading ? <LoadingOutlined /> : <ArrowRightOutlined style={{ fontSize: '20px' }} />}
             >
-              <ArrowRightOutlined style={{ fontSize: '20px' }} /> Login
+              {loading ? 'Logging in...' : 'Login'}
             </StyledButton>
           </Form.Item>
         </Form>
 
         <div style={{
           textAlign: 'center',
-          marginTop: 24, /* Reduced margin */
+          marginTop: 24,
           fontSize: '18px',
           color: themeColors.placeholder
         }}>
@@ -422,7 +466,7 @@ const Login = () => {
 
         <div style={{
           textAlign: 'center',
-          marginTop: 16, /* Reduced margin */
+          marginTop: 16,
           fontSize: '18px',
           color: themeColors.placeholder
         }}>

@@ -171,6 +171,7 @@ const ManageCourses = () => {
       setUnitInput({ name: '', code: '', year: '', semester: '' });
       unitForm.resetFields();
       message.success('Unit added successfully');
+      setShowUnitsModal(false); // Add this line to close the modal
     } catch (err) {
       if (err.errorFields) return;
       setError(`Failed to add unit: ${err.message}`);
@@ -1032,19 +1033,19 @@ const ManageCourses = () => {
                     <Form.Item
                       name="year"
                       label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Year</span>}
-                      rules={[{ required: true, message: 'Year', type: 'number', min: 1, max: 4 }]}
+                      rules={[{ required: true, message: 'Please select a year' }]}
                     >
                       <Select
                         placeholder="Select Year"
                         size="large"
-                        onChange={(value) => setUnitInput({ ...unitInput, year: value })}
+                        onChange={(value) => setUnitInput({ ...unitInput, year: Number(value) })}
                         dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                         style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                       >
-                        <Option value="1">Year 1</Option>
-                        <Option value="2">Year 2</Option>
-                        <Option value="3">Year 3</Option>
-                        <Option value="4">Year 4</Option>
+                        <Option value={1}>Year 1</Option>
+                        <Option value={2}>Year 2</Option>
+                        <Option value={3}>Year 3</Option>
+                        <Option value={4}>Year 4</Option>
                       </Select>
                     </Form.Item>
                   </Col>
@@ -1052,18 +1053,18 @@ const ManageCourses = () => {
                     <Form.Item
                       name="semester"
                       label={<span style={{ color: isDarkMode ? themeColors.text : "#000" }}>Semester</span>}
-                      rules={[{ required: true, message: 'Semester', type: 'number', min: 1, max: 3 }]}
+                      rules={[{ required: true, message: 'Please select a semester' }]}
                     >
                       <Select
                         placeholder="Select Semester"
                         size="large"
-                        onChange={(value) => setUnitInput({ ...unitInput, semester: value })}
+                        onChange={(value) => setUnitInput({ ...unitInput, semester: Number(value) })}
                         dropdownStyle={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                         style={{ background: isDarkMode ? themeColors.cardBg : "#fff" }}
                       >
-                        <Option value="1">Semester 1</Option>
-                        <Option value="2">Semester 2</Option>
-                        <Option value="3">Semester 3</Option>
+                        <Option value={1}>Semester 1</Option>
+                        <Option value={2}>Semester 2</Option>
+                        <Option value={3}>Semester 3</Option>
                       </Select>
                     </Form.Item>
                   </Col>

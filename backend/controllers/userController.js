@@ -11,6 +11,7 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const transporter = require("../config/emailConfig");
 const path = require('path');
+const Unit = require('../models/Unit'); // Added Unit model
 
 // Login API
 const login = async (req, res) => {
@@ -820,7 +821,7 @@ const sendResetLink = async (req, res) => {
 
     // Email Template
     const mailOptions = {
-      from: `"Smart QR Code Attendance System" <${process.env.SMTP_USER}>`,
+      from: `"Smart QR Code based Student Attendance System" <${process.env.SMTP_USER}>`,
       to: user.email,
       subject: "Password Reset Request",
       html: `
@@ -831,7 +832,7 @@ const sendResetLink = async (req, res) => {
               <img src="cid:logo" alt="QRollCall Logo" 
                 style="width: 80px; height: 80px; border-radius: 10px; border: 3px solid #6C63FF; padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: white;" />
             </div>
-            <h2 style="color: #6C63FF; margin: 10px 0;">Smart QR Code Attendance System</h2>
+            <h2 style="color: #6C63FF; margin: 10px 0;">Smart QR Code based Student Attendance System</h2>
           </div>
     
           <!-- Main Content -->
@@ -871,7 +872,7 @@ const sendResetLink = async (req, res) => {
             <!-- Thank You & Auto-Reply Notice -->
             <div style="margin-top: 30px;">
               <p style="margin: 0 0 15px 0; color: #2d3956; line-height: 1.6;">
-                Thank you for choosing Smart QR Code Attendance System.<br>
+                Thank you for choosing Smart QR Code based Student Attendance System.<br>
                 <strong>Best regards,</strong><br>
                 <span style="color: #6C63FF;">Customer Support Team</span>
               </p>
@@ -887,7 +888,7 @@ const sendResetLink = async (req, res) => {
           <div style="padding: 25px 20px; background-color: #2d3956; color: #ffffff; text-align: center;">
             <div style="margin-bottom: 15px;">
               <a href="https://attendance-system123.vercel.app/" style="color: #ffffff; text-decoration: none; font-weight: 500;">
-                Smart QR Code Attendance System
+                Smart QR Code based Student Attendance System
               </a>
             </div>
             
@@ -898,7 +899,7 @@ const sendResetLink = async (req, res) => {
                 📞 <a href="tel:+254797561978" style="color: #cbd5e1; text-decoration: none;">+254 797 561978</a>
               </p>
               <p style="margin: 15px 0 0; color: #94a3b8;">
-                © ${new Date().getFullYear()} Smart QR Code Attendance System. All rights reserved
+                © ${new Date().getFullYear()} Smart QR Code based Student Attendance System. All rights reserved
               </p>
             </div>
           </div>
@@ -1023,26 +1024,114 @@ const resetPassword = async (req, res) => {
   }
 };
 
-// const updatePushToken = async (req, res) => {
-//   try {
-//     const { token } = req.body; // OneSignal playerId
-//     const userId = req.user.userId; // From auth middleware
+// Get student units
+const getStudentUnits = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(studentId)) {
+      return res.status(400).json({ message: "Invalid student ID format" });
+    }
 
-//     if (!token) return res.status(400).json({ message: 'Push token is required' });
+    // Find the student
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
 
-//     const user = await User.findByIdAndUpdate(
-//       userId,
-//       { pushToken: token },
-//       { new: true }
-//     );
-//     if (!user) return res.status(404).json({ message: 'User not found' });
+    // Get enrolled units with details
+    const units = await Unit.find({
+      _id: { $in: student.enrolledUnits }
+    });
 
-//     res.status(200).json({ message: 'Push token updated successfully' });
-//   } catch (error) {
-//     console.error('Error updating push token:', error);
-//     res.status(500).json({ message: 'Server error', error: error.message });
-//   }
-// };
+    res.status(200).json(units);
+  } catch (error) {
+    console.error("Error fetching student units:", error);
+    res.status(500).json({ message: "Error fetching student units", error: error.message });
+  }
+};
+
+// Enroll student in a unit
+const enrollStudentInUnit = async (req, res) => {
+  try {
+    const { studentId } = req.params;
+    const { unitId } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(unitId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    // Find the student
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Find the unit
+    const unit = await Unit.findById(unitId);
+    if (!unit) {
+      return res.status(404).json({ message: "Unit not found" });
+    }
+
+    // Check if student is already enrolled in this unit
+    if (student.enrolledUnits.includes(unitId)) {
+      return res.status(400).json({ message: "Student is already enrolled in this unit" });
+    }
+
+    // Add unit to student's enrolledUnits array
+    student.enrolledUnits.push(unitId);
+    await student.save();
+
+    // Add student to unit's studentsEnrolled array
+    if (!unit.studentsEnrolled.includes(studentId)) {
+      unit.studentsEnrolled.push(studentId);
+      await unit.save();
+    }
+
+    res.status(200).json({ message: "Unit enrolled successfully" });
+  } catch (error) {
+    console.error("Error enrolling student in unit:", error);
+    res.status(500).json({ message: "Error enrolling student in unit", error: error.message });
+  }
+};
+
+// Remove student from a unit
+const removeStudentFromUnit = async (req, res) => {
+  try {
+    const { studentId, unitId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(unitId)) {
+      return res.status(400).json({ message: "Invalid ID format" });
+    }
+
+    // Find the student
+    const student = await User.findById(studentId);
+    if (!student) {
+      return res.status(404).json({ message: "Student not found" });
+    }
+
+    // Find the unit
+    const unit = await Unit.findById(unitId);
+    if (!unit) {
+      return res.status(404).json({ message: "Unit not found" });
+    }
+
+    // Remove unit from student's enrolledUnits array
+    student.enrolledUnits = student.enrolledUnits.filter(id => id.toString() !== unitId.toString());
+    await student.save();
+
+    // Remove student from unit's studentsEnrolled array
+    if (unit.studentsEnrolled) {
+      unit.studentsEnrolled = unit.studentsEnrolled.filter(id => id.toString() !== studentId.toString());
+      await unit.save();
+    }
+
+    res.status(200).json({ message: "Unit removed successfully" });
+  } catch (error) {
+    console.error("Error removing student from unit:", error);
+    res.status(500).json({ message: "Error removing student from unit", error: error.message });
+  }
+};
 
 module.exports = {
   login,
@@ -1064,5 +1153,7 @@ module.exports = {
   downloadLecturers,
   sendResetLink,
   resetPassword,
-  // updatePushToken
+  getStudentUnits,
+  enrollStudentInUnit,
+  removeStudentFromUnit
 };
