@@ -64,3 +64,10 @@
 2025-09-19 23:40:23 [debug]: Public assets folder already exists. {"service":"attendance-system"}
 2025-09-19 23:40:24 [info]: Server running on port 5000 {"service":"attendance-system"}
 2025-09-19 23:40:25 [info]: MongoDB Connected {"service":"attendance-system"}
+2025-09-20 00:13:08 [info]: Loading system feedback routes... {"service":"attendance-system"}
+2025-09-20 00:13:08 [info]: Loading main routes... {"service":"attendance-system"}
+2025-09-20 00:13:08 [debug]: Loading attendance routes {"service":"attendance-system"}
+2025-09-20 00:13:08 [debug]: Uploads folder already exists. {"service":"attendance-system"}
+2025-09-20 00:13:08 [debug]: Public assets folder already exists. {"service":"attendance-system"}
+2025-09-20 00:13:08 [info]: Server running on port 5000 {"service":"attendance-system"}
+2025-09-20 00:13:10 [info]: MongoDB Connected {"service":"attendance-system"}
