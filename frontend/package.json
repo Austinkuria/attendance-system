@@ -26,6 +26,7 @@
     "bootstrap": "^5.3.3",
     "chart.js": "^4.4.8",
     "chartjs-plugin-zoom": "^2.2.0",
+    "exceljs": "^4.4.0",
     "framer-motion": "^12.4.10",
     "jwt-decode": "^4.0.0",
     "moment": "^2.30.1",
@@ -43,8 +44,7 @@
     "react-qr-code": "^2.0.15",
     "react-router-dom": "^7.9.1",
     "react-toastify": "^11.0.5",
-    "styled-components": "^6.1.15",
-    "xlsx": "^0.18.5"
+    "styled-components": "^6.1.15"
   },
   "devDependencies": {
     "@eslint/js": "^9.21.0",

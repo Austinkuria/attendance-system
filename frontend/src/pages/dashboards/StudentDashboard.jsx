@@ -60,6 +60,7 @@ import {
 import moment from 'moment';
 import axios from 'axios';
 import { motion } from 'framer-motion';
+import ExcelJS from 'exceljs';
 import 'antd/dist/reset.css';
 import './StudentDashboard.css';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -550,12 +551,11 @@ const StudentDashboard = () => {
         'Feedback Submitted': record.feedbackSubmitted ? 'Yes' : 'No'
       }));
 
-      // Create workbook and worksheet
-      const XLSX = await import('xlsx');
-      const workbook = XLSX.utils.book_new();
-      const worksheet = XLSX.utils.json_to_sheet(data);
+      // Create workbook and worksheet using ExcelJS
+      const workbook = new ExcelJS.Workbook();
 
       // Add summary sheet
+      const summarySheet = workbook.addWorksheet('Summary');
       const summaryData = units.map(unit => {
         const rate = calculateAttendanceRate(unit._id);
         return {
@@ -574,18 +574,51 @@ const StudentDashboard = () => {
         };
       });
 
-      const summarySheet = XLSX.utils.json_to_sheet(summaryData);
+      // Add headers to summary sheet
+      summarySheet.columns = [
+        { header: 'Unit', key: 'Unit', width: 30 },
+        { header: 'Code', key: 'Code', width: 15 },
+        { header: 'Attendance Rate', key: 'Attendance Rate', width: 20 },
+        { header: 'Total Sessions', key: 'Total Sessions', width: 15 },
+        { header: 'Present', key: 'Present', width: 15 },
+        { header: 'Absent', key: 'Absent', width: 15 }
+      ];
 
-      // Add sheets to workbook
-      XLSX.utils.book_append_sheet(workbook, summarySheet, 'Summary');
-      XLSX.utils.book_append_sheet(workbook, worksheet, 'Detailed Attendance');
+      // Add data to summary sheet
+      summaryData.forEach(row => {
+        summarySheet.addRow(row);
+      });
+
+      // Add detailed attendance sheet
+      const detailSheet = workbook.addWorksheet('Detailed Attendance');
+      detailSheet.columns = [
+        { header: 'Unit Name', key: 'Unit Name', width: 30 },
+        { header: 'Unit Code', key: 'Unit Code', width: 15 },
+        { header: 'Session Date', key: 'Session Date', width: 15 },
+        { header: 'Session Time', key: 'Session Time', width: 25 },
+        { header: 'Status', key: 'Status', width: 15 },
+        { header: 'Attendance Time', key: 'Attendance Time', width: 20 },
+        { header: 'Feedback Submitted', key: 'Feedback Submitted', width: 20 }
+      ];
+
+      // Add detailed data
+      data.forEach(row => {
+        detailSheet.addRow(row);
+      });
 
       // Generate filename with current date
       const date = new Date().toISOString().split('T')[0];
       const fileName = `attendance_report_${date}.xlsx`;
 
       // Write and download file
-      XLSX.writeFile(workbook, fileName);
+      const buffer = await workbook.xlsx.writeBuffer();
+      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = fileName;
+      link.click();
+      window.URL.revokeObjectURL(url);
 
       message.success({
         content: 'Attendance data exported successfully!',
@@ -961,7 +994,7 @@ const StudentDashboard = () => {
         console.error('Authentication token missing');
         return { isExpired: true, error: 'Authentication failed' };
       }
-      
+
       const activeResponse = await axios.get(
         `${API_URL}/sessions/active/${unitId}`,
         { headers: { Authorization: `Bearer ${token}` } }
