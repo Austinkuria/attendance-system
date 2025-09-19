@@ -273,13 +273,13 @@ const updateStudent = async (req, res) => {
     }
 
     // Verify course exists
-    const courseDoc = await Course.findById(course);
+    const courseDoc = await Course.findById(String(course));
     if (!courseDoc) {
       return res.status(400).json({ message: 'Course not found' });
     }
 
     // Verify department exists (assuming you have a Department model)
-    const deptDoc = await Department.findById(department);
+    const deptDoc = await Department.findById(String(department));
     if (!deptDoc) {
       return res.status(400).json({ message: 'Department not found' });
     }
