@@ -859,6 +859,9 @@ exports.updateAttendanceStatus = async (req, res) => {
     if (!mongoose.Types.ObjectId.isValid(attendanceId)) {
       return res.status(400).json({ message: "Invalid attendance ID format" });
     }
+    if (typeof status !== "string") {
+      return res.status(400).json({ message: "Attendance status must be a string" });
+    }
     const attendance = await Attendance.findByIdAndUpdate(
       attendanceId,
       { status },

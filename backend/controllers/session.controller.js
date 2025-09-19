@@ -171,7 +171,7 @@ exports.endSession = async (req, res) => {
       session: updatedSession
     });
   } catch (error) {
-    console.error(`Error ending session ${req.body.sessionId}:`, error);
+    console.error("Error ending session %s:", req.body.sessionId, error);
     res.status(500).json({ message: "Error ending session", error: error.message });
   }
 };
