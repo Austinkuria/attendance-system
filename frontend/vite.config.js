@@ -33,7 +33,7 @@ export default defineConfig({
         clientsClaim: true,
         skipWaiting: true,
         globPatterns: ['**/*.{js,css,html,png,jpg,jpeg,svg}'],
-        maximumFileSizeToCacheInBytes: 3 * 1024 * 1024,
+        maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // Increase to 5MB
         runtimeCaching: [
           {
             urlPattern: /\.(?:html|js|css)$/i,
@@ -67,6 +67,19 @@ export default defineConfig({
     }),
     envCompatible(),
   ],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          ui: ['antd'],
+          charts: ['chart.js', 'react-chartjs-2'],
+          utils: ['moment', 'axios']
+        }
+      }
+    },
+    chunkSizeWarningLimit: 1000
+  },
   define: { 'process.env': {} },
   test: {
     globals: true,
