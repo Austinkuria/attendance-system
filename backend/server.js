@@ -4,17 +4,20 @@ const dotenv = require("dotenv");
 const cors = require("cors");
 const morgan = require("morgan");
 const helmet = require("helmet");
+const cookieParser = require("cookie-parser");
 const fs = require("fs");
 const path = require("path");
 const logger = require("./utils/logger");
-const routes = require("./routes/index"); // Import the combined routes
+const routes = require("./routes/index");
 const errorHandler = require("./middleware/errorHandler");
+const { setCsrfToken } = require("./middleware/csrfProtection");
+const { apiLimiter } = require("./middleware/rateLimiter");
 
 dotenv.config();
 const app = express();
 
-// Configure Express to trust proxy headers
-app.set("trust proxy", true);
+// Configure Express to trust proxy headers (important for rate limiting and IP detection)
+app.set("trust proxy", 1);
 
 // Define the upload directory path
 const uploadDir = path.join(__dirname, "uploads");
@@ -34,33 +37,70 @@ if (!fs.existsSync(publicAssetsDir)) {
   logger.debug("Public assets folder already exists.");
 }
 
-// Middleware
-app.use(express.json({ limit: "10mb" }));
-app.use(helmet());
+// ===== SECURITY MIDDLEWARE =====
 
-// ✅ Allow all CORS requests
-app.use(cors({
-  origin: "*", // Fully open CORS
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"],
+// Helmet - Security headers
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: ["'self'", "data:", "https:"],
+      connectSrc: ["'self'"],
+      fontSrc: ["'self'"],
+      objectSrc: ["'none'"],
+      mediaSrc: ["'self'"],
+      frameSrc: ["'none'"]
+    }
+  },
+  crossOriginEmbedderPolicy: false,
+  crossOriginResourcePolicy: { policy: "cross-origin" }
 }));
 
-// Handle CORS preflight requests
-app.use((req, res, next) => {
-  res.header("Access-Control-Allow-Origin", "*");
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  res.header("Access-Control-Allow-Credentials", "true");
+// Body parser middleware
+app.use(express.json({ limit: "10mb" }));
+app.use(express.urlencoded({ extended: true, limit: "10mb" }));
 
-  if (req.method === "OPTIONS") {
-    return res.sendStatus(204);
-  }
-  next();
-});
+// Cookie parser - MUST be before CSRF middleware
+app.use(cookieParser());
+
+// CORS configuration - Allow specific origin with credentials
+const allowedOrigins = [
+  'http://localhost:5173',
+  'http://localhost:5174',
+  'https://attendance-system123.vercel.app',
+  'https://attendance-system-w70n.onrender.com',
+  process.env.CLIENT_URL_DEV,
+  process.env.CLIENT_URL_PROD,
+  process.env.FRONTEND_URL
+].filter(Boolean);
+
+app.use(cors({
+  origin: function (origin, callback) {
+    // Allow requests with no origin (mobile apps, Postman, etc.)
+    if (!origin) return callback(null, true);
+    
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      callback(new Error('Not allowed by CORS'));
+    }
+  },
+  credentials: true, // IMPORTANT: Allow cookies
+  methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization", "X-XSRF-TOKEN", "X-CSRF-TOKEN"],
+  exposedHeaders: ["X-Token-Refresh-Suggested"]
+}));
 
 // HTTP request logging
 app.use(morgan("combined", { stream: logger.stream }));
+
+// Apply CSRF token generation to all routes
+app.use(setCsrfToken);
+
+// Apply rate limiting to all API routes
+app.use("/api", apiLimiter);
 
 // Serve static assets
 app.use("/assets", express.static(path.join(__dirname, "public/assets")));

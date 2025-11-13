@@ -11,7 +11,12 @@ const mongoose = require('mongoose');
 const crypto = require('crypto');
 const transporter = require("../config/emailConfig");
 const path = require('path');
-const Unit = require('../models/Unit'); // Added Unit model
+const Unit = require('../models/Unit');
+const { 
+  generateAccessToken, 
+  generateRefreshToken,
+  setAuthCookies 
+} = require('../utils/authUtils');
 
 // Login API
 const login = async (req, res) => {
@@ -20,42 +25,69 @@ const login = async (req, res) => {
   // Check validation results
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+    return res.status(400).json({ 
+      success: false,
+      errors: errors.array() 
+    });
   }
 
   try {
-    // More efficient query with lean() for faster object creation
-    const user = await User.findOne({ email: { $eq: email } }).lean().select('_id password role firstName lastName');
+    // Find user with all necessary fields
+    const user = await User.findOne({ email: { $eq: email } })
+      .select('_id password role firstName lastName email regNo year semester department course')
+      .populate('department', 'name')
+      .populate('course', 'name code');
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid email or password' 
+      });
     }
 
-    // Use async compareSync for better performance
+    // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ message: 'Invalid email or password' });
+      return res.status(400).json({ 
+        success: false,
+        message: 'Invalid email or password' 
+      });
     }
 
-    // Generate a token with minimal payload
-    const token = jwt.sign(
-      { userId: user._id, role: user.role },
-      process.env.JWT_SECRET,
-      { expiresIn: '4h', algorithm: 'HS256' } // Explicitly use faster HS256 algorithm
-    );
+    // Get client IP
+    const ipAddress = req.ip || req.connection.remoteAddress;
 
-    // Return minimal user data with the token
+    // Generate tokens
+    const accessToken = generateAccessToken(user);
+    const refreshToken = await generateRefreshToken(user, ipAddress);
+
+    // Set tokens in httpOnly cookies
+    setAuthCookies(res, accessToken, refreshToken);
+
+    // Return user data (NO TOKEN in response body for security)
     res.json({
-      token,
+      success: true,
+      message: 'Login successful',
       user: {
         id: user._id,
         role: user.role,
-        name: `${user.firstName} ${user.lastName}`
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        regNo: user.regNo,
+        year: user.year,
+        semester: user.semester,
+        department: user.department,
+        course: user.course
       }
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ message: 'Server error', error: error.message });
+    res.status(500).json({ 
+      success: false,
+      message: 'Server error', 
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 };
 
@@ -68,6 +100,7 @@ const signup = async (req, res) => {
     const existingUser = await User.findOne({ email: { $eq: email } });
     if (existingUser) {
       return res.status(400).json({
+        success: false,
         message: "Email already registered",
         field: "email"
       });
@@ -77,6 +110,7 @@ const signup = async (req, res) => {
     if (role === "student") {
       if (!year || !semester) {
         return res.status(400).json({
+          success: false,
           message: "Year and semester are required for students",
           fields: ["year", "semester"]
         });
@@ -84,6 +118,7 @@ const signup = async (req, res) => {
 
       if (year < 1 || year > 4) {
         return res.status(400).json({
+          success: false,
           message: "Invalid academic year (must be between 1 and 4)",
           field: "year"
         });
@@ -91,6 +126,7 @@ const signup = async (req, res) => {
 
       if (semester < 1 || semester > 3) {
         return res.status(400).json({
+          success: false,
           message: "Invalid semester (must be between 1 and 3)",
           field: "semester"
         });
@@ -109,7 +145,11 @@ const signup = async (req, res) => {
     });
 
     await newUser.save();
-    res.status(201).json({ message: "User registered successfully" });
+
+    res.status(201).json({ 
+      success: true,
+      message: "User registered successfully. Please login to continue." 
+    });
   } catch (error) {
     console.error("Signup Error:", error);
 
@@ -120,14 +160,16 @@ const signup = async (req, res) => {
         field: err.path
       }));
       return res.status(400).json({
+        success: false,
         message: "Validation failed",
         errors
       });
     }
 
     res.status(500).json({
+      success: false,
       message: "Signup failed. Please try again later.",
-      error: error.message
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };

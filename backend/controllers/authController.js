@@ -1,5 +1,15 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
+const RefreshToken = require('../models/RefreshToken');
+const { 
+    generateAccessToken, 
+    generateRefreshToken, 
+    refreshAccessToken,
+    revokeRefreshToken,
+    revokeAllUserTokens,
+    setAuthCookies,
+    clearAuthCookies 
+} = require('../utils/authUtils');
 require('dotenv').config();
 
 /**
@@ -35,7 +45,7 @@ const authController = {
                 message: "Session is valid",
                 user: {
                     id: userId,
-                    role: user.role, // Make sure to return user.role, not just role
+                    role: user.role,
                     firstName: user.firstName,
                     lastName: user.lastName,
                     email: user.email,
@@ -57,83 +67,127 @@ const authController = {
     },
 
     /**
-     * Refresh the authentication token
+     * Refresh the authentication token using refresh token
      * @param {Object} req - Express request object
      * @param {Object} res - Express response object
      */
     refreshToken: async (req, res) => {
         try {
-            const { refreshToken } = req.body;
+            // Get refresh token from cookie
+            const refreshTokenString = req.cookies?.refreshToken;
 
-            if (!refreshToken) {
-                return res.status(400).json({
-                    success: false,
-                    message: "Refresh token is required"
-                });
-            }
-
-            // Verify refresh token
-            const decoded = jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET);
-
-            // Check if user exists
-            const user = await User.findById(decoded.userId);
-            if (!user) {
+            if (!refreshTokenString) {
                 return res.status(401).json({
                     success: false,
-                    message: "User not found"
+                    message: "No refresh token provided"
                 });
             }
 
-            // Generate new access token
-            const accessToken = jwt.sign(
-                { userId: user._id, role: user.role },
-                process.env.JWT_SECRET,
-                { expiresIn: process.env.JWT_EXPIRES_IN || '1h' }
-            );
+            // Get client IP
+            const ipAddress = req.ip || req.connection.remoteAddress;
 
-            // Generate new refresh token
-            const newRefreshToken = jwt.sign(
-                { userId: user._id },
-                process.env.REFRESH_TOKEN_SECRET,
-                { expiresIn: process.env.REFRESH_TOKEN_EXPIRES_IN || '7d' }
-            );
+            // Refresh the access token
+            const { accessToken, refreshToken: newRefreshToken, user } = 
+                await refreshAccessToken(refreshTokenString, ipAddress);
+
+            // Set new cookies
+            setAuthCookies(res, accessToken, newRefreshToken);
 
             return res.status(200).json({
                 success: true,
-                token: accessToken,
-                refreshToken: newRefreshToken
+                message: "Token refreshed successfully",
+                user: {
+                    id: user._id,
+                    role: user.role,
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName
+                }
             });
         } catch (error) {
             console.error('Token refresh error:', error);
 
-            if (error.name === 'TokenExpiredError') {
-                return res.status(401).json({
-                    success: false,
-                    message: "Refresh token expired. Please log in again."
-                });
-            }
+            // Clear invalid cookies
+            clearAuthCookies(res);
 
-            return res.status(500).json({
+            return res.status(401).json({
                 success: false,
-                message: "Error refreshing token",
+                message: "Invalid or expired refresh token. Please log in again.",
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
     },
 
     /**
-     * Log out a user (invalidate tokens)
+     * Log out a user (revoke refresh tokens and clear cookies)
      * @param {Object} req - Express request object
      * @param {Object} res - Express response object
      */
     logout: async (req, res) => {
-        // In a token-based auth system, actual logout happens on client-side
-        // by removing the token. Server can implement a token blacklist here
-        // if needed for increased security.
-        return res.status(200).json({
-            success: true,
-            message: "Successfully logged out"
-        });
+        try {
+            const refreshTokenString = req.cookies?.refreshToken;
+            const ipAddress = req.ip || req.connection.remoteAddress;
+
+            // Revoke refresh token if it exists
+            if (refreshTokenString) {
+                try {
+                    await revokeRefreshToken(refreshTokenString, ipAddress);
+                } catch (error) {
+                    // Token might already be invalid, continue with logout
+                    console.error('Error revoking refresh token:', error.message);
+                }
+            }
+
+            // Clear authentication cookies
+            clearAuthCookies(res);
+
+            return res.status(200).json({
+                success: true,
+                message: "Successfully logged out"
+            });
+        } catch (error) {
+            console.error('Logout error:', error);
+            
+            // Still clear cookies even if there's an error
+            clearAuthCookies(res);
+
+            return res.status(500).json({
+                success: false,
+                message: "Error during logout",
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    },
+
+    /**
+     * Log out from all devices (revoke all refresh tokens)
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    logoutAll: async (req, res) => {
+        try {
+            const { userId } = req.user;
+            const ipAddress = req.ip || req.connection.remoteAddress;
+
+            // Revoke all refresh tokens for this user
+            await revokeAllUserTokens(userId, ipAddress);
+
+            // Clear cookies on current device
+            clearAuthCookies(res);
+
+            return res.status(200).json({
+                success: true,
+                message: "Successfully logged out from all devices"
+            });
+        } catch (error) {
+            console.error('Logout all error:', error);
+
+            return res.status(500).json({
+                success: false,
+                message: "Error during logout",
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
     }
 };
 
