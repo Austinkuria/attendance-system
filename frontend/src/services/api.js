@@ -222,12 +222,18 @@ export const loginUser = async (credentials) => {
     clearTimeout(timeoutId);
 
     console.log('Login response status:', response.status);
+    console.log('Login response data:', response.data);
 
-    if (response.data && response.data.token) {
-      // Store auth data
-      localStorage.setItem('token', response.data.token);
-      if (response.data.refreshToken) {
-        localStorage.setItem('refreshToken', response.data.refreshToken);
+    if (response.data && response.data.success) {
+      // Handle password change requirement
+      if (response.data.requiresPasswordChange) {
+        return response.data; // Return the response with tempToken
+      }
+
+      // Store auth token (accessToken from new backend)
+      const token = response.data.accessToken || response.data.token;
+      if (token) {
+        localStorage.setItem('token', token);
       }
 
       // Store user data if available
@@ -238,6 +244,12 @@ export const loginUser = async (credentials) => {
           firstName: response.data.user.firstName,
           lastName: response.data.user.lastName,
           email: response.data.user.email,
+          isSuperAdmin: response.data.user.isSuperAdmin || false,
+          department: response.data.user.department,
+          course: response.data.user.course,
+          regNo: response.data.user.regNo,
+          year: response.data.user.year,
+          semester: response.data.user.semester,
           lastLogin: new Date().toISOString()
         };
         localStorage.setItem('userData', JSON.stringify(userData));
