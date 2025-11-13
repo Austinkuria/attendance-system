@@ -293,6 +293,19 @@ const Login = () => {
       // Use our new login function
       const response = await loginUser({ email, password });
 
+      // Check if password change is required
+      if (response.requiresPasswordChange) {
+        message.warning(response.message);
+        
+        // Store temp token and redirect to change password
+        localStorage.setItem('tempToken', response.tempToken);
+        localStorage.setItem('user', JSON.stringify(response.user));
+        navigate('/auth/change-password', { 
+          state: { isForced: true }
+        });
+        return;
+      }
+
       // Store email in localStorage if remember is checked
       if (remember) {
         localStorage.setItem('rememberedEmail', email);
@@ -306,6 +319,12 @@ const Login = () => {
       // Redirect based on role
       const { role } = response.user;
       switch (role) {
+        case 'super_admin':
+          navigate('/super-admin');
+          break;
+        case 'department_admin':
+          navigate('/department-admin');
+          break;
         case 'admin':
           navigate('/admin');
           break;
@@ -321,7 +340,20 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Login error:', error);
-      setError(error.message || 'Failed to login. Please try again later.');
+      
+      // Handle specific error codes
+      if (error.response?.status === 423) {
+        setError(error.response.data.message);
+      } else if (error.response?.status === 401) {
+        const attemptsRemaining = error.response.data.attemptsRemaining;
+        if (attemptsRemaining !== undefined) {
+          setError(`Invalid credentials. ${attemptsRemaining} attempts remaining.`);
+        } else {
+          setError('Invalid email or password');
+        }
+      } else {
+        setError(error.message || 'Failed to login. Please try again later.');
+      }
 
       // If it looks like a CORS error
       if (error.originalError && error.originalError.message?.includes('Network Error')) {

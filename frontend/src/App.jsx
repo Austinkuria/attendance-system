@@ -4,6 +4,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import Home from './pages/Home';
 import Login from './pages/AuthenticationPages/Login';
 import Signup from './pages/AuthenticationPages/Signup';
+import ChangePassword from './pages/AuthenticationPages/ChangePassword';
 import Dashboard from './pages/Dashboard';
 import LecturerDashboard from './pages/dashboards/LecturerDashboard';
 import AdminPanel from './pages/dashboards/AdminPanel';
@@ -93,6 +94,7 @@ function App() {
               <Route path="/" element={<Home />} />
               <Route path="/auth/login" element={<Login />} />
               <Route path="/auth/signup" element={<Signup />} />
+              <Route path="/auth/change-password" element={<ChangePassword />} />
               <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
               <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
               <Route path="/dashboard" element={<Dashboard />} />
