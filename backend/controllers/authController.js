@@ -3,18 +3,21 @@ const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const RefreshToken = require('../models/RefreshToken');
 const { validationResult } = require('express-validator');
-const { 
-    generateAccessToken, 
-    generateRefreshToken, 
+const crypto = require('crypto');
+const {
+    generateAccessToken,
+    generateRefreshToken,
     refreshAccessToken,
     revokeRefreshToken,
     revokeAllUserTokens,
     setAuthCookies,
-    clearAuthCookies 
+    clearAuthCookies
 } = require('../utils/authUtils');
-require('dotenv').config();
-
-/**
+const {
+    sendVerificationEmail,
+    sendVerificationSuccessEmail
+} = require('../services/email.service');
+require('dotenv').config();/**
  * Controller for authentication-related operations
  */
 const authController = {
@@ -29,9 +32,9 @@ const authController = {
         // Validate input
         const errors = validationResult(req);
         if (!errors.isEmpty()) {
-            return res.status(400).json({ 
+            return res.status(400).json({
                 success: false,
-                errors: errors.array() 
+                errors: errors.array()
             });
         }
 
@@ -43,9 +46,9 @@ const authController = {
                 .select('+password');
 
             if (!user) {
-                return res.status(401).json({ 
+                return res.status(401).json({
                     success: false,
-                    message: 'Invalid email or password' 
+                    message: 'Invalid email or password'
                 });
             }
 
@@ -61,14 +64,24 @@ const authController = {
 
             // Verify password
             const isPasswordValid = await bcrypt.compare(password, user.password);
-            
+
             if (!isPasswordValid) {
                 await user.incLoginAttempts();
-                
-                return res.status(401).json({ 
+
+                return res.status(401).json({
                     success: false,
                     message: 'Invalid email or password',
                     attemptsRemaining: Math.max(5 - (user.loginAttempts + 1), 0)
+                });
+            }
+
+            // Check if email is verified
+            if (!user.isVerified) {
+                return res.status(403).json({
+                    success: false,
+                    message: 'Please verify your email before logging in. Check your inbox for the verification link.',
+                    code: 'EMAIL_NOT_VERIFIED',
+                    email: user.email
                 });
             }
 
@@ -80,7 +93,7 @@ const authController = {
                     process.env.JWT_SECRET,
                     { expiresIn: '15m' }
                 );
-                
+
                 return res.json({
                     success: true,
                     requiresPasswordChange: true,
@@ -142,7 +155,7 @@ const authController = {
 
         } catch (error) {
             console.error('Login error:', error);
-            res.status(500).json({ 
+            res.status(500).json({
                 success: false,
                 message: 'An error occurred during login',
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
@@ -178,7 +191,7 @@ const authController = {
                 }
 
                 const isValid = await bcrypt.compare(currentPassword, user.password);
-                
+
                 if (!isValid) {
                     return res.status(401).json({
                         success: false,
@@ -298,13 +311,17 @@ const authController = {
      */
     refreshToken: async (req, res) => {
         try {
-            // Get refresh token from cookie
-            const refreshTokenString = req.cookies?.refreshToken;
+            // Get refresh token from cookie or request body
+            const { getRefreshToken, refreshAccessToken, setAuthCookies, clearAuthCookies } =
+                require('../utils/authUtils');
+
+            const refreshTokenString = getRefreshToken(req);
 
             if (!refreshTokenString) {
                 return res.status(401).json({
                     success: false,
-                    message: "No refresh token provided"
+                    message: "No refresh token provided",
+                    code: 'NO_REFRESH_TOKEN'
                 });
             }
 
@@ -312,7 +329,7 @@ const authController = {
             const ipAddress = req.ip || req.connection.remoteAddress;
 
             // Refresh the access token
-            const { accessToken, refreshToken: newRefreshToken, user } = 
+            const { accessToken, refreshToken: newRefreshToken, user } =
                 await refreshAccessToken(refreshTokenString, ipAddress);
 
             // Set new cookies
@@ -321,6 +338,8 @@ const authController = {
             return res.status(200).json({
                 success: true,
                 message: "Token refreshed successfully",
+                token: accessToken, // For clients using Authorization header
+                refreshToken: newRefreshToken, // For clients storing tokens
                 user: {
                     id: user._id,
                     role: user.role,
@@ -333,11 +352,18 @@ const authController = {
             console.error('Token refresh error:', error);
 
             // Clear invalid cookies
+            const { clearAuthCookies } = require('../utils/authUtils');
             clearAuthCookies(res);
 
-            return res.status(401).json({
+            // Send appropriate error response
+            const errorMessage = error.message || "Invalid or expired refresh token. Please log in again.";
+            const statusCode = error.message?.includes('expired') ? 401 :
+                error.message?.includes('not found') ? 404 : 401;
+
+            return res.status(statusCode).json({
                 success: false,
-                message: "Invalid or expired refresh token. Please log in again.",
+                message: errorMessage,
+                code: 'REFRESH_TOKEN_INVALID',
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
@@ -372,7 +398,7 @@ const authController = {
             });
         } catch (error) {
             console.error('Logout error:', error);
-            
+
             // Still clear cookies even if there's an error
             clearAuthCookies(res);
 
@@ -410,6 +436,149 @@ const authController = {
             return res.status(500).json({
                 success: false,
                 message: "Error during logout",
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    },
+
+    /**
+     * Verify email with token
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    verifyEmail: async (req, res) => {
+        try {
+            const { token } = req.params;
+
+            if (!token) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Verification token is required"
+                });
+            }
+
+            // Find user with this verification token
+            const user = await User.findOne({
+                verificationToken: token,
+                verificationTokenExpiry: { $gt: Date.now() }
+            });
+
+            if (!user) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Invalid or expired verification token",
+                    code: 'INVALID_TOKEN'
+                });
+            }
+
+            // Check if already verified
+            if (user.isVerified) {
+                return res.status(200).json({
+                    success: true,
+                    message: "Email already verified. You can now login.",
+                    alreadyVerified: true
+                });
+            }
+
+            // Update user as verified
+            user.isVerified = true;
+            user.verificationToken = undefined;
+            user.verificationTokenExpiry = undefined;
+            await user.save();
+
+            // Send success email
+            try {
+                await sendVerificationSuccessEmail(user.email, user.firstName);
+            } catch (emailError) {
+                console.error('Error sending success email:', emailError);
+                // Don't fail the request if success email fails
+            }
+
+            return res.status(200).json({
+                success: true,
+                message: "Email verified successfully! You can now login.",
+                user: {
+                    email: user.email,
+                    firstName: user.firstName,
+                    lastName: user.lastName
+                }
+            });
+        } catch (error) {
+            console.error('Email verification error:', error);
+            return res.status(500).json({
+                success: false,
+                message: "Error verifying email",
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
+    },
+
+    /**
+     * Resend verification email
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    resendVerification: async (req, res) => {
+        try {
+            const { email } = req.body;
+
+            if (!email) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Email is required"
+                });
+            }
+
+            // Find user by email
+            const user = await User.findOne({ email: email.toLowerCase().trim() });
+
+            if (!user) {
+                // Don't reveal if user exists or not (security)
+                return res.status(200).json({
+                    success: true,
+                    message: "If the email exists and is not verified, a verification email has been sent."
+                });
+            }
+
+            // Check if already verified
+            if (user.isVerified) {
+                return res.status(400).json({
+                    success: false,
+                    message: "This email is already verified. Please login.",
+                    code: 'ALREADY_VERIFIED'
+                });
+            }
+
+            // Generate new verification token
+            const verificationToken = crypto.randomBytes(32).toString('hex');
+            const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+            user.verificationToken = verificationToken;
+            user.verificationTokenExpiry = verificationTokenExpiry;
+            await user.save();
+
+            // Send verification email
+            try {
+                await sendVerificationEmail(user.email, verificationToken, user.firstName);
+
+                return res.status(200).json({
+                    success: true,
+                    message: "Verification email sent successfully. Please check your inbox."
+                });
+            } catch (emailError) {
+                console.error('Error sending verification email:', emailError);
+
+                return res.status(500).json({
+                    success: false,
+                    message: "Failed to send verification email. Please try again later.",
+                    code: 'EMAIL_SEND_FAILED'
+                });
+            }
+        } catch (error) {
+            console.error('Resend verification error:', error);
+            return res.status(500).json({
+                success: false,
+                message: "Error resending verification email",
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }

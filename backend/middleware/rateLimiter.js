@@ -107,6 +107,29 @@ const sendResetLinkLimiter = rateLimit({
   }
 });
 
+// Email verification resend limiter - prevent abuse
+const resendVerificationLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 3, // Only 3 resend attempts per 15 minutes
+  standardHeaders: true,
+  legacyHeaders: false,
+  keyGenerator: (req) => {
+    // Rate limit by email if provided, otherwise IP
+    return req.body?.email || req.ip;
+  },
+  message: {
+    success: false,
+    message: "Too many verification email requests. Please wait before requesting another email."
+  },
+  handler: (req, res) => {
+    res.status(429).json({
+      success: false,
+      message: "Too many verification email requests. Please wait 15 minutes before trying again.",
+      retryAfter: Math.ceil(req.rateLimit.resetTime / 1000)
+    });
+  }
+});
+
 // Rate limiter for attendance marking - prevent QR code abuse
 const attendanceMarkLimiter = rateLimit({
   windowMs: 60 * 1000, // 1 minute
@@ -160,6 +183,7 @@ module.exports = {
   signupLimiter,
   resetPasswordLimiter,
   sendResetLinkLimiter,
+  resendVerificationLimiter,
   attendanceMarkLimiter,
   systemFeedbackLimiter,
   feedbackLimiter

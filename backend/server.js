@@ -12,6 +12,14 @@ const routes = require("./routes/index");
 const errorHandler = require("./middleware/errorHandler");
 const { setCsrfToken } = require("./middleware/csrfProtection");
 const { apiLimiter } = require("./middleware/rateLimiter");
+const cleanupExpiredTokens = require("./scripts/cleanupExpiredTokens");
+const {
+  sanitizeInput,
+  preventParameterPollution,
+  additionalSecurityHeaders,
+  activityMonitor,
+  enforceHTTPS
+} = require("./middleware/securityMiddleware");
 
 dotenv.config();
 const app = express();
@@ -39,23 +47,42 @@ if (!fs.existsSync(publicAssetsDir)) {
 
 // ===== SECURITY MIDDLEWARE =====
 
-// Helmet - Security headers
+// Helmet - Enhanced Security headers
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
       defaultSrc: ["'self'"],
       scriptSrc: ["'self'", "'unsafe-inline'"],
-      styleSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'"],
-      fontSrc: ["'self'"],
+      connectSrc: ["'self'", "https://attendance-system-w70n.onrender.com"],
+      fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],
-      frameSrc: ["'none'"]
+      frameSrc: ["'none'"],
+      baseUri: ["'self'"],
+      formAction: ["'self'"],
+      frameAncestors: ["'none'"]
     }
   },
   crossOriginEmbedderPolicy: false,
-  crossOriginResourcePolicy: { policy: "cross-origin" }
+  crossOriginResourcePolicy: { policy: "cross-origin" },
+  // Prevent clickjacking
+  frameguard: { action: 'deny' },
+  // Hide X-Powered-By header
+  hidePoweredBy: true,
+  // Strict HTTPS enforcement (HSTS)
+  hsts: {
+    maxAge: 31536000, // 1 year
+    includeSubDomains: true,
+    preload: true
+  },
+  // Prevent MIME type sniffing
+  noSniff: true,
+  // Enable XSS filter
+  xssFilter: true,
+  // Referrer policy
+  referrerPolicy: { policy: 'strict-origin-when-cross-origin' }
 }));
 
 // Body parser middleware
@@ -80,7 +107,7 @@ app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
-    
+
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
@@ -95,6 +122,26 @@ app.use(cors({
 
 // HTTP request logging
 app.use(morgan("combined", { stream: logger.stream }));
+
+// ===== ADDITIONAL SECURITY MIDDLEWARE =====
+
+// Enforce HTTPS in production
+app.use(enforceHTTPS);
+
+// Additional security headers
+app.use(additionalSecurityHeaders);
+
+// Sanitize user input to prevent XSS
+app.use(sanitizeInput);
+
+// Prevent parameter pollution
+app.use(preventParameterPollution);
+
+// Monitor suspicious activity
+app.use(activityMonitor);
+
+// ===== END ADDITIONAL SECURITY =====
+
 
 // Apply CSRF token generation to all routes
 app.use(setCsrfToken);
@@ -183,4 +230,28 @@ process.on("unhandledRejection", (reason, promise) => {
 });
 
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => logger.info(`Server running on port ${PORT}`));
+app.listen(PORT, () => {
+  logger.info(`Server running on port ${PORT}`);
+
+  // Schedule token cleanup to run every 24 hours
+  setInterval(async () => {
+    try {
+      logger.info('Running scheduled refresh token cleanup...');
+      const stats = await cleanupExpiredTokens();
+      logger.info(`Token cleanup completed. Deleted: ${stats.deleted}, Active: ${stats.active}`);
+    } catch (error) {
+      logger.error('Scheduled token cleanup failed:', error);
+    }
+  }, 24 * 60 * 60 * 1000); // Run every 24 hours
+
+  // Run cleanup on startup (after a 10-second delay to allow other initializations)
+  setTimeout(async () => {
+    try {
+      logger.info('Running initial refresh token cleanup...');
+      const stats = await cleanupExpiredTokens();
+      logger.info(`Initial cleanup completed. Deleted: ${stats.deleted}, Active: ${stats.active}`);
+    } catch (error) {
+      logger.error('Initial token cleanup failed:', error);
+    }
+  }, 10000);
+});

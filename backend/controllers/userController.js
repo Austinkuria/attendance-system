@@ -12,11 +12,16 @@ const crypto = require('crypto');
 const transporter = require("../config/emailConfig");
 const path = require('path');
 const Unit = require('../models/Unit');
-const { 
-  generateAccessToken, 
+const {
+  generateAccessToken,
   generateRefreshToken,
-  setAuthCookies 
+  setAuthCookies
 } = require('../utils/authUtils');
+const {
+  generateVerificationToken,
+  sendVerificationEmail,
+  sendVerificationSuccessEmail
+} = require('../services/email.service');
 
 // Login API
 const login = async (req, res) => {
@@ -25,9 +30,9 @@ const login = async (req, res) => {
   // Check validation results
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
-    return res.status(400).json({ 
+    return res.status(400).json({
       success: false,
-      errors: errors.array() 
+      errors: errors.array()
     });
   }
 
@@ -39,18 +44,18 @@ const login = async (req, res) => {
       .populate('course', 'name code');
 
     if (!user) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Invalid email or password' 
+        message: 'Invalid email or password'
       });
     }
 
     // Verify password
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Invalid email or password' 
+        message: 'Invalid email or password'
       });
     }
 
@@ -83,9 +88,9 @@ const login = async (req, res) => {
     });
   } catch (error) {
     console.error("Login error:", error);
-    res.status(500).json({ 
+    res.status(500).json({
       success: false,
-      message: 'Server error', 
+      message: 'Server error',
       error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
@@ -124,7 +129,7 @@ const signup = async (req, res) => {
         });
       }
 
-      if (semester < 1 || semester > 3) {
+      if (semester < 1 || semester < 3) {
         return res.status(400).json({
           success: false,
           message: "Invalid semester (must be between 1 and 3)",
@@ -135,21 +140,44 @@ const signup = async (req, res) => {
 
     const hashedPassword = await bcrypt.hash(password, 10);
 
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const verificationTokenExpiry = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
     const newUser = new User({
       firstName,
       lastName,
       email,
       password: hashedPassword,
       role,
+      isVerified: false,
+      verificationToken,
+      verificationTokenExpiry,
       ...(role === "student" && { year, semester, course }),
     });
 
     await newUser.save();
 
-    res.status(201).json({ 
-      success: true,
-      message: "User registered successfully. Please login to continue." 
-    });
+    // Send verification email
+    try {
+      await sendVerificationEmail(email, verificationToken, firstName);
+
+      res.status(201).json({
+        success: true,
+        message: "Registration successful! Please check your email to verify your account.",
+        requiresVerification: true
+      });
+    } catch (emailError) {
+      console.error('Error sending verification email:', emailError);
+
+      // User is created but email failed - they can request resend
+      res.status(201).json({
+        success: true,
+        message: "Registration successful! However, we couldn't send the verification email. Please request a new one.",
+        requiresVerification: true,
+        emailError: true
+      });
+    }
   } catch (error) {
     console.error("Signup Error:", error);
 
@@ -391,7 +419,7 @@ const updateStudentV2 = async (req, res) => {
     if (course && mongoose.Types.ObjectId.isValid(course)) {
       updateData.course = course;
     }
-    
+
     if (department && mongoose.Types.ObjectId.isValid(department)) {
       updateData.department = department;
     }
@@ -963,64 +991,6 @@ const sendResetLink = async (req, res) => {
   }
 };
 
-// Send verification email with styled logo
-const sendVerificationEmail = async (email, verificationToken) => {
-  try {
-    // Define the absolute path to your logo for email
-    const logoPath = path.join(__dirname, '../public/assets/logo.jpg');
-
-    // Create mail options with properly styled logo
-    const mailOptions = {
-      from: process.env.EMAIL_USER,
-      to: email,
-      subject: 'Email Verification for QRollCall',
-      html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; color: #333;">
-          <div style="text-align: center; margin-bottom: 30px;">
-            <!-- Logo styled similar to Home.jsx -->
-            <div style="display: inline-block; padding: 10px;">
-              <img 
-                src="cid:logo" 
-                alt="QRollCall Logo" 
-                style="width: 80px; height: 80px; border-radius: 10px; border: 3px solid #6C63FF; padding: 3px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); background-color: white;"
-              />
-            </div>
-            <h1 style="color: #6C63FF; margin: 10px 0;">QRollCall</h1>
-          </div>
-          
-          <div style="background-color: #f9f9f9; border-radius: 10px; padding: 20px; margin-bottom: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.1);">
-            <h2 style="color: #6C63FF;">Please Verify Your Email</h2>
-            <p>Thank you for registering with QRollCall. To complete your registration, please click the button below to verify your email address:</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a 
-                href="${process.env.FRONTEND_URL}/verify-email?token=${verificationToken}" 
-                style="background-color: #6C63FF; color: white; padding: 12px 30px; text-decoration: none; border-radius: 8px; font-weight: bold; display: inline-block; box-shadow: 0 2px 5px rgba(0,0,0,0.1);"
-              >
-                Verify Email Address
-              </a>
-            </div>
-            <p>If you did not create an account, please ignore this email.</p>
-          </div>
-          
-          <div style="text-align: center; color: #666; font-size: 14px;">
-            <p>© ${new Date().getFullYear()} QRollCall. All rights reserved.</p>
-          </div>
-        </div>
-      `,
-      attachments: [{
-        filename: 'logo.jpg',
-        path: logoPath,
-        cid: 'logo' // Content ID referenced in the HTML img src
-      }]
-    };
-
-    await transporter.sendMail(mailOptions);
-    console.log('Verification email sent successfully');
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-    throw new Error('Failed to send verification email');
-  }
-};
 
 // Reset password
 const resetPassword = async (req, res) => {
@@ -1070,7 +1040,7 @@ const resetPassword = async (req, res) => {
 const getStudentUnits = async (req, res) => {
   try {
     const { studentId } = req.params;
-    
+
     if (!mongoose.Types.ObjectId.isValid(studentId)) {
       return res.status(400).json({ message: "Invalid student ID format" });
     }
@@ -1098,7 +1068,7 @@ const enrollStudentInUnit = async (req, res) => {
   try {
     const { studentId } = req.params;
     const { unitId } = req.body;
-    
+
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(unitId)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }
@@ -1141,7 +1111,7 @@ const enrollStudentInUnit = async (req, res) => {
 const removeStudentFromUnit = async (req, res) => {
   try {
     const { studentId, unitId } = req.params;
-    
+
     if (!mongoose.Types.ObjectId.isValid(studentId) || !mongoose.Types.ObjectId.isValid(unitId)) {
       return res.status(400).json({ message: "Invalid ID format" });
     }

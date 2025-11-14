@@ -224,6 +224,8 @@ const Signup = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState("student");
+  const [showVerificationMessage, setShowVerificationMessage] = useState(false);
+  const [userEmail, setUserEmail] = useState('');
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
@@ -246,10 +248,17 @@ const Signup = () => {
       );
 
       if (response.status === 201) {
-        form.resetFields();
-        message.success("Account created successfully! Redirecting to login page...", 2);
-
-        setTimeout(() => navigate("/auth/login"), 2000);
+        // Check if email verification is required
+        if (response.data.requiresVerification) {
+          setUserEmail(values.email);
+          setShowVerificationMessage(true);
+          form.resetFields();
+        } else {
+          // Old flow for accounts that don't require verification
+          form.resetFields();
+          message.success("Account created successfully! Redirecting to login page...", 2);
+          setTimeout(() => navigate("/auth/login"), 2000);
+        }
       }
     } catch (error) {
       console.error("Signup error:", error.response?.data);
@@ -273,6 +282,66 @@ const Signup = () => {
       setLoading(false);
     }
   };
+
+  const handleResendVerification = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        "https://attendance-system-w70n.onrender.com/api/auth/resend-verification",
+        { email: userEmail }
+      );
+
+      if (response.data.success) {
+        message.success("Verification email sent! Please check your inbox.");
+      }
+    } catch (error) {
+      message.error(error.response?.data?.message || "Failed to resend verification email");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Show verification message instead of form
+  if (showVerificationMessage) {
+    return (
+      <PageContainer theme={themeColors}>
+        <StyledCard theme={themeColors}>
+          <div style={{ textAlign: 'center', padding: '20px 0' }}>
+            <MailOutlined style={{ fontSize: 64, color: '#52c41a', marginBottom: 20 }} />
+            <ResponsiveTitle level={3} theme={themeColors} isDarkMode={isDarkMode}>
+              Check Your Email
+            </ResponsiveTitle>
+            <Text style={{ color: themeColors.text, display: 'block', marginBottom: 20 }}>
+              We've sent a verification link to <strong>{userEmail}</strong>
+            </Text>
+            <Alert
+              message="Verify your email to continue"
+              description="Please check your email inbox (and spam folder) for a verification link. Click the link to activate your account."
+              type="info"
+              showIcon
+              style={{ marginBottom: 20, textAlign: 'left' }}
+            />
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <Button
+                type="primary"
+                onClick={handleResendVerification}
+                loading={loading}
+                style={{ width: '100%' }}
+              >
+                Resend Verification Email
+              </Button>
+              <Button
+                onClick={() => navigate('/auth/login')}
+                style={{ width: '100%' }}
+              >
+                Go to Login
+              </Button>
+            </div>
+          </div>
+        </StyledCard>
+      </PageContainer>
+    );
+  }
 
   return (
     <PageContainer theme={themeColors}>

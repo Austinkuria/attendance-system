@@ -5,7 +5,12 @@ const { sendResetLink, resetPassword } = require('../controllers/userController'
 const authMiddleware = require('../middleware/authMiddleware');
 const authController = require('../controllers/authController');
 const { getCsrfToken } = require('../middleware/csrfProtection');
-const { loginLimiter, sendResetLinkLimiter, resetPasswordLimiter } = require('../middleware/rateLimiter');
+const {
+  loginLimiter,
+  sendResetLinkLimiter,
+  resetPasswordLimiter,
+  resendVerificationLimiter
+} = require('../middleware/rateLimiter');
 
 // ===== PUBLIC ROUTES =====
 
@@ -13,7 +18,7 @@ const { loginLimiter, sendResetLinkLimiter, resetPasswordLimiter } = require('..
 router.get('/csrf-token', getCsrfToken);
 
 // Login route with validation and rate limiting
-router.post('/login', 
+router.post('/login',
   loginLimiter,
   [
     check('email').isEmail().withMessage('Valid email is required'),
@@ -25,6 +30,16 @@ router.post('/login',
 // Password reset routes
 router.post('/reset-password', sendResetLinkLimiter, sendResetLink);
 router.put('/reset-password/:token', resetPasswordLimiter, resetPassword);
+
+// Email verification routes
+router.get('/verify-email/:token', authController.verifyEmail);
+router.post('/resend-verification',
+  resendVerificationLimiter,
+  [
+    check('email').isEmail().withMessage('Valid email is required')
+  ],
+  authController.resendVerification
+);
 
 // ===== PROTECTED ROUTES =====
 

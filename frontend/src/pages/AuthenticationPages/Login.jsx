@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Input, Button, Typography, Alert, Form, message, Checkbox } from 'antd';
 import { LockOutlined, MailOutlined, ArrowRightOutlined, LoadingOutlined } from '@ant-design/icons';
 import styled from 'styled-components';
+import axios from 'axios';
 import { ThemeContext } from '../../context/ThemeContext';
 import { loginUser } from '../../services/api';
 
@@ -238,6 +239,7 @@ const Login = () => {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [networkStatus, setNetworkStatus] = useState(navigator.onLine);
+  const [unverifiedEmail, setUnverifiedEmail] = useState(null);
   const navigate = useNavigate();
   const [form] = Form.useForm();
 
@@ -290,17 +292,21 @@ const Login = () => {
     setError(null);
 
     try {
-      // Use our new login function
-      const response = await loginUser({ email, password });
+      // Use our new login function with rememberMe flag
+      const response = await loginUser({
+        email,
+        password,
+        rememberMe: remember // Pass remember me flag to control token storage
+      });
 
       // Check if password change is required
       if (response.requiresPasswordChange) {
         message.warning(response.message);
-        
+
         // Store temp token and redirect to change password
         localStorage.setItem('tempToken', response.tempToken);
         localStorage.setItem('user', JSON.stringify(response.user));
-        navigate('/auth/change-password', { 
+        navigate('/auth/change-password', {
           state: { isForced: true }
         });
         return;
@@ -340,9 +346,12 @@ const Login = () => {
       }
     } catch (error) {
       console.error('Login error:', error);
-      
+
       // Handle specific error codes
-      if (error.response?.status === 423) {
+      if (error.response?.data?.code === 'EMAIL_NOT_VERIFIED') {
+        setError(error.response.data.message);
+        setUnverifiedEmail(form.getFieldValue('email'));
+      } else if (error.response?.status === 423) {
         setError(error.response.data.message);
       } else if (error.response?.status === 401) {
         const attemptsRemaining = error.response.data.attemptsRemaining;
@@ -359,6 +368,28 @@ const Login = () => {
       if (error.originalError && error.originalError.message?.includes('Network Error')) {
         setError('Cannot connect to the server. This might be due to network issues or CORS restrictions.');
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleResendVerification = async () => {
+    if (!unverifiedEmail) return;
+
+    try {
+      setLoading(true);
+      const response = await axios.post(
+        'https://attendance-system-w70n.onrender.com/api/auth/resend-verification',
+        { email: unverifiedEmail }
+      );
+
+      if (response.data.success) {
+        message.success('Verification email sent! Please check your inbox.');
+        setError(null);
+        setUnverifiedEmail(null);
+      }
+    } catch (err) {
+      message.error(err.response?.data?.message || 'Failed to resend verification email');
     } finally {
       setLoading(false);
     }
@@ -407,6 +438,18 @@ const Login = () => {
               fontSize: '16px',
               borderRadius: '8px'
             }}
+            action={
+              unverifiedEmail && (
+                <Button
+                  size="small"
+                  type="primary"
+                  onClick={handleResendVerification}
+                  loading={loading}
+                >
+                  Resend Email
+                </Button>
+              )
+            }
           />
         )}
 

@@ -2,6 +2,10 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const RefreshToken = require('../models/RefreshToken');
 
+// Token expiry constants from environment or defaults
+const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '15m';
+const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
+
 /**
  * Extract token from Authorization header
  */
@@ -25,67 +29,123 @@ const getAuthToken = (req) => {
 };
 
 /**
+ * Get refresh token from request (cookies first, then body)
+ */
+const getRefreshToken = (req) => {
+  return req.cookies?.refreshToken || req.body?.refreshToken;
+};
+
+/**
  * Generate access token (short-lived)
  */
 const generateAccessToken = (user) => {
   const payload = {
     userId: user._id || user.id,
     email: user.email,
-    role: user.role
+    role: user.role,
+    type: 'access'
   };
 
   return jwt.sign(payload, process.env.JWT_SECRET, {
-    expiresIn: '4h', // 4 hours
+    expiresIn: ACCESS_TOKEN_EXPIRY,
     issuer: 'attendance-system',
     audience: 'attendance-app'
   });
 };
 
 /**
- * Generate refresh token (long-lived)
+ * Generate refresh token (long-lived) - Using JWT instead of random bytes
  */
 const generateRefreshToken = async (user, ipAddress) => {
-  // Generate random token
-  const token = crypto.randomBytes(64).toString('hex');
-  
-  // Create refresh token document
+  // Generate JWT refresh token
+  const jwtToken = jwt.sign(
+    {
+      userId: user._id || user.id,
+      type: 'refresh',
+      jti: crypto.randomBytes(16).toString('hex') // JWT ID for uniqueness
+    },
+    process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
+    {
+      expiresIn: REFRESH_TOKEN_EXPIRY,
+      issuer: 'attendance-system',
+      audience: 'attendance-app'
+    }
+  );
+
+  // Decode to get expiry time
+  const decoded = jwt.decode(jwtToken);
+
+  // Create refresh token document for tracking
   const refreshToken = new RefreshToken({
-    token,
+    token: jwtToken,
     user: user._id || user.id,
-    expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days
+    expiresAt: new Date(decoded.exp * 1000),
     createdByIp: ipAddress
   });
 
   await refreshToken.save();
-  
-  return token;
+
+  return jwtToken;
 };
 
 /**
  * Verify and refresh access token using refresh token
  */
 const refreshAccessToken = async (refreshTokenString, ipAddress) => {
-  const refreshToken = await RefreshToken.findOne({ 
-    token: refreshTokenString 
-  }).populate('user');
+  try {
+    // Verify the JWT refresh token
+    const decoded = jwt.verify(
+      refreshTokenString,
+      process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
+    );
 
-  if (!refreshToken || !refreshToken.isValid) {
-    throw new Error('Invalid refresh token');
+    // Check if it's a refresh token type
+    if (decoded.type !== 'refresh') {
+      throw new Error('Invalid token type');
+    }
+
+    // Find the refresh token in database
+    const refreshToken = await RefreshToken.findOne({
+      token: refreshTokenString,
+      isActive: true
+    }).populate('user');
+
+    if (!refreshToken) {
+      throw new Error('Refresh token not found or revoked');
+    }
+
+    // Check if token is expired or invalid
+    if (!refreshToken.isValid) {
+      throw new Error('Refresh token is expired or invalid');
+    }
+
+    // Check if user still exists and is active
+    if (!refreshToken.user || refreshToken.user.isActive === false) {
+      throw new Error('User not found or inactive');
+    }
+
+    // Revoke old refresh token (token rotation)
+    refreshToken.revoke(ipAddress, 'rotated');
+    await refreshToken.save();
+
+    // Generate new tokens
+    const newAccessToken = generateAccessToken(refreshToken.user);
+    const newRefreshToken = await generateRefreshToken(refreshToken.user, ipAddress);
+
+    return {
+      accessToken: newAccessToken,
+      refreshToken: newRefreshToken,
+      user: refreshToken.user
+    };
+  } catch (error) {
+    // Handle specific JWT errors
+    if (error.name === 'TokenExpiredError') {
+      throw new Error('Refresh token has expired');
+    } else if (error.name === 'JsonWebTokenError') {
+      throw new Error('Invalid refresh token');
+    }
+    throw error;
   }
-
-  // Revoke old refresh token
-  refreshToken.revoke(ipAddress);
-  await refreshToken.save();
-
-  // Generate new tokens
-  const newAccessToken = generateAccessToken(refreshToken.user);
-  const newRefreshToken = await generateRefreshToken(refreshToken.user, ipAddress);
-
-  return {
-    accessToken: newAccessToken,
-    refreshToken: newRefreshToken,
-    user: refreshToken.user
-  };
 };
 
 /**
@@ -106,9 +166,9 @@ const revokeRefreshToken = async (refreshTokenString, ipAddress) => {
  * Revoke all refresh tokens for a user
  */
 const revokeAllUserTokens = async (userId, ipAddress) => {
-  const tokens = await RefreshToken.find({ 
-    user: userId, 
-    isActive: true 
+  const tokens = await RefreshToken.find({
+    user: userId,
+    isActive: true
   });
 
   for (const token of tokens) {
@@ -121,22 +181,29 @@ const revokeAllUserTokens = async (userId, ipAddress) => {
  * Set authentication cookies
  */
 const setAuthCookies = (res, accessToken, refreshToken) => {
+  const isProduction = process.env.NODE_ENV === 'production';
+
   const cookieOptions = {
     httpOnly: true,
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict'
+    secure: isProduction, // HTTPS only in production
+    sameSite: isProduction ? 'none' : 'lax', // 'none' for cross-site in production
+    path: '/'
   };
 
-  // Set access token cookie (4 hours)
+  // Decode tokens to get expiry
+  const accessDecoded = jwt.decode(accessToken);
+  const refreshDecoded = jwt.decode(refreshToken);
+
+  // Set access token cookie
   res.cookie('accessToken', accessToken, {
     ...cookieOptions,
-    maxAge: 4 * 60 * 60 * 1000 // 4 hours
+    maxAge: (accessDecoded.exp - accessDecoded.iat) * 1000 // Convert to milliseconds
   });
 
-  // Set refresh token cookie (7 days)
+  // Set refresh token cookie
   res.cookie('refreshToken', refreshToken, {
     ...cookieOptions,
-    maxAge: 7 * 24 * 60 * 60 * 1000 // 7 days
+    maxAge: (refreshDecoded.exp - refreshDecoded.iat) * 1000 // Convert to milliseconds
   });
 };
 
@@ -149,10 +216,11 @@ const clearAuthCookies = (res) => {
   res.clearCookie('XSRF-TOKEN');
 };
 
-module.exports = { 
+module.exports = {
   getTokenFromHeaders,
   getTokenFromCookies,
   getAuthToken,
+  getRefreshToken,
   generateAccessToken,
   generateRefreshToken,
   refreshAccessToken,

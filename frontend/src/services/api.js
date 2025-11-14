@@ -2,17 +2,34 @@ import axios from "axios";
 import { openDB } from 'idb';
 
 // Export API_URL for use in other files
-export const API_URL = 'https://attendance-system-w70n.onrender.com/api';
+export const API_URL = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api';
 
 // Use environment variable for base URL, with fallback
 const api = axios.create({
-  baseURL: API_URL, // Use baseURL instead of API_URL as a property
+  baseURL: API_URL,
   timeout: 15000, // 15 second timeout
   headers: {
     'Content-Type': 'application/json',
   },
   withCredentials: false
 });
+
+// Token refresh state management
+let isRefreshing = false;
+let failedQueue = [];
+
+// Process queued requests after token refresh
+const processQueue = (error, token = null) => {
+  failedQueue.forEach(prom => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
 
 // Initialize IndexedDB
 const initDB = async () => {
@@ -44,28 +61,60 @@ const getFromIndexedDB = async (storeName, key) => {
   return await db.get(storeName, key);
 };
 
-// Function to get token from local storage
+// Function to get token from local storage or session storage
 const getToken = () => {
-  const token = localStorage.getItem('token');
-  if (!token) throw new Error("Authentication token missing");
-  return token;
+  return localStorage.getItem('token') || sessionStorage.getItem('token');
+};
+
+// Function to get refresh token from storage
+const getRefreshToken = () => {
+  return localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
+};
+
+// Function to save tokens to storage
+const saveTokens = (token, refreshToken, rememberMe = true) => {
+  if (rememberMe) {
+    localStorage.setItem('token', token);
+    localStorage.setItem('refreshToken', refreshToken);
+  } else {
+    sessionStorage.setItem('token', token);
+    sessionStorage.setItem('refreshToken', refreshToken);
+  }
+};
+
+// Function to clear tokens from storage
+const clearTokens = () => {
+  localStorage.removeItem('token');
+  localStorage.removeItem('refreshToken');
+  sessionStorage.removeItem('token');
+  sessionStorage.removeItem('refreshToken');
 };
 
 // Function to refresh token
 const refreshToken = async () => {
   try {
-    const refreshToken = localStorage.getItem("refreshToken");
-    if (!refreshToken) throw new Error("No refresh token available");
+    const refreshTokenValue = getRefreshToken();
 
-    const response = await axios.post(`${API_URL}/auth/refresh`, { refreshToken });
+    if (!refreshTokenValue) {
+      throw new Error("No refresh token available");
+    }
+
+    const response = await axios.post(`${API_URL}/auth/refresh`, {
+      refreshToken: refreshTokenValue
+    });
+
     const { token, refreshToken: newRefreshToken } = response.data;
 
-    localStorage.setItem("token", token);
-    localStorage.setItem("refreshToken", newRefreshToken);
+    // Determine if tokens were in localStorage or sessionStorage
+    const rememberMe = !!localStorage.getItem('token');
+
+    // Save new tokens
+    saveTokens(token, newRefreshToken, rememberMe);
 
     return token;
   } catch (error) {
     console.error("Token refresh failed:", error);
+    clearTokens();
     throw error;
   }
 };
@@ -73,24 +122,34 @@ const refreshToken = async () => {
 // Axios Request Interceptor
 api.interceptors.request.use(
   async (config) => {
-    const token = getToken();
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
+    try {
+      const token = getToken();
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    } catch (error) {
+      // Token missing, request will proceed without auth
+      console.warn('No authentication token available');
     }
+
+    // Remove cache-control if present
     if (config.headers['cache-control']) {
       delete config.headers['cache-control'];
     }
+
     return config;
   },
   (error) => Promise.reject(error)
 );
 
-// Axios Response Interceptor
+// Axios Response Interceptor with improved token refresh logic
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
+    // Handle network errors
     if (error.message === 'Network Error') {
-      console.error('CORS or network issue detected:', error);
+      console.error('Network error detected:', error);
+
       try {
         const url = error.config.url;
         const cachedData = await getFromIndexedDB('apiCache', url);
@@ -105,17 +164,55 @@ api.interceptors.response.use(
 
     const originalRequest = error.config;
 
+    // Handle 401 errors with token refresh
     if (error.response?.status === 401 && !originalRequest._retry) {
-      originalRequest._retry = true;
-      try {
-        const newToken = await refreshToken();
-        api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
-        originalRequest.headers.Authorization = `Bearer ${newToken}`;
-        return api(originalRequest);
-      } catch {
-        console.error("Redirecting to login due to authentication failure");
-        localStorage.clear();
-        window.location.href = "/auth/login";
+      if (error.response?.data?.code === 'TOKEN_EXPIRED' ||
+        error.response?.data?.code === 'INVALID_TOKEN') {
+
+        if (isRefreshing) {
+          // If already refreshing, queue this request
+          return new Promise((resolve, reject) => {
+            failedQueue.push({ resolve, reject });
+          }).then(token => {
+            originalRequest.headers.Authorization = `Bearer ${token}`;
+            return api(originalRequest);
+          }).catch(err => {
+            return Promise.reject(err);
+          });
+        }
+
+        originalRequest._retry = true;
+        isRefreshing = true;
+
+        try {
+          const newToken = await refreshToken();
+
+          // Update default header
+          api.defaults.headers.common["Authorization"] = `Bearer ${newToken}`;
+          originalRequest.headers.Authorization = `Bearer ${newToken}`;
+
+          // Process queued requests
+          processQueue(null, newToken);
+
+          isRefreshing = false;
+
+          // Retry the original request
+          return api(originalRequest);
+        } catch (refreshError) {
+          // Token refresh failed
+          processQueue(refreshError, null);
+          isRefreshing = false;
+
+          console.error("Token refresh failed, redirecting to login");
+          clearTokens();
+          localStorage.clear();
+          sessionStorage.clear();
+
+          // Redirect to login
+          window.location.href = "/auth/login";
+
+          return Promise.reject(refreshError);
+        }
       }
     }
 
@@ -201,6 +298,49 @@ api.interceptors.response.use(
   }
 );
 
+// Export token management utilities
+export { saveTokens, clearTokens, getToken, getRefreshToken };
+
+// Logout function
+export const logoutUser = async () => {
+  try {
+    const refreshTokenValue = getRefreshToken();
+
+    // Call backend logout endpoint if we have a refresh token
+    if (refreshTokenValue) {
+      await axios.post(`${API_URL}/auth/logout`, {
+        refreshToken: refreshTokenValue
+      }).catch(err => {
+        // Don't fail logout if backend call fails
+        console.warn('Backend logout failed:', err);
+      });
+    }
+  } catch (error) {
+    console.error('Logout error:', error);
+  } finally {
+    // Always clear local storage
+    clearTokens();
+    localStorage.clear();
+    sessionStorage.clear();
+  }
+};
+
+// Validate session function
+export const validateSession = async () => {
+  try {
+    const token = getToken();
+    if (!token) {
+      throw new Error('No token found');
+    }
+
+    const response = await api.get('/auth/validate-session');
+    return response.data;
+  } catch (error) {
+    console.error('Session validation error:', error);
+    throw error;
+  }
+};
+
 // Add a dedicated login function with better error handling
 export const loginUser = async (credentials) => {
   try {
@@ -230,9 +370,15 @@ export const loginUser = async (credentials) => {
         return response.data; // Return the response with tempToken
       }
 
-      // Store auth token (accessToken from new backend)
+      // Store auth tokens (both access and refresh tokens)
       const token = response.data.accessToken || response.data.token;
-      if (token) {
+      const refreshTokenValue = response.data.refreshToken;
+
+      if (token && refreshTokenValue) {
+        const rememberMe = credentials.rememberMe !== false; // Default to true
+        saveTokens(token, refreshTokenValue, rememberMe);
+      } else if (token) {
+        // Fallback to old behavior if no refresh token
         localStorage.setItem('token', token);
       }
 
@@ -1836,9 +1982,9 @@ export const submitAnonymousSystemFeedback = async (feedbackData) => {
 
     // Make sure we're not sending auth headers
     delete anonymousAxios.defaults.headers.common['Authorization'];
-    
+
     console.log('Sending anonymous feedback without auth headers');
-    
+
     const response = await anonymousAxios.post(`/system-feedback/anonymous`, {
       ...feedbackData,
       userRole: 'anonymous', // Explicitly set role to anonymous
@@ -1850,14 +1996,14 @@ export const submitAnonymousSystemFeedback = async (feedbackData) => {
     return response.data;
   } catch (error) {
     console.error('Error submitting anonymous feedback:', error);
-    
+
     // If we get a 401 error, the backend might be requiring authentication
     if (error.response && error.response.status === 401) {
       console.warn('Anonymous feedback endpoint requires auth. Server configuration issue.');
       // Return a specific error message for easier handling
       throw new Error('Anonymous submissions currently require authentication. This is a server configuration issue.');
     }
-    
+
     throw error;
   }
 };
