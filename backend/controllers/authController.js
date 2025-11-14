@@ -125,11 +125,18 @@ const authController = {
             const ipAddress = req.ip || req.connection.remoteAddress;
 
             // Generate tokens
+            console.log('Generating access token for user:', user._id);
             const accessToken = generateAccessToken(user);
+            console.log('Access token generated successfully');
+
+            console.log('Generating refresh token for user:', user._id);
             const refreshToken = await generateRefreshToken(user, ipAddress);
+            console.log('Refresh token generated successfully');
 
             // Set httpOnly cookies
+            console.log('Setting auth cookies');
             setAuthCookies(res, accessToken, refreshToken);
+            console.log('Auth cookies set successfully');
 
             // Return success with user data
             res.json({
@@ -150,15 +157,18 @@ const authController = {
                     semester: user.semester,
                     lastLogin: user.lastLogin
                 },
-                accessToken // Also send in response body for compatibility
+                accessToken, // Also send in response body for compatibility
+                refreshToken // Include refresh token for client storage
             });
 
         } catch (error) {
             console.error('Login error:', error);
+            console.error('Error stack:', error.stack);
             res.status(500).json({
                 success: false,
                 message: 'An error occurred during login',
-                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined,
+                stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
             });
         }
     },

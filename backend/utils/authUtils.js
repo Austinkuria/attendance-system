@@ -2,6 +2,12 @@ const jwt = require('jsonwebtoken');
 const crypto = require('crypto');
 const RefreshToken = require('../models/RefreshToken');
 
+// Ensure environment variables are loaded
+if (!process.env.JWT_SECRET) {
+  console.error('FATAL: JWT_SECRET environment variable is not set!');
+  throw new Error('JWT_SECRET is required');
+}
+
 // Token expiry constants from environment or defaults
 const ACCESS_TOKEN_EXPIRY = process.env.ACCESS_TOKEN_EXPIRY || '15m';
 const REFRESH_TOKEN_EXPIRY = process.env.REFRESH_TOKEN_EXPIRY || '7d';
@@ -57,35 +63,44 @@ const generateAccessToken = (user) => {
  * Generate refresh token (long-lived) - Using JWT instead of random bytes
  */
 const generateRefreshToken = async (user, ipAddress) => {
-  // Generate JWT refresh token
-  const jwtToken = jwt.sign(
-    {
-      userId: user._id || user.id,
-      type: 'refresh',
-      jti: crypto.randomBytes(16).toString('hex') // JWT ID for uniqueness
-    },
-    process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
-    {
-      expiresIn: REFRESH_TOKEN_EXPIRY,
-      issuer: 'attendance-system',
-      audience: 'attendance-app'
+  try {
+    // Generate JWT refresh token
+    const jwtToken = jwt.sign(
+      {
+        userId: user._id || user.id,
+        type: 'refresh',
+        jti: crypto.randomBytes(16).toString('hex') // JWT ID for uniqueness
+      },
+      process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET,
+      {
+        expiresIn: REFRESH_TOKEN_EXPIRY,
+        issuer: 'attendance-system',
+        audience: 'attendance-app'
+      }
+    );
+
+    // Decode to get expiry time
+    const decoded = jwt.decode(jwtToken);
+
+    if (!decoded || !decoded.exp) {
+      throw new Error('Failed to decode refresh token');
     }
-  );
 
-  // Decode to get expiry time
-  const decoded = jwt.decode(jwtToken);
+    // Create refresh token document for tracking
+    const refreshToken = new RefreshToken({
+      token: jwtToken,
+      user: user._id || user.id,
+      expiresAt: new Date(decoded.exp * 1000),
+      createdByIp: ipAddress
+    });
 
-  // Create refresh token document for tracking
-  const refreshToken = new RefreshToken({
-    token: jwtToken,
-    user: user._id || user.id,
-    expiresAt: new Date(decoded.exp * 1000),
-    createdByIp: ipAddress
-  });
+    await refreshToken.save();
 
-  await refreshToken.save();
-
-  return jwtToken;
+    return jwtToken;
+  } catch (error) {
+    console.error('Error generating refresh token:', error);
+    throw error;
+  }
 };
 
 /**
@@ -181,6 +196,11 @@ const revokeAllUserTokens = async (userId, ipAddress) => {
  * Set authentication cookies
  */
 const setAuthCookies = (res, accessToken, refreshToken) => {
+  if (!accessToken || !refreshToken) {
+    console.error('Cannot set auth cookies: tokens are missing');
+    return;
+  }
+
   const isProduction = process.env.NODE_ENV === 'production';
 
   const cookieOptions = {
@@ -190,21 +210,30 @@ const setAuthCookies = (res, accessToken, refreshToken) => {
     path: '/'
   };
 
-  // Decode tokens to get expiry
-  const accessDecoded = jwt.decode(accessToken);
-  const refreshDecoded = jwt.decode(refreshToken);
+  try {
+    // Decode tokens to get expiry
+    const accessDecoded = jwt.decode(accessToken);
+    const refreshDecoded = jwt.decode(refreshToken);
 
-  // Set access token cookie
-  res.cookie('accessToken', accessToken, {
-    ...cookieOptions,
-    maxAge: (accessDecoded.exp - accessDecoded.iat) * 1000 // Convert to milliseconds
-  });
+    if (!accessDecoded || !refreshDecoded) {
+      console.error('Failed to decode tokens');
+      return;
+    }
 
-  // Set refresh token cookie
-  res.cookie('refreshToken', refreshToken, {
-    ...cookieOptions,
-    maxAge: (refreshDecoded.exp - refreshDecoded.iat) * 1000 // Convert to milliseconds
-  });
+    // Set access token cookie
+    res.cookie('accessToken', accessToken, {
+      ...cookieOptions,
+      maxAge: (accessDecoded.exp - accessDecoded.iat) * 1000 // Convert to milliseconds
+    });
+
+    // Set refresh token cookie
+    res.cookie('refreshToken', refreshToken, {
+      ...cookieOptions,
+      maxAge: (refreshDecoded.exp - refreshDecoded.iat) * 1000 // Convert to milliseconds
+    });
+  } catch (error) {
+    console.error('Error setting auth cookies:', error);
+  }
 };
 
 /**

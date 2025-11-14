@@ -96,6 +96,7 @@ app.use(cookieParser());
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
+  'http://localhost:3000',
   'https://attendance-system123.vercel.app',
   'https://attendance-system-w70n.onrender.com',
   process.env.CLIENT_URL_DEV,
@@ -103,14 +104,24 @@ const allowedOrigins = [
   process.env.FRONTEND_URL
 ].filter(Boolean);
 
+// Log allowed origins for debugging
+console.log('Allowed CORS origins:', allowedOrigins);
+
 app.use(cors({
   origin: function (origin, callback) {
     // Allow requests with no origin (mobile apps, Postman, etc.)
     if (!origin) return callback(null, true);
 
-    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+    // In development, allow all localhost origins
+    if (process.env.NODE_ENV !== 'production' && origin.includes('localhost')) {
+      return callback(null, true);
+    }
+
+    if (allowedOrigins.indexOf(origin) !== -1) {
       callback(null, true);
     } else {
+      console.error(`CORS blocked origin: ${origin}`);
+      console.error('Allowed origins:', allowedOrigins);
       callback(new Error('Not allowed by CORS'));
     }
   },
@@ -155,18 +166,33 @@ app.use("/assets", express.static(path.join(__dirname, "public/assets")));
 // ✅ MongoDB Connection with Retry Logic
 const connectDB = async (retries = 5) => {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    logger.info("MongoDB Connected");
+    console.log('Attempting to connect to MongoDB...');
+    console.log('MONGO_URI exists:', !!process.env.MONGO_URI);
+
+    await mongoose.connect(process.env.MONGO_URI, {
+      serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
+      socketTimeoutMS: 45000,
+    });
+
+    logger.info("✅ MongoDB Connected Successfully");
+    console.log('MongoDB connection state:', mongoose.connection.readyState); // 1 = connected
+
   } catch (error) {
-    logger.error(`MongoDB Connection Error: ${error.message}`);
+    logger.error(`❌ MongoDB Connection Error: ${error.message}`);
+    console.error('Full error:', error);
+
     if (retries > 0) {
-      logger.warn(`Retrying MongoDB connection in 5 seconds... (${retries} retries left)`);
+      logger.warn(`⏳ Retrying MongoDB connection in 5 seconds... (${retries} retries left)`);
       await new Promise((resolve) => setTimeout(resolve, 5000));
       return connectDB(retries - 1);
     }
+
+    logger.error('❌ Failed to connect to MongoDB after all retries');
     process.exit(1);
   }
 };
+
+// Connect to MongoDB before starting the server
 connectDB();
 
 // Handle MongoDB connection events
@@ -174,7 +200,24 @@ mongoose.connection.on("error", (err) => {
   logger.error("MongoDB connection error:", err);
 });
 mongoose.connection.on("disconnected", () => {
-  logger.warn("MongoDB disconnected");
+  logger.warn("MongoDB disconnected - attempting to reconnect...");
+  connectDB();
+});
+mongoose.connection.on("connected", () => {
+  logger.info("MongoDB connected");
+});
+
+// Middleware to check database connection
+app.use((req, res, next) => {
+  if (mongoose.connection.readyState !== 1) {
+    console.error('Database not connected. Connection state:', mongoose.connection.readyState);
+    return res.status(503).json({
+      success: false,
+      message: 'Database connection unavailable. Please try again in a moment.',
+      connectionState: mongoose.connection.readyState
+    });
+  }
+  next();
 });
 
 // Register all API routes
