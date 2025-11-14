@@ -129,7 +129,7 @@ const signup = async (req, res) => {
         });
       }
 
-      if (semester < 1 || semester < 3) {
+      if (semester < 1 || semester > 3) {
         return res.status(400).json({
           success: false,
           message: "Invalid semester (must be between 1 and 3)",
