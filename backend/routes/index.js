@@ -11,6 +11,7 @@ const attendanceRoutes = require("./attendance.routes");
 const sessionRoutes = require("./sessionRoutes");
 const feedbackRoutes = require('./feedback.routes');
 const authRoutes = require('./auth.routes');
+const superAdminRoutes = require('./superAdminRoutes');
 const router = express.Router();
 const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createSession, createLecturer, updateLecturer, deleteLecturer, importLecturers, downloadLecturers, sendResetLink, resetPassword, registerUser } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
@@ -30,6 +31,9 @@ router.use('/students', studentRoutes);
 
 // Auth routes - move this to before other auth routes
 router.use('/auth', authRoutes);
+
+// Super Admin routes - CRITICAL: Only super admins can access
+router.use('/super-admin', superAdminRoutes);
 
 // Remove or comment out these duplicated routes since they're now in authRoutes
 // router.post("/auth/signup", signup);

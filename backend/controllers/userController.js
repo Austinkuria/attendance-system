@@ -17,6 +17,7 @@ const {
   generateRefreshToken,
   setAuthCookies
 } = require('../utils/authUtils');
+const { autoEnrollStudent } = require('../utils/enrollment.utils');
 const {
   generateVerificationToken,
   sendVerificationEmail,
@@ -262,11 +263,74 @@ const registerUser = async (req, res) => {
         year: Number(year) || 1,
         semester: Number(semester) || 1
       }),
+      ...(role === "lecturer" && {
+        department: departmentId
+      }),
+      isVerified: true, // Admin-created users are pre-verified
+      mustChangePassword: true, // Force password change on first login
+      createdBy: req.user?._id // Track who created this user
     });
 
     // Save user to database
     await newUser.save();
-    res.status(201).json({ message: "User created successfully" });
+
+    // 🎓 AUTO-ENROLL STUDENTS IN UNITS
+    if (role === "student") {
+      try {
+        const enrollmentResult = await autoEnrollStudent(
+          newUser._id,
+          courseId,
+          Number(year) || 1,
+          Number(semester) || 1
+        );
+
+        console.log(`✅ Auto-enrollment complete:`, enrollmentResult);
+
+        return res.status(201).json({
+          success: true,
+          message: "Student created and enrolled successfully",
+          user: {
+            id: newUser._id,
+            name: `${newUser.firstName} ${newUser.lastName}`,
+            email: newUser.email,
+            regNo: newUser.regNo
+          },
+          enrollment: {
+            enrolledUnits: enrollmentResult.enrolledCount,
+            totalUnits: enrollmentResult.totalUnits,
+            units: enrollmentResult.units
+          }
+        });
+
+      } catch (enrollmentError) {
+        console.error('⚠️ User created but enrollment failed:', enrollmentError);
+
+        // User was created but enrollment failed - still return success
+        return res.status(201).json({
+          success: true,
+          message: "Student created successfully, but unit enrollment failed. Please enroll manually.",
+          user: {
+            id: newUser._id,
+            name: `${newUser.firstName} ${newUser.lastName}`,
+            email: newUser.email,
+            regNo: newUser.regNo
+          },
+          enrollmentError: enrollmentError.message
+        });
+      }
+    }
+
+    // For lecturers and admins
+    res.status(201).json({
+      success: true,
+      message: `${role.charAt(0).toUpperCase() + role.slice(1)} created successfully`,
+      user: {
+        id: newUser._id,
+        name: `${newUser.firstName} ${newUser.lastName}`,
+        email: newUser.email,
+        role: newUser.role
+      }
+    });
 
   } catch (error) {
     console.error("Error creating user:", error);
