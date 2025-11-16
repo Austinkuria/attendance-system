@@ -15,7 +15,13 @@ const {
     updateDepartmentAdmin,
     deleteDepartmentAdmin,
     assignDepartments,
-    getDepartmentAdminStats
+    getDepartmentAdminStats,
+    // Department Management
+    createDepartment,
+    getAllDepartments,
+    updateDepartment,
+    deleteDepartment,
+    assignAdminToDepartment
 } = require('../controllers/superAdminController');
 
 const authenticate = require('../middleware/authMiddleware');
@@ -116,5 +122,62 @@ router.post('/department-admins/:id/assign-departments', [
         .isArray({ min: 1 })
         .withMessage('At least one department must be provided')
 ], assignDepartments);
+
+// ============================================
+// DEPARTMENT MANAGEMENT
+// ============================================
+
+/**
+ * @route   POST /api/super-admin/departments
+ * @desc    Create a new department
+ * @access  Super Admin Only
+ */
+router.post('/departments', [
+    check('name')
+        .isLength({ min: 2 })
+        .withMessage('Department name must be at least 2 characters')
+        .trim()
+], createDepartment);
+
+/**
+ * @route   GET /api/super-admin/departments
+ * @desc    Get all departments with statistics
+ * @access  Super Admin Only
+ */
+router.get('/departments', getAllDepartments);
+
+/**
+ * @route   PUT /api/super-admin/departments/:id
+ * @desc    Update a department
+ * @access  Super Admin Only
+ */
+router.put('/departments/:id', [
+    check('name')
+        .optional()
+        .isLength({ min: 2 })
+        .withMessage('Department name must be at least 2 characters')
+        .trim()
+], updateDepartment);
+
+/**
+ * @route   DELETE /api/super-admin/departments/:id
+ * @desc    Delete a department (only if no dependencies)
+ * @access  Super Admin Only
+ */
+router.delete('/departments/:id', deleteDepartment);
+
+/**
+ * @route   POST /api/super-admin/departments/assign-admin
+ * @desc    Assign an admin to a department
+ * @access  Super Admin Only
+ */
+router.post('/departments/assign-admin', [
+    check('departmentId')
+        .isMongoId()
+        .withMessage('Valid department ID is required'),
+    check('adminId')
+        .isMongoId()
+        .withMessage('Valid admin ID is required')
+], assignAdminToDepartment);
 
 module.exports = router;

@@ -7,6 +7,7 @@
 const bcrypt = require('bcryptjs');
 const User = require('../models/User');
 const Department = require('../models/Department');
+const Course = require('../models/Course');
 const mongoose = require('mongoose');
 const crypto = require('crypto');
 const { validationResult } = require('express-validator');
@@ -449,12 +450,349 @@ const getDepartmentAdminStats = async (req, res) => {
     }
 };
 
+/**
+ * Create a new department
+ * Only accessible by super admin
+ */
+const createDepartment = async (req, res) => {
+    try {
+        const { name, description } = req.body;
+
+        // Validate request
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        // Check if department already exists
+        const existingDept = await Department.findOne({
+            name: { $regex: new RegExp(`^${name}$`, 'i') }
+        });
+
+        if (existingDept) {
+            return res.status(400).json({
+                success: false,
+                message: "A department with this name already exists"
+            });
+        }
+
+        // Create department
+        const department = new Department({
+            name,
+            description: description || '',
+            courses: [],
+            createdBy: req.user.userId
+        });
+
+        await department.save();
+
+        console.log(`✅ Super admin ${req.user.email} created department: ${name}`);
+
+        res.status(201).json({
+            success: true,
+            message: "Department created successfully",
+            department: {
+                _id: department._id,
+                name: department.name,
+                description: department.description,
+                createdAt: department.createdAt
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error creating department:', error);
+        res.status(500).json({
+            success: false,
+            message: "Error creating department",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Get all departments
+ * Only accessible by super admin
+ */
+const getAllDepartments = async (req, res) => {
+    try {
+        const departments = await Department.find()
+            .populate('courses', 'name code')
+            .sort({ name: 1 });
+
+        // Get stats for each department
+        const departmentsWithStats = await Promise.all(
+            departments.map(async (dept) => {
+                const students = await User.countDocuments({
+                    departmentId: dept._id,
+                    role: 'student'
+                });
+                const lecturers = await User.countDocuments({
+                    departmentId: dept._id,
+                    role: 'lecturer'
+                });
+                const admins = await User.countDocuments({
+                    role: 'department_admin',
+                    managedDepartments: dept._id
+                });
+
+                return {
+                    _id: dept._id,
+                    name: dept.name,
+                    description: dept.description,
+                    courses: dept.courses,
+                    stats: {
+                        courses: dept.courses.length,
+                        students,
+                        lecturers,
+                        admins
+                    },
+                    createdAt: dept.createdAt
+                };
+            })
+        );
+
+        res.json({
+            success: true,
+            count: departments.length,
+            departments: departmentsWithStats
+        });
+
+    } catch (error) {
+        console.error('❌ Error fetching departments:', error);
+        res.status(500).json({
+            success: false,
+            message: "Error fetching departments",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Update department
+ * Only accessible by super admin
+ */
+const updateDepartment = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { name, description } = req.body;
+
+        // Validate request
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        const department = await Department.findById(id);
+
+        if (!department) {
+            return res.status(404).json({
+                success: false,
+                message: "Department not found"
+            });
+        }
+
+        // Check if new name conflicts with existing department
+        if (name && name !== department.name) {
+            const existingDept = await Department.findOne({
+                name: { $regex: new RegExp(`^${name}$`, 'i') },
+                _id: { $ne: id }
+            });
+
+            if (existingDept) {
+                return res.status(400).json({
+                    success: false,
+                    message: "A department with this name already exists"
+                });
+            }
+
+            department.name = name;
+        }
+
+        if (description !== undefined) {
+            department.description = description;
+        }
+
+        await department.save();
+
+        console.log(`✅ Super admin ${req.user.email} updated department: ${department.name}`);
+
+        res.json({
+            success: true,
+            message: "Department updated successfully",
+            department: {
+                _id: department._id,
+                name: department.name,
+                description: department.description,
+                updatedAt: department.updatedAt
+            }
+        });
+
+    } catch (error) {
+        console.error('❌ Error updating department:', error);
+        res.status(500).json({
+            success: false,
+            message: "Error updating department",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Delete/Deactivate department
+ * Only accessible by super admin
+ * Checks for dependencies before deletion
+ */
+const deleteDepartment = async (req, res) => {
+    try {
+        const { id } = req.params;
+
+        const department = await Department.findById(id);
+
+        if (!department) {
+            return res.status(404).json({
+                success: false,
+                message: "Department not found"
+            });
+        }
+
+        // Check for dependencies
+        const courseCount = await Course.countDocuments({ departmentId: id });
+        const studentCount = await User.countDocuments({ departmentId: id, role: 'student' });
+        const lecturerCount = await User.countDocuments({ departmentId: id, role: 'lecturer' });
+
+        if (courseCount > 0 || studentCount > 0 || lecturerCount > 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Cannot delete department with existing courses, students, or lecturers",
+                dependencies: {
+                    courses: courseCount,
+                    students: studentCount,
+                    lecturers: lecturerCount
+                }
+            });
+        }
+
+        // Remove department from any admins managing it
+        await User.updateMany(
+            { managedDepartments: id },
+            { $pull: { managedDepartments: id } }
+        );
+
+        await department.deleteOne();
+
+        console.log(`✅ Super admin ${req.user.email} deleted department: ${department.name}`);
+
+        res.json({
+            success: true,
+            message: "Department deleted successfully"
+        });
+
+    } catch (error) {
+        console.error('❌ Error deleting department:', error);
+        res.status(500).json({
+            success: false,
+            message: "Error deleting department",
+            error: error.message
+        });
+    }
+};
+
+/**
+ * Assign admin to department
+ * Only accessible by super admin
+ */
+const assignAdminToDepartment = async (req, res) => {
+    try {
+        const { departmentId, adminId } = req.body;
+
+        // Validate request
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                errors: errors.array()
+            });
+        }
+
+        // Check if department exists
+        const department = await Department.findById(departmentId);
+        if (!department) {
+            return res.status(404).json({
+                success: false,
+                message: "Department not found"
+            });
+        }
+
+        // Check if admin exists
+        const admin = await User.findById(adminId);
+        if (!admin) {
+            return res.status(404).json({
+                success: false,
+                message: "Admin not found"
+            });
+        }
+
+        if (admin.role !== 'department_admin') {
+            return res.status(400).json({
+                success: false,
+                message: "User is not a department admin"
+            });
+        }
+
+        // Add department to admin's managed departments if not already there
+        if (!admin.managedDepartments.includes(departmentId)) {
+            admin.managedDepartments.push(departmentId);
+            await admin.save();
+
+            console.log(`✅ Assigned ${admin.email} to department: ${department.name}`);
+
+            res.json({
+                success: true,
+                message: `Admin assigned to ${department.name} successfully`,
+                admin: {
+                    _id: admin._id,
+                    name: `${admin.firstName} ${admin.lastName}`,
+                    email: admin.email,
+                    managedDepartments: admin.managedDepartments.length
+                }
+            });
+        } else {
+            res.status(400).json({
+                success: false,
+                message: "Admin is already assigned to this department"
+            });
+        }
+
+    } catch (error) {
+        console.error('❌ Error assigning admin to department:', error);
+        res.status(500).json({
+            success: false,
+            message: "Error assigning admin",
+            error: error.message
+        });
+    }
+};
+
 module.exports = {
+    // Department Admin Management
     createDepartmentAdmin,
     getDepartmentAdmins,
     getDepartmentAdminById,
     updateDepartmentAdmin,
     deleteDepartmentAdmin,
     assignDepartments,
-    getDepartmentAdminStats
+    getDepartmentAdminStats,
+
+    // Department Management
+    createDepartment,
+    getAllDepartments,
+    updateDepartment,
+    deleteDepartment,
+    assignAdminToDepartment
 };
