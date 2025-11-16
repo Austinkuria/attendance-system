@@ -3,14 +3,14 @@ const crypto = require('crypto');
 require('dotenv').config();
 
 const CLIENT_URL = process.env.NODE_ENV === 'production'
-    ? process.env.CLIENT_URL_PROD
-    : process.env.CLIENT_URL_DEV;
+  ? process.env.CLIENT_URL_PROD
+  : process.env.CLIENT_URL_DEV;
 
 /**
  * Generate verification token
  */
 const generateVerificationToken = () => {
-    return crypto.randomBytes(32).toString('hex');
+  return crypto.randomBytes(32).toString('hex');
 };
 
 /**
@@ -20,16 +20,16 @@ const generateVerificationToken = () => {
  * @param {string} firstName - User's first name
  */
 const sendVerificationEmail = async (email, token, firstName = 'User') => {
-    const verificationLink = `${CLIENT_URL}/auth/verify-email/${token}`;
+  const verificationLink = `${CLIENT_URL}/auth/verify-email/${token}`;
 
-    const mailOptions = {
-        from: {
-            name: 'QRollCall Attendance System',
-            address: process.env.SMTP_USER
-        },
-        to: email,
-        subject: 'Verify Your Email - QRollCall',
-        html: `
+  const mailOptions = {
+    from: {
+      name: 'QRollCall Attendance System',
+      address: process.env.SMTP_USER
+    },
+    to: email,
+    subject: 'Verify Your Email - QRollCall',
+    html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -154,7 +154,7 @@ const sendVerificationEmail = async (email, token, firstName = 'User') => {
       </body>
       </html>
     `,
-        text: `
+    text: `
 Hello ${firstName},
 
 Thank you for registering with QRollCall Attendance System!
@@ -174,16 +174,16 @@ If you have any questions, please contact your system administrator.
 
 © ${new Date().getFullYear()} QRollCall. All rights reserved.
     `
-    };
+  };
 
-    try {
-        const info = await transporter.sendMail(mailOptions);
-        console.log('Verification email sent:', info.messageId);
-        return { success: true, messageId: info.messageId };
-    } catch (error) {
-        console.error('Error sending verification email:', error);
-        throw new Error('Failed to send verification email: ' + error.message);
-    }
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log('Verification email sent:', info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    throw new Error('Failed to send verification email: ' + error.message);
+  }
 };
 
 /**
@@ -192,16 +192,16 @@ If you have any questions, please contact your system administrator.
  * @param {string} firstName - User's first name
  */
 const sendVerificationSuccessEmail = async (email, firstName = 'User') => {
-    const loginLink = `${CLIENT_URL}/auth/login`;
+  const loginLink = `${CLIENT_URL}/auth/login`;
 
-    const mailOptions = {
-        from: {
-            name: 'QRollCall Attendance System',
-            address: process.env.SMTP_USER
-        },
-        to: email,
-        subject: 'Email Verified Successfully - QRollCall',
-        html: `
+  const mailOptions = {
+    from: {
+      name: 'QRollCall Attendance System',
+      address: process.env.SMTP_USER
+    },
+    to: email,
+    subject: 'Email Verified Successfully - QRollCall',
+    html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -242,15 +242,324 @@ const sendVerificationSuccessEmail = async (email, firstName = 'User') => {
       </body>
       </html>
     `
-    };
+  };
 
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log('Verification success email sent to:', email);
-    } catch (error) {
-        console.error('Error sending success email:', error);
-        // Don't throw error as verification is already complete
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Verification success email sent to:', email);
+  } catch (error) {
+    console.error('Error sending success email:', error);
+    // Don't throw error as verification is already complete
+  }
+};
+
+/**
+ * Send welcome email with credentials for admin-created accounts
+ * @param {string} email - User's email address
+ * @param {string} firstName - User's first name
+ * @param {string} role - User's role
+ * @param {string} temporaryPassword - Temporary password
+ * @param {Object} additionalInfo - Additional user information
+ */
+const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, additionalInfo = {}) => {
+  const loginLink = `${CLIENT_URL}/auth/login`;
+
+  // Role-specific welcome messages
+  const roleMessages = {
+    super_admin: {
+      title: 'Super Administrator Account Created',
+      icon: '👑',
+      description: 'You have been granted super administrator privileges on QRollCall.',
+      permissions: [
+        'Manage all departments and users',
+        'Create and manage department administrators',
+        'Access system-wide analytics and reports',
+        'Configure system settings',
+        'Full access to all attendance records'
+      ]
+    },
+    department_admin: {
+      title: 'Department Administrator Account Created',
+      icon: '🎓',
+      description: `You have been appointed as an administrator for the ${additionalInfo.departmentName || 'department'}.`,
+      permissions: [
+        'Manage lecturers and students in your department',
+        'Create and manage courses and units',
+        'Monitor department-wide attendance',
+        'Generate department reports',
+        'Approve enrollment requests'
+      ]
+    },
+    lecturer: {
+      title: 'Lecturer Account Created',
+      icon: '👨‍🏫',
+      description: 'Welcome to QRollCall! Your lecturer account has been created.',
+      permissions: [
+        'Create and manage class sessions',
+        'Generate QR codes for attendance',
+        'View and export attendance records',
+        'Manage your assigned units',
+        'Submit student feedback and grades'
+      ]
+    },
+    student: {
+      title: 'Student Account Created',
+      icon: '🎒',
+      description: `Welcome to QRollCall! You have been enrolled as a student${additionalInfo.courseName ? ` in ${additionalInfo.courseName}` : ''}.`,
+      permissions: [
+        'Mark attendance using QR codes',
+        'View your attendance history',
+        'Access your enrolled units',
+        'Check attendance statistics',
+        'Receive session notifications'
+      ]
     }
+  };
+
+  const roleInfo = roleMessages[role] || roleMessages.student;
+
+  const mailOptions = {
+    from: {
+      name: 'QRollCall Attendance System',
+      address: process.env.SMTP_USER
+    },
+    to: email,
+    subject: `${roleInfo.title} - QRollCall`,
+    html: `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+          body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+          }
+          .container {
+            background-color: #f9f9f9;
+            border-radius: 8px;
+            padding: 30px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 28px;
+            font-weight: bold;
+            color: #1890ff;
+            margin-bottom: 10px;
+          }
+          .role-icon {
+            font-size: 48px;
+            margin: 20px 0;
+          }
+          .content {
+            background-color: white;
+            padding: 25px;
+            border-radius: 6px;
+            margin-bottom: 20px;
+          }
+          .credentials-box {
+            background-color: #e6f7ff;
+            border: 2px solid #1890ff;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .credential-row {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            padding: 8px;
+            background-color: white;
+            border-radius: 4px;
+          }
+          .credential-label {
+            font-weight: bold;
+            color: #666;
+          }
+          .credential-value {
+            font-family: 'Courier New', monospace;
+            color: #1890ff;
+            font-weight: bold;
+          }
+          .button {
+            display: inline-block;
+            padding: 12px 30px;
+            background-color: #1890ff;
+            color: white !important;
+            text-decoration: none;
+            border-radius: 5px;
+            font-weight: bold;
+            margin: 20px 0;
+          }
+          .button:hover {
+            background-color: #096dd9;
+          }
+          .warning {
+            background-color: #fff7e6;
+            border-left: 4px solid #faad14;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .permissions-list {
+            background-color: #f6ffed;
+            border-left: 4px solid #52c41a;
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 4px;
+          }
+          .footer {
+            text-align: center;
+            font-size: 12px;
+            color: #666;
+            margin-top: 30px;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">📋 QRollCall</div>
+            <div class="role-icon">${roleInfo.icon}</div>
+            <h2 style="margin: 0; color: #333;">${roleInfo.title}</h2>
+          </div>
+          
+          <div class="content">
+            <p>Hello <strong>${firstName}</strong>,</p>
+            
+            <p>${roleInfo.description}</p>
+            
+            <p>Your account has been successfully created. Below are your login credentials:</p>
+            
+            <div class="credentials-box">
+              <h3 style="margin-top: 0; color: #1890ff;">🔐 Login Credentials</h3>
+              
+              <div class="credential-row">
+                <span class="credential-label">Email:</span>
+                <span class="credential-value">${email}</span>
+              </div>
+              
+              <div class="credential-row">
+                <span class="credential-label">Temporary Password:</span>
+                <span class="credential-value">${temporaryPassword}</span>
+              </div>
+              
+              ${additionalInfo.regNo ? `
+              <div class="credential-row">
+                <span class="credential-label">Registration No:</span>
+                <span class="credential-value">${additionalInfo.regNo}</span>
+              </div>
+              ` : ''}
+              
+              ${additionalInfo.departmentName ? `
+              <div class="credential-row">
+                <span class="credential-label">Department:</span>
+                <span class="credential-value">${additionalInfo.departmentName}</span>
+              </div>
+              ` : ''}
+            </div>
+            
+            <div class="warning">
+              <strong>⚠️ Important Security Instructions:</strong>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                <li><strong>Change your password immediately</strong> after first login</li>
+                <li>Do not share your credentials with anyone</li>
+                <li>Use a strong, unique password</li>
+                <li>Keep this email secure or delete it after changing your password</li>
+              </ul>
+            </div>
+            
+            <p style="text-align: center;">
+              <a href="${loginLink}" class="button">Login to Your Account</a>
+            </p>
+            
+            <div class="permissions-list">
+              <h4 style="margin-top: 0; color: #52c41a;">✅ Your Permissions</h4>
+              <ul style="margin: 10px 0; padding-left: 20px;">
+                ${roleInfo.permissions.map(perm => `<li>${perm}</li>`).join('')}
+              </ul>
+            </div>
+            
+            <p><strong>Getting Started:</strong></p>
+            <ol>
+              <li>Click the "Login to Your Account" button above</li>
+              <li>Enter your email and temporary password</li>
+              <li>You will be prompted to change your password</li>
+              <li>Set a strong, memorable password</li>
+              <li>Start using QRollCall!</li>
+            </ol>
+            
+            <p>If you have any questions or need assistance, please contact your system administrator${additionalInfo.adminEmail ? ` at ${additionalInfo.adminEmail}` : ''}.</p>
+            
+            <p>Welcome to the QRollCall family!</p>
+          </div>
+          
+          <div class="footer">
+            <p>This email was sent by QRollCall Attendance System</p>
+            <p style="margin-top: 20px; color: #999;">
+              © ${new Date().getFullYear()} QRollCall. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `,
+    text: `
+${roleInfo.title}
+
+Hello ${firstName},
+
+${roleInfo.description}
+
+Your account has been successfully created. Below are your login credentials:
+
+Email: ${email}
+Temporary Password: ${temporaryPassword}
+${additionalInfo.regNo ? `Registration No: ${additionalInfo.regNo}` : ''}
+${additionalInfo.departmentName ? `Department: ${additionalInfo.departmentName}` : ''}
+
+⚠️ IMPORTANT SECURITY INSTRUCTIONS:
+- Change your password immediately after first login
+- Do not share your credentials with anyone
+- Use a strong, unique password
+- Keep this email secure or delete it after changing your password
+
+Login here: ${loginLink}
+
+Your Permissions:
+${roleInfo.permissions.map((perm, i) => `${i + 1}. ${perm}`).join('\n')}
+
+Getting Started:
+1. Visit the login page
+2. Enter your email and temporary password
+3. Change your password when prompted
+4. Start using QRollCall!
+
+If you have any questions, please contact your system administrator.
+
+Welcome to QRollCall!
+
+© ${new Date().getFullYear()} QRollCall. All rights reserved.
+    `
+  };
+
+  try {
+    const info = await transporter.sendMail(mailOptions);
+    console.log(`Welcome email sent to ${role}:`, info.messageId);
+    return { success: true, messageId: info.messageId };
+  } catch (error) {
+    console.error('Error sending welcome email:', error);
+    throw new Error('Failed to send welcome email: ' + error.message);
+  }
 };
 
 /**
@@ -260,16 +569,16 @@ const sendVerificationSuccessEmail = async (email, firstName = 'User') => {
  * @param {string} firstName - User's first name
  */
 const sendPasswordResetEmail = async (email, token, firstName = 'User') => {
-    const resetLink = `${CLIENT_URL}/auth/reset-password/${token}`;
+  const resetLink = `${CLIENT_URL}/auth/reset-password/${token}`;
 
-    const mailOptions = {
-        from: {
-            name: 'QRollCall Attendance System',
-            address: process.env.SMTP_USER
-        },
-        to: email,
-        subject: 'Password Reset Request - QRollCall',
-        html: `
+  const mailOptions = {
+    from: {
+      name: 'QRollCall Attendance System',
+      address: process.env.SMTP_USER
+    },
+    to: email,
+    subject: 'Password Reset Request - QRollCall',
+    html: `
       <!DOCTYPE html>
       <html>
       <head>
@@ -307,20 +616,21 @@ const sendPasswordResetEmail = async (email, token, firstName = 'User') => {
       </body>
       </html>
     `
-    };
+  };
 
-    try {
-        await transporter.sendMail(mailOptions);
-        console.log('Password reset email sent to:', email);
-    } catch (error) {
-        console.error('Error sending password reset email:', error);
-        throw new Error('Failed to send password reset email');
-    }
+  try {
+    await transporter.sendMail(mailOptions);
+    console.log('Password reset email sent to:', email);
+  } catch (error) {
+    console.error('Error sending password reset email:', error);
+    throw new Error('Failed to send password reset email');
+  }
 };
 
 module.exports = {
-    generateVerificationToken,
-    sendVerificationEmail,
-    sendVerificationSuccessEmail,
-    sendPasswordResetEmail
+  generateVerificationToken,
+  sendVerificationEmail,
+  sendVerificationSuccessEmail,
+  sendWelcomeEmail,
+  sendPasswordResetEmail
 };

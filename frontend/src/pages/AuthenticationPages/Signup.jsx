@@ -221,6 +221,64 @@ const ResponsiveGrid = styled.div`
 
 const Signup = () => {
   const { themeColors, isDarkMode } = useContext(ThemeContext);
+  const navigate = useNavigate();
+
+  // Public registration is disabled - show informational message
+  return (
+    <PageContainer theme={themeColors}>
+      <StyledCard theme={themeColors}>
+        <div style={{ textAlign: 'center', padding: '20px 0' }}>
+          <div style={{ fontSize: 64, marginBottom: 20 }}>🔒</div>
+          <ResponsiveTitle level={3} theme={themeColors} isDarkMode={isDarkMode}>
+            Public Registration Disabled
+          </ResponsiveTitle>
+          <ResponsiveText theme={themeColors}>
+            Self-registration is currently disabled for security reasons
+          </ResponsiveText>
+
+          <Alert
+            message="How to Get an Account"
+            description={
+              <div style={{ textAlign: 'left' }}>
+                <p>Accounts are created by administrators. To get access:</p>
+                <ol style={{ paddingLeft: 20, marginTop: 10 }}>
+                  <li><strong>Students:</strong> Contact your department administrator</li>
+                  <li><strong>Lecturers:</strong> Contact your department administrator</li>
+                  <li><strong>Department Admins:</strong> Contact the super administrator</li>
+                </ol>
+                <p style={{ marginTop: 15 }}>
+                  Once your account is created, you'll receive an email with your login credentials.
+                </p>
+              </div>
+            }
+            type="info"
+            showIcon
+            style={{ marginBottom: 24, marginTop: 24 }}
+          />
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+            <StyledButton
+              type="primary"
+              size="large"
+              onClick={() => navigate('/auth/login')}
+              icon={<ArrowRightOutlined />}
+              block
+            >
+              Go to Login Page
+            </StyledButton>
+            <Text style={{ color: themeColors.placeholder, fontSize: 14, marginTop: 10 }}>
+              Already have an account? Click above to login
+            </Text>
+          </div>
+        </div>
+      </StyledCard>
+    </PageContainer>
+  );
+};
+
+// Keep the old code commented for reference
+const SignupOld = () => {
+  const { themeColors, isDarkMode } = useContext(ThemeContext);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [role, setRole] = useState("student");
