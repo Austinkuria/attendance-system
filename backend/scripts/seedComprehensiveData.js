@@ -308,7 +308,7 @@ async function seedLecturers(departmentMap) {
             email: lecturerData.email.toLowerCase(),
             password: hashedPassword,
             role: 'lecturer',
-            departmentId: departmentId,
+            department: departmentId,
             isVerified: true,
             mustChangePassword: true
         });
@@ -325,6 +325,8 @@ async function seedStudents(departmentMap) {
     const hashedPassword = await bcrypt.hash('Student@123', 10);
     const { autoEnrollStudent } = require('../utils/enrollment.utils');
 
+    let studentCounter = 1001; // Start registration numbers from 1001
+
     for (const studentData of STUDENTS_DATA) {
         const departmentId = departmentMap[studentData.department];
 
@@ -337,10 +339,15 @@ async function seedStudents(departmentMap) {
         const course = await Course.findOne({
             code: studentData.course,
             department: departmentId
-        }); if (!course) {
+        });
+
+        if (!course) {
             console.log(`  ⚠️  Course not found: ${studentData.course} in ${studentData.department}`);
             continue;
         }
+
+        // Generate registration number
+        const regNo = `STU${studentCounter++}`;
 
         // Create student
         const student = new User({
@@ -349,8 +356,9 @@ async function seedStudents(departmentMap) {
             email: studentData.email.toLowerCase(),
             password: hashedPassword,
             role: 'student',
-            departmentId: departmentId,
-            courseId: course._id,
+            regNo: regNo,
+            department: departmentId,
+            course: course._id,
             year: studentData.year,
             semester: studentData.semester,
             isVerified: true,
@@ -369,7 +377,7 @@ async function seedStudents(departmentMap) {
                 studentData.semester
             );
 
-            console.log(`  ✓ Created student: ${studentData.firstName} ${studentData.lastName} - Enrolled in ${enrollmentResult.enrolledCount} units`);
+            console.log(`  ✓ Created student: ${studentData.firstName} ${studentData.lastName} (${regNo}) - Enrolled in ${enrollmentResult.enrolledCount} units`);
         } catch (error) {
             console.log(`  ⚠️  Student created but enrollment failed: ${studentData.firstName} ${studentData.lastName}`);
             console.log(`     Error: ${error.message}`);

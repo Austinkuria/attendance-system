@@ -23,8 +23,7 @@ const autoEnrollStudent = async (studentId, courseId, year, semester) => {
         const matchingUnits = await Unit.find({
             course: courseId,
             year: year,
-            semester: semester,
-            isActive: true // Only enroll in active units
+            semester: semester
         }).select('_id name code');
 
         if (matchingUnits.length === 0) {
