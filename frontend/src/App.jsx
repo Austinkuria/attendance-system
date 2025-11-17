@@ -46,6 +46,22 @@ import { ErrorBoundary } from './components';
 import NetworkStatus from './components/NetworkStatus';
 import { useEffect } from 'react';
 import { message } from 'antd';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+// Super Admin imports
+import SuperAdminLayout from './pages/SuperAdmin/SuperAdminLayout';
+import SuperAdminDashboard from './pages/SuperAdmin/Dashboard';
+import SuperAdminDepartments from './pages/SuperAdmin/Departments';
+
+// Create a client for React Query
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      refetchOnWindowFocus: false,
+      retry: 1,
+      staleTime: 5 * 60 * 1000, // 5 minutes
+    },
+  },
+});
 
 function App() {
   // Add network connectivity check
@@ -65,88 +81,96 @@ function App() {
 
   return (
     <ErrorBoundary>
-      <ThemeProvider>
-        <AuthProvider>
-          <Router>
-            {/* Important: ThemeAwareToasts must be before NetworkStatus to ensure toast handlers are registered first */}
-            <ThemeAwareToasts />
+      <QueryClientProvider client={queryClient}>
+        <ThemeProvider>
+          <AuthProvider>
+            <Router>
+              {/* Important: ThemeAwareToasts must be before NetworkStatus to ensure toast handlers are registered first */}
+              <ThemeAwareToasts />
 
-            {/* NetworkStatus component for displaying banner notifications */}
-            <NetworkStatus />
+              {/* NetworkStatus component for displaying banner notifications */}
+              <NetworkStatus />
 
-            <ToastContainer
-              position="top-center"
-              autoClose={5000}
-              hideProgressBar={false}
-              newestOnTop={false}
-              closeOnClick
-              rtl={false}
-              pauseOnFocusLoss
-              draggable
-              pauseOnHover
-              theme="colored"
-            />
-            <InstallButton />
+              <ToastContainer
+                position="top-center"
+                autoClose={5000}
+                hideProgressBar={false}
+                newestOnTop={false}
+                closeOnClick
+                rtl={false}
+                pauseOnFocusLoss
+                draggable
+                pauseOnHover
+                theme="colored"
+              />
+              <InstallButton />
 
-            {/* Add the feedback button globally so it appears on all pages */}
-            <SystemFeedbackButton />
+              {/* Add the feedback button globally so it appears on all pages */}
+              <SystemFeedbackButton />
 
-            <Routes>
-              <Route path="/" element={<Home />} />
-              <Route path="/auth/login" element={<Login />} />
-              <Route path="/auth/signup" element={<Signup />} />
-              <Route path="/auth/verify-email/:token" element={<VerifyEmail />} />
-              <Route path="/auth/change-password" element={<ChangePassword />} />
-              <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
-              <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
-              <Route path="/dashboard" element={<Dashboard />} />
-              <Route path="/401" element={<Unauthorized />} />
-              <Route path="/403" element={<Forbidden />} />
-              <Route path="/500" element={<ServerError />} />
-              <Route path="/405" element={<MethodNotAllowed />} />
-              <Route path="*" element={<NotFound />} />
+              <Routes>
+                <Route path="/" element={<Home />} />
+                <Route path="/auth/login" element={<Login />} />
+                <Route path="/auth/signup" element={<Signup />} />
+                <Route path="/auth/verify-email/:token" element={<VerifyEmail />} />
+                <Route path="/auth/change-password" element={<ChangePassword />} />
+                <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
+                <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/401" element={<Unauthorized />} />
+                <Route path="/403" element={<Forbidden />} />
+                <Route path="/500" element={<ServerError />} />
+                <Route path="/405" element={<MethodNotAllowed />} />
+                <Route path="*" element={<NotFound />} />
 
-              {/* Lecturer routes */}
-              <Route element={<RoleGuard allowedRoles="lecturer" redirectTo="/auth/login" />}>
-                <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
-                <Route path="/lecturer/profile" element={<LecturerProfile />} />
-                <Route path="/lecturer/settings" element={<LecturerSettings />} />
-                <Route path="/lecturer/feedback" element={<LecturerFeedbackView />} />
-                <Route path="/lecturer/analytics" element={<Analytics />} />
-                <Route path="/lecturer/past-attendance" element={<PastAttendance />} />
-              </Route>
+                {/* Lecturer routes */}
+                <Route element={<RoleGuard allowedRoles="lecturer" redirectTo="/auth/login" />}>
+                  <Route path="/lecturer-dashboard" element={<LecturerDashboard />} />
+                  <Route path="/lecturer/profile" element={<LecturerProfile />} />
+                  <Route path="/lecturer/settings" element={<LecturerSettings />} />
+                  <Route path="/lecturer/feedback" element={<LecturerFeedbackView />} />
+                  <Route path="/lecturer/analytics" element={<Analytics />} />
+                  <Route path="/lecturer/past-attendance" element={<PastAttendance />} />
+                </Route>
 
-              {/* Admin routes */}
-              <Route element={<RoleGuard allowedRoles="admin" redirectTo="/auth/login" />}>
-                <Route path="/admin" element={<AdminPanel />} />
-                <Route path="/admin/settings" element={<AdminSettings />} />
-                <Route path="/admin/manage-students" element={<ManageStudents />} />
-                <Route path="/admin/profile" element={<AdminProfile />} />
-                <Route path="/admin/manage-courses" element={<ManageCourses />} />
-                <Route path="/admin/analytics" element={<AdminAnalytics />} />
-                <Route path="/admin/feedback" element={<AdminFeedbackView />} />
-                <Route path="/admin/manage-lecturers" element={<ManageLecturers />} />
-                <Route path="/admin/system-feedback" element={<SystemFeedbackList />} />
-              </Route>
+                {/* Super Admin routes */}
+                <Route element={<RoleGuard allowedRoles="super_admin" redirectTo="/auth/login" />}>
+                  <Route path="/super-admin" element={<SuperAdminLayout />}>
+                    <Route index element={<SuperAdminDashboard />} />
+                    <Route path="departments" element={<SuperAdminDepartments />} />
+                  </Route>
+                </Route>
 
-              {/* Student routes */}
-              <Route element={<RoleGuard allowedRoles="student" redirectTo="/auth/login" />}>
-                <Route path="/student-dashboard" element={<StudentDashboard />} />
-                <Route path="/student/profile" element={<StudentProfile />} />
-                <Route path="/student/attendance-trends" element={<AttendanceTrends />} />
-                <Route path="/student/settings" element={<StudentSettings />} />
-              </Route>
+                {/* Admin routes */}
+                <Route element={<RoleGuard allowedRoles="admin" redirectTo="/auth/login" />}>
+                  <Route path="/admin" element={<AdminPanel />} />
+                  <Route path="/admin/settings" element={<AdminSettings />} />
+                  <Route path="/admin/manage-students" element={<ManageStudents />} />
+                  <Route path="/admin/profile" element={<AdminProfile />} />
+                  <Route path="/admin/manage-courses" element={<ManageCourses />} />
+                  <Route path="/admin/analytics" element={<AdminAnalytics />} />
+                  <Route path="/admin/feedback" element={<AdminFeedbackView />} />
+                  <Route path="/admin/manage-lecturers" element={<ManageLecturers />} />
+                  <Route path="/admin/system-feedback" element={<SystemFeedbackList />} />
+                </Route>
 
-              {/* Routes that only need authentication but no specific role */}
-              <Route element={<ProtectedRoute />}>
-                <Route path="/qr-scanner/:selectedUnit" element={<QRScanner />} />
-              </Route>
-            </Routes>
-          </Router>
-        </AuthProvider>
-      </ThemeProvider>
+                {/* Student routes */}
+                <Route element={<RoleGuard allowedRoles="student" redirectTo="/auth/login" />}>
+                  <Route path="/student-dashboard" element={<StudentDashboard />} />
+                  <Route path="/student/profile" element={<StudentProfile />} />
+                  <Route path="/student/attendance-trends" element={<AttendanceTrends />} />
+                  <Route path="/student/settings" element={<StudentSettings />} />
+                </Route>
+
+                {/* Routes that only need authentication but no specific role */}
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/qr-scanner/:selectedUnit" element={<QRScanner />} />
+                </Route>
+              </Routes>
+            </Router>
+          </AuthProvider>
+        </ThemeProvider>
+      </QueryClientProvider>
     </ErrorBoundary>
   );
-}
-
-export default App;
+} export default App;

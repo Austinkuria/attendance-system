@@ -1,0 +1,272 @@
+/* Super Admin Layout Styles */
+.super-admin-layout {
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.super-admin-sider {
+    background: linear-gradient(180deg, #1a1d2e 0%, #16213e 100%);
+    box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
+    position: fixed;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    z-index: 10;
+}
+
+.logo {
+    height: 64px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.2);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.logo h2 {
+    color: #fff;
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+/* Header */
+.super-admin-header {
+    background: #fff;
+    padding: 0 24px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 9;
+    margin-left: 250px;
+    transition: margin-left 0.2s;
+}
+
+.super-admin-layout .ant-layout-sider-collapsed+.ant-layout .super-admin-header {
+    margin-left: 80px;
+}
+
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.collapse-btn {
+    font-size: 20px;
+    cursor: pointer;
+    transition: color 0.3s;
+    color: #595959;
+}
+
+.collapse-btn:hover {
+    color: #667eea;
+}
+
+.page-title {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    color: #262626;
+}
+
+.header-right {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+}
+
+.dark-mode-toggle {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: #8c8c8c;
+}
+
+.header-icon {
+    font-size: 20px;
+    cursor: pointer;
+    color: #595959;
+    transition: color 0.3s;
+}
+
+.header-icon:hover {
+    color: #667eea;
+}
+
+.user-info {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 4px 12px;
+    border-radius: 8px;
+    transition: background 0.3s;
+}
+
+.user-info:hover {
+    background: #f5f5f5;
+}
+
+.user-details {
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+}
+
+.user-name {
+    font-weight: 500;
+    color: #262626;
+    font-size: 14px;
+}
+
+.user-role {
+    font-size: 12px;
+    color: #8c8c8c;
+    text-transform: capitalize;
+}
+
+/* Content */
+.super-admin-content {
+    margin-left: 250px;
+    margin-top: 64px;
+    padding: 24px;
+    background: #f0f2f5;
+    min-height: calc(100vh - 64px);
+    transition: margin-left 0.2s;
+}
+
+.super-admin-layout .ant-layout-sider-collapsed+.ant-layout .super-admin-content {
+    margin-left: 80px;
+}
+
+.content-wrapper {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Menu Customization */
+.super-admin-sider .ant-menu {
+    background: transparent;
+    border: none;
+}
+
+.super-admin-sider .ant-menu-item {
+    border-radius: 8px;
+    margin: 4px 8px;
+    height: 48px;
+    line-height: 48px;
+    transition: all 0.3s;
+}
+
+.super-admin-sider .ant-menu-item:hover {
+    background: rgba(102, 126, 234, 0.1);
+    color: #667eea;
+}
+
+.super-admin-sider .ant-menu-item-selected {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: #fff !important;
+}
+
+.super-admin-sider .ant-menu-item-selected:hover {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
+
+.super-admin-sider .ant-menu-item-selected .anticon {
+    color: #fff;
+}
+
+/* Dark Mode */
+.super-admin-layout.dark-mode {
+    background: #141414;
+}
+
+.super-admin-layout.dark-mode .super-admin-header {
+    background: #1f1f1f;
+    border-bottom: 1px solid #303030;
+}
+
+.super-admin-layout.dark-mode .page-title {
+    color: #fff;
+}
+
+.super-admin-layout.dark-mode .header-icon,
+.super-admin-layout.dark-mode .collapse-btn {
+    color: #a6a6a6;
+}
+
+.super-admin-layout.dark-mode .user-name {
+    color: #fff;
+}
+
+.super-admin-layout.dark-mode .user-info:hover {
+    background: #303030;
+}
+
+.super-admin-layout.dark-mode .super-admin-content {
+    background: #141414;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .super-admin-sider {
+        position: fixed;
+        z-index: 999;
+    }
+
+    .super-admin-header {
+        margin-left: 0 !important;
+    }
+
+    .super-admin-content {
+        margin-left: 0 !important;
+        padding: 16px;
+    }
+
+    .user-details {
+        display: none;
+    }
+
+    .page-title {
+        font-size: 16px;
+    }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f0f0f0;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #bfbfbf;
+    border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #999;
+}
+
+.dark-mode ::-webkit-scrollbar-track {
+    background: #262626;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb {
+    background: #434343;
+}
+
+.dark-mode ::-webkit-scrollbar-thumb:hover {
+    background: #595959;
+}

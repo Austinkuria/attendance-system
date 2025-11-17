@@ -71,3 +71,16 @@
 2025-09-20 00:13:08 [debug]: Public assets folder already exists. {"service":"attendance-system"}
 2025-09-20 00:13:08 [info]: Server running on port 5000 {"service":"attendance-system"}
 2025-09-20 00:13:10 [info]: MongoDB Connected {"service":"attendance-system"}
+2025-11-17 19:14:18 [info]: Loading system feedback routes... {"service":"attendance-system"}
+2025-11-17 19:14:18 [info]: Loading main routes... {"service":"attendance-system"}
+2025-11-17 19:14:18 [debug]: Loading attendance routes {"service":"attendance-system"}
+2025-11-17 19:14:18 [debug]: Uploads folder already exists. {"service":"attendance-system"}
+2025-11-17 19:14:18 [debug]: Public assets folder already exists. {"service":"attendance-system"}
+2025-11-17 19:14:18 [info]: Server running on port 5000 {"service":"attendance-system"}
+2025-11-17 19:14:20 [info]: MongoDB connected {"service":"attendance-system"}
+2025-11-17 19:14:20 [info]: ✅ MongoDB Connected Successfully {"service":"attendance-system"}
+2025-11-17 19:14:28 [info]: Running initial refresh token cleanup... {"service":"attendance-system"}
+2025-11-17 19:14:29 [warn]: MongoDB disconnected - attempting to reconnect... {"service":"attendance-system"}
+2025-11-17 19:14:29 [info]: Initial cleanup completed. Deleted: 0, Active: 1 {"service":"attendance-system"}
+2025-11-17 19:14:30 [info]: MongoDB connected {"service":"attendance-system"}
+2025-11-17 19:14:30 [info]: ✅ MongoDB Connected Successfully {"service":"attendance-system"}
