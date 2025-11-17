@@ -2277,7 +2277,7 @@ const StudentDashboard = () => {
                         {loadingStates.profile ? (
                           <Spin size="small" />
                         ) : (
-                          `Welcome, ${username || 'Student'}! 👋`
+                          `Welcome, ${username || 'Student'}! `
                         )}
                       </AntTitle>
                     </motion.div>

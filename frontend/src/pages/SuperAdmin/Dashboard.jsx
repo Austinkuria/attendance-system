@@ -153,7 +153,7 @@ const Dashboard = () => {
         <div className="dashboard-container">
             {/* Welcome Section */}
             <div className="welcome-section">
-                <h1>Welcome back, Super Admin! 👋</h1>
+                <h1>Welcome back, Super Admin! </h1>
                 <p>Here&apos;s what&apos;s happening in your system today.</p>
             </div>
 
