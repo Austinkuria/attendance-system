@@ -13,7 +13,7 @@ const api = axios.create({
 // Add auth token to requests
 api.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('accessToken');
+        const token = localStorage.getItem('token') || sessionStorage.getItem('token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -32,18 +32,22 @@ api.interceptors.response.use(
             originalRequest._retry = true;
 
             try {
-                const refreshToken = localStorage.getItem('refreshToken');
+                const refreshToken = localStorage.getItem('refreshToken') || sessionStorage.getItem('refreshToken');
                 const response = await axios.post(`${API_URL}/auth/refresh`, {
                     refreshToken,
                 });
 
-                localStorage.setItem('accessToken', response.data.accessToken);
-                originalRequest.headers.Authorization = `Bearer ${response.data.accessToken}`;
+                const newToken = response.data.accessToken || response.data.token;
+                localStorage.setItem('token', newToken);
+                if (response.data.refreshToken) {
+                    localStorage.setItem('refreshToken', response.data.refreshToken);
+                }
+                originalRequest.headers.Authorization = `Bearer ${newToken}`;
 
                 return api(originalRequest);
             } catch (refreshError) {
                 localStorage.clear();
-                window.location.href = '/login';
+                window.location.href = '/auth/login';
                 return Promise.reject(refreshError);
             }
         }

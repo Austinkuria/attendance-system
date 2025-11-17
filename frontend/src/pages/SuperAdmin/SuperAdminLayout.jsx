@@ -94,7 +94,7 @@ const SuperAdminLayout = () => {
 
     function handleLogout() {
         localStorage.clear();
-        navigate('/login');
+        navigate('/auth/login');
     }
 
     const handleMenuClick = ({ key }) => {
