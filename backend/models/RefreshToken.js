@@ -15,8 +15,8 @@ const refreshTokenSchema = new mongoose.Schema({
   },
   expiresAt: {
     type: Date,
-    required: true,
-    index: true
+    required: true
+    // index is defined below with TTL for automatic cleanup
   },
   createdByIp: {
     type: String
@@ -39,12 +39,12 @@ const refreshTokenSchema = new mongoose.Schema({
 });
 
 // Virtual to check if token is expired
-refreshTokenSchema.virtual('isExpired').get(function() {
+refreshTokenSchema.virtual('isExpired').get(function () {
   return Date.now() >= this.expiresAt;
 });
 
 // Virtual to check if token is valid
-refreshTokenSchema.virtual('isValid').get(function() {
+refreshTokenSchema.virtual('isValid').get(function () {
   return this.isActive && !this.isExpired && !this.revokedAt;
 });
 
@@ -52,7 +52,7 @@ refreshTokenSchema.virtual('isValid').get(function() {
 refreshTokenSchema.index({ expiresAt: 1 }, { expireAfterSeconds: 0 });
 
 // Method to revoke token
-refreshTokenSchema.methods.revoke = function(ipAddress, replacedByToken) {
+refreshTokenSchema.methods.revoke = function (ipAddress, replacedByToken) {
   this.revokedAt = Date.now();
   this.revokedByIp = ipAddress;
   this.isActive = false;
