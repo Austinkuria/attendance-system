@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import {
     Card,
     Table,
@@ -21,11 +21,17 @@ import {
     ReloadOutlined,
 } from '@ant-design/icons';
 import { useDepartments, useCreateDepartment, useUpdateDepartment, useDeleteDepartment } from '../../hooks/useDepartments';
+import { ThemeContext } from '../../context/ThemeContext';
+import { getButtonStyles, getModalButtonProps } from '../../styles/buttonStyles';
 import './Departments.css';
 
 const { TextArea } = Input;
 
 const Departments = () => {
+    const { themeColors } = useContext(ThemeContext);
+    const buttonStyles = getButtonStyles(themeColors);
+    const modalButtonProps = getModalButtonProps(themeColors);
+
     const [searchText, setSearchText] = useState('');
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingDepartment, setEditingDepartment] = useState(null);
@@ -214,6 +220,7 @@ const Departments = () => {
                     icon={<PlusOutlined />}
                     onClick={handleCreate}
                     size="large"
+                    style={buttonStyles.primary}
                 >
                     Create Department
                 </Button>
@@ -307,13 +314,17 @@ const Departments = () => {
 
                     <Form.Item style={{ marginBottom: 0, marginTop: 24 }}>
                         <Space style={{ width: '100%', justifyContent: 'flex-end' }}>
-                            <Button onClick={() => setIsModalOpen(false)}>
+                            <Button
+                                onClick={() => setIsModalOpen(false)}
+                                style={buttonStyles.cancel}
+                            >
                                 Cancel
                             </Button>
                             <Button
                                 type="primary"
                                 htmlType="submit"
                                 loading={createMutation.isLoading || updateMutation.isLoading}
+                                style={buttonStyles.primary}
                             >
                                 {editingDepartment ? 'Update' : 'Create'}
                             </Button>
