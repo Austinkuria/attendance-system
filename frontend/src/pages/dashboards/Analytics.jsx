@@ -7,6 +7,7 @@ import { ReloadOutlined, LineChartOutlined, TeamOutlined, PercentageOutlined, Ar
 import { getAttendanceTrends, getLecturerUnits } from "../../services/api";
 import moment from 'moment';
 import { ThemeContext } from "../../context/ThemeContext";
+import { getButtonStyles } from "../../styles/buttonStyles";
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, BarElement, Title, Tooltip, Legend, Filler);
 
@@ -17,6 +18,7 @@ const { Text } = Typography;
 const Analytics = () => {
   const navigate = useNavigate();
   const { themeColors, isDarkMode } = useContext(ThemeContext);
+  const buttonStyles = getButtonStyles(themeColors);
   const screens = useBreakpoint();
   const lecturerId = localStorage.getItem("userId");
   const [trends, setTrends] = useState({ labels: [], present: [], absent: [], rates: [] });
@@ -254,13 +256,7 @@ const Analytics = () => {
       <Button
         type="primary"
         onClick={() => navigate('/lecturer-dashboard')}
-        style={{
-          background: themeColors.primary,
-          borderColor: themeColors.primary,
-          borderRadius: 8,
-          color: isDarkMode ? themeColors.text : '#fff',
-          marginBottom: 16
-        }}
+        style={buttonStyles.primary}
         icon={<ArrowLeftOutlined />}
       >
         Back to Lecturer Dashboard
@@ -337,13 +333,7 @@ const Analytics = () => {
               onClick={fetchTrends}
               loading={loading.trends}
               disabled={loading.trends || !selectedUnit || ((filterType === 'Day' || filterType === 'Week') && !selectedDate)}
-              style={{
-                background: themeColors.primary,
-                borderColor: themeColors.primary,
-                color: themeColors.textInvert,
-                borderRadius: 8,
-                transition: 'all 0.3s'
-              }}
+              style={buttonStyles.primary}
             >
               {screens.md ? (loading.trends ? 'Loading...' : 'Refresh Trends') : (loading.trends ? 'Loading' : 'Refresh')}
             </Button>

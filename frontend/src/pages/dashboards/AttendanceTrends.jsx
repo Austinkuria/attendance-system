@@ -19,6 +19,7 @@ import moment from 'moment';
 import 'antd/dist/reset.css';
 import zoomPlugin from 'chartjs-plugin-zoom';
 import { ThemeContext } from '../../context/ThemeContext';
+import { getButtonStyles } from '../../styles/buttonStyles';
 
 ChartJS.register(
   CategoryScale,
@@ -406,6 +407,8 @@ const styles = {
 
 const AttendanceTrends = () => {
   const { themeColors } = useContext(ThemeContext);
+  const buttonStyles = getButtonStyles(themeColors);
+
   const [attendanceData, setAttendanceData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [loadingMessage, setLoadingMessage] = useState('Loading attendance data...');
@@ -696,7 +699,7 @@ const AttendanceTrends = () => {
             type="link"
             icon={<ArrowLeftOutlined style={{ color: themeColors.text }} />}
             onClick={() => navigate('/student-dashboard')}
-            style={{ color: themeColors.text }}
+            style={buttonStyles.text}
             className="dashboard-nav-btn"
           >
             Dashboard

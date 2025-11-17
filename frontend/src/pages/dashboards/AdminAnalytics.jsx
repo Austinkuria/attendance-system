@@ -8,6 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { getCourses, getUnitsByCourse, getCourseAttendanceRate, getUnitAttendanceRate } from '../../services/api';
 import dayjs from 'dayjs'; // Use dayjs instead of moment
 import { ThemeContext } from '../../context/ThemeContext';
+import { getButtonStyles } from '../../styles/buttonStyles';
 import ThemeToggle from '../../components/ThemeToggle';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, LineElement, PointElement, Tooltip, Legend, Title, zoomPlugin);
@@ -47,6 +48,8 @@ const modalColumns = [
 const AdminAnalytics = () => {
   const navigate = useNavigate();
   const { themeColors, isDarkMode } = useContext(ThemeContext);
+  const buttonStyles = getButtonStyles(themeColors);
+
   const [courses, setCourses] = useState([]);
   const [attendanceRates, setAttendanceRates] = useState({});
   const [loading, setLoading] = useState(true);
@@ -396,7 +399,7 @@ const AdminAnalytics = () => {
             type="primary"
             icon={<LeftOutlined />}
             onClick={() => navigate('/admin')}
-            style={{ marginRight: 16 }}
+            style={{ ...buttonStyles.primary, marginRight: 16 }}
           >
             Back to Admin
           </Button>
