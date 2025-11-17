@@ -51,6 +51,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SuperAdminLayout from './pages/SuperAdmin/SuperAdminLayout';
 import SuperAdminDashboard from './pages/SuperAdmin/Dashboard';
 import SuperAdminDepartments from './pages/SuperAdmin/Departments';
+import ComingSoon from './pages/SuperAdmin/ComingSoon';
 // Utility pages
 import VerifyEmailManually from './pages/VerifyEmailManually';
 
@@ -144,6 +145,13 @@ function App() {
                   <Route path="/super-admin" element={<SuperAdminLayout />}>
                     <Route index element={<SuperAdminDashboard />} />
                     <Route path="departments" element={<SuperAdminDepartments />} />
+                    <Route path="admins" element={<ComingSoon title="Department Admins Management" description="Manage department administrators, assign departments, and control access permissions." />} />
+                    <Route path="users" element={<ComingSoon title="Users Overview" description="View and manage all system users including students, lecturers, and administrators." />} />
+                    <Route path="reports" element={<ComingSoon title="Reports & Analytics" description="Generate comprehensive reports and analyze system-wide statistics." />} />
+                    <Route path="logs" element={<ComingSoon title="Activity Logs" description="Monitor and review all system activities and audit trails." />} />
+                    <Route path="settings" element={<ComingSoon title="System Settings" description="Configure system-wide settings, preferences, and integrations." />} />
+                    <Route path="profile" element={<ComingSoon title="My Profile" description="View and update your profile information." />} />
+                    <Route path="account" element={<ComingSoon title="Account Settings" description="Manage your account settings and preferences." />} />
                   </Route>
                 </Route>
 
