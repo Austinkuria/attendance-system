@@ -112,6 +112,13 @@ const SuperAdminLayout = () => {
         '--accent-color': themeColors.accent,
         '--primary-hover': themeColors.primaryHover,
         '--card-gradient': themeColors.cardGradient1,
+        '--background-color': themeColors.background,
+        '--card-bg': themeColors.cardBg,
+        '--text-color': themeColors.text,
+        '--text-secondary': themeColors.textSecondary,
+        '--border-color': themeColors.border,
+        '--hover-bg': themeColors.hover,
+        '--table-header-bg': themeColors.tableHeaderBg,
     };
 
     return (
@@ -125,7 +132,7 @@ const SuperAdminLayout = () => {
                 width={250}
             >
                 {/* Logo */}
-                <div className="logo" style={{ background: themeColors.cardGradient1 }}>
+                <div className="logo" style={{ background: themeColors.primary }}>
                     {collapsed ? (
                         <h2>QR</h2>
                     ) : (

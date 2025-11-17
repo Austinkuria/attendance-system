@@ -12,15 +12,12 @@
     font-size: 28px;
     font-weight: 700;
     margin-bottom: 8px;
-    background: var(--card-gradient, linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
+    color: var(--primary-color, #6C5CE7);
 }
 
 .welcome-section p {
     font-size: 16px;
-    color: #8c8c8c;
+    color: var(--text-secondary, #8c8c8c);
     margin: 0;
 }
 
@@ -35,6 +32,8 @@
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
     transition: all 0.3s ease;
     height: 100%;
+    background: var(--card-bg, #FFFFFF);
+    border: 1px solid var(--border-color, transparent);
 }
 
 .stat-card:hover {
@@ -66,14 +65,14 @@
 
 .stat-details .ant-statistic-title {
     font-size: 14px;
-    color: #8c8c8c;
+    color: var(--text-secondary, #8c8c8c);
     margin-bottom: 4px;
 }
 
 .stat-details .ant-statistic-content {
     font-size: 24px;
     font-weight: 700;
-    color: #262626;
+    color: var(--text-color, #262626);
 }
 
 /* Content Section */
@@ -85,16 +84,19 @@
     border-radius: 12px;
     border: none;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+    background: var(--card-bg, #FFFFFF);
+    border: 1px solid var(--border-color, transparent);
 }
 
 .activity-card .ant-card-head {
-    border-bottom: 1px solid #f0f0f0;
+    border-bottom: 1px solid var(--border-color, #f0f0f0);
     font-weight: 600;
+    color: var(--text-color, #262626);
 }
 
 .activity-action {
     font-weight: 500;
-    color: #262626;
+    color: var(--text-color, #262626);
 }
 
 /* Loading */
@@ -105,33 +107,8 @@
     min-height: 400px;
 }
 
-/* Dark Mode */
-.dark-mode .stat-card {
-    background: #1f1f1f;
-    border-color: #303030;
-}
-
-.dark-mode .stat-details .ant-statistic-title {
-    color: #a6a6a6;
-}
-
-.dark-mode .stat-details .ant-statistic-content {
-    color: #fff;
-}
-
-.dark-mode .activity-card {
-    background: #1f1f1f;
-    border-color: #303030;
-}
-
-.dark-mode .activity-card .ant-card-head {
-    border-bottom-color: #303030;
-    color: #fff;
-}
-
-.dark-mode .activity-action {
-    color: #fff;
-}
+/* Dark Mode - Handled by ThemeContext CSS Variables */
+/* All colors are automatically applied through CSS variables */
 
 /* Responsive */
 @media (max-width: 768px) {

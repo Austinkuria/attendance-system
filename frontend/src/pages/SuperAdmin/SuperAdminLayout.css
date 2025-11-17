@@ -1,17 +1,19 @@
 /* Super Admin Layout Styles */
 .super-admin-layout {
     min-height: 100vh;
+    background: var(--background-color, #F7F9FC);
 }
 
 /* Sidebar */
 .super-admin-sider {
-    background: linear-gradient(180deg, #1a1d2e 0%, #16213e 100%);
+    background: var(--card-bg, #FFFFFF);
     box-shadow: 2px 0 8px rgba(0, 0, 0, 0.15);
     position: fixed;
     left: 0;
     top: 0;
     bottom: 0;
     z-index: 10;
+    border-right: 1px solid var(--border-color, #E2E8F0);
 }
 
 .logo {
@@ -19,8 +21,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(0, 0, 0, 0.2);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    background: var(--primary-color, #6C5CE7);
+    border-bottom: 1px solid var(--border-color, rgba(255, 255, 255, 0.1));
 }
 
 .logo h2 {
@@ -28,15 +30,11 @@
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    background: var(--card-gradient, linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%));
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
 }
 
 /* Header */
 .super-admin-header {
-    background: #fff;
+    background: var(--card-bg, #fff);
     padding: 0 24px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
     display: flex;
@@ -47,6 +45,7 @@
     z-index: 9;
     margin-left: 250px;
     transition: margin-left 0.2s;
+    border-bottom: 1px solid var(--border-color, #E2E8F0);
 }
 
 .super-admin-layout .ant-layout-sider-collapsed+.ant-layout .super-admin-header {
@@ -63,7 +62,7 @@
     font-size: 20px;
     cursor: pointer;
     transition: color 0.3s;
-    color: #595959;
+    color: var(--text-color, #595959);
 }
 
 .collapse-btn:hover {
@@ -74,7 +73,7 @@
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    color: #262626;
+    color: var(--text-color, #262626);
 }
 
 .header-right {
@@ -87,13 +86,13 @@
     display: flex;
     align-items: center;
     gap: 8px;
-    color: #8c8c8c;
+    color: var(--text-secondary, #8c8c8c);
 }
 
 .header-icon {
     font-size: 20px;
     cursor: pointer;
-    color: #595959;
+    color: var(--text-color, #595959);
     transition: color 0.3s;
 }
 
@@ -112,7 +111,7 @@
 }
 
 .user-info:hover {
-    background: #f5f5f5;
+    background: var(--hover-bg, #f5f5f5);
 }
 
 .user-details {
@@ -123,13 +122,13 @@
 
 .user-name {
     font-weight: 500;
-    color: #262626;
+    color: var(--text-color, #262626);
     font-size: 14px;
 }
 
 .user-role {
     font-size: 12px;
-    color: #8c8c8c;
+    color: var(--text-secondary, #8c8c8c);
     text-transform: capitalize;
 }
 
@@ -138,7 +137,7 @@
     margin-left: 250px;
     margin-top: 64px;
     padding: 24px;
-    background: #f0f2f5;
+    background: var(--background-color, #f0f2f5);
     min-height: calc(100vh - 64px);
     transition: margin-left 0.2s;
 }
@@ -156,6 +155,7 @@
 .super-admin-sider .ant-menu {
     background: transparent;
     border: none;
+    color: var(--text-color, #2D3436);
 }
 
 .super-admin-sider .ant-menu-item {
@@ -164,56 +164,42 @@
     height: 48px;
     line-height: 48px;
     transition: all 0.3s;
+    color: var(--text-color, #2D3436);
 }
 
 .super-admin-sider .ant-menu-item:hover {
-    background: rgba(108, 92, 231, 0.1);
-    color: var(--primary-color, #6C5CE7);
+    background: var(--hover-bg, rgba(108, 92, 231, 0.1));
+    color: var(--primary-color, #6C5CE7) !important;
+}
+
+.super-admin-sider .ant-menu-item:hover .anticon {
+    color: var(--primary-color, #6C5CE7) !important;
 }
 
 .super-admin-sider .ant-menu-item-selected {
-    background: var(--card-gradient, linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%));
+    background: var(--primary-color, #6C5CE7);
     color: #fff !important;
 }
 
 .super-admin-sider .ant-menu-item-selected:hover {
-    background: var(--card-gradient, linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%));
+    background: var(--primary-hover, rgba(108, 92, 231, 0.85));
+    color: #fff !important;
 }
 
 .super-admin-sider .ant-menu-item-selected .anticon {
     color: #fff;
 }
 
-/* Dark Mode */
-.super-admin-layout.dark-mode {
-    background: #141414;
+.super-admin-sider .ant-menu-item .anticon {
+    color: var(--text-color, #2D3436);
 }
 
-.super-admin-layout.dark-mode .super-admin-header {
-    background: #1f1f1f;
-    border-bottom: 1px solid #303030;
+.super-admin-sider .ant-menu-item-selected .anticon {
+    color: #fff !important;
 }
 
-.super-admin-layout.dark-mode .page-title {
-    color: #fff;
-}
-
-.super-admin-layout.dark-mode .header-icon,
-.super-admin-layout.dark-mode .collapse-btn {
-    color: #a6a6a6;
-}
-
-.super-admin-layout.dark-mode .user-name {
-    color: #fff;
-}
-
-.super-admin-layout.dark-mode .user-info:hover {
-    background: #303030;
-}
-
-.super-admin-layout.dark-mode .super-admin-content {
-    background: #141414;
-}
+/* Dark Mode - Handled by ThemeContext CSS Variables */
+/* The dark mode styles are automatically applied through CSS variables */
 
 /* Responsive */
 @media (max-width: 768px) {
