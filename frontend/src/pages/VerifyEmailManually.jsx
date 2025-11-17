@@ -15,8 +15,8 @@ const VerifyEmailManually = () => {
         setResult(null);
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com';
-            const response = await axios.post(`${apiUrl}/api/auth/manual-verify-email`, {
+            const apiUrl = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api';
+            const response = await axios.post(`${apiUrl}/auth/manual-verify-email`, {
                 email: values.email
             });
 
@@ -69,7 +69,7 @@ const VerifyEmailManually = () => {
                         message="API Endpoint"
                         description={
                             <Text code style={{ wordBreak: 'break-all' }}>
-                                {import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com'}/api/auth/manual-verify-email
+                                {import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api'}/auth/manual-verify-email
                             </Text>
                         }
                         type="info"
