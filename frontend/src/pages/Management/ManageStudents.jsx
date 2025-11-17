@@ -35,15 +35,16 @@ import {
   UnorderedListOutlined,
 } from "@ant-design/icons";
 import { ThemeContext } from '../../context/ThemeContext';
+import { getButtonStyles } from '../../styles/buttonStyles';
 // import ThemeToggle from '../../components/ThemeToggle';
-import { 
-  getStudents, 
-  deleteStudent, 
-  downloadStudents, 
-  updateStudentV2, 
+import {
+  getStudents,
+  deleteStudent,
+  downloadStudents,
+  updateStudentV2,
   getUnits,
-  enrollStudentInUnit, 
-  removeStudentFromUnit 
+  enrollStudentInUnit,
+  removeStudentFromUnit
 } from "../../services/api";
 import api from "../../services/api";
 import { useTableStyles } from '../../components/SharedTableStyles';
@@ -56,6 +57,8 @@ const { Title, Text } = Typography;
 const ManageStudents = () => {
   const navigate = useNavigate();
   const { isDarkMode, themeColors } = useContext(ThemeContext);
+  const buttonStyles = getButtonStyles(themeColors);
+
   const [students, setStudents] = useState([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filter, setFilter] = useState({
@@ -203,7 +206,7 @@ const ManageStudents = () => {
       try {
         const token = localStorage.getItem("token");
         if (!token) return navigate("/auth/login");
-        
+
         const response = await getUnits();
         setAvailableUnits(response || []);
       } catch (err) {
@@ -302,7 +305,7 @@ const ManageStudents = () => {
       };
 
       console.log("Updating student with data:", formattedStudent);
-      
+
       const response = await updateStudentV2(selectedStudent._id, formattedStudent);
 
       if (response.message === "Student updated successfully") {
@@ -428,12 +431,12 @@ const ManageStudents = () => {
     try {
       setLoadingUnits(true);
       setSelectedStudentForUnits(student);
-      
+
       const token = localStorage.getItem("token");
       const response = await api.get(`/students/${student._id}/units`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       setStudentUnits(response.data || []);
       unitForm.resetFields();
       setIsUnitsModalVisible(true);
@@ -449,14 +452,14 @@ const ManageStudents = () => {
     try {
       const values = await unitForm.validateFields();
       setLoadingUnits(true);
-      
+
       await enrollStudentInUnit(selectedStudentForUnits._id, values.unit);
-      
+
       const token = localStorage.getItem("token");
       const response = await api.get(`/students/${selectedStudentForUnits._id}/units`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      
+
       setStudentUnits(response.data || []);
       unitForm.resetFields();
       message.success("Student enrolled in unit successfully");
@@ -471,9 +474,9 @@ const ManageStudents = () => {
   const handleRemoveUnit = async (unitId) => {
     try {
       setLoadingUnits(true);
-      
+
       await removeStudentFromUnit(selectedStudentForUnits._id, unitId);
-      
+
       setStudentUnits(studentUnits.filter(unit => unit._id !== unitId));
       message.success("Unit removed successfully");
     } catch (err) {
@@ -841,9 +844,9 @@ const ManageStudents = () => {
             type="primary"
             icon={<UnorderedListOutlined />}
             size="small"
-            style={{ 
+            style={{
               background: themeColors.secondary,
-              borderColor: themeColors.secondary 
+              borderColor: themeColors.secondary
             }}
             onClick={() => openUnitsModal(record)}
           >
@@ -1095,11 +1098,7 @@ const ManageStudents = () => {
           <Button
             key="cancel"
             onClick={() => setIsAddModalVisible(false)}
-            style={{
-              color: isDarkMode ? themeColors.text : themeColors.text,
-              background: isDarkMode ? themeColors.cardBg : '#fff',
-              borderColor: themeColors.border
-            }}
+            style={buttonStyles.cancel}
           >
             Cancel
           </Button>,
@@ -1108,11 +1107,7 @@ const ManageStudents = () => {
             type="primary"
             onClick={handleAddStudent}
             loading={loading}
-            style={{
-              background: themeColors.primary,
-              borderColor: themeColors.primary,
-              color: themeColors.textInvert
-            }}
+            style={buttonStyles.create}
           >
             Create Student
           </Button>,
@@ -1262,11 +1257,7 @@ const ManageStudents = () => {
           <Button
             key="cancel"
             onClick={() => setIsEditModalVisible(false)}
-            style={{
-              color: isDarkMode ? themeColors.text : themeColors.text,
-              background: isDarkMode ? themeColors.cardBg : '#fff',
-              borderColor: themeColors.border
-            }}
+            style={buttonStyles.cancel}
           >
             Cancel
           </Button>,
@@ -1275,11 +1266,7 @@ const ManageStudents = () => {
             type="primary"
             onClick={handleEditStudent}
             loading={loading}
-            style={{
-              background: themeColors.primary,
-              borderColor: themeColors.primary,
-              color: themeColors.textInvert
-            }}
+            style={buttonStyles.primary}
           >
             Save Changes
           </Button>,
@@ -1492,11 +1479,7 @@ const ManageStudents = () => {
           <Button
             key="cancel"
             onClick={() => setIsDeleteModalVisible(false)}
-            style={{
-              color: isDarkMode ? themeColors.text : themeColors.text,
-              background: isDarkMode ? themeColors.cardBg : '#fff',
-              borderColor: themeColors.border
-            }}
+            style={buttonStyles.cancel}
           >
             Cancel
           </Button>,
@@ -1506,11 +1489,7 @@ const ManageStudents = () => {
             danger
             onClick={handleConfirmDelete}
             loading={loading}
-            style={{
-              background: themeColors.accent,
-              borderColor: themeColors.accent,
-              color: themeColors.textInvert
-            }}
+            style={buttonStyles.danger}
           >
             Delete Student
           </Button>,

@@ -38,6 +38,7 @@ import {
   getUnitsByCourse,
 } from '../../services/api';
 import { ThemeContext } from '../../context/ThemeContext';
+import { getButtonStyles } from '../../styles/buttonStyles';
 import { useTableStyles } from '../../components/SharedTableStyles';
 import { useModalStyles } from '../../components/SharedModalStyles';
 
@@ -48,6 +49,8 @@ const { Title } = Typography;
 const ManageCourses = () => {
   const navigate = useNavigate();
   const { isDarkMode, themeColors } = useContext(ThemeContext);
+  const buttonStyles = getButtonStyles(themeColors);
+
   const [courses, setCourses] = useState([]);
   const [departments, setDepartments] = useState([]);
   const [showCourseModal, setShowCourseModal] = useState(false);
@@ -786,11 +789,7 @@ const ManageCourses = () => {
               <Button
                 key="cancel"
                 onClick={() => setShowCourseModal(false)}
-                style={{
-                  color: isDarkMode ? themeColors.text : themeColors.text,
-                  background: isDarkMode ? themeColors.cardBg : '#fff',
-                  borderColor: themeColors.border
-                }}
+                style={buttonStyles.cancel}
               >
                 Cancel
               </Button>,
@@ -799,11 +798,7 @@ const ManageCourses = () => {
                 type="primary"
                 onClick={handleCourseSubmit}
                 loading={loading}
-                style={{
-                  background: themeColors.primary,
-                  borderColor: themeColors.primary,
-                  color: themeColors.textInvert
-                }}
+                style={buttonStyles.primary}
               >
                 Save Course
               </Button>,
@@ -879,11 +874,7 @@ const ManageCourses = () => {
               <Button
                 key="cancel"
                 onClick={() => setShowDeleteModal(false)}
-                style={{
-                  color: isDarkMode ? themeColors.text : themeColors.text,
-                  background: isDarkMode ? themeColors.cardBg : '#fff',
-                  borderColor: themeColors.border
-                }}
+                style={buttonStyles.cancel}
               >
                 Cancel
               </Button>,
@@ -893,11 +884,7 @@ const ManageCourses = () => {
                 danger
                 onClick={handleDelete}
                 loading={loading}
-                style={{
-                  background: themeColors.accent,
-                  borderColor: themeColors.accent,
-                  color: themeColors.textInvert
-                }}
+                style={buttonStyles.danger}
               >
                 Delete Course
               </Button>,

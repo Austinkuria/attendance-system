@@ -32,6 +32,7 @@ import {
   ApartmentOutlined
 } from "@ant-design/icons";
 import { ThemeContext } from '../../context/ThemeContext';
+import { getButtonStyles } from '../../styles/buttonStyles';
 import {
   getLecturers,
   deleteLecturer,
@@ -51,6 +52,8 @@ const { Option } = Select;
 const ManageLecturers = () => {
   const navigate = useNavigate();
   const { isDarkMode, themeColors } = useContext(ThemeContext);
+  const buttonStyles = getButtonStyles(themeColors);
+
   const [lecturers, setLecturers] = useState([]);
   const [units, setUnits] = useState([]);
   const [departments, setDepartments] = useState([]);
@@ -941,11 +944,7 @@ const ManageLecturers = () => {
           <Button
             key="cancel"
             onClick={() => setIsAddModalVisible(false)}
-            style={{
-              color: isDarkMode ? themeColors.text : themeColors.text,
-              background: isDarkMode ? themeColors.cardBg : '#fff',
-              borderColor: themeColors.border
-            }}
+            style={buttonStyles.cancel}
           >
             Cancel
           </Button>,
@@ -954,11 +953,7 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleAddLecturer}
             loading={loading}
-            style={{
-              background: themeColors.primary,
-              borderColor: themeColors.primary,
-              color: themeColors.textInvert
-            }}
+            style={buttonStyles.create}
           >
             Add Lecturer
           </Button>,
@@ -1056,11 +1051,7 @@ const ManageLecturers = () => {
           <Button
             key="cancel"
             onClick={() => setIsEditModalVisible(false)}
-            style={{
-              color: isDarkMode ? themeColors.text : themeColors.text,
-              background: isDarkMode ? themeColors.cardBg : '#fff',
-              borderColor: themeColors.border
-            }}
+            style={buttonStyles.cancel}
           >
             Cancel
           </Button>,
@@ -1069,11 +1060,7 @@ const ManageLecturers = () => {
             type="primary"
             onClick={handleEditLecturer}
             loading={loading}
-            style={{
-              background: themeColors.primary,
-              borderColor: themeColors.primary,
-              color: themeColors.textInvert
-            }}
+            style={buttonStyles.primary}
           >
             Save Changes
           </Button>,
@@ -1152,11 +1139,7 @@ const ManageLecturers = () => {
           <Button
             key="cancel"
             onClick={() => setIsDeleteModalVisible(false)}
-            style={{
-              color: isDarkMode ? themeColors.text : themeColors.text,
-              background: isDarkMode ? themeColors.cardBg : '#fff',
-              borderColor: themeColors.border
-            }}
+            style={buttonStyles.cancel}
           >
             Cancel
           </Button>,
@@ -1166,11 +1149,7 @@ const ManageLecturers = () => {
             danger
             onClick={handleConfirmDelete}
             loading={loading}
-            style={{
-              background: themeColors.accent,
-              borderColor: themeColors.accent,
-              color: themeColors.textInvert
-            }}
+            style={buttonStyles.danger}
           >
             Delete Lecturer
           </Button>,
