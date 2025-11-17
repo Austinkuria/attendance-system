@@ -51,6 +51,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import SuperAdminLayout from './pages/SuperAdmin/SuperAdminLayout';
 import SuperAdminDashboard from './pages/SuperAdmin/Dashboard';
 import SuperAdminDepartments from './pages/SuperAdmin/Departments';
+// Utility pages
+import VerifyEmailManually from './pages/VerifyEmailManually';
 
 // Create a client for React Query
 const queryClient = new QueryClient({
@@ -116,6 +118,10 @@ function App() {
                 <Route path="/auth/change-password" element={<ChangePassword />} />
                 <Route path="/auth/reset-password" element={<ResetPasswordRequest />} />
                 <Route path="/auth/reset-password/:token" element={<ResetPassword />} />
+
+                {/* Utility pages */}
+                <Route path="/verify-email-manually" element={<VerifyEmailManually />} />
+
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/401" element={<Unauthorized />} />
                 <Route path="/403" element={<Forbidden />} />
