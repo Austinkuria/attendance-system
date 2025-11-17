@@ -41,6 +41,14 @@ router.post('/resend-verification',
   authController.resendVerification
 );
 
+// Manual email verification (for development/admin purposes)
+router.post('/manual-verify-email',
+  [
+    check('email').isEmail().withMessage('Valid email is required')
+  ],
+  authController.manualVerifyEmail
+);
+
 // ===== PROTECTED ROUTES =====
 
 // Validate session (requires authentication)

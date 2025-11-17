@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useContext } from 'react';
 import { Layout, Menu, Avatar, Dropdown, Badge, Switch } from 'antd';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -13,15 +13,14 @@ import {
     BellOutlined,
     MenuFoldOutlined,
     MenuUnfoldOutlined,
-    BulbOutlined,
+    BulbFilled,
 } from '@ant-design/icons';
-import './SuperAdminLayout.css';
-
-const { Header, Sider, Content } = Layout;
+import { ThemeContext } from '../../context/ThemeContext';
+import './SuperAdminLayout.css'; const { Header, Sider, Content } = Layout;
 
 const SuperAdminLayout = () => {
     const [collapsed, setCollapsed] = useState(false);
-    const [darkMode, setDarkMode] = useState(false);
+    const { isDarkMode, setIsDarkMode, themeColors } = useContext(ThemeContext);
     const navigate = useNavigate();
     const location = useLocation();
 
@@ -103,13 +102,20 @@ const SuperAdminLayout = () => {
     };
 
     const toggleDarkMode = (checked) => {
-        setDarkMode(checked);
-        // You can implement dark mode theme switching here
-        document.body.setAttribute('data-theme', checked ? 'dark' : 'light');
+        setIsDarkMode(checked);
+    };
+
+    // Set CSS variables for theme colors
+    const layoutStyle = {
+        '--primary-color': themeColors.primary,
+        '--secondary-color': themeColors.secondary,
+        '--accent-color': themeColors.accent,
+        '--primary-hover': themeColors.primaryHover,
+        '--card-gradient': themeColors.cardGradient1,
     };
 
     return (
-        <Layout className={`super-admin-layout ${darkMode ? 'dark-mode' : ''}`}>
+        <Layout className={`super-admin-layout ${isDarkMode ? 'dark-mode' : ''}`} style={layoutStyle}>
             {/* Sidebar */}
             <Sider
                 trigger={null}
@@ -119,7 +125,7 @@ const SuperAdminLayout = () => {
                 width={250}
             >
                 {/* Logo */}
-                <div className="logo">
+                <div className="logo" style={{ background: themeColors.cardGradient1 }}>
                     {collapsed ? (
                         <h2>QR</h2>
                     ) : (
@@ -156,9 +162,9 @@ const SuperAdminLayout = () => {
                     <div className="header-right">
                         {/* Dark Mode Toggle */}
                         <div className="dark-mode-toggle">
-                            <BulbOutlined />
+                            <BulbFilled style={{ color: themeColors.primary }} />
                             <Switch
-                                checked={darkMode}
+                                checked={isDarkMode}
                                 onChange={toggleDarkMode}
                                 size="small"
                             />
@@ -174,7 +180,7 @@ const SuperAdminLayout = () => {
                             <div className="user-info">
                                 <Avatar
                                     size="default"
-                                    style={{ backgroundColor: '#667eea' }}
+                                    style={{ backgroundColor: themeColors.primary }}
                                     icon={<UserOutlined />}
                                 >
                                     {user.firstName?.[0]}

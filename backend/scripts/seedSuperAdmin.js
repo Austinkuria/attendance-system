@@ -10,7 +10,7 @@ async function seedSuperAdmin() {
 
     // Check if super admin already exists
     const existingAdmin = await User.findOne({ isSuperAdmin: true });
-    
+
     if (existingAdmin) {
       console.log('\n⚠️  Super admin already exists!');
       console.log('Email:', existingAdmin.email);
@@ -31,6 +31,7 @@ async function seedSuperAdmin() {
       password: hashedPassword,
       isSuperAdmin: true,
       isActive: true,
+      isVerified: true, // Super admin doesn't need email verification
       mustChangePassword: true // Force password change on first login
     });
 
@@ -52,11 +53,11 @@ async function seedSuperAdmin() {
     process.exit(0);
   } catch (error) {
     console.error('\n❌ Seeding failed:', error);
-    
+
     if (error.code === 11000) {
       console.error('\nDuplicate key error - user with this email already exists');
     }
-    
+
     process.exit(1);
   }
 }

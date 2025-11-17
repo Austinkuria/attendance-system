@@ -28,7 +28,7 @@
     margin: 0;
     font-size: 20px;
     font-weight: 600;
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--card-gradient, linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -67,7 +67,7 @@
 }
 
 .collapse-btn:hover {
-    color: #667eea;
+    color: var(--primary-color, #6C5CE7);
 }
 
 .page-title {
@@ -98,7 +98,7 @@
 }
 
 .header-icon:hover {
-    color: #667eea;
+    color: var(--primary-color, #6C5CE7);
 }
 
 .user-info {
@@ -167,17 +167,17 @@
 }
 
 .super-admin-sider .ant-menu-item:hover {
-    background: rgba(102, 126, 234, 0.1);
-    color: #667eea;
+    background: rgba(108, 92, 231, 0.1);
+    color: var(--primary-color, #6C5CE7);
 }
 
 .super-admin-sider .ant-menu-item-selected {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--card-gradient, linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%));
     color: #fff !important;
 }
 
 .super-admin-sider .ant-menu-item-selected:hover {
-    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    background: var(--card-gradient, linear-gradient(135deg, #6C5CE7 0%, #A29BFE 100%));
 }
 
 .super-admin-sider .ant-menu-item-selected .anticon {

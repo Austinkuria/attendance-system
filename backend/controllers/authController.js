@@ -597,6 +597,69 @@ const authController = {
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
+    },
+
+    /**
+     * MANUAL EMAIL VERIFICATION - For development/admin purposes
+     * @param {Object} req - Express request object
+     * @param {Object} res - Express response object
+     */
+    manualVerifyEmail: async (req, res) => {
+        try {
+            const { email } = req.body;
+
+            if (!email) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Email is required'
+                });
+            }
+
+            // Find user by email
+            const user = await User.findOne({ email: email.toLowerCase() });
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: 'User not found'
+                });
+            }
+
+            // Check if already verified
+            if (user.isVerified) {
+                return res.json({
+                    success: true,
+                    message: 'Email is already verified',
+                    alreadyVerified: true
+                });
+            }
+
+            // Verify the email
+            user.isVerified = true;
+            user.verificationToken = undefined;
+            user.verificationTokenExpiry = undefined;
+            await user.save();
+
+            console.log(`✅ Email manually verified for: ${email}`);
+
+            return res.json({
+                success: true,
+                message: 'Email has been verified successfully. You can now login.',
+                user: {
+                    email: user.email,
+                    role: user.role,
+                    isVerified: user.isVerified
+                }
+            });
+
+        } catch (error) {
+            console.error('Manual verification error:', error);
+            return res.status(500).json({
+                success: false,
+                message: 'Error verifying email',
+                error: process.env.NODE_ENV === 'development' ? error.message : undefined
+            });
+        }
     }
 };
 

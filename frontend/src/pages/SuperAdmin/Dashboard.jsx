@@ -1,3 +1,4 @@
+import { useContext } from 'react';
 import { Row, Col, Card, Statistic, Table, Tag, Spin, Empty } from 'antd';
 import {
     UserOutlined,
@@ -5,13 +6,15 @@ import {
     BankOutlined,
     BookOutlined,
     RiseOutlined,
-    FallOutlined,
 } from '@ant-design/icons';
 import { useQuery } from '@tanstack/react-query';
 import { getSystemStats } from '../../services/superAdminAPI';
+import { ThemeContext } from '../../context/ThemeContext';
 import './Dashboard.css';
 
 const Dashboard = () => {
+    const { themeColors } = useContext(ThemeContext);
+
     // Fetch system statistics
     const { data: stats, isLoading } = useQuery({
         queryKey: ['systemStats'],
@@ -25,56 +28,56 @@ const Dashboard = () => {
             title: 'Total Departments',
             value: stats?.departments || 0,
             icon: <BankOutlined />,
-            color: '#667eea',
+            color: themeColors.primary,
             prefix: null,
         },
         {
             title: 'Department Admins',
             value: stats?.departmentAdmins || 0,
             icon: <TeamOutlined />,
-            color: '#764ba2',
+            color: themeColors.secondary,
             prefix: null,
         },
         {
             title: 'Total Lecturers',
             value: stats?.lecturers || 0,
             icon: <UserOutlined />,
-            color: '#f093fb',
+            color: themeColors.accent,
             prefix: null,
         },
         {
             title: 'Total Students',
             value: stats?.students || 0,
             icon: <UserOutlined />,
-            color: '#4facfe',
+            color: themeColors.info,
             prefix: null,
         },
         {
             title: 'Total Courses',
             value: stats?.courses || 0,
             icon: <BookOutlined />,
-            color: '#43e97b',
+            color: themeColors.success,
             prefix: null,
         },
         {
             title: 'Total Units',
             value: stats?.units || 0,
             icon: <BookOutlined />,
-            color: '#fa709a',
+            color: themeColors.warning,
             prefix: null,
         },
         {
             title: 'Active Sessions',
             value: stats?.activeSessions || 0,
             icon: <RiseOutlined />,
-            color: '#30cfd0',
+            color: themeColors.primary,
             prefix: null,
         },
         {
             title: 'Attendance Rate',
             value: stats?.attendanceRate || 0,
             icon: <RiseOutlined />,
-            color: '#a8edea',
+            color: themeColors.success,
             suffix: '%',
         },
     ];
@@ -151,7 +154,7 @@ const Dashboard = () => {
             {/* Welcome Section */}
             <div className="welcome-section">
                 <h1>Welcome back, Super Admin! 👋</h1>
-                <p>Here's what's happening in your system today.</p>
+                <p>Here&apos;s what&apos;s happening in your system today.</p>
             </div>
 
             {/* Statistics Cards */}
