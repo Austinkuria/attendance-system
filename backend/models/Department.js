@@ -7,7 +7,6 @@ const departmentSchema = new mongoose.Schema({
   createdBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
 }, { timestamps: true });
 
-// Index for faster queries
-departmentSchema.index({ name: 1 });
+// name index is already defined in schema with unique: true
 
 module.exports = mongoose.model("Department", departmentSchema);

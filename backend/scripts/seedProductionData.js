@@ -312,11 +312,24 @@ async function seedProductionData() {
         console.log('='.repeat(70));
 
         console.log('\n✅ Database seeding completed successfully!\n');
+
+        // Close MongoDB connection gracefully
+        await mongoose.connection.close();
+        console.log('📤 MongoDB connection closed\n');
         process.exit(0);
 
     } catch (error) {
         console.error('\n❌ Error seeding data:', error);
         console.error(error.stack);
+
+        // Close MongoDB connection on error
+        try {
+            await mongoose.connection.close();
+            console.log('📤 MongoDB connection closed\n');
+        } catch (closeError) {
+            console.error('Error closing MongoDB connection:', closeError.message);
+        }
+
         process.exit(1);
     }
 }

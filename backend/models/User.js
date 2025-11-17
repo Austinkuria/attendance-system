@@ -136,7 +136,7 @@ const userSchema = new mongoose.Schema(
 userSchema.index({ email: 1, isActive: 1 });
 userSchema.index({ role: 1, department: 1 });
 userSchema.index({ role: 1, course: 1, year: 1, semester: 1 });
-userSchema.index({ regNo: 1 }, { unique: true, sparse: true });
+// regNo index is already defined in schema with unique: true, sparse: true
 userSchema.index({ managedDepartments: 1 }); // For department admin queries
 userSchema.index({ isSuperAdmin: 1 }); // For super admin identification
 userSchema.index({ createdBy: 1 }); // For audit trails
