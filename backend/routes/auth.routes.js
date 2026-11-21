@@ -27,6 +27,12 @@ router.post('/login',
   authController.login
 );
 
+// One-click demo login for reviewers and portfolio demonstration
+router.post('/demo-login', authController.demoLogin);
+
+// Institutional SSO login (Google Workspace / Microsoft Entra ID / SAML)
+router.post('/sso', loginLimiter, authController.ssoLogin);
+
 // Password reset routes
 router.post('/reset-password', sendResetLinkLimiter, sendResetLink);
 router.put('/reset-password/:token', resetPasswordLimiter, resetPassword);

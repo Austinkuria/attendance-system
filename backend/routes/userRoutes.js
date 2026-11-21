@@ -17,6 +17,9 @@ const {
   deleteLecturer,
   importLecturers,
   downloadLecturers,
+  downloadLecturerTemplate,
+  bulkUpdateLecturerStatus,
+  bulkDeleteLecturers,
   sendResetLink,
   resetPassword,
   // updatePushToken
@@ -95,11 +98,14 @@ router.delete("/students/:id", authenticate, authorize(['admin']), deleteStudent
 router.post("/students/upload", authenticate, authorize(['admin']), upload.single('csvFile'), importStudents);
 router.get("/students/download", authenticate, authorize(['admin']), downloadStudents);
 
-router.post('/create', authenticate, authorize(["admin"]), createLecturer);
-router.put('/update/:id', authenticate, authorize(["admin"]), updateLecturer);
-router.delete('/delete/:id', authenticate, authorize(['admin']), deleteLecturer);
-router.post('/upload', authenticate, authorize(['admin']), upload.single('csvFile'), importLecturers);
-router.get('/download', authenticate, authorize(['admin']), downloadLecturers);
+router.post('/create', authenticate, authorize(["admin", "super_admin"]), createLecturer);
+router.put('/update/:id', authenticate, authorize(["admin", "super_admin"]), updateLecturer);
+router.delete('/delete/:id', authenticate, authorize(['admin', 'super_admin']), deleteLecturer);
+router.get('/template', authenticate, authorize(['admin', 'super_admin']), downloadLecturerTemplate);
+router.post('/upload', authenticate, authorize(['admin', 'super_admin']), upload.single('csvFile'), importLecturers);
+router.get('/download', authenticate, authorize(['admin', 'super_admin']), downloadLecturers);
+router.post('/bulk-status', authenticate, authorize(['admin', 'super_admin']), bulkUpdateLecturerStatus);
+router.post('/bulk-delete', authenticate, authorize(['admin', 'super_admin']), bulkDeleteLecturers);
 
 
 router.post("/auth/reset-password", [

@@ -660,6 +660,159 @@ const authController = {
                 error: process.env.NODE_ENV === 'development' ? error.message : undefined
             });
         }
+    },
+
+    /**
+     * DEMO LOGIN - One-click authentication for portfolio reviewers
+     */
+    demoLogin: async (req, res) => {
+        try {
+            const { role } = req.body;
+            const validRoles = ['student', 'lecturer', 'department_admin', 'super_admin'];
+            const targetRole = validRoles.includes(role) ? role : 'student';
+
+            let user = await User.findOne({
+                role: targetRole,
+                email: new RegExp(`@demo\\.ac\\.ke$|demo`, 'i'),
+                isActive: true
+            })
+            .populate('department', 'name code')
+            .populate('course', 'name code');
+
+            if (!user) {
+                user = await User.findOne({ role: targetRole, isActive: true })
+                    .populate('department', 'name code')
+                    .populate('course', 'name code');
+            }
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    message: `No demo account available for role: ${targetRole}. Please run npm run seed-demo.`
+                });
+            }
+
+            const ipAddress = req.ip || req.connection.remoteAddress;
+            const accessToken = generateAccessToken(user);
+            const refreshToken = await generateRefreshToken(user, ipAddress);
+
+            setAuthCookies(res, accessToken, refreshToken);
+
+            res.json({
+                success: true,
+                message: `Logged in as demo ${targetRole.replace('_', ' ')}`,
+                user: {
+                    id: user._id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    fullName: user.fullName || `${user.firstName} ${user.lastName}`,
+                    email: user.email,
+                    role: user.role,
+                    isSuperAdmin: user.isSuperAdmin || false,
+                    department: user.department,
+                    course: user.course,
+                    regNo: user.regNo,
+                    year: user.year,
+                    semester: user.semester,
+                    lastLogin: user.lastLogin
+                },
+                accessToken,
+                refreshToken
+            });
+        } catch (error) {
+            console.error('Demo login error:', error);
+            res.status(500).json({ success: false, message: 'Server error during demo login', error: error.message });
+        }
+    },
+
+    /**
+     * SSO LOGIN - Authenticates via verified Institutional SSO (Google Workspace, Microsoft Entra, SAML)
+     */
+    ssoLogin: async (req, res) => {
+        try {
+            const { provider = 'google', email, firstName, lastName, providerId } = req.body;
+            const { normalizeSSOProfile } = require('../utils/ssoUtils');
+
+            const ssoProfile = normalizeSSOProfile({
+                email,
+                given_name: firstName,
+                family_name: lastName,
+                sub: providerId
+            }, provider);
+
+            if (!ssoProfile || !ssoProfile.email) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'Valid institutional email is required from identity provider'
+                });
+            }
+
+            if (!ssoProfile.isInstitutional && process.env.ENFORCE_INSTITUTIONAL_DOMAINS === 'true') {
+                return res.status(403).json({
+                    success: false,
+                    code: 'NON_INSTITUTIONAL_EMAIL',
+                    message: 'Access restricted: Please sign in with your official university email (@*.ac.ke or @*.edu).'
+                });
+            }
+
+            let user = await User.findOne({
+                $or: [
+                    { email: ssoProfile.email },
+                    ...(ssoProfile.authProviderId ? [{ authProviderId: ssoProfile.authProviderId }] : [])
+                ],
+                isActive: true
+            })
+                .populate('department', 'name code')
+                .populate('course', 'name code');
+
+            if (!user) {
+                return res.status(404).json({
+                    success: false,
+                    code: 'ACCOUNT_NOT_ENROLLED',
+                    message: 'Your institutional account has not been enrolled yet. Please contact your department administrator.'
+                });
+            }
+
+            if (user.authProvider === 'local' || !user.authProviderId) {
+                user.authProvider = provider;
+                user.authProviderId = ssoProfile.authProviderId || user.authProviderId;
+                user.isVerified = true;
+                await user.save();
+            }
+
+            await user.resetLoginAttempts();
+            const ipAddress = req.ip || req.connection.remoteAddress;
+            const accessToken = generateAccessToken(user);
+            const refreshToken = await generateRefreshToken(user, ipAddress);
+            setAuthCookies(res, accessToken, refreshToken);
+
+            return res.json({
+                success: true,
+                message: 'Institutional SSO login successful',
+                user: {
+                    id: user._id,
+                    firstName: user.firstName,
+                    lastName: user.lastName,
+                    fullName: user.fullName,
+                    email: user.email,
+                    role: user.role,
+                    isSuperAdmin: user.isSuperAdmin || false,
+                    department: user.department,
+                    course: user.course,
+                    regNo: user.regNo,
+                    authProvider: user.authProvider
+                },
+                accessToken,
+                refreshToken
+            });
+        } catch (error) {
+            console.error('SSO login error:', error);
+            res.status(500).json({
+                success: false,
+                message: 'An error occurred during institutional SSO login',
+                error: error.message
+            });
+        }
     }
 };
 

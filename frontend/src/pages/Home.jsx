@@ -1,1608 +1,799 @@
-import { Layout, Button, Typography, Row, Col, Card, Space, Carousel, Spin, Collapse, Input, Divider, Form, notification, FloatButton } from 'antd';
+import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { QrcodeOutlined, ClockCircleOutlined, SafetyOutlined, MessageOutlined, ArrowRightOutlined, TeamOutlined, LineChartOutlined, FormOutlined, EyeOutlined, CalendarOutlined, DownloadOutlined, DownOutlined, UpOutlined, XOutlined, FacebookOutlined, LinkedinOutlined, InstagramOutlined, GithubOutlined, SendOutlined, ArrowUpOutlined } from '@ant-design/icons';
-import { animated, useSpring } from '@react-spring/web';
-import { useState, useEffect, useContext, useRef } from 'react';
-import PropTypes from 'prop-types'; // Add PropTypes import
-import { ThemeContext } from "../context/ThemeContext";
+import { ThemeContext } from '../context/ThemeContext';
+import BrandLogo from '../components/BrandLogo';
 import ThemeToggle from '../components/ThemeToggle';
-import logoImage from '../assets/logo.jpg';
 
-const { Header, Content, Footer } = Layout;
-const { Title, Text } = Typography;
+/**
+ * QRollCall Landing / Home Page
+ * Precision implementation of Pages 1, 2, and 3 of the Design Specification:
+ * - Geometric hierarchy: rounded-lg (8px) cards, rounded-md (6px) buttons/inputs, 1px hairline borders
+ * - Color specification:
+ *   * Dark Canvas: #0B0F17 / #12172B with high-contrast text and signature #D4FF5E lime accents
+ *   * Light Canvas: #F4F3EE with #FFFFFF surfaces, #E2E8F0 hairline borders, #0F172A primary text
+ * - Responsive viewport: mobile-first fluid layout across 375px to 1920px
+ * - Vector branding with official QRollCall mark
+ */
+const Home = () => {
+  const navigate = useNavigate();
+  const { isDarkMode, getCardStyle } = useContext(ThemeContext);
 
-// Add a styled logo component
-const StyledLogo = ({ size = 'normal', onClick = null }) => {
-  const sizes = {
-    small: { width: 32, height: 32 },
-    normal: { width: 40, height: 40 },
-    large: { width: 50, height: 50 }
+  // Active FAQ Accordion item index
+  const [openFaqIndex, setOpenFaqIndex] = useState(0);
+
+  // Testimonial Carousel Index
+  const [activeTestimonial, setActiveTestimonial] = useState(0);
+
+  // Newsletter subscription state
+  const [subscribeEmail, setSubscribeEmail] = useState('');
+  const [subscribed, setSubscribed] = useState(false);
+
+  const testimonials = [
+    {
+      quote: '“Feedback feature sparked real dialogue.”',
+      author: 'Ms. Elena Ortiz, Bright Academy',
+    },
+    {
+      quote: '“Attendance fraud dropped to zero within our first week of roll-out.”',
+      author: 'Prof. Marcus Vance, School of Informatics',
+    },
+    {
+      quote: '“Scanning takes less than three seconds. Lecturers can begin on schedule.”',
+      author: 'Dr. Sarah Kimani, Department of Pure & Applied Sciences',
+    },
+  ];
+
+  const faqs = [
+    {
+      q: 'How does QRollCall work?',
+      a: 'Lecturers start a session and show a QR code. Students scan it with their phones to check in, and attendance updates in real time.',
+    },
+    {
+      q: 'How does it prevent proxy attendance?',
+      a: 'QR codes are dynamic and every check-in is tied to a unique device, so a shared screenshot or a friend scanning for you is much harder.',
+    },
+    {
+      q: 'How does it benefit lecturers?',
+      a: 'Start a session in one step, watch check-ins arrive live and download records afterwards.',
+    },
+    {
+      q: "What's in it for administrators?",
+      a: 'Department-level oversight, analytics by course and semester, and reports you can export.',
+    },
+  ];
+
+  const handleSubscribe = (e) => {
+    e.preventDefault();
+    if (subscribeEmail.trim()) {
+      setSubscribed(true);
+      setSubscribeEmail('');
+      setTimeout(() => setSubscribed(false), 4000);
+    }
   };
 
-  const { width, height } = sizes[size] || sizes.normal;
+  const scrollToSection = (id) => {
+    const el = document.getElementById(id);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
 
   return (
     <div
-      className="styled-logo"
-      onClick={onClick}
-      style={{ cursor: onClick ? 'pointer' : 'default' }}
+      className="min-h-screen w-full font-sans transition-colors duration-150 overflow-x-hidden"
+      style={{
+        backgroundColor: isDarkMode ? '#0B0F17' : '#F4F3EE',
+        color: isDarkMode ? '#FFFFFF' : '#0F172A',
+      }}
     >
-      <img
-        src={logoImage}
-        alt="QRollCall Logo"
-        className={`logo-image ${size}`}
-        width={width}
-        height={height}
-      />
-    </div>
-  );
-};
+      {/* ============================================================== */}
+      {/* 1. TOP NAVIGATION BAR (Design Spec Page 1)                      */}
+      {/* ============================================================== */}
+      <header
+        className="sticky top-0 z-50 w-full border-b backdrop-blur-md transition-colors"
+        style={{
+          backgroundColor: isDarkMode ? 'rgba(11, 15, 23, 0.92)' : 'rgba(244, 243, 238, 0.94)',
+          borderColor: isDarkMode ? '#1E293B' : '#E2E8F0',
+        }}
+      >
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44 h-16 flex items-center justify-between gap-4">
+          {/* Brand Logo */}
+          <BrandLogo size="md" clickable={true} />
 
-// Add PropTypes validation
-StyledLogo.propTypes = {
-  size: PropTypes.oneOf(['small', 'normal', 'large']),
-  onClick: PropTypes.func
-};
+          {/* Center Navigation Links */}
+          <nav className="hidden md:flex items-center gap-8 text-xs font-semibold tracking-wide">
+            <button
+              type="button"
+              onClick={() => scrollToSection('features')}
+              className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              Features
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('benefits')}
+              className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              Benefits
+            </button>
+            <button
+              type="button"
+              onClick={() => scrollToSection('faq')}
+              className="text-slate-600 dark:text-slate-300 hover:text-slate-900 dark:hover:text-white transition-colors cursor-pointer"
+            >
+              FAQ
+            </button>
+          </nav>
 
-const Home = () => {
-  const navigate = useNavigate();
-  const { themeColors, isDarkMode } = useContext(ThemeContext);
-  const [loading, setLoading] = useState(true);
-  const [showMoreFeatures, setShowMoreFeatures] = useState(false);
-
-  // Create refs properly according to React Hooks rules
-  const featureIconRef0 = useRef(null);
-  const featureIconRef1 = useRef(null);
-  const featureIconRef2 = useRef(null);
-  const featureIconRef3 = useRef(null);
-  const featureIconRef4 = useRef(null);
-  const featureIconRef5 = useRef(null);
-  const featureIconRef6 = useRef(null);
-  const featureIconRef7 = useRef(null);
-  const featureIconRef8 = useRef(null);
-
-  const benefitIconRef0 = useRef(null);
-  const benefitIconRef1 = useRef(null);
-  const benefitIconRef2 = useRef(null);
-
-  // Create arrays of refs for easy access
-  const featureIconRefs = [
-    featureIconRef0, featureIconRef1, featureIconRef2,
-    featureIconRef3, featureIconRef4, featureIconRef5,
-    featureIconRef6, featureIconRef7, featureIconRef8
-  ];
-
-  const benefitIconRefs = [benefitIconRef0, benefitIconRef1, benefitIconRef2];
-
-  // Animation configurations
-  const bezierEasing = 'cubic-bezier(0.175, 0.885, 0.32, 1.275)';
-
-  // Animations
-  const qrAnimation = useSpring({
-    from: { transform: 'scale(0) rotate(0deg)', opacity: 0 },
-    to: { transform: 'scale(1) rotate(360deg)', opacity: 1 },
-    config: { tension: 200, friction: 20 },
-    reset: true,
-    loop: { reverse: true },
-  });
-  const taglineAnimation = useSpring({
-    from: { opacity: 0, transform: 'translateY(30px)' },
-    to: { opacity: 1, transform: 'translateY(0)' },
-    delay: 1000,
-  });
-  const featureRevealAnimation = useSpring({
-    opacity: showMoreFeatures ? 1 : 0,
-    transform: showMoreFeatures ? 'translateY(0)' : 'translateY(20px)',
-    config: { tension: 220, friction: 20 },
-  });
-
-  useEffect(() => {
-    setTimeout(() => setLoading(false), 1000);
-  }, []);
-
-  useEffect(() => {
-    document.body.style.background = themeColors.background;
-  }, [themeColors]);
-
-  // Function to add a shine element to any card
-  const addCardEffects = (cardElement) => {
-    const shine = document.createElement('div');
-    shine.className = 'card-shine';
-    cardElement.appendChild(shine);
-
-    // Add 3D perspective to parent
-    cardElement.parentElement.style.perspective = '1000px';
-  };
-
-  // Apply card effects when component mounts
-  useEffect(() => {
-    if (!loading) {
-      // Using setTimeout to ensure DOM is fully loaded
-      setTimeout(() => {
-        document.querySelectorAll('.card-animate').forEach(addCardEffects);
-      }, 500);
-    }
-  }, [loading]);
-
-  // Footer form handling
-  const [form] = Form.useForm();
-  const [subscribeLoading, setSubscribeLoading] = useState(false);
-
-  // Replace simple alert with Ant Design notification
-  const handleSubscribe = (formValues) => {
-    // First check for empty values (though Form will handle this)
-    if (!formValues?.email) {
-      notification.error({
-        message: 'Subscription Failed',
-        description: 'Please provide a valid email address.',
-        placement: 'top',
-        duration: 4,
-      });
-      return;
-    }
-
-    setSubscribeLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setSubscribeLoading(false);
-      form.resetFields();
-      notification.success({
-        message: 'Subscription Successful',
-        description: `Thank you for subscribing with ${formValues.email}! You'll receive our updates shortly.`,
-        placement: 'top',
-        duration: 4,
-        style: {
-          borderRadius: '8px',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
-        }
-      });
-    }, 1000);
-  };
-
-  // Enhanced validation function for email
-  const validateEmail = (_, value) => {
-    if (!value) {
-      return Promise.reject('Please enter your email address');
-    }
-
-    // Basic format validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(value)) {
-      return Promise.reject('Please enter a valid email format (example@domain.com)');
-    }
-
-    // Check for specific requirements
-    const domain = value.split('@')[1];
-
-    // Optional: Check domain validity (just a simple check)
-    if (domain && !domain.includes('.')) {
-      return Promise.reject('Invalid email domain format');
-    }
-
-    // Optional: Could warn about disposable emails but still allow them
-    const disposableDomains = ['mailinator.com', 'temporarymail.com', 'throwaway.com'];
-    if (domain && disposableDomains.includes(domain)) {
-      return Promise.reject('Please use a permanent email address');
-    }
-
-    return Promise.resolve();
-  };
-
-  // FAQ Items configuration for modern Collapse usage
-  const faqItems = [
-    {
-      key: '1',
-      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>How does QRollCall work?</span>,
-      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>Lecturers generate a QR code per session. Students scan it via their dashboard, and attendance logs instantly with real-time updates.</Text>
-    },
-    {
-      key: '2',
-      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>How does it prevent proxy attendance?</span>,
-      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>Dynamic QR codes expire quickly, and unique device IDs paired with secure authentication ensure only the right student marks attendance.</Text>
-    },
-    {
-      key: '3',
-      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>How does it benefit lecturers?</span>,
-      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>Real-time tracking, flexible session controls, and exportable historical records simplify attendance management.</Text>
-    },
-    {
-      key: '4',
-      label: <span style={{ color: themeColors.text, fontSize: '16px' }}>What&apos;s in it for administrators?</span>,
-      children: <Text style={{ color: themeColors.text, fontSize: '14px' }}>A centralized dashboard offers oversight of students, courses, and attendance, with analytics to optimize institutional performance.</Text>
-    }
-  ];
-
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: '100vh', background: themeColors.background }}>
-        <Spin size="large" style={{ color: themeColors.primary }} />
-        <Text style={{ marginTop: 16, color: themeColors.text, fontSize: 18 }}>
-          Initializing QRollCall Dashboard...
-        </Text>
-        <Text style={{ marginTop: 8, color: themeColors.text, opacity: 0.7, fontSize: 14, animation: 'fadeInOut 1.5s infinite' }}>
-          Preparing attendance management tools
-        </Text>
-        <style>{`
-          @keyframes fadeInOut {
-            0%, 100% { opacity: 0.5; }
-            50% { opacity: 0.9; }
-          }
-        `}</style>
-      </div>
-    );
-  }
-
-  const featureCardStyle = {
-    borderRadius: '12px',
-    border: 'none',
-    padding: '24px',
-    height: '260px', // Fixed height for uniformity
-    width: '100%',
-    transition: 'transform 0.3s ease, box-shadow 0.3s ease, background 0.5s ease',
-    background: isDarkMode ? 'rgba(0, 0, 0, 0.2)' : 'rgba(255, 255, 255, 0.1)', // Dark mode fallback
-    display: 'flex',
-    flexDirection: 'column',
-    justifyContent: 'space-between',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
-    overflow: 'hidden',
-    position: 'relative',
-  };
-
-  const features = [
-    { icon: <ClockCircleOutlined />, title: 'Instant Precision', text: 'Attendance updates in real-time with pinpoint accuracy for every session.', gradient: themeColors.cardGradient1 },
-    { icon: <SafetyOutlined />, title: 'Fraud-Proof', text: 'Dynamic QR codes, unique device tracking, and secure authentication stop proxy attendance in its tracks.', gradient: themeColors.cardGradient2 },
-    { icon: <MessageOutlined />, title: 'Engage Students', text: 'Interactive feedback and dashboards spark student participation and insights.', gradient: themeColors.cardGradient3 },
-    { icon: <TeamOutlined />, title: 'Comprehensive Oversight', text: 'Monitor students, courses, and attendance effortlessly in one powerful dashboard.', gradient: themeColors.cardGradient4 },
-    { icon: <LineChartOutlined />, title: 'Data-Driven Insights', text: 'Unlock actionable analytics to boost attendance and performance.', gradient: themeColors.cardGradient5 || themeColors.cardGradient1 },
-    { icon: <FormOutlined />, title: 'Streamlined Management', text: 'Simplify attendance and session tracking with an intuitive interface.', gradient: themeColors.cardGradient6 || themeColors.cardGradient2 },
-    { icon: <EyeOutlined />, title: 'Real-Time Monitoring', text: 'Track attendance as it happens with live updates.', gradient: themeColors.cardGradient7 || themeColors.cardGradient3 },
-    { icon: <CalendarOutlined />, title: 'Flexible Session Control', text: 'Start, end, and manage sessions with ease and precision.', gradient: themeColors.cardGradient8 || themeColors.cardGradient4 },
-    { icon: <DownloadOutlined />, title: 'Historical Tracking', text: 'Review and export past attendance for complete records.', gradient: themeColors.cardGradient9 || themeColors.cardGradient1 },
-  ];
-
-  return (
-    <Layout style={{ minHeight: '100vh', background: themeColors.background, margin: 0, padding: 0, overflowX: 'hidden' }}>
-      {/* Header */}
-      <Header style={{
-        background: themeColors.cardBg,
-        padding: '0 16px',
-        position: 'fixed',
-        top: 0,
-        width: '100%',
-        zIndex: 10,
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        lineHeight: '64px',
-        height: '64px'
-      }}>
-        <Row justify="space-between" align="middle" style={{ height: '100%' }}>
-          <Col xs={14} sm={12} md={6}>
-            <Space align="center" style={{ height: '100%' }}>
-              {/* Replace the img tag with the styled logo component */}
-              <StyledLogo onClick={() => navigate('/')} />
-              <Title level={3} className="site-title" style={{ color: themeColors.text, margin: 0, fontSize: '24px', lineHeight: 'inherit' }}>QRollCall</Title>
-            </Space>
-          </Col>
-          <Col xs={10} sm={12} md={6} style={{ textAlign: 'right' }}>
-            <Space size="small" align="center" style={{ height: '100%', lineHeight: 'inherit' }}>
-              <Button
-                ghost
-                className="ant-btn-signup"
-                onClick={() => navigate('/auth/login')}
-                style={{
-                  borderColor: themeColors.primary,
-                  borderRadius: '8px',
-                  lineHeight: 'inherit',
-                  background: themeColors.cardBg,
-                  transition: 'background-color 0.3s ease, color 0.3s ease',
-                  ...(isDarkMode ? { color: '#fff' } : { color: themeColors.text })
-                }}
-              >
-                <span className="btn-text">Sign Up</span>
-              </Button>
-              <ThemeToggle />
-            </Space>
-          </Col>
-        </Row>
-      </Header>
-
-      <Content style={{ padding: 0, background: themeColors.background }}>
-        {/* Hero Section */}
-        <section className="hero-section" style={{
-          padding: '30px 16px 30px',
-          marginTop: '64px', // Base margin to account for fixed header
-          background: `linear-gradient(135deg, ${themeColors.cardGradient1} 0%, ${themeColors.cardGradient2} 100%)`,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          minHeight: '80vh',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}>
-          <Title level={1} style={{ marginBottom: '20px', color: themeColors.text, fontSize: 'clamp(32px, 6vw, 48px)', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-            Attendance, Redefined
-          </Title>
-          <animated.div style={taglineAnimation}>
-            <Text style={{ fontSize: 'clamp(18px, 3vw, 22px)', color: themeColors.text, display: 'block', marginBottom: '20px', opacity: 0.9, maxWidth: '600px', lineHeight: 1.5, textAlign: 'center' }}>
-              Scan. Track. Engage. A smarter way to manage attendance for students, lecturers, and admins.
-            </Text>
-          </animated.div>
-          <animated.div style={{ ...qrAnimation, marginBottom: '20px' }}>
-            <QrcodeOutlined style={{ fontSize: 'clamp(120px, 20vw, 200px)', color: themeColors.text }} />
-          </animated.div>
-          <Space size="large" wrap>
-            <Button type="primary" size="large" onClick={() => navigate('/auth/login')} style={{ padding: '0 40px', height: '50px', background: themeColors.primary, borderColor: themeColors.primary, borderRadius: '8px', fontSize: '16px' }}>
-              Get Started <ArrowRightOutlined />
-            </Button>
-            <Button
-              className="explore-btn"
-              size="large"
-              onClick={() => document.getElementById('features').scrollIntoView({ behavior: 'smooth' })}
+          {/* Right Action: Theme Toggle & Sign in */}
+          <div className="flex items-center gap-3">
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={() => navigate('/auth/login')}
+              className="h-9 px-4 rounded-md font-semibold text-xs sm:text-sm transition-all cursor-pointer shadow-none flex items-center justify-center"
               style={{
-                padding: '0 40px',
-                height: '50px',
-                color: themeColors.text,
-                borderColor: themeColors.secondary,
-                background: 'transparent',
-                borderRadius: '8px',
-                fontSize: '16px',
-                transition: 'background-color 0.3s ease, color 0.3s ease'
+                backgroundColor: '#D4FF5E',
+                color: '#131926',
               }}
             >
-              Explore Features
-            </Button>
-          </Space>
-        </section>
+              Sign in
+            </button>
+          </div>
+        </div>
+      </header>
 
-        {/* Features Grid */}
-        <section id="features" style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
-          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
-            Why QRollCall?
-          </Title>
-          <Row gutter={[16, 16]} justify="center" className="staggered-row">
-            {features.slice(0, 3).map((feature, i) => (
-              <Col xs={24} sm={12} md={8} key={i} className="card-container">
-                <Card
-                  hoverable
-                  className="feature-card card-animate"
-                  style={{ ...featureCardStyle, background: feature.gradient }}
-                  onMouseEnter={() => {
-                    if (featureIconRefs[i]?.current) {
-                      featureIconRefs[i].current.style.transform = 'scale(1.2) translateY(-5px)';
-                    }
-                  }}
-                  onMouseLeave={() => {
-                    if (featureIconRefs[i]?.current) {
-                      featureIconRefs[i].current.style.transform = 'scale(1) translateY(0)';
-                    }
+      {/* ============================================================== */}
+      {/* 2. HERO SECTION (Design Spec Page 1)                           */}
+      {/* ============================================================== */}
+      <section
+        className="w-full py-16 sm:py-24 border-b relative overflow-hidden"
+        style={{
+          backgroundColor: '#0B0F17',
+          borderColor: '#1E293B',
+          color: '#FFFFFF',
+        }}
+      >
+        {/* Subtle geometric grid background */}
+        <div
+          className="absolute inset-0 opacity-10 pointer-events-none"
+          style={{
+            backgroundImage:
+              'radial-gradient(#C6F36B 1px, transparent 1px), radial-gradient(#C6F36B 1px, #0B0F17 1px)',
+            backgroundSize: '40px 40px',
+            backgroundPosition: '0 0, 20px 20px',
+          }}
+        />
+
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44 relative z-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 xl-lg:grid-cols-12 2xl-lg:grid-cols-12 gap-12 lg:gap-8 xl-lg:gap-12 2xl-lg:gap-16 items-center">
+            {/* Left Content (col-span-7) */}
+            <div className="lg:col-span-7 space-y-6 text-left">
+              {/* Category Pill Tag */}
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-slate-700/80 bg-slate-900/60 backdrop-blur-xs text-xs font-medium text-slate-300">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#D4FF5E] animate-pulse" />
+                <span>QR attendance for colleges and universities</span>
+              </div>
+
+              {/* Primary Headline */}
+              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold tracking-tight text-white leading-[1.08]">
+                Attendance, <br />
+                <span className="text-white">redefined.</span>
+              </h1>
+
+              {/* Subheading */}
+              <p className="text-base sm:text-lg text-slate-300 max-w-xl font-normal leading-relaxed">
+                Scan. Track. Engage. A smarter way to manage attendance for students, lecturers and admins.
+              </p>
+
+              {/* Action Buttons */}
+              <div className="pt-2 flex items-center gap-3.5 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => navigate('/auth/login')}
+                  className="h-10 px-5 rounded-md font-semibold text-xs sm:text-sm transition-all cursor-pointer shadow-none flex items-center justify-center hover:opacity-90"
+                  style={{
+                    backgroundColor: '#D4FF5E',
+                    color: '#131926',
                   }}
                 >
-                  <div className="card-icon-wrapper">
-                    <div
-                      ref={featureIconRefs[i]}
-                      style={{
-                        transition: `transform 0.3s ${bezierEasing}`,
-                        fontSize: '40px',
-                        color: '#fff',
-                        display: 'inline-block'
-                      }}
-                    >
-                      {feature.icon}
+                  Sign in
+                </button>
+                <button
+                  type="button"
+                  onClick={() => scrollToSection('features')}
+                  className="h-10 px-5 rounded-md font-semibold text-xs sm:text-sm border border-slate-700 text-white bg-slate-900/80 hover:bg-slate-800 transition-colors cursor-pointer flex items-center justify-center"
+                >
+                  Explore features
+                </button>
+              </div>
+            </div>
+
+            {/* Right Mockup: Live Mobile Device Interface (col-span-5) */}
+            <div className="lg:col-span-5 flex justify-center lg:justify-end">
+              <div className="w-full max-w-[320px] sm:max-w-[340px] rounded-3xl border-2 border-slate-800 bg-[#12172B] p-5 shadow-2xl relative select-none">
+                {/* Phone Notch & Session Status */}
+                <div className="flex items-center justify-between pb-4">
+                  <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-900/90 border border-slate-700 text-[11px] font-mono font-medium text-slate-200">
+                    <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                    <span>SE301 is live</span>
+                  </div>
+                  {/* Floating Device Verified Badge */}
+                  <div className="inline-flex items-center gap-1 bg-white text-slate-900 text-[10px] font-bold px-2 py-0.5 rounded-md shadow-sm">
+                    <svg className="w-3 h-3 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                    </svg>
+                    <span>Device verified</span>
+                  </div>
+                </div>
+
+                {/* Central Scanner Graphic with Signature Lime Brackets */}
+                <div className="my-6 relative py-10 px-6 rounded-2xl bg-[#090D1A] border border-slate-800/80 flex flex-col items-center justify-center">
+                  {/* Top-Left Bracket */}
+                  <div className="absolute top-4 left-4 w-6 h-6 border-t-3 border-l-3 border-[#D4FF5E] rounded-tl-md" />
+                  {/* Top-Right Bracket */}
+                  <div className="absolute top-4 right-4 w-6 h-6 border-t-3 border-r-3 border-[#D4FF5E] rounded-tr-md" />
+                  {/* Bottom-Left Bracket */}
+                  <div className="absolute bottom-4 left-4 w-6 h-6 border-b-3 border-l-3 border-[#D4FF5E] rounded-bl-md" />
+                  {/* Bottom-Right Bracket */}
+                  <div className="absolute bottom-4 right-4 w-6 h-6 border-b-3 border-r-3 border-[#D4FF5E] rounded-br-md" />
+
+                  {/* Dynamic QR Inner Simulation */}
+                  <div className="w-24 h-24 rounded-lg bg-[#12172B] border border-slate-700 p-2 flex flex-col justify-between">
+                    <div className="flex justify-between">
+                      <div className="w-5 h-5 rounded-xs border-2 border-[#D4FF5E] p-0.5">
+                        <div className="w-full h-full bg-white" />
+                      </div>
+                      <div className="w-5 h-5 rounded-xs border-2 border-[#D4FF5E] p-0.5">
+                        <div className="w-full h-full bg-white" />
+                      </div>
+                    </div>
+                    <div className="flex justify-center gap-1">
+                      <div className="w-2 h-2 bg-slate-400 rounded-xs" />
+                      <div className="w-2 h-2 bg-white rounded-xs" />
+                      <div className="w-2 h-2 bg-[#D4FF5E] rounded-xs" />
+                    </div>
+                    <div className="flex justify-between items-end">
+                      <div className="w-5 h-5 rounded-xs border-2 border-[#D4FF5E] p-0.5">
+                        <div className="w-full h-full bg-white" />
+                      </div>
+                      <div className="w-3 h-3 bg-white rounded-xs" />
                     </div>
                   </div>
-                  <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>{feature.title}</Title>
-                  <Text style={{ color: '#fff', fontSize: '16px', flexGrow: 1 }}>{feature.text}</Text>
-                  <div className="card-shine"></div>
-                </Card>
-              </Col>
-            ))}
-          </Row>
-          <animated.div style={featureRevealAnimation}>
-            {showMoreFeatures && (
-              <Row gutter={[16, 16]} justify="center" className="staggered-row">
-                {features.slice(3).map((feature, index) => (
-                  <Col xs={24} sm={12} md={8} key={index} className="card-container">
-                    <Card
-                      hoverable
-                      className="feature-card card-animate"
-                      style={{ ...featureCardStyle, background: feature.gradient }}
-                      onMouseEnter={() => {
-                        if (featureIconRefs[index + 3]?.current) {
-                          featureIconRefs[index + 3].current.style.transform = 'scale(1.2) translateY(-5px)';
-                        }
-                      }}
-                      onMouseLeave={() => {
-                        if (featureIconRefs[index + 3]?.current) {
-                          featureIconRefs[index + 3].current.style.transform = 'scale(1) translateY(0)';
-                        }
-                      }}
-                    >
-                      <div className="card-icon-wrapper">
-                        <div
-                          ref={featureIconRefs[index + 3]}
-                          style={{
-                            transition: `transform 0.3s ${bezierEasing}`,
-                            fontSize: '40px',
-                            color: '#fff',
-                            display: 'inline-block'
-                          }}
-                        >
-                          {feature.icon}
-                        </div>
-                      </div>
-                      <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>{feature.title}</Title>
-                      <Text style={{ color: '#fff', fontSize: '16px', flexGrow: 1 }}>{feature.text}</Text>
-                      <div className="card-shine"></div>
-                    </Card>
-                  </Col>
-                ))}
-              </Row>
-            )}
-          </animated.div>
-          <div style={{ textAlign: 'center', marginTop: '24px' }}>
-            <Button
-              type="primary"
-              shape="circle"
-              icon={showMoreFeatures ? <UpOutlined /> : <DownOutlined />}
-              onClick={() => setShowMoreFeatures(!showMoreFeatures)}
-              style={{ background: themeColors.primary, borderColor: themeColors.primary, width: '50px', height: '50px' }}
-            />
-          </div>
-        </section>
 
-        {/* Benefits Section */}
-        <section id="benefits" style={{ padding: '60px 16px', background: themeColors.cardBg, width: '100%', boxSizing: 'border-box' }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
-            Benefits for Everyone
-          </Title>
-          <Row gutter={[24, 24]} justify="center" className="staggered-row">
-            <Col xs={24} sm={12} md={8} className="card-container">
-              <Card
-                hoverable
-                className="feature-card card-animate"
-                style={{ ...featureCardStyle, background: themeColors.cardGradient1 }}
-                onMouseEnter={() => {
-                  if (benefitIconRefs[0]?.current) {
-                    benefitIconRefs[0].current.style.transform = 'scale(1.2) translateY(-5px)';
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (benefitIconRefs[0]?.current) {
-                    benefitIconRefs[0].current.style.transform = 'scale(1) translateY(0)';
-                  }
-                }}
-              >
-                <div className="card-icon-wrapper">
-                  <div
-                    ref={benefitIconRefs[0]}
-                    style={{
-                      transition: `transform 0.3s ${bezierEasing}`,
-                      fontSize: '40px',
-                      color: '#fff',
-                      display: 'inline-block'
-                    }}
-                  >
-                    <TeamOutlined />
+                  {/* Floating Dynamic QR code Tag */}
+                  <div className="absolute -bottom-3 left-4 inline-flex items-center gap-1 bg-slate-900/90 text-slate-200 text-[10px] font-medium px-2 py-0.5 rounded-md border border-slate-700 shadow-md">
+                    <span>Dynamic QR code</span>
                   </div>
                 </div>
-                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>For Students</Title>
-                <Text style={{ color: '#fff', fontSize: '16px' }}>
-                  Quick scans, interactive feedback, and clear attendance insights keep you engaged.
-                </Text>
-                <div className="card-shine"></div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} className="card-container">
-              <Card
-                hoverable
-                className="feature-card card-animate"
-                style={{ ...featureCardStyle, background: themeColors.cardGradient2 }}
-                onMouseEnter={() => {
-                  if (benefitIconRefs[1]?.current) {
-                    benefitIconRefs[1].current.style.transform = 'scale(1.2) translateY(-5px)';
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (benefitIconRefs[1]?.current) {
-                    benefitIconRefs[1].current.style.transform = 'scale(1) translateY(0)';
-                  }
-                }}
-              >
-                <div className="card-icon-wrapper">
-                  <div
-                    ref={benefitIconRefs[1]}
-                    style={{
-                      transition: `transform 0.3s ${bezierEasing}`,
-                      fontSize: '40px',
-                      color: '#fff',
-                      display: 'inline-block'
-                    }}
-                  >
-                    <FormOutlined />
-                  </div>
-                </div>
-                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>For Lecturers</Title>
-                <Text style={{ color: '#fff', fontSize: '16px' }}>
-                  Effortless session management, real-time tracking, and historical records at your fingertips.
-                </Text>
-                <div className="card-shine"></div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} className="card-container">
-              <Card
-                hoverable
-                className="feature-card card-animate"
-                style={{ ...featureCardStyle, background: themeColors.cardGradient3 }}
-                onMouseEnter={() => {
-                  if (benefitIconRefs[2]?.current) {
-                    benefitIconRefs[2].current.style.transform = 'scale(1.2) translateY(-5px)';
-                  }
-                }}
-                onMouseLeave={() => {
-                  if (benefitIconRefs[2]?.current) {
-                    benefitIconRefs[2].current.style.transform = 'scale(1) translateY(0)';
-                  }
-                }}
-              >
-                <div className="card-icon-wrapper">
-                  <div
-                    ref={benefitIconRefs[2]}
-                    style={{
-                      transition: `transform 0.3s ${bezierEasing}`,
-                      fontSize: '40px',
-                      color: '#fff',
-                      display: 'inline-block'
-                    }}
-                  >
-                    <LineChartOutlined />
-                  </div>
-                </div>
-                <Title level={4} style={{ margin: '16px 0', color: '#fff', fontSize: '20px' }}>For Admins</Title>
-                <Text style={{ color: '#fff', fontSize: '16px' }}>
-                  Centralized oversight, detailed analytics, and fraud prevention streamline operations.
-                </Text>
-                <div className="card-shine"></div>
-              </Card>
-            </Col>
-          </Row>
-        </section>
 
-        {/* Video Demo Section */}
-        {/* <section style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
-            See It in Action
-          </Title>
-          <Row justify="center">
-            <Col xs={24} md={16}>
-              <div style={{
-                position: 'relative',
-                paddingBottom: '56.25%',
-                height: 0,
-                overflow: 'hidden',
-                borderRadius: '12px',
-                border: `1px solid ${themeColors.border}`,
-                maxWidth: '100%',
-                boxShadow: '0 4px 16px rgba(0, 0, 0, 0.15)',
-              }}>
-                <iframe
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?si=your-placeholder-id"
-                  title="QRollCall Demo"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                ></iframe>
-              </div>
-              <Text style={{ display: 'block', marginTop: '16px', color: themeColors.text, fontSize: '16px', opacity: 0.85, textAlign: 'center' }}>
-                Watch how QRollCall transforms attendance in 90 seconds!
-              </Text>
-            </Col>
-          </Row>
-        </section> */}
-
-        {/* Testimonials - Fixed block attribute warning */}
-        <section id="testimonials" style={{ padding: '60px 16px', background: themeColors.cardBg, width: '100%', boxSizing: 'border-box' }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
-            What Educators Say
-          </Title>
-          <Carousel autoplay dots={{ className: 'custom-dots' }} style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <div>
-              <Card style={{ ...featureCardStyle, background: themeColors.cardGradient1 }} className="testimonial-card card-animate">
-                <div className="testimonial-content">
-                  <Text className="testimonial-quote" style={{ color: '#fff', fontSize: 'clamp(18px, 3vw, 24px)', lineHeight: '1.5', textAlign: 'center', padding: '0 10px', fontStyle: 'italic' }}>&quot;QRollCall halved our attendance time.&quot;</Text>
-                  {/* Fixed: Removed block prop and used div with styling instead */}
-                  <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                    <Text strong className="testimonial-author" style={{ color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)' }}>- Dr. Maya Patel, Horizon University</Text>
-                  </div>
-                </div>
-              </Card>
-            </div>
-            <div>
-              <Card style={{ ...featureCardStyle, background: themeColors.cardGradient2 }} className="testimonial-card card-animate">
-                <div className="testimonial-content">
-                  <Text className="testimonial-quote" style={{ color: '#fff', fontSize: 'clamp(18px, 3vw, 24px)', lineHeight: '1.5', textAlign: 'center', padding: '0 10px', fontStyle: 'italic' }}>&quot;Device tracking ended proxy attendance.&quot;</Text>
-                  {/* Fixed: Removed block prop and used div with styling instead */}
-                  <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                    <Text strong className="testimonial-author" style={{ color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)' }}>- Prof. Liam Carter, Summit College</Text>
-                  </div>
-                </div>
-              </Card>
-            </div>
-            <div>
-              <Card style={{ ...featureCardStyle, background: themeColors.cardGradient3 }} className="testimonial-card card-animate">
-                <div className="testimonial-content">
-                  <Text className="testimonial-quote" style={{ color: '#fff', fontSize: 'clamp(18px, 3vw, 24px)', lineHeight: '1.5', textAlign: 'center', padding: '0 10px', fontStyle: 'italic' }}>&quot;Feedback feature sparked real dialogue.&quot;</Text>
-                  {/* Fixed: Removed block prop and used div with styling instead */}
-                  <div style={{ marginTop: '24px', textAlign: 'center' }}>
-                    <Text strong className="testimonial-author" style={{ color: '#fff', fontSize: 'clamp(14px, 2vw, 18px)' }}>- Ms. Elena Ortiz, Bright Academy</Text>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </Carousel>
-        </section>
-
-        {/* FAQ Section - Using items prop instead of children */}
-        <section style={{ padding: '60px 16px', background: themeColors.background, width: '100%', boxSizing: 'border-box' }}>
-          <Title level={2} style={{ marginBottom: '40px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
-            Frequently Asked Questions
-          </Title>
-          <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-            <Collapse
-              accordion
-              bordered={false}
-              style={{ background: themeColors.cardBg, borderRadius: '12px', border: `1px solid ${themeColors.border}` }}
-              items={faqItems}
-            />
-          </div>
-        </section>
-
-        {/* Roadmap */}
-        <section style={{ padding: '60px 16px', background: themeColors.cardBg, width: '100%', boxSizing: 'border-box' }}>
-          <Title level={2} style={{ marginBottom: '48px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textAlign: 'center' }}>
-            What’s Next for QRollCall
-          </Title>
-          <Row gutter={[16, 16]} justify="center" className="staggered-row">
-            <Col xs={24} sm={12} md={8} className="card-container">
-              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient1 }} className="feature-card card-animate">
-                <Title level={4} style={{ color: '#fff', fontSize: '20px' }}>Q1 2026</Title>
-                <Text style={{ color: '#fff', fontSize: '16px' }}>Rich engagement dashboards for deeper student insights.</Text>
-                <div className="card-shine"></div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} className="card-container">
-              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient2 }} className="feature-card card-animate">
-                <Title level={4} style={{ color: '#fff', fontSize: '20px' }}>Q2 2026</Title>
-                <Text style={{ color: '#fff', fontSize: '16px' }}>Facial recognition to enhance attendance security.</Text>
-                <div className="card-shine"></div>
-              </Card>
-            </Col>
-            <Col xs={24} sm={12} md={8} className="card-container">
-              <Card hoverable style={{ ...featureCardStyle, background: themeColors.cardGradient3 }} className="feature-card card-animate">
-                <Title level={4} style={{ color: '#fff', fontSize: '20px' }}>Q3 2026</Title>
-                <Text style={{ color: '#fff', fontSize: '16px' }}>Global language support for worldwide accessibility.</Text>
-                <div className="card-shine"></div>
-              </Card>
-            </Col>
-          </Row>
-        </section>
-
-        {/* CTA Section */}
-        <section style={{
-          padding: '80px 16px',
-          background: `linear-gradient(135deg, ${themeColors.cardGradient3} 0%, ${themeColors.cardGradient1} 100%)`,
-          textAlign: 'center',
-          width: '100%',
-          boxSizing: 'border-box',
-        }}>
-          <Title level={2} style={{ marginBottom: '24px', color: themeColors.text, fontSize: 'clamp(28px, 5vw, 36px)', textShadow: '0 2px 8px rgba(0,0,0,0.2)' }}>
-            Ready to Transform Attendance?
-          </Title>
-          <Text style={{ fontSize: 'clamp(16px, 2.5vw, 18px)', marginBottom: '40px', display: 'block', color: themeColors.text, opacity: 0.9, maxWidth: '600px', margin: '0 auto 40px', textAlign: 'center' }}>
-            Join institutions worldwide in simplifying attendance with QRollCall’s innovative tools.
-          </Text>
-          <Button type="primary" size="large" onClick={() => navigate('/auth/login')} style={{ padding: '0 50px', height: '60px', fontSize: '18px', background: themeColors.primary, borderColor: themeColors.primary, borderRadius: '8px' }}>
-            Get Started Free
-          </Button>
-        </section>
-      </Content>
-
-      {/* Footer - Updated for better dark mode visibility */}
-      <Footer className="modern-footer">
-        <div className="footer-top">
-          <Row gutter={[30, 30]} justify="space-between">
-            <Col xs={24} sm={24} md={7}>
-              <div className="footer-brand">
-                <div className="footer-logo">
-                  <StyledLogo size="large" onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
-                  <Title level={4} className="brand-name">QRollCall</Title>
-                </div>
-                <Text style={{ color: isDarkMode ? '#e0e0e0' : themeColors.text, opacity: 0.85 }}>
-                  Revolutionizing attendance tracking for educational institutions with smart, secure QR code technology.
-                </Text>
-                <div className="social-icons">
-                  <a href="https://twitter.com/" target="_blank" rel="noopener noreferrer"><XOutlined /></a>
-                  <a href="https://facebook.com/" target="_blank" rel="noopener noreferrer"><FacebookOutlined /></a>
-                  <a href="https://linkedin.com/" target="_blank" rel="noopener noreferrer"><LinkedinOutlined /></a>
-                  <a href="https://instagram.com/" target="_blank" rel="noopener noreferrer"><InstagramOutlined /></a>
-                  <a href="https://github.com/" target="_blank" rel="noopener noreferrer"><GithubOutlined /></a>
-                </div>
-              </div>
-            </Col>
-
-            {/* Adjusted columns to be side by side on small screens */}
-            <Col xs={12} sm={12} md={5}>
-              <Title level={4} className="footer-heading">Quick Links</Title>
-              <ul className="footer-links">
-                <li><a href="#features">Features</a></li>
-                <li><a href="#benefits">For Schools</a></li>
-                <li><a href="#testimonials">Testimonials</a></li>
-                <li><a href="#faq">FAQ</a></li>
-                <li><a href="/contact">Support</a></li>
-              </ul>
-            </Col>
-
-            <Col xs={12} sm={12} md={5}>
-              <Title level={4} className="footer-heading">Resources</Title>
-              <ul className="footer-links">
-                <li><a href="/blog">Blog</a></li>
-                <li><a href="/docs">Documentation</a></li>
-                <li><a href="/tutorials">Tutorials</a></li>
-                <li><a href="/api">API Reference</a></li>
-                <li><a href="/privacy">Privacy Policy</a></li>
-              </ul>
-            </Col>
-
-            <Col xs={24} md={7}>
-              <Title level={4} className="footer-heading">Stay Updated</Title>
-              <Text style={{ color: isDarkMode ? '#e0e0e0' : themeColors.text, opacity: 0.85, marginBottom: '16px', display: 'block' }}>
-                Subscribe to our newsletter for the latest updates and features.
-              </Text>
-              <Form form={form} onFinish={handleSubscribe} className="newsletter-form">
-                <Form.Item
-                  name="email"
-                  validateTrigger={['onChange', 'onBlur']}
-                  rules={[
-                    {
-                      required: true,
-                      message: 'Email is required'
-                    },
-                    {
-                      type: 'email',
-                      message: 'Please enter a valid email address'
-                    },
-                    {
-                      validator: validateEmail
-                    }
-                  ]}
-                  validateFirst={true}
+                {/* Bottom Trigger Action */}
+                <button
+                  type="button"
+                  onClick={() => navigate('/auth/login')}
+                  className="w-full h-10 rounded-md font-bold text-xs cursor-pointer shadow-none transition-opacity hover:opacity-90 flex items-center justify-center"
+                  style={{
+                    backgroundColor: '#D4FF5E',
+                    color: '#131926',
+                  }}
                 >
-                  <Input
-                    placeholder="Your email address"
-                    style={{ color: isDarkMode ? '#fff' : themeColors.text }}
-                    status={form.getFieldError('email').length > 0 ? 'error' : ''}
-                    suffix={
-                      <Button
-                        type="text"
-                        htmlType="submit"
-                        className="subscribe-btn"
-                        loading={subscribeLoading}
-                        icon={<SendOutlined />}
-                      />
-                    }
-                  />
-                </Form.Item>
-              </Form>
-              <div className="contact-info">
-                <p style={{ color: isDarkMode ? '#e0e0e0' : themeColors.text, opacity: 0.85, marginBottom: '8px' }}>
-                  <strong>Email:</strong> hello@qrollcall.com
-                </p>
-                <p style={{ color: isDarkMode ? '#e0e0e0' : themeColors.text, opacity: 0.85 }}>
-                  <strong>Phone:</strong> +2547 9756 1978
+                  Scan to check in
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* 3. SECTION: WHY QROLLCALL? (Design Spec Page 1)                */}
+      {/* ============================================================== */}
+      <section id="features" className="w-full py-16 sm:py-20 border-b" style={{ borderColor: isDarkMode ? '#1E293B' : '#E2E8F0' }}>
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44">
+          <div className="text-center max-w-2xl 2xl:max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl xl-lg:text-4xl font-bold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+              Why QRollCall?
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 xl-lg:grid-cols-3 2xl-lg:grid-cols-3 gap-6 xl-lg:gap-8 2xl-lg:gap-10">
+            {/* Card 1: Instant precision */}
+            <div
+              className="rounded-lg border p-6 shadow-none flex flex-col justify-between"
+              style={getCardStyle()}
+            >
+              <div>
+                <div className="w-9 h-9 rounded-md flex items-center justify-center bg-[#D4FF5E] text-[#131926] mb-4">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+                  Instant precision
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  Attendance updates in real time with pinpoint accuracy for every session.
                 </p>
               </div>
-            </Col>
-          </Row>
-        </div>
+            </div>
 
-        <Divider className="footer-divider" />
+            {/* Card 2: Fraud-proof */}
+            <div
+              className="rounded-lg border p-6 shadow-none flex flex-col justify-between"
+              style={getCardStyle()}
+            >
+              <div>
+                <div className="w-9 h-9 rounded-md flex items-center justify-center bg-[#D4FF5E] text-[#131926] mb-4">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+                  Fraud-proof
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  Dynamic QR codes, unique device tracking and secure authentication stop proxy attendance in its tracks.
+                </p>
+              </div>
+            </div>
 
-        <div className="footer-bottom">
-          <div className="copyright">
-            <Text style={{ color: isDarkMode ? '#e0e0e0' : themeColors.text, opacity: 0.7, fontSize: '14px' }}>
-              © {new Date().getFullYear()} QRollCall. All rights reserved.
-            </Text>
+            {/* Card 3: Engage students */}
+            <div
+              className="rounded-lg border p-6 shadow-none flex flex-col justify-between"
+              style={getCardStyle()}
+            >
+              <div>
+                <div className="w-9 h-9 rounded-md flex items-center justify-center bg-[#D4FF5E] text-[#131926] mb-4">
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <h3 className="text-base font-semibold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+                  Engage students
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-2 leading-relaxed">
+                  Interactive feedback and dashboards spark student participation and insights.
+                </p>
+              </div>
+            </div>
           </div>
-          <div className="footer-bottom-links">
-            <a className="footer-link" href="/terms">Terms</a>
-            <a className="footer-link" href="/privacy">Privacy</a>
-            <a className="footer-link" href="/cookies">Cookies</a>
+        </div>
+      </section>
+
+      {/* ============================================================== */}
+      {/* 4. SECTION: HOW IT WORKS (Design Spec Pages 1 & 2)             */}
+      {/* ============================================================== */}
+      <section
+        className="w-full py-16 sm:py-20 border-b"
+        style={{
+          backgroundColor: '#0B0F17',
+          borderColor: '#1E293B',
+          color: '#FFFFFF',
+        }}
+      >
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44">
+          <div className="text-center max-w-2xl 2xl:max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl xl-lg:text-4xl font-bold tracking-tight text-white">
+              How it works
+            </h2>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 xl-lg:grid-cols-3 2xl-lg:grid-cols-3 gap-6 xl-lg:gap-8 2xl-lg:gap-10">
+            {/* Step 1 */}
+            <div className="rounded-lg border border-slate-800 bg-[#12172B] p-6 space-y-4">
+              <span className="text-4xl font-bold font-mono tracking-tight text-[#D4FF5E]">
+                1
+              </span>
+              <div>
+                <h3 className="text-base font-semibold text-white tracking-tight">
+                  Lecturer starts a session
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
+                  Pick a unit and the QR code appears full screen in the lecture hall.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 2 */}
+            <div className="rounded-lg border border-slate-800 bg-[#12172B] p-6 space-y-4">
+              <span className="text-4xl font-bold font-mono tracking-tight text-[#D4FF5E]">
+                2
+              </span>
+              <div>
+                <h3 className="text-base font-semibold text-white tracking-tight">
+                  Students scan to check in
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
+                  Phones scan the dynamic code and the check-in is tied to that device.
+                </p>
+              </div>
+            </div>
+
+            {/* Step 3 */}
+            <div className="rounded-lg border border-slate-800 bg-[#12172B] p-6 space-y-4">
+              <span className="text-4xl font-bold font-mono tracking-tight text-[#D4FF5E]">
+                3
+              </span>
+              <div>
+                <h3 className="text-base font-semibold text-white tracking-tight">
+                  Attendance appears live
+                </h3>
+                <p className="text-xs sm:text-sm text-slate-400 mt-2 leading-relaxed">
+                  Watch check-ins arrive, then download the records after class.
+                </p>
+              </div>
+            </div>
           </div>
         </div>
-      </Footer>
+      </section>
 
-      {/* Back to Top Button - Now using ArrowUpOutlined */}
-      <FloatButton.BackTop
-        icon={<ArrowUpOutlined />}
-        style={{ backgroundColor: themeColors.primary }}
-        type="primary"
-        visibilityHeight={300}
-      />
+      {/* ============================================================== */}
+      {/* 5. SECTION: BENEFITS FOR EVERYONE (Design Spec Page 2)         */}
+      {/* ============================================================== */}
+      <section id="benefits" className="w-full py-16 sm:py-20 border-b" style={{ borderColor: isDarkMode ? '#1E293B' : '#E2E8F0' }}>
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44">
+          <div className="text-center max-w-2xl 2xl:max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl xl-lg:text-4xl font-bold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+              Benefits for everyone
+            </h2>
+          </div>
 
-      <style>{`
-        html, body {
-          margin: 0;
-          padding: 0;
-          overflow-x: 'hidden';
-        }
+          <div className="grid grid-cols-1 md:grid-cols-3 xl-lg:grid-cols-3 2xl-lg:grid-cols-3 gap-8 xl-lg:gap-10 2xl-lg:gap-12">
+            {/* For Students */}
+            <div className="space-y-3">
+              <div className="w-8 h-8 rounded-md flex items-center justify-center text-slate-900 dark:text-[#D4FF5E] bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-semibold" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+                For students
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Quick scans, interactive feedback and clear attendance insights keep you engaged.
+              </p>
+            </div>
 
-        /* Remove any default margins/paddings from Layout components */
-        .ant-layout {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
+            {/* For Lecturers */}
+            <div className="space-y-3">
+              <div className="w-8 h-8 rounded-md flex items-center justify-center text-slate-900 dark:text-[#D4FF5E] bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                </svg>
+              </div>
+              <h3 className="text-base font-semibold" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+                For lecturers
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Effortless session management, real-time tracking and historical records at your fingertips.
+              </p>
+            </div>
 
-        .ant-layout-content {
-          margin: 0 !important;
-        }
-        
-        .ant-btn-ghost:hover {
-          background: ${themeColors.primary} !important;
-          border-color: ${themeColors.secondary} !important;
-          color: #fff !important;
-        }
-        .ant-btn-primary:hover, .ant-btn-primary:focus {
-          background: ${themeColors.focus} !important;
-          border-color: ${themeColors.focus} !important;
-          color: ${themeColors.text} !important;
-        }
-        .ant-carousel .custom-dots li button {
-          background: ${themeColors.text}80 !important;
-          width: 10px !important;
-          height: 10px !important;
-          border-radius: 50% !important;
-        }
-        .ant-carousel .custom-dots li.slick-active button {
-          background: ${themeColors.primary} !important;
-          width: 12px !important;
-          height: 12px !important;
-        }
-        .ant-card.hoverable:hover {
-          transform: translateY(-6px);
-          boxShadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-        }
-        @media (max-width: 767px) {
-          .ant-col {
-            padding: 0 8px !important;
-          }
-          .ant-space {
-            flex-wrap: wrap !important;
-          }
-          /* Reduce top margin/padding on medium screens */
-          section:first-of-type {
-            margin-top: 64px !important; 
-            padding-top: 16px !important;
-          }
-        }
-        
-        @media (max-width: 576px) {
-        .ant-layout {
-          margin: 0 !important;
-          padding: 0 !important;
-        }
+            {/* For Admins */}
+            <div className="space-y-3">
+              <div className="w-8 h-8 rounded-md flex items-center justify-center text-slate-900 dark:text-[#D4FF5E] bg-slate-100 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                </svg>
+              </div>
+              <h3 className="text-base font-semibold" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+                For admins
+              </h3>
+              <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                Centralised oversight, detailed analytics and fraud prevention streamline operations.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        .ant-layout-content {
-          margin: 0 !important;
-        }
-          .ant-typography h1 {
-            font-size: 32px !important;
-          }
-          .ant-typography h2 {
-            font-size: 28px !important;
-          }
-          .ant-btn {
-            padding: 0 15px !important;
-            height: 36px !important;
-            font-size: 14px !important;
-          }
-          section {
-            padding: 30px 0px !important;
-          }
-          /* Minimum spacing on small screens */
-          section:first-of-type {
-            margin-top: 6px !important;
-            padding-top: 8px !important;
-          }
-        }
+      {/* ============================================================== */}
+      {/* 6. SECTION: WHAT EDUCATORS SAY (Design Spec Page 2)            */}
+      {/* ============================================================== */}
+      <section
+        className="w-full py-20 border-b"
+        style={{
+          backgroundColor: '#0B0F17',
+          borderColor: '#1E293B',
+          color: '#FFFFFF',
+        }}
+      >
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44 text-center space-y-6">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-400">
+            What educators say
+          </p>
 
-        /* Header responsive styling */
-        .site-title {
-          white-space: nowrap;
-          overflow: hidden;
-          text-overflow: ellipsis;
-        }
-        
-        /* Make space for all header elements */
-        @media (max-width: 576px) {
-          /* Smaller screens */
-          .ant-layout-header {
-            padding: 0 8px !important;
-          }
-          
-          .site-title {
-            font-size: 18px !important;
-          }
-          
-          .btn-text {
-            font-size: 12px;
-            padding: 0 4px;
-          }
-          
-          .ant-space {
-            gap: 4px !important;
-          }
-          
-          .ant-btn {
-            min-width: 0;
-            padding: 0 8px !important;
-          }
-          
-           .hero-section {
-          transition: padding 0.3s ease, margin 0.3s ease;
-          margin-bottom: 2px !important;
-          padding-bottom: 2px !important;
-        }
+          <blockquote className="text-2xl sm:text-4xl font-bold text-white tracking-tight leading-snug">
+            {testimonials[activeTestimonial].quote}
+          </blockquote>
 
-        }
-        
-        @media (max-width: 350px) {
-          /* Very small screens */
-          .site-title {
-            max-width: 80px;
-            font-size: 16px !important;
-          }
-        }
-        
-        /* Hero section adjustments */
-        .hero-section {
-          transition: padding 0.3s ease, margin 0.3s ease;
-          margin-bottom: 2px;
-        }
-        
-        @media (max-width: 767px) {
-          /* Reduce spacing on medium screens */
-          .hero-section {
-            padding-bottom: 16px !important;
-            margin-bottom: 0 !important;
-            min-height: 70vh !important;
-          }
-        }
-        
-        @media (max-width: 576px) {
-          /* Minimal spacing on small screens */
-          .hero-section {
-            padding-bottom: 8px !important;
-            margin-bottom: 0 !important;
-            min-height: 60vh !important; /* Reduce height on very small screens */
-          }
-        }
+          <p className="text-xs sm:text-sm font-medium text-[#D4FF5E]">
+            {testimonials[activeTestimonial].author}
+          </p>
 
-        /* Custom button hover states */
-        .ant-btn-signup:hover {
-          background: ${themeColors.primary} !important;
-          border-color: ${themeColors.primary} !important;
-          color: #fff !important;
-        }
-        
-        .ant-btn-ghost:hover, .ant-btn-signup:hover {
-          background: ${themeColors.primary} !important;
-          border-color: ${themeColors.primary} !important;
-          color: #fff !important;
-        }
-        
-        .explore-btn:hover {
-          background: ${themeColors.secondary} !important;
-          border-color: ${themeColors.secondary} !important;
-          color: #fff !important;
-        }
-        
-        /* Back to top button styles */
-        .back-to-top-btn, .ant-float-btn-circle {
-          height: 40px;
-          width: 40px;
-          border-radius: 50%;
-          background-color: ${themeColors.primary}!important;
-          color: #fff !important;
-          display: flex;
-          justify-content: center;
-          align-items: center;
-          box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
-          transition: all 0.3s ease;
-        }
-        
-        .back-to-top-btn:hover, .ant-float-btn-circle:hover {
-          background-color: #A29BFE}!important;
-          cursor: pointer;
-          color: #fff !important;
-          transform: scale(1.1);
-        }
-        
-        /* Override default Ant Design BackTop styles */
-        .ant-back-top {
-          right: 20px;
-          bottom: 20px;
-        }
+          {/* Testimonial Dot Switchers */}
+          <div className="pt-4 flex items-center justify-center gap-2">
+            {testimonials.map((_, idx) => (
+              <button
+                key={idx}
+                type="button"
+                onClick={() => setActiveTestimonial(idx)}
+                aria-label={`Slide ${idx + 1}`}
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
+                  activeTestimonial === idx ? 'w-6 bg-[#D4FF5E]' : 'w-2 bg-slate-700 hover:bg-slate-600'
+                }`}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
 
-        /* Card effects */
-        .feature-card {
-          transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), box-shadow 0.4s ease !important;
-        }
-        
-        .feature-card:hover {
-          transform: translateY(-10px) scale(1.02) !important;
-          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2) !important;
-        }
-        
-        .card-container {
-          perspective: 1000px;
-          margin-bottom: 20px;
-        }
-        
-        .card-icon-wrapper {
-          position: relative;
-          z-index: 2;
-        }
-        
-        /* Shine effect */
-        .card-shine {
-          position: absolute;
-          top: 0;
-          left: -100%;
-          width: 50%;
-          height: 100%;
-          background: linear-gradient(
-            to right,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.3) 50%,
-            rgba(255, 255, 255, 0) 100%
-          );
-          transform: skewX(-25deg);
-          transition: none;
-        }
-        
-        .feature-card:hover .card-shine {
-          animation: shine 1.5s infinite;
-        }
-        
-        @keyframes shine {
-          0% {
-            left: -100%;
-            transition-property: left;
-          }
-          100% {
-            left: 200%;
-            transition-property: left;
-          }
-        }
-        
-        /* Pulse effect for testimonial cards */
-        .ant-carousel .slick-slide .ant-card {
-          animation: pulse 3s infinite;
-        }
-        
-        @keyframes pulse {
-          0% {
-            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4);
-          }
-          70% {
-            box-shadow: 0 0 0 10px rgba(255, 255, 255, 0);
-          }
-          100% {
-            box-shadow: 0 0 0 0 rgba(255, 255, 255, 0);
-          }
-        }
-        
-        /* Staggered animation for feature cards */
-        .card-container:nth-child(1) .feature-card {
-          animation: fadeInUp 0.5s 0.1s backwards;
-        }
-        
-        .card-container:nth-child(2) .feature-card {
-          animation: fadeInUp 0.5s 0.3s backwards;
-        }
-        
-        .card-container:nth-child(3) .feature-card {
-          animation: fadeInUp 0.5s 0.5s backwards;
-        }
-        
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
+      {/* ============================================================== */}
+      {/* 7. SECTION: FREQUENTLY ASKED QUESTIONS (Design Spec Page 2)     */}
+      {/* ============================================================== */}
+      <section id="faq" className="w-full py-16 sm:py-20 border-b" style={{ borderColor: isDarkMode ? '#1E293B' : '#E2E8F0' }}>
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44">
+          <div className="text-center max-w-2xl 2xl:max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl xl-lg:text-4xl font-bold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+              Frequently asked questions
+            </h2>
+          </div>
 
-        /* Enhanced card animations */
-        .feature-card {
-          transition: transform 0.4s ${bezierEasing}, box-shadow 0.4s ease, background 0.5s ease !important;
-          will-change: transform, box-shadow;
-          transform-origin: center bottom;
-        }
-        
-        .feature-card:hover {
-          transform: translateY(-10px) scale(1.02) !important;
-          box-shadow: 0 15px 30px rgba(0, 0, 0, 0.2) !important;
-        }
-        
-        /* 3D effect on hover */
-        .card-container {
-          perspective: 1000px;
-          margin-bottom: 20px;
-        }
-        
-        .card-container:hover .feature-card {
-          background: linear-gradient(
-            to right,
-            rgba(255, 255, 255, 0) 0%,
-            rgba(255, 255, 255, 0.3) 50%,
-            rgba(255, 255, 255, 0) 100%
-          );
-          transform: skewX(-25deg);
-          transition: none;
-        }
-        
-        .feature-card:hover .card-shine {
-          animation: shine 1.5s infinite;
-        }
-        
-        @keyframes shine {
-          0% {
-            left: -100%;
-            transition-property: left;
-          }
-          100% {
-            left: 200%;
-            transition-property: left;
-          }
-        }
-        
-        /* Enhanced testimonial cards */
-        .testimonial-card {
-          animation: float 6s ease-in-out infinite, pulse 3s infinite !important;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-        }
-        
-        .testimonial-content {
-          display: flex;
-          flex-direction: column;
-          align-items: center;
-          justify-content: center;
-          height: 100%;
-          padding: 10px;
-        }
-        
-        .testimonial-quote {
-          position: relative;
-          font-weight: 500;
-          text-shadow: 0 1px 2px rgba(0,0,0,0.1);
-        }
-        
-        .testimonial-quote::before,
-        .testimonial-quote::after {
-          content: '"';
-          font-size: 1.5em;
-          font-family: Georgia, serif;
-          opacity: 0.7;
-          position: relative;
-          line-height: 0;
-        }
-        
-        .testimonial-author {
-          font-weight: 500;
-          letter-spacing: 0.5px;
-          opacity: 0.9;
-        }
-        
-        @media (max-width: 576px) {
-          .testimonial-quote {
-            font-size: 18px !important;
-          }
-          
-          .testimonial-author {
-            font-size: 14px !important;
-          }
-        }
-        
-        /* Staggered animation for all rows of cards */
-        .staggered-row .card-container:nth-child(1) .feature-card {
-          animation: fadeInUp 0.6s 0.1s backwards;
-        }
-        
-        .staggered-row .card-container:nth-child(2) .feature-card {
-          animation: fadeInUp 0.6s 0.3s backwards;
-        }
-        
-        .staggered-row .card-container:nth-child(3) .feature-card {
-          animation: fadeInUp 0.6s 0.5s backwards;
-        }
-        
-        .staggered-row .card-container:nth-child(4) .feature-card {
-          animation: fadeInUp 0.6s 0.7s backwards;
-        }
-        
-        .staggered-row .card-container:nth-child(5) .feature-card {
-          animation: fadeInUp 0.6s 0.9s backwards;
-        }
-        
-        .staggered-row .card-container:nth-child(6) .feature-card {
-          animation: fadeInUp 0.6s 1.1s backwards;
-        }
-        
-        @keyframes fadeInUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-        
-        /* Tilt effect on card hover */
-        .card-container .feature-card {
-          transition: transform 0.5s ${bezierEasing};
-        }
-        
-        .card-container:hover .feature-card {
-          transform: translateY(-10px) rotateX(5deg) rotateY(5deg) scale(1.05) !important;
-        }
-        
-        /* Optimize animations for reduced motion preference */
-        @media (prefers-reduced-motion) {
-          .feature-card, .card-container .feature-card, .testimonial-card {
-            transition: none !important;
-            animation: none !important;
-          }
-          
-          .feature-card:hover, .card-container:hover .feature-card {
-            transform: none !important;
-          }
-          
-          .card-shine {
-            display: none;
-          }
-        }
+          <div className="w-full max-w-5xl xl-lg:max-w-6xl 2xl:max-w-7xl 3xl:max-w-screen-2xl mx-auto space-y-3">
+            {faqs.map((faq, index) => {
+              const isOpen = openFaqIndex === index;
+              return (
+                <div
+                  key={index}
+                  className="rounded-lg border overflow-hidden shadow-none transition-colors"
+                  style={getCardStyle()}
+                >
+                  <button
+                    type="button"
+                    onClick={() => setOpenFaqIndex(isOpen ? -1 : index)}
+                    className="w-full px-5 py-4 text-left flex items-center justify-between gap-4 cursor-pointer"
+                  >
+                    <span className="text-xs sm:text-sm font-semibold" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
+                      {faq.q}
+                    </span>
+                    <span className="text-slate-400 shrink-0 text-sm font-mono font-bold">
+                      {isOpen ? '−' : '+'}
+                    </span>
+                  </button>
 
-        /* Modern Footer Styles */
-        .modern-footer {
-          background: ${isDarkMode ? '#1f1f1f' : '#f5f8fa'};
-          color: ${themeColors.text};
-          padding: 60px 40px 30px;
-          position: relative;
-          border-top: 1px solid ${themeColors.border};
-        }
+                  {isOpen && (
+                    <div
+                      className="px-5 pb-4 pt-1 text-xs sm:text-sm border-t leading-relaxed text-slate-600 dark:text-slate-400"
+                      style={{ borderColor: isDarkMode ? '#1E293B' : '#E2E8F0' }}
+                    >
+                      {faq.a}
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
 
-        .footer-top {
-          margin-bottom: 20px;
-        }
+      {/* ============================================================== */}
+      {/* 8. SECTION: WHAT'S NEXT FOR QROLLCALL (Design Spec Page 3)     */}
+      {/* ============================================================== */}
+      <section
+        className="w-full py-16 sm:py-20 border-b"
+        style={{
+          backgroundColor: '#0B0F17',
+          borderColor: '#1E293B',
+          color: '#FFFFFF',
+        }}
+      >
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44">
+          <div className="text-center max-w-2xl 2xl:max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl sm:text-3xl xl-lg:text-4xl font-bold tracking-tight text-white">
+              What’s next for QRollCall
+            </h2>
+          </div>
 
-        .footer-brand {
-          margin-bottom: 24px;
-        }
+          <div className="grid grid-cols-1 md:grid-cols-3 xl-lg:grid-cols-3 2xl-lg:grid-cols-3 gap-6 xl-lg:gap-8 2xl-lg:gap-10">
+            {/* Card 1: Next */}
+            <div className="rounded-lg border border-slate-800 bg-[#12172B] p-6 space-y-3">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-[#D4FF5E]">
+                Next
+              </span>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+                Rich engagement dashboards for deeper student insights.
+              </p>
+            </div>
 
-        .footer-logo {
-          display: flex;
-          align-items: center;
-          margin-bottom: 16px;
-        }
+            {/* Card 2: Later */}
+            <div className="rounded-lg border border-slate-800 bg-[#12172B] p-6 space-y-3">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-[#D4FF5E]">
+                Later
+              </span>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+                Facial recognition to enhance attendance security.
+              </p>
+            </div>
 
-        .footer-logo img {
-          width: 40px;
-          height: 40px;
-          margin-right: 12px;
-          border-radius: 8px;
-        }
+            {/* Card 3: Exploring */}
+            <div className="rounded-lg border border-slate-800 bg-[#12172B] p-6 space-y-3">
+              <span className="inline-block text-[11px] font-bold uppercase tracking-wider text-[#D4FF5E]">
+                Exploring
+              </span>
+              <p className="text-xs sm:text-sm text-slate-300 leading-relaxed font-medium">
+                Global language support for worldwide accessibility.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
 
-        .brand-name {
-          color: ${themeColors.primary} !important;
-          margin: 0 !important;
-        }
+      {/* ============================================================== */}
+      {/* 9. SECTION: LIME CTA BANNER (Design Spec Page 3)                */}
+      {/* ============================================================== */}
+      <section
+        className="w-full py-16 sm:py-20 text-center select-none"
+        style={{
+          backgroundColor: '#D4FF5E',
+          color: '#131926',
+        }}
+      >
+        <div className="w-full max-w-4xl xl-lg:max-w-5xl 2xl:max-w-6xl 3xl:max-w-7xl mx-auto px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44 space-y-4">
+          <h2 className="text-3xl sm:text-4xl font-bold tracking-tight text-[#131926]">
+            Ready to transform attendance?
+          </h2>
+          <p className="text-xs sm:text-sm text-[#131926]/90 max-w-md mx-auto font-medium">
+            Accounts are created by your institution. Sign in, or find out how to get access.
+          </p>
 
-        .social-icons {
-          display: flex;
-          gap: 16px;
-          margin-top: 20px;
-        }
+          <div className="pt-2 flex items-center justify-center gap-3 flex-wrap">
+            <button
+              type="button"
+              onClick={() => navigate('/auth/login')}
+              className="h-10 px-5 rounded-md font-semibold text-xs sm:text-sm transition-all cursor-pointer shadow-none flex items-center justify-center bg-[#131926] text-white hover:bg-[#1E293B]"
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate('/request-access')}
+              className="h-10 px-5 rounded-md font-semibold text-xs sm:text-sm border border-[#131926] text-[#131926] bg-transparent hover:bg-[#131926]/10 transition-colors cursor-pointer flex items-center justify-center"
+            >
+              How to get access
+            </button>
+          </div>
+        </div>
+      </section>
 
-        .social-icons a {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          width: 36px;
-          height: 36px;
-          background: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.05)'};
-          border-radius: 50%;
-          color: ${themeColors.text};
-          font-size: 18px;
-          transition: all 0.3s ease;
-        }
+      {/* ============================================================== */}
+      {/* 10. FOOTER (Design Spec Page 3)                                */}
+      {/* ============================================================== */}
+      <footer
+        className="w-full pt-16 pb-12 text-slate-400 text-xs"
+        style={{
+          backgroundColor: '#080C14',
+          color: '#94A3B8',
+        }}
+      >
+        <div className="w-full px-4 2xs:px-4 xs:px-6 sm:px-8 md:px-10 md-sm:px-12 lg:px-14 xl:px-16 xl-lg:px-20 2xl:px-24 2xl-md:px-28 2xl-lg:px-32 3xl:px-44">
+          <div className="grid grid-cols-1 md:grid-cols-12 xl-lg:grid-cols-12 2xl-lg:grid-cols-12 gap-10 pb-12 border-b border-slate-800">
+            {/* Col 1: Brand & Bio (col-span-4) */}
+            <div className="md:col-span-4 space-y-3">
+              <BrandLogo size="md" theme="dark" clickable={true} />
+              <p className="text-xs text-slate-400 max-w-xs leading-relaxed">
+                Smart, secure QR attendance for educational institutions.
+              </p>
+            </div>
 
-        .social-icons a:hover {
-          background: ${themeColors.primary};
-          color: #fff;
-          transform: translateY(-3px);
-        }
+            {/* Col 2: Quick Links (col-span-2) */}
+            <div className="md:col-span-2 space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-white">
+                Quick links
+              </h4>
+              <ul className="space-y-2">
+                <li>
+                  <button type="button" onClick={() => scrollToSection('features')} className="hover:text-white cursor-pointer">
+                    Features
+                  </button>
+                </li>
+                <li>
+                  <button type="button" onClick={() => scrollToSection('benefits')} className="hover:text-white cursor-pointer">
+                    Benefits
+                  </button>
+                </li>
+                <li>
+                  <button type="button" onClick={() => scrollToSection('faq')} className="hover:text-white cursor-pointer">
+                    FAQ
+                  </button>
+                </li>
+                <li>
+                  <button type="button" onClick={() => navigate('/request-access')} className="hover:text-white cursor-pointer">
+                    Support
+                  </button>
+                </li>
+              </ul>
+            </div>
 
-        .footer-heading {
-          color: ${themeColors.text} !important;
-          margin-bottom: 20px !important;
-          position: relative;
-          font-size: 18px !important;
-        }
+            {/* Col 3: Resources (col-span-2) */}
+            <div className="md:col-span-2 space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-white">
+                Resources
+              </h4>
+              <ul className="space-y-2">
+                <li>
+                  <a href="#features" className="hover:text-white">
+                    Documentation
+                  </a>
+                </li>
+                <li>
+                  <a href="#features" className="hover:text-white">
+                    Tutorials
+                  </a>
+                </li>
+                <li>
+                  <a href="#features" className="hover:text-white">
+                    Privacy policy
+                  </a>
+                </li>
+              </ul>
+            </div>
 
-        .footer-heading::after {
-          content: '';
-          position: absolute;
-          bottom: -8px;
-          left: 0;
-          width: 40px;
-          height: 3px;
-          background: ${themeColors.primary};
-          border-radius: 1px;
-        }
+            {/* Col 4: Stay Updated (col-span-4) */}
+            <div className="md:col-span-4 space-y-3">
+              <h4 className="text-xs font-semibold uppercase tracking-wider text-white">
+                Stay updated
+              </h4>
+              <form onSubmit={handleSubscribe} className="flex gap-2">
+                <input
+                  type="email"
+                  required
+                  value={subscribeEmail}
+                  onChange={(e) => setSubscribeEmail(e.target.value)}
+                  placeholder="Your email address"
+                  className="h-9 px-3 rounded-md bg-slate-900 border border-slate-700 text-xs text-white placeholder-slate-500 w-full focus:outline-hidden focus:border-[#D4FF5E]"
+                />
+                <button
+                  type="submit"
+                  className="h-9 px-3.5 rounded-md font-semibold text-xs cursor-pointer transition-colors shrink-0"
+                  style={{
+                    backgroundColor: '#D4FF5E',
+                    color: '#131926',
+                  }}
+                >
+                  Subscribe
+                </button>
+              </form>
+              {subscribed && (
+                <p className="text-[11px] text-[#D4FF5E] font-medium">
+                  Thank you for subscribing to QRollCall updates.
+                </p>
+              )}
+              <div className="pt-2 space-y-1 text-slate-400">
+                <p className="font-mono text-xs">hello@qrollcall.com</p>
+                <p className="font-mono text-xs">+254 798 765 432</p>
+              </div>
+            </div>
+          </div>
 
-        .footer-links {
-          list-style: none;
-          padding: 0;
-          margin: 0;
-        }
-
-        .footer-links li {
-          margin-bottom: 12px;
-        }
-
-        .footer-links a {
-          color: ${isDarkMode ? '#e0e0e0' : themeColors.text};
-          opacity: 0.8;
-          transition: all 0.2s ease;
-          position: relative;
-          padding-left: 0;
-        }
-
-        .footer-links a::before {
-          content: '›';
-          position: absolute;
-          left: 0;
-          opacity: 0;
-          transition: all 0.3s ease;
-        }
-
-        .footer-links a:hover {
-          color: ${themeColors.primary};
-          opacity: 1;
-          padding-left: 14px;
-        }
-
-        .footer-links a:hover::before {
-          opacity: 1;
-          left: 0;
-        }
-
-        .newsletter-text {
-          margin-bottom: 16px;
-          display: block;
-        }
-
-        .newsletter-form {
-          margin-bottom: 20px;
-        }
-
-        .newsletter-form .ant-input {
-          background: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(255,255,255,0.8)'};
-          border: 1px solid ${themeColors.border};
-          border-radius: 8px;
-          height: 44px;
-          color: ${isDarkMode ? '#fff' : themeColors.text};
-        }
-
-        .subscribe-btn {
-          color: ${themeColors.primary};
-          cursor: pointer;
-        }
-
-        .subscribe-btn:hover {
-          color: ${themeColors.focus};
-        }
-
-        .contact-info p {
-          margin-bottom: 8px;
-          opacity: 0.8;
-        }
-
-        .footer-divider {
-          border-color: ${isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.06)'};
-          margin: 20px 0;
-        }
-
-        .footer-bottom {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          flex-wrap: wrap;
-        }
-
-        .copyright {
-          opacity: 0.7;
-          font-size: 14px;
-        }
-
-        .footer-bottom-links {
-          display: flex;
-          gap: 24px;
-        }
-
-        .footer-bottom-links a {
-          color: ${isDarkMode ? '#e0e0e0' : themeColors.text};
-          opacity: 0.7;
-          font-size: 14px;
-          transition: all 0.2s ease;
-        }
-
-        .footer-bottom-links a:hover {
-          color: ${themeColors.primary};
-          opacity: 1;
-        }
-
-        @media (max-width: 768px) {
-          .modern-footer {
-            padding: 40px 16px 20px;
-          }
-
-          .footer-bottom {
-            flex-direction: column;
-            align-items: center;
-            gap: 16px;
-            text-align: center;
-          }
-
-          .footer-bottom-links {
-            gap: 16px;
-          }
-
-          .footer-logo {
-            justify-content: center;
-          }
-
-          .social-icons {
-            justify-content: center;
-          }
-
-          .footer-heading {
-            text-align: center;
-          }
-
-          .footer-heading::after {
-            left: 50%;
-            transform: translateX(-50%);
-          }
-
-          .footer-links {
-            text-align: center;
-          }
-
-          .footer-links a::before {
-            display: none;
-          }
-
-          .footer-links a:hover {
-            padding-left: 0;
-          }
-
-          .newsletter-text {
-            text-align: center;
-          }
-
-          .contact-info {
-            text-align: center;
-          }
-        }
-
-        /* Fixed FloatButton styles to always use primary color */
-        .ant-float-btn-primary {
-          background-color: ${themeColors.primary} !important;
-          color: #fff !important;
-        }
-        
-        .ant-float-btn-primary:hover {
-          background-color: ${themeColors.focus || themeColors.primary} !important;
-        }
-        
-        /* Override any default FloatButton styling */
-        .ant-float-btn {
-          right: 24px !important;
-          bottom: 24px !important;
-        }
-        
-        .ant-float-btn-body {
-          background-color: ${themeColors.primary} !important;
-        }
-
-        /* Logo Styling */
-        .styled-logo {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          position: relative;
-          transition: transform 0.3s ease;
-        }
-
-        .styled-logo:hover {
-          transform: scale(1.05);
-        }
-        
-        .logo-image {
-          border-radius: 10px;
-          object-fit: cover;
-          box-shadow: 0 2px 8px rgba(0,0,0,0.15);
-          border: 2px solid ${themeColors.primary};
-          background-color: ${isDarkMode ? '#2a2a2a' : 'white'};
-          transition: all 0.3s ease;
-          padding: 2px;
-        }
-        
-        .logo-image:hover {
-          box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-          border-color: ${themeColors.focus || themeColors.secondary};
-        }
-        
-        .logo-image.small {
-          border-width: 1px;
-          padding: 1px;
-        }
-        
-        .logo-image.large {
-          border-width: 3px;
-          padding: 3px;
-        }
-
-        .footer-logo .styled-logo {
-          margin-right: 12px;
-        }
-        
-        /* Make logo more noticeable on smaller screens */
-        @media (max-width: 576px) {
-          .styled-logo {
-            margin-right: 8px;
-          }
-          
-          .logo-image {
-            border-width: 1px;
-          }
-        }
-
-        .newsletter-form .ant-form-item-explain-error {
-          font-size: 12px;
-          margin-top: 4px;
-          color: #ff4d4f;
-        }
-
-        .newsletter-form .ant-input-status-error {
-          border-color: #ff4d4f !important;
-          background: ${isDarkMode ? 'rgba(255,77,79,0.1)' : 'rgba(255,77,79,0.05)'} !important;
-        }
-
-        .newsletter-form .ant-input-status-error:hover {
-          border-color: #ff7875 !important;
-        }
-        
-      `}</style>
-    </Layout>
+          {/* Bottom Legal Bar */}
+          <div className="pt-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-slate-500">
+            <p>© {new Date().getFullYear()} QRollCall. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              <span className="hover:text-slate-400 cursor-pointer">Terms</span>
+              <span className="hover:text-slate-400 cursor-pointer">Privacy</span>
+              <span className="hover:text-slate-400 cursor-pointer">Cookies</span>
+              <button
+                type="button"
+                onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                className="hover:text-white cursor-pointer font-medium"
+              >
+                Back to top
+              </button>
+            </div>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 };
 

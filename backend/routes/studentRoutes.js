@@ -10,8 +10,11 @@ const {
   updateStudentV2,
   getStudentUnits,
   enrollStudentInUnit,
-  removeStudentFromUnit
+  removeStudentFromUnit,
+  bulkUpdateStudentStatus,
+  bulkDeleteStudents
 } = require("../controllers/userController");
+const { downloadStudentTemplate } = require("../controllers/adminController");
 const authenticate = require("../middleware/authMiddleware");
 const authorize = require("../middleware/authorizeMiddleware");
 const upload = require("../middleware/uploadMiddleware");
@@ -19,8 +22,15 @@ const departmentRoutes = require("./departmentRoutes");
 
 const router = express.Router();
 
+// Bulk operations (must precede dynamic /:id routes)
+router.post("/bulk-status", authenticate, authorize(['admin', 'super_admin']), bulkUpdateStudentStatus);
+router.post("/bulk-delete", authenticate, authorize(['admin', 'super_admin']), bulkDeleteStudents);
+router.get("/download", authenticate, authorize(['admin', 'super_admin']), downloadStudents);
+router.get("/template", authenticate, authorize(['admin', 'super_admin']), downloadStudentTemplate);
+router.post("/upload", authenticate, authorize(['admin', 'super_admin']), upload.single('csvFile'), importStudents);
+
 // Student management routes
-router.get("/", authenticate, authorize(['admin']), getStudents);
+router.get("/", authenticate, authorize(['admin', 'super_admin']), getStudents);
 
 // Keep the original route for backwards compatibility
 router.put("/:id", authenticate, authorize(['admin']), [
@@ -52,6 +62,7 @@ router.put("/v2/:id", authenticate, authorize(['admin']), [
 
 router.delete("/:id", authenticate, authorize(['admin']), deleteStudent);
 router.get("/download", authenticate, authorize(['admin']), downloadStudents);
+router.get("/template", authenticate, authorize(['admin']), downloadStudentTemplate);
 router.post("/upload", authenticate, authorize(['admin']), upload.single('csvFile'), importStudents);
 
 router.post("/", authenticate, authorize(["admin"]), registerUser);

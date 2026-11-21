@@ -2,15 +2,32 @@ const router = require('express').Router();
 const {
   detectCurrentSession,
   createSession,
+  startSession,
+  getRotatingQrToken,
   endSession,
   getLastSession,
   getActiveSessionForUnit,
   regenerateQR,
-  checkSessionStatus, // Add this import
-  validateSession // Add this import
+  checkSessionStatus,
+  validateSession,
+  getSessionDetails,
+  getSessionsList,
+  updateSession,
+  deleteSession
 } = require('../controllers/session.controller');
 const authenticate = require('../middleware/authMiddleware');
 const { authLimiter, sensitiveLimiter } = require('../middleware/rateLimiter');
+
+// Dynamic 30-Second QR Token Security & Check-In Endpoints
+router.post('/start', authenticate, sensitiveLimiter, startSession);
+router.get('/:id/qr-token', authenticate, getRotatingQrToken);
+router.post('/:id/end', authenticate, endSession);
+
+// Full CRUD operations on Sessions
+router.get('/', authenticate, getSessionsList);
+router.get('/:id', authenticate, getSessionDetails);
+router.put('/:id', authenticate, updateSession);
+router.delete('/:id', authenticate, deleteSession);
 
 // Routes for session management
 router.get('/current', authenticate, detectCurrentSession); // Get any current active session

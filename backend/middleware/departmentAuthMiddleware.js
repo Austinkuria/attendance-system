@@ -183,10 +183,9 @@ const requireSuperAdmin = async (req, res, next) => {
         }
 
         if (user.role !== 'super_admin' && !user.isSuperAdmin) {
-            console.log(`🚫 Super admin access denied for user ${req.user.userId}`);
-            return res.status(403).json({
+            return res.status(404).json({
                 success: false,
-                message: "Access denied: Super admin privileges required"
+                message: "Not found"
             });
         }
 

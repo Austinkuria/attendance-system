@@ -19,32 +19,37 @@ class ErrorBoundary extends Component {
   }
 
   static getDerivedStateFromError(error) {
-    // Ignore specific errors related to Vercel Analytics
-    if (error.message && (
-      error.message.includes('Vercel Analytics') ||
-      error.message.includes('Failed to fetch dynamically imported module') ||
-      error.message.includes('attendance-system123.vercel.app')
-    )) {
-      console.warn('Vercel Analytics error suppressed:', error);
-      return null; // Don't update state for Vercel errors
+    // If a dynamic chunk failed to load (after rebuild/deploy), trigger a single hard reload
+    if (error?.message && error.message.includes('Failed to fetch dynamically imported module')) {
+      const hasReloaded = sessionStorage.getItem('chunk_reload_attempted');
+      if (!hasReloaded) {
+        sessionStorage.setItem('chunk_reload_attempted', 'true');
+        window.location.reload();
+        return { hasError: false, error: null };
+      }
     }
 
-    // Update state so the next render will show the fallback UI for other errors
+    // Ignore benign Vercel Analytics noise
+    if (error?.message && (
+      error.message.includes('Vercel Analytics') ||
+      error.message.includes('attendance-system123.vercel.app')
+    )) {
+      console.warn('Analytics warning suppressed:', error);
+      return null;
+    }
+
+    // Render fallback UI for all genuine runtime errors
     return { hasError: true, error };
   }
 
   componentDidCatch(error, errorInfo) {
-    // Ignore Vercel Analytics errors
-    if (error.message && (
+    if (error?.message && (
       error.message.includes('Vercel Analytics') ||
-      error.message.includes('Failed to fetch dynamically imported module') ||
       error.message.includes('attendance-system123.vercel.app')
     )) {
-      console.warn('Vercel Analytics error suppressed in componentDidCatch:', error);
       return;
     }
 
-    // Log other errors to the console
     console.error('Error caught by ErrorBoundary:', error, errorInfo);
     this.setState({ errorInfo });
   }

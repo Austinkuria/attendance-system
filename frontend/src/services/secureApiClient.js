@@ -28,10 +28,14 @@ let csrfToken = null;
 export const fetchCsrfToken = async () => {
   try {
     const response = await apiClient.get('/auth/csrf-token');
-    csrfToken = response.data.csrfToken;
+    csrfToken = response.data?.csrfToken || null;
     return csrfToken;
   } catch (error) {
-    console.error('Failed to fetch CSRF token:', error);
+    if (import.meta.env.DEV) {
+      console.warn('CSRF token fetch bypassed: backend offline or CSRF not initialized.');
+    } else {
+      console.error('Failed to fetch CSRF token:', error.message || error);
+    }
     return null;
   }
 };

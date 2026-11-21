@@ -33,14 +33,17 @@ export const isTokenValid = () => {
             );
         }
 
-        if (decoded.exp < currentTime) {
+        if (!decoded || !decoded.exp || decoded.exp < currentTime) {
             localStorage.removeItem("token");
+            localStorage.removeItem("userData");
             return false;
         }
 
         return true;
     } catch (error) {
         console.error("Token validation error:", error);
+        localStorage.removeItem("token");
+        localStorage.removeItem("userData");
         return false;
     }
 };
@@ -111,10 +114,19 @@ export const hasRole = (allowedRoles) => {
         return false;
     }
 
-    if (Array.isArray(allowedRoles)) {
-        return allowedRoles.includes(userRole);
+    const rolesList = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
+    const allowedSet = new Set(rolesList);
+
+    // Normalize admin aliases
+    if (allowedSet.has('admin')) {
+        allowedSet.add('department_admin');
+        allowedSet.add('super_admin');
     }
-    return userRole === allowedRoles;
+    if (allowedSet.has('department_admin')) {
+        allowedSet.add('admin');
+    }
+
+    return allowedSet.has(userRole);
 };
 
 /**

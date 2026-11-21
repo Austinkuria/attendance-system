@@ -1,39 +1,32 @@
-import { Layout, Card, Typography } from 'antd';
-import PropTypes from 'prop-types';
+import { Navigate } from 'react-router-dom';
+import { isTokenValid, getUserRole } from '../utils/authUtils';
+import NotFound from './ErrorPages/NotFound';
 
-const { Header, Content, Footer } = Layout;
-const { Title, Text } = Typography;
+/**
+ * Role-aware dashboard dispatcher.
+ * Automatically forwards authenticated users to their designated role dashboard.
+ * Unauthenticated visitors receive a silent 404 to avoid leaking route presence.
+ */
+const Dashboard = () => {
+  if (!isTokenValid()) {
+    return <NotFound />;
+  }
 
-const Dashboard = ({ username }) => {
-  const customStyles = {
-    header: { background: '#001529', padding: '16px', textAlign: 'center' },
-    card: { width: '90%', maxWidth: 400, textAlign: 'center', padding: 20, boxShadow: '0 4px 10px rgba(0,0,0,0.1)' },
-    footer: { textAlign: 'center', background: '#f0f2f5', padding: '16px' },
-  };
+  const role = getUserRole();
 
-  return (
-    <Layout style={{ minHeight: '100vh' }}>
-      <Header style={customStyles.header}>
-        <Title level={3} style={{ color: '#fff', margin: 0 }}>Dashboard</Title>
-      </Header>
-      <Content style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '20px', alignItems: 'center' }}>
-        <Card style={customStyles.card}>
-          <Title level={4}>Welcome, {username}!</Title>
-          <Text>Your personalized overview and quick access to features.</Text>
-        </Card>
-        <Card style={customStyles.card}>
-          <Title level={4}>Quick Actions</Title>
-          <Text>Links to important features or pages.</Text>
-        </Card>
-      </Content>
-      <Footer style={customStyles.footer}>
-        <Text>© 2023 Your Company. All rights reserved.</Text>
-      </Footer>
-    </Layout>
-  );
-};
-Dashboard.propTypes = {
-  username: PropTypes.string,
+  switch (role) {
+    case 'super_admin':
+      return <Navigate to="/super-admin" replace />;
+    case 'admin':
+    case 'department_admin':
+      return <Navigate to="/admin" replace />;
+    case 'lecturer':
+      return <Navigate to="/lecturer-dashboard" replace />;
+    case 'student':
+      return <Navigate to="/student-dashboard" replace />;
+    default:
+      return <NotFound />;
+  }
 };
 
 export default Dashboard;

@@ -9,6 +9,7 @@ const { check } = require('express-validator');
 const router = express.Router();
 
 const {
+    getSystemStats,
     createDepartmentAdmin,
     getDepartmentAdmins,
     getDepartmentAdminById,
@@ -21,15 +22,52 @@ const {
     getAllDepartments,
     updateDepartment,
     deleteDepartment,
-    assignAdminToDepartment
+    assignAdminToDepartment,
+    // Bulk Admin Operations
+    bulkUpdateAdminStatus,
+    bulkDeleteAdmins,
+    bulkUploadAdmins,
+    downloadAdminTemplate,
+    // University Users Full CRUD
+    getAllUsers,
+    getUserById,
+    createUser,
+    updateUser,
+    deleteUser,
+    resetUserPassword,
+    bulkUpdateUserStatus,
+    bulkDeleteUsers,
+    // University Courses Full CRUD
+    getAllCourses,
+    createCourse,
+    updateCourse,
+    deleteCourse,
+    // Activity Logs
+    getActivityLogs,
+    // Filtered Exports & Bulk Ingestion
+    exportData,
+    downloadTemplate,
+    importSpreadsheet
 } = require('../controllers/superAdminController');
 
 const authenticate = require('../middleware/authMiddleware');
 const { requireSuperAdmin } = require('../middleware/departmentAuthMiddleware');
+const upload = require('../middleware/uploadMiddleware');
 
 // Apply authentication and super admin check to ALL routes
 router.use(authenticate);
 router.use(requireSuperAdmin);
+
+// Batch and template routes for administrators
+router.get('/admins/template', downloadAdminTemplate);
+router.post('/admins/upload', upload.single('file'), bulkUploadAdmins);
+router.post('/admins/bulk-status', bulkUpdateAdminStatus);
+router.post('/admins/bulk-delete', bulkDeleteAdmins);
+
+// ============================================
+// SYSTEM-WIDE DASHBOARD STATS
+// ============================================
+router.get('/stats', getSystemStats);
 
 // ============================================
 // DEPARTMENT ADMIN MANAGEMENT
@@ -179,5 +217,37 @@ router.post('/departments/assign-admin', [
         .isMongoId()
         .withMessage('Valid admin ID is required')
 ], assignAdminToDepartment);
+
+// ============================================
+// UNIVERSITY USERS MANAGEMENT (ALL ROLES)
+// ============================================
+router.get('/users', getAllUsers);
+router.post('/users', createUser);
+router.get('/users/:id', getUserById);
+router.put('/users/:id', updateUser);
+router.delete('/users/:id', deleteUser);
+router.post('/users/:id/reset-password', resetUserPassword);
+router.post('/users/bulk-status', bulkUpdateUserStatus);
+router.post('/users/bulk-delete', bulkDeleteUsers);
+
+// ============================================
+// UNIVERSITY COURSES MANAGEMENT
+// ============================================
+router.get('/courses', getAllCourses);
+router.post('/courses', createCourse);
+router.put('/courses/:id', updateCourse);
+router.delete('/courses/:id', deleteCourse);
+
+// ============================================
+// ACTIVITY AUDIT LOGS
+// ============================================
+router.get('/logs', getActivityLogs);
+
+// ============================================
+// SYSTEM-WIDE FILTERED EXPORT & BULK IMPORT
+// ============================================
+router.get('/export/:entity', exportData);
+router.get('/templates/:entity', downloadTemplate);
+router.post('/import/:entity', upload.single('file'), importSpreadsheet);
 
 module.exports = router;

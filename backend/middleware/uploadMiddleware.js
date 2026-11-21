@@ -1,24 +1,28 @@
 const multer = require("multer");
+const path = require("path");
 
-// Set up storage options for uploaded files
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => {
-        cb(null, "uploads/"); // Save files to the 'uploads' folder
-    },
-    filename: (req, file, cb) => {
-        cb(null, Date.now() + "-" + file.originalname); // Create a unique file name
-    }
-});
+// Use memory storage for clean processing without disk clutter
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
-    // Allow only CSV files
-    if (file.mimetype === "text/csv") {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const allowedMimes = [
+        "text/csv",
+        "application/vnd.ms-excel",
+        "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    ];
+
+    if (ext === ".csv" || ext === ".xlsx" || allowedMimes.includes(file.mimetype)) {
         cb(null, true);
     } else {
-        cb(new Error("Invalid file type. Only CSV files are allowed."), false);
+        cb(new Error("Invalid file type. Only CSV and Excel (.xlsx) files are allowed."), false);
     }
 };
 
-const upload = multer({ storage, fileFilter });
+const upload = multer({
+    storage,
+    fileFilter,
+    limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
+});
 
 module.exports = upload;

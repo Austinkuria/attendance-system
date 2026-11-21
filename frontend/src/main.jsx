@@ -1,26 +1,30 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-// import './styles.css';
 import App from './App.jsx';
-// import { register } from './serviceWorkerRegistration';
-// import { toast } from 'react-toastify';
+import './index.css';
 import 'react-toastify/dist/ReactToastify.css';
 import { loadAnalytics } from './utils/analytics.js';
 
-// Remove the unused ThemeAwareToasts component from here as it's now in its own file
+// Auto-recover from dynamic module preload failures on new builds
+window.addEventListener('vite:preloadError', (event) => {
+  event.preventDefault();
+  window.location.reload();
+});
+
+// Clear stale service workers in development to prevent blank page caching issues
+if (process.env.NODE_ENV === 'development' && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then((registrations) => {
+    for (const registration of registrations) {
+      registration.unregister();
+    }
+  });
+}
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <App />
   </StrictMode>
 );
-
-// Function to clear all caches
-// async function clearCaches() {
-//   const cacheNames = await caches.keys();
-//   console.log('Clearing caches:', cacheNames);
-//   await Promise.all(cacheNames.map((cacheName) => caches.delete(cacheName)));
-// }
 
 // Initialize analytics
 loadAnalytics();

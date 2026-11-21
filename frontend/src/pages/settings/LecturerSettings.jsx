@@ -1,63 +1,60 @@
 import { useEffect, useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { getUserProfile, updateUserProfile } from '../../services/api';
-import { Layout, Card, Typography, Button, Form, Input, message, Spin, Space } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined, ArrowLeftOutlined } from '@ant-design/icons';
-import styled from 'styled-components';
+import { Form, Input, message, Spin } from 'antd';
 import { ThemeContext } from '../../context/ThemeContext';
 
-const { Header, Content } = Layout;
-const { Title } = Typography;
-
-const SettingsCard = styled(Card)`
-  max-width: 600px;
-  margin: 24px auto;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  background: ${props => props.theme.cardBg};
-  border: 1px solid ${props => props.theme.border};
-  
-  @media (max-width: 576px) {
-    padding: 16px;
-    margin: 16px;
-  }
-`;
-
+/**
+ * QRollCall Lecturer Settings
+ * Complies strictly with UI Craft & Anti-Slop Design Rules:
+ * - rounded-lg cards with 1px hairline border, shadow-none
+ * - rounded-md controls (h-9 primary inputs/buttons)
+ * - Name breakdown into First, Middle, and Last name
+ * - Direct ThemeContext bindings via CSS variables
+ */
 const LecturerSettings = () => {
-  const { isDarkMode, themeColors } = useContext(ThemeContext);
+  const { isDarkMode, getCardStyle, getSubtleStyle, getInputStyle } = useContext(ThemeContext);
   const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const navigate = useNavigate();
 
   useEffect(() => {
+    let isMounted = true;
     const fetchUserData = async () => {
       try {
         setLoadingProfile(true);
         const userData = await getUserProfile();
-        form.setFieldsValue({
-          firstName: userData.firstName,
-          lastName: userData.lastName,
-          email: userData.email,
-          phone: userData.phone,
-          department: userData.department
-        });
+        if (isMounted) {
+          form.setFieldsValue({
+            firstName: userData.firstName || '',
+            middleName: userData.middleName || '',
+            lastName: userData.lastName || '',
+            email: userData.email || '',
+            phone: userData.phone || '',
+            department: userData.department || 'Software Engineering',
+          });
+        }
       } catch (error) {
         console.error('Error fetching profile:', error);
         message.error('Failed to load profile data');
       } finally {
-        setLoadingProfile(false);
+        if (isMounted) setLoadingProfile(false);
       }
     };
 
     fetchUserData();
+    return () => {
+      isMounted = false;
+    };
   }, [form]);
 
   const handleSubmit = async (values) => {
     try {
       setLoading(true);
       await updateUserProfile(values);
-      message.success('Profile updated successfully!');
+      message.success('Profile updated successfully');
+      navigate('/lecturer/overview');
     } catch (error) {
       console.error('Error updating profile:', error);
       message.error('Failed to update profile');
@@ -66,215 +63,188 @@ const LecturerSettings = () => {
     }
   };
 
+  if (loadingProfile) {
+    return (
+      <div className="py-12 flex flex-col items-center justify-center">
+        <Spin size="large" />
+        <p className="mt-3 text-xs text-slate-500">Loading settings...</p>
+      </div>
+    );
+  }
+
   return (
-    <Layout style={{ minHeight: '100vh', background: themeColors.background }}>
-      <Header style={{
-        padding: '0 16px',
-        background: themeColors.cardBg,
-        position: 'fixed',
-        width: '100%',
-        zIndex: 1,
-        display: 'flex',
-        alignItems: 'center',
-        boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
-        borderBottom: `1px solid ${themeColors.border}`
-      }}>
-        <Button
-          type="text"
-          icon={<ArrowLeftOutlined />}
-          onClick={() => navigate('/lecturer-dashboard')}
-          style={{ color: themeColors.primary }}
-        />
-        <Title level={3} style={{ margin: 0, textAlign: 'center', flex: 1, color: themeColors.text }}>
-          Account Settings
-        </Title>
-      </Header>
+    <div className="max-w-3xl space-y-6">
+      {/* Compact PageHeader */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1
+            className="text-xl font-semibold tracking-tight"
+            style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}
+          >
+            Lecturer Settings
+          </h1>
+          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+            Manage your personal academic identity and account credentials.
+          </p>
+        </div>
 
-      <Content style={{ padding: '24px', marginTop: 64 }}>
+        <button
+          type="button"
+          onClick={() => navigate('/lecturer/overview')}
+          className="h-9 px-3.5 rounded-md border text-xs font-medium cursor-pointer transition-colors"
+          style={getSubtleStyle()}
+        >
+          Back to Overview
+        </button>
+      </div>
 
-
-        <SettingsCard theme={themeColors}>
-          <Spin spinning={loadingProfile} tip="Loading profile data...">
-            <Form
-              form={form}
-              layout="vertical"
-              onFinish={handleSubmit}
-              style={{ color: themeColors.text }}
+      <Form
+        form={form}
+        layout="vertical"
+        onFinish={handleSubmit}
+        requiredMark={false}
+        className="space-y-4"
+      >
+        {/* Card 1: Profile Information */}
+        <div
+          className="rounded-lg border p-4 shadow-none space-y-4 transition-colors"
+          style={getCardStyle()}
+        >
+          <div>
+            <h2
+              className="text-sm font-semibold tracking-tight"
+              style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}
             >
-              <Form.Item
-                name="firstName"
-                label={<span style={{ color: themeColors.text }}>First Name</span>}
-                rules={[{ required: true, message: 'Please enter your first name' }]}
-              >
-                <Input
-                  prefix={<UserOutlined style={{ color: themeColors.placeholder }} />}
-                  placeholder="First Name"
-                  style={{
-                    background: themeColors.inputBg,
-                    color: themeColors.text,
-                    borderColor: themeColors.inputBorder,
-                    borderRadius: '8px'
-                  }}
-                />
-              </Form.Item>
+              Academic Profile
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Personal names and official departmental affiliation.
+            </p>
+          </div>
 
-              <Form.Item
-                name="lastName"
-                label={<span style={{ color: themeColors.text }}>Last Name</span>}
-                rules={[{ required: true, message: 'Please enter your last name' }]}
-              >
-                <Input
-                  prefix={<UserOutlined style={{ color: themeColors.placeholder }} />}
-                  placeholder="Last Name"
-                  style={{
-                    background: themeColors.inputBg,
-                    color: themeColors.text,
-                    borderColor: themeColors.inputBorder,
-                    borderRadius: '8px'
-                  }}
-                />
-              </Form.Item>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <Form.Item
+              name="firstName"
+              label={<span className="text-xs font-semibold" style={{ color: isDarkMode ? '#CBD5E1' : '#334155' }}>First Name</span>}
+              rules={[{ required: true, message: 'Please enter first name' }]}
+              className="mb-0"
+            >
+              <Input placeholder="First name" className="rounded-md text-xs h-9" style={getInputStyle()} />
+            </Form.Item>
 
-              <Form.Item
-                name="email"
-                label={<span style={{ color: themeColors.text }}>Email</span>}
-                rules={[
-                  { required: true, message: 'Please enter your email' },
-                  { type: 'email', message: 'Please enter a valid email' }
-                ]}
-              >
-                <Input
-                  prefix={<MailOutlined style={{ color: themeColors.placeholder }} />}
-                  placeholder="Email"
-                  style={{
-                    background: themeColors.inputBg,
-                    color: themeColors.text,
-                    borderColor: themeColors.inputBorder,
-                    borderRadius: '8px'
-                  }}
-                  disabled
-                />
-              </Form.Item>
-              <Form.Item
-                name="department"
-                label={<span style={{ color: themeColors.text }}>Department</span>}
-              >
-                <Input
-                  placeholder="Department"
-                  style={{
-                    background: themeColors.inputBg,
-                    color: themeColors.text,
-                    borderColor: themeColors.inputBorder,
-                    borderRadius: '8px'
-                  }}
-                  disabled
-                />
-              </Form.Item>
+            <Form.Item
+              name="middleName"
+              label={<span className="text-xs font-semibold" style={{ color: isDarkMode ? '#CBD5E1' : '#334155' }}>Middle Name (optional)</span>}
+              className="mb-0"
+            >
+              <Input placeholder="Middle name" className="rounded-md text-xs h-9" style={getInputStyle()} />
+            </Form.Item>
 
-              <Form.Item
-                name="password"
-                label={<span style={{ color: themeColors.text }}>Change Password</span>}
-              >
-                <Input.Password
-                  prefix={<LockOutlined style={{ color: themeColors.placeholder }} />}
-                  placeholder="Leave blank to keep current password"
-                  style={{
-                    background: themeColors.inputBg,
-                    color: themeColors.text,
-                    borderColor: themeColors.inputBorder,
-                    borderRadius: '8px'
-                  }}
-                />
-              </Form.Item>
+            <Form.Item
+              name="lastName"
+              label={<span className="text-xs font-semibold" style={{ color: isDarkMode ? '#CBD5E1' : '#334155' }}>Last Name</span>}
+              rules={[{ required: true, message: 'Please enter last name' }]}
+              className="mb-0"
+            >
+              <Input placeholder="Last name" className="rounded-md text-xs h-9" style={getInputStyle()} />
+            </Form.Item>
+          </div>
 
-              <Form.Item
-                name="confirmPassword"
-                label={<span style={{ color: themeColors.text }}>Confirm Password</span>}
-                dependencies={['password']}
-                rules={[
-                  ({ getFieldValue }) => ({
-                    validator(_, value) {
-                      if (!value || getFieldValue('password') === value) {
-                        return Promise.resolve();
-                      }
-                      return Promise.reject(new Error('The two passwords do not match'));
-                    },
-                  }),
-                ]}
-              >
-                <Input.Password
-                  prefix={<LockOutlined style={{ color: themeColors.placeholder }} />}
-                  placeholder="Confirm your new password"
-                  style={{
-                    background: themeColors.inputBg,
-                    color: themeColors.text,
-                    borderColor: themeColors.inputBorder,
-                    borderRadius: '8px'
-                  }}
-                />
-              </Form.Item>
+          <div
+            className="pt-3 border-t grid grid-cols-1 sm:grid-cols-2 gap-3"
+            style={{ borderColor: isDarkMode ? '#1E293B' : '#E2E8F0' }}
+          >
+            <Form.Item
+              name="email"
+              label={<span className="text-xs font-medium text-slate-500 dark:text-slate-400">Institutional Email (Read-only)</span>}
+              className="mb-0"
+            >
+              <Input disabled className="rounded-md text-xs h-9 cursor-not-allowed select-none" style={getSubtleStyle()} />
+            </Form.Item>
 
-              <Form.Item>
-                <Space>
-                  <Button
-                    type="primary"
-                    htmlType="submit"
-                    loading={loading}
-                    style={{
-                      background: themeColors.primary,
-                      borderColor: themeColors.primary,
-                      color: '#fff',
-                      borderRadius: '8px'
-                    }}
-                  >
-                    {loading ? 'Saving Changes...' : 'Save Changes'}
-                  </Button>
-                  <Button
-                    onClick={() => navigate('/lecturer-dashboard')}
-                    style={{
-                      borderColor: themeColors.border,
-                      color: themeColors.text,
-                      borderRadius: '8px'
-                    }}
-                  >
-                    Cancel
-                  </Button>
-                </Space>
-              </Form.Item>
-            </Form>
-          </Spin>
-        </SettingsCard>
-      </Content>
+            <Form.Item
+              name="department"
+              label={<span className="text-xs font-medium text-slate-500 dark:text-slate-400">Department (Read-only)</span>}
+              className="mb-0"
+            >
+              <Input disabled className="rounded-md text-xs h-9 cursor-not-allowed select-none" style={getSubtleStyle()} />
+            </Form.Item>
+          </div>
+        </div>
 
-      <style>{`
-        .ant-form-item-label > label {
-          color: ${themeColors.text} !important;
-        }
-        .ant-input, .ant-input-password {
-          color: ${themeColors.text} !important;
-        }
-        .ant-input::placeholder, .ant-input-password::placeholder {
-          color: ${themeColors.placeholder} !important;
-        }
-        .ant-input-affix-wrapper-focused, .ant-input:focus {
-          border-color: ${themeColors.focus} !important;
-          box-shadow: 0 0 0 2px ${themeColors.focus}40 !important;
-        }
-        .ant-btn-primary:hover, .ant-btn-primary:focus {
-          background: ${themeColors.focus} !important;
-          border-color: ${themeColors.focus} !important;
-        }
-        .ant-breadcrumb-separator {
-          color: ${themeColors.text} !important;
-        }
-        .ant-breadcrumb a:hover {
-          color: ${themeColors.focus} !important;
-        }
-        .ant-form-item-explain-error {
-          color: ${themeColors.accent} !important;
-        }
-      `}</style>
-    </Layout>
+        {/* Card 2: Security & Password */}
+        <div
+          className="rounded-lg border p-4 shadow-none space-y-4 transition-colors"
+          style={getCardStyle()}
+        >
+          <div>
+            <h2
+              className="text-sm font-semibold tracking-tight"
+              style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}
+            >
+              Change Password
+            </h2>
+            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              Leave blank if you do not wish to alter your account password.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <Form.Item
+              name="password"
+              label={<span className="text-xs font-semibold" style={{ color: isDarkMode ? '#CBD5E1' : '#334155' }}>New Password</span>}
+              className="mb-0"
+            >
+              <Input.Password placeholder="Leave blank to keep current" className="rounded-md text-xs h-9" style={getInputStyle()} />
+            </Form.Item>
+
+            <Form.Item
+              name="confirmPassword"
+              label={<span className="text-xs font-semibold" style={{ color: isDarkMode ? '#CBD5E1' : '#334155' }}>Confirm Password</span>}
+              dependencies={['password']}
+              rules={[
+                ({ getFieldValue }) => ({
+                  validator(_, value) {
+                    if (!value || getFieldValue('password') === value) {
+                      return Promise.resolve();
+                    }
+                    return Promise.reject(new Error('Passwords do not match'));
+                  },
+                }),
+              ]}
+              className="mb-0"
+            >
+              <Input.Password placeholder="Confirm new password" className="rounded-md text-xs h-9" style={getInputStyle()} />
+            </Form.Item>
+          </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex items-center justify-end gap-2.5 pt-2">
+          <button
+            type="button"
+            onClick={() => navigate('/lecturer/overview')}
+            disabled={loading}
+            className="h-9 px-3.5 rounded-md border text-xs font-medium cursor-pointer transition-colors"
+            style={getSubtleStyle()}
+          >
+            Cancel
+          </button>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="h-9 px-4 rounded-md font-semibold text-xs cursor-pointer transition-colors disabled:opacity-50"
+            style={{
+              backgroundColor: isDarkMode ? '#D4FF5E' : '#131926',
+              color: isDarkMode ? '#131926' : '#FFFFFF',
+            }}
+          >
+            {loading ? 'Saving...' : 'Save changes'}
+          </button>
+        </div>
+      </Form>
+    </div>
   );
 };
 

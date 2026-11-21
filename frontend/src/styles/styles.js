@@ -38,54 +38,63 @@ export const useStyles = (isDarkMode, themeColors) =>
     },
     card: {
       background: themeColors.cardBg,
-      borderRadius: 16,
-      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.05)',
+      borderRadius: 12,
+      boxShadow: isDarkMode ? '0 4px 12px rgba(0, 0, 0, 0.4)' : '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
       overflow: 'hidden',
-      border: 'none',
+      border: `1px solid ${themeColors.border}`,
+      transition: 'box-shadow 0.2s ease, transform 0.2s ease',
     },
     summaryCard1: {
-      borderRadius: 16,
+      borderRadius: 14,
+      background: themeColors.cardBg,
+      border: `1px solid ${themeColors.border}`,
       textAlign: 'center',
       cursor: 'pointer',
-      height: '200px',
+      height: '110px',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      transition: 'transform 0.3s, box-shadow 0.3s',
-      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      boxShadow: isDarkMode ? '0 4px 16px -2px rgba(0, 0, 0, 0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 6px 16px -4px rgba(15, 23, 42, 0.06)',
     },
     summaryCard2: {
-      borderRadius: 16,
+      borderRadius: 14,
+      background: themeColors.cardBg,
+      border: `1px solid ${themeColors.border}`,
       textAlign: 'center',
       cursor: 'pointer',
-      height: '200px',
+      height: '110px',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      transition: 'transform 0.3s, box-shadow 0.3s',
-      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      boxShadow: isDarkMode ? '0 4px 16px -2px rgba(0, 0, 0, 0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 6px 16px -4px rgba(15, 23, 42, 0.06)',
     },
     summaryCard3: {
-      borderRadius: 16,
+      borderRadius: 14,
+      background: themeColors.cardBg,
+      border: `1px solid ${themeColors.border}`,
       textAlign: 'center',
       cursor: 'pointer',
-      height: '200px',
+      height: '110px',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      transition: 'transform 0.3s, box-shadow 0.3s',
-      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      boxShadow: isDarkMode ? '0 4px 16px -2px rgba(0, 0, 0, 0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 6px 16px -4px rgba(15, 23, 42, 0.06)',
     },
     summaryCard4: {
-      borderRadius: 16,
+      borderRadius: 14,
+      background: themeColors.cardBg,
+      border: `1px solid ${themeColors.border}`,
       textAlign: 'center',
       cursor: 'pointer',
-      height: '200px',
+      height: '110px',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'center',
-      transition: 'transform 0.3s, box-shadow 0.3s',
-      boxShadow: '0 4px 15px rgba(0, 0, 0, 0.1)',
+      transition: 'all 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
+      boxShadow: isDarkMode ? '0 4px 16px -2px rgba(0, 0, 0, 0.5)' : '0 1px 3px 0 rgba(0, 0, 0, 0.05), 0 6px 16px -4px rgba(15, 23, 42, 0.06)',
     },
     button: {
       background: themeColors.primary,
@@ -176,35 +185,21 @@ export const useStyles = (isDarkMode, themeColors) =>
       .ant-card {
         background: ${themeColors.cardBg} !important;
         color: ${themeColors.text} !important;
-        border: none !important;
-        border-radius: 16px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.05);
+        border: 1px solid ${themeColors.border} !important;
+        border-radius: 12px !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05) !important;
       }
-      .ant-card.summary-card-1 {
-        background: ${themeColors.cardGradient1} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-card.summary-card-2 {
-        background: ${themeColors.cardGradient2} !important;
-        color: ${themeColors.text} !important;
-      }
-      .ant-card.summary-card-3 {
-        background: ${themeColors.cardGradient3} !important;
-        color: ${themeColors.text} !important;
-      }
+      .ant-card.summary-card-1,
+      .ant-card.summary-card-2,
+      .ant-card.summary-card-3,
       .ant-card.summary-card-4 {
-        background: ${themeColors.cardGradient4} !important;
+        background: ${themeColors.cardBg} !important;
         color: ${themeColors.text} !important;
-      }
-      [data-theme="dark"] .ant-card.summary-card-1 {
-        background: linear-gradient(135deg, #5A4FCF, #8E86E5) !important;
-      }
-      [data-theme="light"] .ant-card.summary-card-1 {
-        background: linear-gradient(135deg, #6C5CE7, #A29BFE) !important;
+        border: 1px solid ${themeColors.border} !important;
       }
       .ant-card-hoverable:hover {
-        box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
-        transform: translateY(-5px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08) !important;
+        transform: translateY(-2px);
       }
       .ant-modal-content, .ant-modal-body {
         background: ${themeColors.modalBg} !important;

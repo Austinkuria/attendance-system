@@ -1,3 +1,12 @@
+const dns = require("dns");
+
+// Ensure MongoDB Atlas SRV connection strings resolve reliably on local ISPs/routers
+try {
+  dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+} catch (dnsErr) {
+  // Use default system resolver if custom servers cannot be bound
+}
+
 const express = require("express");
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
@@ -207,6 +216,18 @@ mongoose.connection.on("connected", () => {
   logger.info("MongoDB connected");
 });
 
+// Health check endpoint (liveness & readiness probe)
+app.get(["/health", "/api/health"], (req, res) => {
+  const isConnected = mongoose.connection.readyState === 1;
+  res.status(200).json({
+    status: "healthy",
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    database: isConnected ? "connected" : "connecting",
+    version: "2.0.0"
+  });
+});
+
 // Middleware to check database connection
 app.use((req, res, next) => {
   if (mongoose.connection.readyState !== 1) {
@@ -221,6 +242,7 @@ app.use((req, res, next) => {
 });
 
 // Register all API routes
+app.use("/api/v1/integrations", require("./routes/integrationRoutes"));
 app.use("/api", routes);
 
 // Root API route
@@ -228,40 +250,18 @@ app.get("/", (req, res) => {
   res.send("API is running...");
 });
 
-// Protected and Admin routes for testing
-app.use("/api/protected", (req, res) => {
-  res.status(401).json({
-    success: false,
-    message: "Unauthorized. Please log in.",
-  });
-});
-app.use("/api/admin", (req, res) => {
-  res.status(403).json({
-    success: false,
-    message: "You do not have permission to access this page.",
-  });
-});
-
-// Handle unsupported methods (405)
-app.use((req, res) => {
-  res.status(405).json({
-    success: false,
-    message: `Method ${req.method} is not allowed on ${req.originalUrl}`,
-  });
-});
-
 // 404 Not Found handler
 app.use((req, res) => {
   res.status(404).json({
     success: false,
-    message: "Route not found",
+    message: `Route ${req.method} ${req.originalUrl} not found`,
   });
 });
 
 // Centralized error handling middleware
 app.use(errorHandler);
 
-// ✅ Graceful exit on fatal errors
+// Graceful exit on fatal errors
 process.on("uncaughtException", (err) => {
   logger.error("Uncaught Exception:", err);
   process.exit(1);

@@ -12,6 +12,11 @@ const sessionRoutes = require("./sessionRoutes");
 const feedbackRoutes = require('./feedback.routes');
 const authRoutes = require('./auth.routes');
 const superAdminRoutes = require('./superAdminRoutes');
+const adminRoutes = require('./adminRoutes');
+const integrationRoutes = require('./integrationRoutes');
+const studentDashboardRoutes = require('./studentDashboardRoutes');
+const lecturerRoutes = require('./lecturerRoutes');
+const { submitLectureFeedback } = require('../controllers/studentDashboardController');
 const router = express.Router();
 const { login, signup, getStudents, getLecturers, downloadStudents, deleteStudent, importStudents, getLecturerById, createSession, createLecturer, updateLecturer, deleteLecturer, importLecturers, downloadLecturers, sendResetLink, resetPassword, registerUser } = require("../controllers/userController");
 const { createDepartment, getDepartments } = require("../controllers/departmentController");
@@ -35,6 +40,9 @@ router.use('/auth', authRoutes);
 // Super Admin routes - CRITICAL: Only super admins can access
 router.use('/super-admin', superAdminRoutes);
 
+// Department Admin Portal routes - Strictly scoped to department
+router.use('/admin', adminRoutes);
+
 // Remove or comment out these duplicated routes since they're now in authRoutes
 // router.post("/auth/signup", signup);
 // router.post("/auth/login", login);
@@ -54,21 +62,32 @@ router.use("/unit", unitRoutes);
 router.use("/attendance/", authLimiter, authenticate, attendanceRoutes);
 
 // Session routes
-router.use("/sessions", authLimiter, authenticate, sessionRoutes);
+router.use("/sessions", sessionRoutes);
+
+// Versioned External SIS / LMS Integration API
+router.use('/v1/integrations', integrationRoutes);
+router.use('/integrations', integrationRoutes);
+
+// Student Dashboard & Trends Routes
+router.use('/student', studentDashboardRoutes);
+// Lecturer Dashboard & Session Management Routes
+router.use('/lecturer', lecturerRoutes);
+
+// Feedback routes
+router.use('/feedback', feedbackRoutes);
+router.post('/feedback', authenticate, submitLectureFeedback);
 
 router.use('/', userRoutes);
-
-router.use('/feedback', feedbackRoutes);
 // Students
-router.get('/students', getStudents);
+router.get('/students', authenticate, authorize(["admin", "lecturer"]), getStudents);
 
 // Lecturers
-router.get('/lecturers', getLecturers);
+router.get('/lecturers', authenticate, authorize(["admin"]), getLecturers);
 
 // Admin routes
 router.post("/user", authenticate, authorize(["admin"]), createUser);
-router.get("/download", downloadStudents);
-router.delete("/students/:id", deleteStudent);
+router.get("/download", authenticate, authorize(["admin"]), downloadStudents);
+router.delete("/students/:id", authenticate, authorize(["admin"]), deleteStudent);
 
 router.post('/lecturers/create', authenticate, authorize(["admin"]), createLecturer);
 router.put('/lecturers/update/:id', authenticate, authorize(["admin"]), updateLecturer);

@@ -13,6 +13,11 @@ const userSchema = new mongoose.Schema(
       required: [true, "First name is required"],
       trim: true
     },
+    middleName: {
+      type: String,
+      default: "",
+      trim: true
+    },
     lastName: {
       type: String,
       required: [true, "Last name is required"],
@@ -36,6 +41,29 @@ const userSchema = new mongoose.Schema(
       unique: true,
       sparse: true,
       required: function () { return this.role === "student"; }
+    },
+    reg_number: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    course_code: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    course_name: {
+      type: String,
+      default: null,
+      trim: true
+    },
+    preferences: {
+      notify_session_started: { type: Boolean, default: true },
+      notify_feedback_reminders: { type: Boolean, default: true },
+      notify_low_attendance: { type: Boolean, default: true },
+      theme_preference: { type: String, enum: ["light", "dark", "system"], default: "system" },
+      auto_open_scanner: { type: Boolean, default: false },
+      anonymous_feedback_default: { type: Boolean, default: true }
     },
     year: {
       type: Number,
@@ -123,7 +151,34 @@ const userSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User"
     },
-    deviceId: { type: String }
+    deviceId: { type: String },
+
+    // External SIS / LMS Integration Mapping
+    external_id: {
+      type: String,
+      sparse: true,
+      index: true,
+      default: null,
+      trim: true
+    },
+    source_system: {
+      type: String,
+      enum: ["manual", "sis_sync", "lti", "api"],
+      default: "manual",
+      index: true
+    },
+
+    // Institutional SSO Identity
+    authProvider: {
+      type: String,
+      enum: ["local", "google", "microsoft", "saml"],
+      default: "local"
+    },
+    authProviderId: {
+      type: String,
+      sparse: true,
+      default: null
+    }
   },
   {
     timestamps: true,
@@ -180,5 +235,22 @@ userSchema.methods.resetLoginAttempts = function () {
     $unset: { lockUntil: 1 }
   });
 };
+
+// Sync regNo and reg_number, ensure preferences default
+userSchema.pre("save", function (next) {
+  if (this.regNo && !this.reg_number) this.reg_number = this.regNo;
+  if (this.reg_number && !this.regNo) this.regNo = this.reg_number;
+  if (!this.preferences) {
+    this.preferences = {
+      notify_session_started: true,
+      notify_feedback_reminders: true,
+      notify_low_attendance: true,
+      theme_preference: "system",
+      auto_open_scanner: false,
+      anonymous_feedback_default: true
+    };
+  }
+  next();
+});
 
 module.exports = mongoose.model("User", userSchema);

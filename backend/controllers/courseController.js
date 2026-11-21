@@ -273,4 +273,64 @@ const addUnitToCourse = async (req, res) => {
   }
 };
 
-module.exports = { createCourse, getCoursesByDepartment, getCoursesByDepartmentById, getAllCourses, updateCourse, deleteCourse, getUnitsByCourse, addUnitToCourse, removeUnitFromCourse };
+// Bulk delete courses
+const bulkDeleteCourses = async (req, res) => {
+  try {
+    const { ids } = req.body;
+    if (!ids || !Array.isArray(ids) || ids.length === 0) {
+      return res.status(400).json({ success: false, message: "Valid array of course IDs is required" });
+    }
+
+    const result = await Course.deleteMany({ _id: { $in: ids } });
+    res.status(200).json({ success: true, message: `Successfully deleted ${result.deletedCount} courses`, deletedCount: result.deletedCount });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error deleting courses", error: error.message });
+  }
+};
+
+// Bulk upload courses from spreadsheet
+const bulkUploadCourses = async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ success: false, message: "Spreadsheet file (.xlsx or .csv) is required" });
+    }
+    const RosterIngestionService = require('../services/rosterIngestionService');
+    const buffer = req.file.buffer || (req.file.path ? require('fs').readFileSync(req.file.path) : null);
+    if (!buffer) {
+      return res.status(400).json({ success: false, message: "File buffer could not be read" });
+    }
+    const rows = await RosterIngestionService.parseBuffer(buffer, req.file.originalname || "courses.xlsx");
+    const result = await RosterIngestionService.ingestCourses(rows);
+    res.status(200).json({ success: true, message: "Course batch ingestion completed", ...result });
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error uploading courses", error: error.message });
+  }
+};
+
+// Download official Excel course template
+const downloadCourseTemplate = async (req, res) => {
+  try {
+    const RosterIngestionService = require('../services/rosterIngestionService');
+    const buffer = await RosterIngestionService.generateCourseTemplate();
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename="Courses_Template.xlsx"');
+    res.send(buffer);
+  } catch (error) {
+    res.status(500).json({ success: false, message: "Error generating course template", error: error.message });
+  }
+};
+
+module.exports = {
+  createCourse,
+  getCoursesByDepartment,
+  getCoursesByDepartmentById,
+  getAllCourses,
+  updateCourse,
+  deleteCourse,
+  getUnitsByCourse,
+  addUnitToCourse,
+  removeUnitFromCourse,
+  bulkDeleteCourses,
+  bulkUploadCourses,
+  downloadCourseTemplate
+};

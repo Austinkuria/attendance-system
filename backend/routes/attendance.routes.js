@@ -4,11 +4,14 @@ const attendanceController = require('../controllers/attendance.controller');
 const authenticate = require('../middleware/authMiddleware');
 const { attendanceMarkLimiter } = require('../middleware/rateLimiter');
 
+router.post('/check-in', authenticate, attendanceController.checkIn);
+router.post('/manual-record', authenticate, attendanceController.manualRecordAttendance);
 router.post('/mark', authenticate, attendanceMarkLimiter, attendanceController.markAttendance);
 router.post('/handle-session-end', authenticate, attendanceController.handleSessionEnd);
 router.get('/student/:studentId', authenticate, attendanceController.getStudentAttendance);
 router.get('/session/:sessionId', authenticate, attendanceController.getSessionAttendance);
 router.put('/:attendanceId', authenticate, attendanceController.updateAttendanceStatus);
+router.delete('/:attendanceId', authenticate, attendanceController.deleteAttendanceRecord);
 router.get('/student/:studentId/filter', attendanceController.getStudentAttendanceByFilter);
 router.get('/trends/:unitId', authenticate, (req, res) => {
   console.log('Trends route hit with unitId:', req.params.unitId);

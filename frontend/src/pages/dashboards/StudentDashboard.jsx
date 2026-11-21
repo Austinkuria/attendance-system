@@ -1,6 +1,7 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
+  API_URL,
   getStudentAttendance,
   getStudentUnits,
   getUserProfile,
@@ -20,19 +21,12 @@ import {
   Legend,
 } from 'chart.js';
 import {
-  Layout,
-  Menu,
   Button,
-  Card,
-  Row,
-  Col,
-  Dropdown,
   Modal,
   message,
   Input,
   Rate,
   Space,
-  Typography,
   Spin,
   Slider,
   Switch,
@@ -43,38 +37,21 @@ import {
   Pagination,
 } from 'antd';
 import {
-  UserOutlined,
-  BookOutlined,
-  MenuFoldOutlined,
-  MenuUnfoldOutlined,
-  SettingOutlined,
-  LogoutOutlined,
   QrcodeOutlined,
-  CalendarOutlined,
-  BellOutlined,
-  BarChartOutlined,
-  LineChartOutlined,
-  PieChartOutlined,
-  ArrowUpOutlined, // Add ArrowUp icon for back to top button
 } from '@ant-design/icons';
 import moment from 'moment';
 import axios from 'axios';
-import { motion } from 'framer-motion';
-import ExcelJS from 'exceljs';
 import 'antd/dist/reset.css';
 import './StudentDashboard.css';
 import { ThemeContext } from '../../context/ThemeContext';
 import { useStyles } from '../../styles/styles.js';
 import { useContext } from 'react';
-import BackToTop from '../../components/BackToTop.jsx';
-import ThemeToggle from '../../components/ThemeToggle.jsx';
+import StatCard from '../../components/StatCard.jsx';
+import PageHeader from '../../components/PageHeader.jsx';
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title, Tooltip, Legend);
 
-const { Header, Sider, Content } = Layout;
-const { Title: AntTitle } = Typography;
 const { Option } = Select;
-const API_URL = 'https://attendance-system-w70n.onrender.com/api';
 
 const StudentDashboard = () => {
   // Removed unused dashboardData state
@@ -82,13 +59,11 @@ const StudentDashboard = () => {
   const styles = useStyles(isDarkMode, themeColors);
   const navigate = useNavigate();
 
-  const [collapsed, setCollapsed] = useState(window.innerWidth < 992);
   const [units, setUnits] = useState([]);
   const [attendanceData, setAttendanceData] = useState({ attendanceRecords: [], weeklyEvents: [], dailyEvents: [] });
   const [attendanceRates, setAttendanceRates] = useState([]);
   const [selectedUnit, setSelectedUnit] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [dashboardData, setDashboardData] = useState(null); // Add this state
   // Add separate loading states for different data types
   const [loadingStates, setLoadingStates] = useState({
     profile: false,
@@ -98,7 +73,6 @@ const StudentDashboard = () => {
   });
   const [feedbackModalVisible, setFeedbackModalVisible] = useState(false);
   const [activeSessionId, setActiveSessionId] = useState(null);
-  const [username, setUsername] = useState('');
   const [feedbackData, setFeedbackData] = useState({
     rating: 0,
     text: '',
@@ -119,14 +93,10 @@ const StudentDashboard = () => {
   const [notificationSortOrder, setNotificationSortOrder] = useState('mostRecent');
   const [deviceModalVisible, setDeviceModalVisible] = useState(false);
   const [deviceModalConfirmed, setDeviceModalConfirmed] = useState(false);
-  const [dataLoadingError, setDataLoadingError] = useState(false); // New state for error
 
   // Add state variables for session status
   const [latestSession, setLatestSession] = useState(null);
   const [isSessionActive, setIsSessionActive] = useState(true);
-
-  // Add state for back to top button visibility
-  const [showBackToTop, setShowBackToTop] = useState(false);
 
   // Add a new state to track active sessions by unit ID
   const [activeSessionsByUnit, setActiveSessionsByUnit] = useState({});
@@ -159,11 +129,6 @@ const StudentDashboard = () => {
     try {
       const profileRes = await getUserProfile(token);
 
-      // Set username from profile response
-      if (profileRes && profileRes.firstName) {
-        setUsername(profileRes.firstName);
-      }
-
       // Store profile data in localStorage with expiration time (1 day)
       const profileData = {
         data: profileRes,
@@ -173,24 +138,26 @@ const StudentDashboard = () => {
       setLoadingErrors(prev => ({ ...prev, profile: false }));
       return profileRes;
     } catch (error) {
-      console.error("Error fetching profile data:", error);
-      setLoadingErrors(prev => ({ ...prev, profile: true }));
-      // Try to use cached data as fallback
+      console.warn("Could not retrieve remote profile data, falling back to local session:", error.message);
+      setLoadingErrors(prev => ({ ...prev, profile: false }));
+      // Try to use cached data or stored user session as fallback
       try {
         const cachedProfile = localStorage.getItem('cachedProfileData');
         if (cachedProfile) {
           const parsedProfile = JSON.parse(cachedProfile);
-          if (parsedProfile.expiry > Date.now()) {
-            if (parsedProfile.data?.firstName) {
-              setUsername(parsedProfile.data.firstName);
-            }
+          if (parsedProfile.data?.firstName) {
             return parsedProfile.data;
           }
         }
+        const storedUserData = localStorage.getItem('userData');
+        if (storedUserData) {
+          const parsed = JSON.parse(storedUserData);
+          return parsed;
+        }
       } catch (e) {
-        console.error("Error loading cached profile:", e);
+        console.error("Error loading fallback profile:", e);
       }
-      throw error;
+      return { firstName: 'Student', role: 'student' };
     } finally {
       setLoadingStates(prev => ({ ...prev, profile: false }));
     }
@@ -360,12 +327,9 @@ const StudentDashboard = () => {
   const fetchAllData = useCallback(async () => {
     const token = localStorage.getItem('token');
     if (!token) return;
-    setDataLoadingError(false); // reset error before fetching
-
     // Set a timeout to prevent infinite loading - increase to 30 seconds
     const loadingTimeout = setTimeout(() => {
       setLoading(false);
-      setDataLoadingError(true);
       message.error("Loading took too long. Please try refreshing the page.");
     }, 30000); // 30 seconds timeout
 
@@ -394,7 +358,6 @@ const StudentDashboard = () => {
 
     } catch (error) {
       console.error("Error fetching data:", error);
-      setDataLoadingError(true); // mark error occurred
       if (error.response && error.response.status === 429) {
         message.error("Too many requests. Please wait a moment and try again.");
       } else {
@@ -445,9 +408,6 @@ const StudentDashboard = () => {
             const parsedProfile = JSON.parse(cachedProfile);
             if (parsedProfile.expiry > Date.now()) {
               profileData = parsedProfile.data;
-              if (profileData?.firstName) {
-                setUsername(profileData.firstName);
-              }
             } else {
               needFullRefresh = true;
             }
@@ -498,10 +458,6 @@ const StudentDashboard = () => {
     } else {
       fetchAllData();
     }
-
-    const handleResize = () => setCollapsed(window.innerWidth < 992);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
   }, [navigate, fetchAllData, fetchAttendanceData, fetchFeedbackData]);
 
   const calculateAttendanceRate = useCallback(
@@ -536,104 +492,6 @@ const StudentDashboard = () => {
       }
     }
   }, [units, attendanceData, calculateAttendanceRate, hasShownLowAttendanceAlert]);
-
-  const exportAttendanceData = async () => {
-    try {
-      message.loading({ content: 'Preparing attendance data...', key: 'export' });
-
-      const data = attendanceData.attendanceRecords.map(record => ({
-        'Unit Name': record.session.unit.name,
-        'Unit Code': record.session.unit.code || 'N/A',
-        'Session Date': new Date(record.session.startTime).toLocaleDateString(),
-        'Session Time': `${new Date(record.session.startTime).toLocaleTimeString()} - ${new Date(record.session.endTime).toLocaleTimeString()}`,
-        'Status': record.status,
-        'Attendance Time': record.attendedAt ? new Date(record.attendedAt).toLocaleTimeString() : 'N/A',
-        'Feedback Submitted': record.feedbackSubmitted ? 'Yes' : 'No'
-      }));
-
-      // Create workbook and worksheet using ExcelJS
-      const workbook = new ExcelJS.Workbook();
-
-      // Add summary sheet
-      const summarySheet = workbook.addWorksheet('Summary');
-      const summaryData = units.map(unit => {
-        const rate = calculateAttendanceRate(unit._id);
-        return {
-          'Unit': unit.name,
-          'Code': unit.code || 'N/A',
-          'Attendance Rate': rate ? `${rate}%` : 'No sessions',
-          'Total Sessions': attendanceData.attendanceRecords.filter(
-            record => record.session.unit._id === unit._id
-          ).length,
-          'Present': attendanceData.attendanceRecords.filter(
-            record => record.session.unit._id === unit._id && record.status === 'Present'
-          ).length,
-          'Absent': attendanceData.attendanceRecords.filter(
-            record => record.session.unit._id === unit._id && record.status === 'Absent'
-          ).length
-        };
-      });
-
-      // Add headers to summary sheet
-      summarySheet.columns = [
-        { header: 'Unit', key: 'Unit', width: 30 },
-        { header: 'Code', key: 'Code', width: 15 },
-        { header: 'Attendance Rate', key: 'Attendance Rate', width: 20 },
-        { header: 'Total Sessions', key: 'Total Sessions', width: 15 },
-        { header: 'Present', key: 'Present', width: 15 },
-        { header: 'Absent', key: 'Absent', width: 15 }
-      ];
-
-      // Add data to summary sheet
-      summaryData.forEach(row => {
-        summarySheet.addRow(row);
-      });
-
-      // Add detailed attendance sheet
-      const detailSheet = workbook.addWorksheet('Detailed Attendance');
-      detailSheet.columns = [
-        { header: 'Unit Name', key: 'Unit Name', width: 30 },
-        { header: 'Unit Code', key: 'Unit Code', width: 15 },
-        { header: 'Session Date', key: 'Session Date', width: 15 },
-        { header: 'Session Time', key: 'Session Time', width: 25 },
-        { header: 'Status', key: 'Status', width: 15 },
-        { header: 'Attendance Time', key: 'Attendance Time', width: 20 },
-        { header: 'Feedback Submitted', key: 'Feedback Submitted', width: 20 }
-      ];
-
-      // Add detailed data
-      data.forEach(row => {
-        detailSheet.addRow(row);
-      });
-
-      // Generate filename with current date
-      const date = new Date().toISOString().split('T')[0];
-      const fileName = `attendance_report_${date}.xlsx`;
-
-      // Write and download file
-      const buffer = await workbook.xlsx.writeBuffer();
-      const blob = new Blob([buffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.click();
-      window.URL.revokeObjectURL(url);
-
-      message.success({
-        content: 'Attendance data exported successfully!',
-        key: 'export',
-        duration: 3
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      message.error({
-        content: 'Failed to export attendance data',
-        key: 'export',
-        duration: 3
-      });
-    }
-  };
 
   const handleDownloadAttendance = async () => {
     try {
@@ -719,7 +577,7 @@ const StudentDashboard = () => {
     maintainAspectRatio: false,
     plugins: {
       legend: { position: 'top', labels: { color: themeColors.text } },
-      title: { display: true, text: 'Attendance Overview', color: themeColors.text, font: { size: 18, weight: 'bold' } },
+      title: { display: false },
       tooltip: { callbacks: { label: (context) => `${context.raw === 0 && attendanceRates[context.dataIndex].value === null ? 'N/A' : context.raw}%` } },
     },
     scales: {
@@ -872,118 +730,100 @@ const StudentDashboard = () => {
     };
 
     return (
-      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-        <Card style={styles.card}>
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <AntTitle level={3} style={{ textAlign: 'center', color: themeColors.text }}>
-              <CalendarOutlined style={{ marginRight: 8 }} /> Attendance Events
-            </AntTitle>
-            <Space direction="vertical" size={4} style={{ width: '100%' }}>
-              <Space wrap size={4} className="event-controls">
-                <Select
-                  value={viewMode}
-                  onChange={(value) => {
-                    setViewMode(value);
-                    // Reset date when switching modes
-                    if (value === 'daily') {
-                      setSelectedDate(moment());
-                    } else {
-                      setSelectedDate(moment().startOf('week'));
-                    }
-                    setEventPage(1);
-                  }}
-                  style={{ width: 80, fontSize: '12px' }}
-                >
-                  <Option value="daily">Daily</Option>
-                  <Option value="weekly">Weekly</Option>
-                </Select>
-                <DatePicker
-                  onChange={handleDateChange}
-                  value={getDatePickerValue()}
-                  format={getDatePickerFormat()}
-                  picker={viewMode === 'weekly' ? 'date' : 'date'} // Changed from 'week' to 'date' for consistent UI
-                  placeholder={viewMode === 'weekly' ? 'Select Date for Week' : 'Select Date'}
-                  style={{ width: 150, fontSize: '12px' }}
-                  renderExtraFooter={() => viewMode === 'weekly' ?
-                    <div style={{
-                      fontSize: '12px',
-                      padding: '5px',
-                      color: isDarkMode ? '#ddd' : '#555',
-                      textAlign: 'center'
-                    }}>
-                      Will show the entire week
-                    </div> : null
-                  }
-                />
-                <Select
-                  value={eventSortOrder}
-                  onChange={(value) => {
-                    setEventSortOrder(value);
-                    setEventPage(1);
-                  }}
-                  style={{ width: 120, fontSize: '12px' }}
-                >
-                  <Option value="mostRecent">Most Recent</Option>
-                  <Option value="oldest">Oldest</Option>
-                </Select>
-              </Space>
-            </Space>
+      <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-200">
+          <h2 className="text-base font-semibold text-slate-900">Attendance Events</h2>
+          <p className="text-xs text-slate-500">Upcoming and past class sessions</p>
+        </div>
+        <div className="p-4 space-y-3">
+          <div className="flex flex-wrap items-center gap-2">
+            <Select
+              value={viewMode}
+              onChange={(value) => {
+                setViewMode(value);
+                if (value === 'daily') {
+                  setSelectedDate(moment());
+                } else {
+                  setSelectedDate(moment().startOf('week'));
+                }
+                setEventPage(1);
+              }}
+              style={{ width: 85, fontSize: '12px' }}
+            >
+              <Option value="daily">Daily</Option>
+              <Option value="weekly">Weekly</Option>
+            </Select>
+            <DatePicker
+              onChange={handleDateChange}
+              value={getDatePickerValue()}
+              format={getDatePickerFormat()}
+              picker={viewMode === 'weekly' ? 'date' : 'date'}
+              placeholder={viewMode === 'weekly' ? 'Select Date for Week' : 'Select Date'}
+              style={{ width: 145, fontSize: '12px' }}
+            />
+            {totalEvents > 0 && (
+              <Select
+                value={eventSortOrder}
+                onChange={(value) => {
+                  setEventSortOrder(value);
+                  setEventPage(1);
+                }}
+                style={{ width: 130, fontSize: '12px' }}
+              >
+                <Option value="mostRecent">Most Recent</Option>
+                <Option value="oldest">Oldest</Option>
+              </Select>
+            )}
+          </div>
 
-            {/* Display selected date/week range info for clarity */}
-            {selectedDate && (
-              <div style={{
-                fontSize: '13px',
-                textAlign: 'center',
-                marginBottom: '8px',
-                color: themeColors.text
-              }}>
-                {viewMode === 'weekly' ? (
-                  <>
-                    Showing: {moment(selectedDate).startOf('week').format('MMM D')} - {moment(selectedDate).endOf('week').format('MMM D, YYYY')}
-                  </>
-                ) : (
-                  <>
-                    Showing: {moment(selectedDate).format('MMMM D, YYYY')}
-                  </>
+          {selectedDate && (
+            <div className="text-xs text-slate-500 font-medium">
+              {viewMode === 'weekly' ? (
+                <>
+                  Showing: {moment(selectedDate).startOf('week').format('MMM D')} to {moment(selectedDate).endOf('week').format('MMM D, YYYY')}
+                </>
+              ) : (
+                <>
+                  Showing: {moment(selectedDate).format('MMMM D, YYYY')}
+                </>
+              )}
+            </div>
+          )}
+
+          {totalEvents > 0 ? (
+            <>
+              <List
+                dataSource={paginatedEvents}
+                renderItem={(item) => (
+                  <List.Item key={item.sessionId || `${item.title}-${item.date?.toISOString()}`}>
+                    <List.Item.Meta
+                      title={<span className="text-sm font-medium text-slate-900">{item.title}</span>}
+                      description={<span className="text-xs text-slate-500">{item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}</span>}
+                    />
+                  </List.Item>
                 )}
-              </div>
-            )}
-
-            {totalEvents > 0 ? (
-              <>
-                <List
-                  dataSource={paginatedEvents}
-                  renderItem={(item) => (
-                    <List.Item key={item.sessionId || `${item.title}-${item.date?.toISOString()}`}>
-                      <List.Item.Meta
-                        title={<span style={{ color: themeColors.text }}>{item.title}</span>}
-                        description={<span style={{ color: `${themeColors.text}80` }}>{item.date ? item.date.format('YYYY-MM-DD') + ` (${item.status})` : 'No Date'}</span>}
-                      />
-                    </List.Item>
-                  )}
-                  style={{ maxHeight: '300px', overflow: 'auto' }}
-                />
-                <Pagination
-                  current={eventPage}
-                  pageSize={pageSize}
-                  total={totalEvents}
-                  onChange={(page) => {
-                    // Only allow navigation to pages that have data
-                    const maxPage = Math.ceil(totalEvents / pageSize);
-                    if (page <= maxPage) {
-                      setEventPage(page);
-                    }
-                  }}
-                  showSizeChanger={false}
-                  style={{ textAlign: 'center', marginTop: 16 }}
-                />
-              </>
-            ) : (
-              <p style={{ textAlign: 'center', color: `${themeColors.text}80` }}>No events found for the selected period.</p>
-            )}
-          </Space>
-        </Card>
-      </motion.div>
+                style={{ maxHeight: '280px', overflow: 'auto' }}
+              />
+              <Pagination
+                current={eventPage}
+                pageSize={pageSize}
+                total={totalEvents}
+                onChange={(page) => {
+                  const maxPage = Math.ceil(totalEvents / pageSize);
+                  if (page <= maxPage) {
+                    setEventPage(page);
+                  }
+                }}
+                showSizeChanger={false}
+                size="small"
+                style={{ textAlign: 'center', marginTop: 12 }}
+              />
+            </>
+          ) : (
+            <p className="text-center text-xs text-slate-500 py-6">No events found for the selected period.</p>
+          )}
+        </div>
+      </div>
     );
   };
 
@@ -1126,161 +966,100 @@ const StudentDashboard = () => {
     };
 
     return (
-      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-        <Card
-          title={<span style={{ color: themeColors.text }}><BellOutlined style={{ marginRight: 8 }} /> Notifications</span>}
-          style={styles.card}
-          extra={
-            totalNotifications > 0 && (
-              <Button type="link" onClick={() => setPendingFeedbacks([])} style={{ color: themeColors.accent }}>
-                Clear All
-              </Button>
-            )
-          }
-        >
-          <Space direction="vertical" size={12} style={{ width: '100%' }}>
-            <Space size={4} style={{ justifyContent: 'flex-end', width: '100%' }}>
+      <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
+        <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Notifications</h2>
+            <p className="text-xs text-slate-500">Feedback requests and session alerts</p>
+          </div>
+          {totalNotifications > 0 && (
+            <button
+              type="button"
+              onClick={() => setPendingFeedbacks([])}
+              className="text-xs font-medium text-slate-500 hover:text-slate-800"
+            >
+              Clear All
+            </button>
+          )}
+        </div>
+        <div className="p-4 space-y-3">
+          {totalNotifications > 0 && (
+            <div className="flex justify-end">
               <Select
                 value={notificationSortOrder}
                 onChange={(value) => {
                   setNotificationSortOrder(value);
                   setNotificationPage(1);
                 }}
-                style={{ width: 120, fontSize: '12px' }}
+                style={{ width: 130, fontSize: '12px' }}
               >
                 <Option value="mostRecent">Most Recent</Option>
                 <Option value="oldest">Oldest</Option>
               </Select>
-            </Space>
-            {totalNotifications > 0 ? (
-              <>
-                <List
-                  dataSource={paginatedNotifications}
-                  renderItem={(item) => {
-                    const isFeedbackSubmitted = attendanceData.attendanceRecords.some(
-                      (rec) => rec.session._id === item.sessionId && rec.feedbackSubmitted
-                    );
-                    return (
-                      <List.Item
-                        key={item.sessionId}
-                        actions={[
-                          <Button
-                            key="provide-feedback"
-                            type="primary"
-                            size="small"
-                            onClick={() => handleProvideFeedback(item.sessionId, item.unitId)}
-                            disabled={isFeedbackSubmitted}
-                            style={{ ...styles.button, color: '#fff !important' }}
-                            className="provide-button"
-                          >
-                            <span style={{ color: '#fff' }}>Provide</span>
-                          </Button>,
-                          <Button
-                            key="dismiss"
-                            size="small"
-                            onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
-                          >
-                            Dismiss
-                          </Button>,
-                        ]}
-                      >
-                        <List.Item.Meta
-                          title={<span style={{ color: themeColors.text }}>{item.title || 'Notification'}</span>}
-                          description={<span style={{ color: `${themeColors.text}80` }}>{`${item.message || ''} (Unit: ${item.unitName || 'Unknown'}) - ${moment(item.timestamp || new Date()).fromNow()}`}</span>}
-                        />
-                      </List.Item>
-                    );
-                  }}
-                  style={{ maxHeight: '300px', overflow: 'auto' }}
-                />
-                <Pagination
-                  current={notificationPage}
-                  pageSize={pageSize}
-                  total={totalNotifications}
-                  onChange={(page) => {
-                    // Only allow navigation to pages that have data
-                    const maxPage = Math.ceil(totalNotifications / pageSize);
-                    if (page <= maxPage) {
-                      setNotificationPage(page);
-                    }
-                  }}
-                  showSizeChanger={false}
-                  style={{ textAlign: 'center', marginTop: 16 }}
-                />
-              </>
-            ) : (
-              <p style={{ textAlign: 'center', color: `${themeColors.text}80` }}>No new notifications.</p>
-            )}
-          </Space>
-        </Card>
-      </motion.div>
+            </div>
+          )}
+          {totalNotifications > 0 ? (
+            <>
+              <List
+                dataSource={paginatedNotifications}
+                renderItem={(item) => {
+                  const isFeedbackSubmitted = attendanceData.attendanceRecords.some(
+                    (rec) => rec.session._id === item.sessionId && rec.feedbackSubmitted
+                  );
+                  return (
+                    <List.Item
+                      key={item.sessionId}
+                      actions={[
+                        <button
+                          key="provide-feedback"
+                          type="button"
+                          onClick={() => handleProvideFeedback(item.sessionId, item.unitId)}
+                          disabled={isFeedbackSubmitted}
+                          className="px-2.5 py-1 text-xs font-medium rounded-md bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-40 transition-colors"
+                        >
+                          Provide
+                        </button>,
+                        <button
+                          key="dismiss"
+                          type="button"
+                          onClick={() => setPendingFeedbacks((prev) => prev.filter((pf) => pf.sessionId !== item.sessionId))}
+                          className="px-2 py-1 text-xs font-medium text-slate-500 hover:text-slate-700"
+                        >
+                          Dismiss
+                        </button>,
+                      ]}
+                    >
+                      <List.Item.Meta
+                        title={<span className="text-sm font-medium text-slate-900">{item.title || 'Notification'}</span>}
+                        description={<span className="text-xs text-slate-500">{`${item.message || ''} (Unit: ${item.unitName || 'Unknown'})`}</span>}
+                      />
+                    </List.Item>
+                  );
+                }}
+                style={{ maxHeight: '280px', overflow: 'auto' }}
+              />
+              <Pagination
+                current={notificationPage}
+                pageSize={pageSize}
+                total={totalNotifications}
+                onChange={(page) => {
+                  const maxPage = Math.ceil(totalNotifications / pageSize);
+                  if (page <= maxPage) {
+                    setNotificationPage(page);
+                  }
+                }}
+                showSizeChanger={false}
+                size="small"
+                style={{ textAlign: 'center', marginTop: 12 }}
+              />
+            </>
+          ) : (
+            <p className="text-center text-xs text-slate-500 py-6">No new notifications.</p>
+          )}
+        </div>
+      </div>
     );
   };
-
-  const profileItems = [
-    {
-      key: '1',
-      label: 'View Profile',
-      icon: <UserOutlined style={{ color: themeColors.text }} />,
-      onClick: () => navigate('/student/profile'),
-      style: {
-        color: themeColors.text,
-        '&:hover': {
-          background: themeColors.hover,
-        }
-      }
-    },
-    {
-      key: '2',
-      label: 'Settings',
-      icon: <SettingOutlined style={{ color: themeColors.text }} />,
-      onClick: () => navigate('/student/settings'),
-      style: {
-        color: themeColors.text,
-        '&:hover': {
-          background: themeColors.hover,
-        }
-      }
-    },
-    { type: 'divider' },
-    {
-      key: '3',
-      label: 'Logout',
-      icon: <LogoutOutlined style={{ color: '#fff' }} />,
-      danger: false,
-      style: {
-        color: '#fff',
-        backgroundColor: themeColors.accent,
-        borderRadius: '4px',
-        '&:hover': {
-          opacity: 0.85,
-        }
-      },
-      onClick: () =>
-        Modal.confirm({
-          title: <span style={{ color: themeColors.text }}>Confirm Logout</span>,
-          content: <span style={{ color: themeColors.text }}>Are you sure you want to logout?</span>,
-          onOk: () => {
-            localStorage.removeItem('token'); // Clear the token
-            navigate('/auth/login'); // Redirect to login page
-          },
-          centered: true,
-          okButtonProps: {
-            style: {
-              backgroundColor: themeColors.accent,
-              borderColor: themeColors.accent,
-              color: '#fff'
-            }
-          },
-          cancelButtonProps: {
-            style: {
-              borderColor: themeColors.text,
-              color: themeColors.text
-            }
-          }
-        }),
-    },
-  ];
 
   const openFeedbackModal = async (unitId) => {
     try {
@@ -1546,13 +1325,6 @@ const StudentDashboard = () => {
     message.info("You need to accept device analysis to attend sessions.");
   };
 
-  const scrollToSection = (id) => {
-    const element = document.getElementById(id);
-    if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
-    }
-  };
-
   // Define fetchUserAttendance function
   const fetchUserAttendance = useCallback(async () => {
     try {
@@ -1627,33 +1399,6 @@ const StudentDashboard = () => {
       setLatestSession(unitAttendance[0] || null);
     }
   }, [selectedUnit, attendanceData.attendanceRecords]);
-
-  // Add useEffect to handle scroll event for back to top button
-  useEffect(() => {
-    const handleScroll = () => {
-      // Show button when scrolled down 300px
-      if (window.scrollY > 300) {
-        setShowBackToTop(true);
-      } else {
-        setShowBackToTop(false);
-      }
-    };
-
-    window.addEventListener('scroll', handleScroll);
-
-    // Clean up event listener
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
-
-  // Function to scroll to top
-  const scrollToTop = () => {
-    window.scrollTo({
-      top: 0,
-      behavior: 'smooth'
-    });
-  };
 
   // Add the checkActiveSessionForUnit function that was missing
   const checkActiveSessionForUnit = async (unitId) => {
@@ -1760,8 +1505,6 @@ const StudentDashboard = () => {
       // Attempt to load cached data first
       const cachedData = localStorage.getItem('dashboardCache');
       if (cachedData && !navigator.onLine) {
-        const parsed = JSON.parse(cachedData);
-        setDashboardData(parsed);
         message.info('You are offline. Showing last known data.');
         return;
       }
@@ -1779,7 +1522,6 @@ const StudentDashboard = () => {
 
       // Cache the fresh data
       localStorage.setItem('dashboardCache', JSON.stringify(freshData));
-      setDashboardData(freshData);
 
     } catch {
       const msg = !navigator.onLine
@@ -1801,1038 +1543,543 @@ const StudentDashboard = () => {
 
     window.addEventListener('online', handleOnline);
     return () => window.removeEventListener('online', handleOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Update the loading indicator in the UI to show more specific loading states
+  // Probe active sessions for all enrolled units on load and periodically
+  useEffect(() => {
+    if (units.length > 0) {
+      units.forEach((unit) => {
+        if (unit?._id) {
+          checkActiveSessionForUnit(unit._id);
+        }
+      });
+      const interval = setInterval(() => {
+        units.forEach((unit) => {
+          if (unit?._id) {
+            checkActiveSessionForUnit(unit._id);
+          }
+        });
+      }, 30000);
+      return () => clearInterval(interval);
+    }
+  }, [units]);
+
+  // Derive the first live session entry if any exists
+  const activeSessionEntry = useMemo(() => {
+    for (const unit of units) {
+      if (!unit?._id) continue;
+      const session = activeSessionsByUnit[unit._id];
+      if (session && !session.ended && !session.loading) {
+        return { unit, session, countdown: sessionCountdowns[unit._id] };
+      }
+    }
+    return null;
+  }, [units, activeSessionsByUnit, sessionCountdowns]);
+
+  // Main render
   return (
-    <Layout style={styles.layout} data-theme={isDarkMode ? 'dark' : 'light'}>
-      <style>
-        {styles.globalStyles}
-        {`
-          /* Add these styles for dropdown menu theming */
-          .ant-dropdown .ant-dropdown-menu {
-            background-color: ${themeColors.cardBg} !important;
-          }
-          
-          .ant-dropdown .ant-dropdown-menu-item {
-            color: ${themeColors.text} !important;
-          }
-          .ant-dropdown .ant-dropdown-menu-item:hover {
-            background-color: ${themeColors.hover} !important;
-          }
-          .ant-dropdown .ant-dropdown-menu-item .anticon {
-            color: ${themeColors.text} !important;
-          }
-          .ant-dropdown .ant-dropdown-menu-item-divider {
-            background-color: ${themeColors.border} !important;
-          }
-          /* Special styling for logout menu item */
-          .ant-dropdown .ant-dropdown-menu-item:last-child {
-            margin: 4px 8px !important;
-            border-radius: 4px !important;
-          }
-          
-          .ant-dropdown .ant-dropdown-menu-item:last-child:hover {
-            opacity: 0.85 !important;
-            background-color: ${themeColors.accent} !important;
-          }
-          
-          .ant-dropdown .ant-dropdown-menu-item:last-child .anticon {
-            color: #fff !important;
-          }
-          /* Existing styles continue below */
-          ${styles.existingStyles}
-          /* Add custom spin size styles */
-          .custom-spin.ant-spin {
-            font-size: 24px;
-          }
-          
-          .custom-spin .ant-spin-text {
-            margin-top: 16px;
-            font-size: 16px;
-          }
-          
-          .custom-spin.ant-spin-spinning {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 400px;
-          }
-          
-          .custom-spin .ant-spin-dot {
-            font-size: 48px;
-          }
-          
-          .custom-spin .ant-spin-dot i {
-            width: 24px;
-            height: 24px;
-          }
-          
-          /* Remove the dark mode spinner overrides and other styles remain the same */
-          
-          /* Light mode pagination styling */
-          [data-theme='light'] .ant-pagination-item a {
-            color: #000 !important;
-          }
-          
-          [data-theme='light'] .ant-pagination-item:hover a {
-            color: #000 !important; /* Keep black on hover */
-          }
-          [data-theme='light'] .ant-pagination-item-active a {
-            color: #fff !important; /* Active item remains white */
-          }
-          [data-theme='light'] .ant-pagination-item-link .anticon {
-            color: #000 !important; /* Black arrows in light mode */
-          }
-          [data-theme='light'] .ant-pagination-prev:hover .ant-pagination-item-link,
-          [data-theme='light'] .ant-pagination-next:hover .ant-pagination-item-link {
-            color: #000 !important; /* Keep arrows black on hover */
-          }
-          
-          /* Light mode ellipsis */
-          [data-theme='light'] .ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-ellipsis,
-          [data-theme='light'] .ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-ellipsis {
-            color: #000 !important; /* Black ellipsis */
-          }
-          
-          /* Dark mode pagination styling */
-          [data-theme='dark'] .ant-pagination-item a {
-            color: #fff !important; /* White color for items */
-          }
-          
-          [data-theme='dark'] .ant-pagination-item:hover a {
-            color: #fff !important; /* Stay white on hover */
-          }
-          [data-theme='dark'] .ant-pagination-item-active a {
-            color: #fff !important; /* Active item is white */
-          }
-          [data-theme='dark'] .ant-pagination-item-link .anticon {
-            color: #fff !important; /* White arrows */
-          }
-          [data-theme='dark'] .ant-pagination-prev:hover .ant-pagination-item-link,
-          [data-theme='dark'] .ant-pagination-next:hover .ant-pagination-item-link {
-            color: #fff !important; /* Keep arrows white on hover */
-          }
-          
-          /* Dark mode ellipsis */
-          [data-theme='dark'] .ant-pagination-jump-prev .ant-pagination-item-container .ant-pagination-item-ellipsis,
-          [data-theme='dark'] .ant-pagination-jump-next .ant-pagination-item-container .ant-pagination-item-ellipsis {
-            color: #fff !important; /* White ellipsis */
-          }
-
-          /* Dark mode slider marks */
-          [data-theme='dark'] .ant-slider-mark-text {
-            color: #fff !important;
-          }
-
-          /* Checkbox styles */
-          .ant-checkbox-checked .ant-checkbox-inner {
-            background-color: ${themeColors.primary} !important;
-            border-color: ${themeColors.primary} !important;
-          }
-
-          /* Button text color fixes */
-          .ant-btn-primary:hover span {
-            color: #fff !important;
-          }
-
-          /* Modal button styles */
-          .ant-modal-footer .ant-btn {
-            transition: opacity 0.3s;
-          }
-
-          .ant-modal-footer .ant-btn:hover {
-            opacity: 0.8;
-          }
-          .ant-btn-primary span,
-          .ant-modal-footer .ant-btn span {
-            color: #fff !important;
-          }
-
-          .ant-btn-primary:hover span,
-          .ant-modal-footer .ant-btn:hover span {
-            color: #fff !important;
-          }
-
-          /* Target feedback modal cancel button specifically */
-          .ant-modal-footer button.ant-btn:not(.ant-btn-primary) {
-            background-color: ${themeColors.accent} !important;
-            border-color: ${themeColors.accent} !important;
-            color: #fff !important;
-            opacity: 1;
-            transition: opacity 0.3s;
-          }
-
-          .ant-modal-footer button.ant-btn:not(.ant-btn-primary):hover {
-            opacity: 0.8;
-            background-color: ${themeColors.accent} !important;
-            border-color: ${themeColors.accent} !important;
-            color: #fff !important;
-          }
-
-          /* Dark mode Select dropdown styles */
-          [data-theme='dark'] .ant-select-selector {
-            background-color: ${themeColors.background} !important;
-            border-color: ${themeColors.border} !important;
-            color: ${themeColors.text} !important;
-          }
-
-          [data-theme='dark'] .ant-select-selection-item {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-select-dropdown {
-            background-color: ${themeColors.background} !important;
-          }
-          [data-theme='dark'] .ant-select-item {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-select-item-option-active:not(.ant-select-item-option-disabled) {
-            background-color: ${themeColors.border} !important;
-          }
-          [data-theme='dark'] .ant-select-item-option-selected:not(.ant-select-item-option-disabled) {
-            background-color: ${themeColors.primary}40 !important;
-            color: ${themeColors.text} !important;
-          }
-
-          [data-theme='dark'] .ant-select-arrow {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-select-dropdown .ant-select-item {
-            background-color: ${themeColors.background} !important;
-            color: ${themeColors.text} !important;
-          }
-
-          [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-content {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-active {
-            background-color: ${themeColors.border} !important;
-          }
-          [data-theme='dark'] .ant-select-dropdown .ant-select-item-option-selected {
-            background-color: ${themeColors.primary}40 !important;
-          }
-          [data-theme='dark'] .ant-select-dropdown .ant-select-item:hover {
-            background-color: ${themeColors.border} !important;
-          }
-          [data-theme='dark'] .ant-select-selection-item {
-            color: ${themeColors.text} !important;
-          }
-          /* Dark mode calendar and datepicker styles */
-          [data-theme='dark'] .ant-picker {
-            background-color: ${themeColors.background} !important;
-            border-color: ${themeColors.border} !important;
-          }
-
-          [data-theme='dark'] .ant-picker-suffix {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-input > input {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-dropdown {
-            background-color: ${themeColors.background} !important;
-          }
-          [data-theme='dark'] .ant-picker-content th {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-header {
-            color: ${themeColors.text} !important;
-            border-bottom-color: ${themeColors.border} !important;
-          }
-
-          [data-theme='dark'] .ant-picker-header button {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-header-view {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-cell {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-cell-disabled {
-            color: ${themeColors.text}40 !important;
-          }
-          [data-theme='dark'] .ant-picker-cell-in-view {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-content {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-cell:hover:not(.ant-picker-cell-selected):not(.ant-picker-cell-range-start):not(.ant-picker-cell-range-end):not(.ant-picker-cell-range-hover-start):not(.ant-picker-cell-range-hover-end) .ant-picker-cell-inner {
-            background: ${themeColors.border} !important;
-          }
-          [data-theme='dark'] .ant-picker-cell-inner {
-            color: ${themeColors.text} !important;
-          }
-          [data-theme='dark'] .ant-picker-cell-today .ant-picker-cell-inner::before {
-            border-color: ${themeColors.primary} !important;
-          }
-          [data-theme='dark'] .ant-picker-cell-selected .ant-picker-cell-inner {
-            background: ${themeColors.primary} !important;
-          }
-          /* Fix profile icon color in dark mode */
-          [data-theme='dark'] .header-profile-icon {
-            color: #fff !important;
-          }
-          
-          [data-theme='light'] .header-profile-icon {
-            color: #000 !important;
-          }
-          /* Rate component styles for both themes */
-          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
-          .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
-            color: rgba(0, 0, 0, 0.25) !important;
-          }
-          
-          [data-theme='dark'] .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-first,
-          [data-theme='dark'] .ant-rate .ant-rate-star:not(.ant-rate-star-full) .ant-rate-star-second {
-            color: rgba(255, 255, 255, 0.3) !important;
-          }
-          
-          /* Ensure empty stars are visible */
-          .ant-rate-star-zero .ant-rate-star-first,
-          .ant-rate-star-zero .ant-rate-star-second {
-            opacity: 1 !important;
-          }
-
-          /* Slider mark text styles for better visibility */
-          .ant-slider-mark-text {
-            color: ${themeColors.text}99 !important;
-            font-size: 12px;
-            font-weight: normal;
-          }
-
-          /* Active mark text styling */
-          .ant-slider-mark-text-active {
-            color: ${themeColors.text} !important;
-            font-weight: 600;
-            font-size: 13px;
-          }
-
-          /* Light mode specific adjustments */
-          [data-theme='light'] .ant-slider-mark-text {
-            color: rgba(0, 0, 0, 0.65) !important;
-          }
-
-          [data-theme='light'] .ant-slider-mark-text-active {
-            color: rgba(0, 0, 0, 0.88) !important;
-          }
-          /* Dark mode specific adjustments */
-          [data-theme='dark'] .ant-slider-mark-text {
-            color: rgba(255, 255, 255, 0.65) !important;
-          }
-
-          [data-theme='dark'] .ant-slider-mark-text-active {
-            color: rgba(255, 255, 255, 0.88) !important;
-          }
-          /* Calendar weekday header specific fixes for both themes */
-          .ant-picker-content th {
-            color: ${isDarkMode ? themeColors.primary : 'rgba(0, 0, 0, 0.85)'} !important;
-            font-weight: bold !important;
-            padding: 5px 0 !important;
-          }
-          
-          /* Make sure the content inside calendar cells is visible */
-          .ant-picker-content th, .ant-picker-content td {
-            text-align: center !important;
-          }
-          
-          /* Light mode weekday headers */
-          [data-theme='light'] .ant-picker-content th {
-            color: rgba(0, 0, 0, 0.85) !important;
-            font-weight: bold !important;
-          }
-          
-          /* Dark mode weekday headers - more contrast */
-          [data-theme='dark'] .ant-picker-content th {
-            color: ${themeColors.primary} !important;
-            font-weight: bold !important;
-          }
-        `}
-      </style>
-      <Header style={styles.header}>
-        <Space>
-          <Button
-            type="text"
-            icon={collapsed ?
-              <MenuUnfoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} /> :
-              <MenuFoldOutlined style={{ color: isDarkMode ? '#fff' : undefined }} />
-            }
-            onClick={() => setCollapsed(!collapsed)}
-            style={{ fontSize: 18, width: 64, height: 64 }}
-          />
-        </Space>
-        <AntTitle
-          level={3}
-          style={{
-            margin: 0,
-            flex: 1,
-            textAlign: 'center',
-            position: 'absolute',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            display: window.innerWidth < 992 ? 'none' : 'block',
-            color: themeColors.text,
-          }}
-        >
-          Student Dashboard
-        </AntTitle>
-        <AntTitle
-          level={3}
-          style={{
-            margin: 0,
-            display: window.innerWidth >= 992 ? 'none' : 'inline',
-            color: themeColors.text,
-          }}
-        >
-          Student Dashboard
-        </AntTitle>
-        <Space>
-          <ThemeToggle />
-          <Dropdown menu={{ items: profileItems }} trigger={['click']}>
-            <Button
-              type="text"
-              icon={
-                <UserOutlined
-                  style={{
-                    fontSize: 24,
-                    color: isDarkMode ? themeColors.primary : '#1890ff',
-                    background: isDarkMode ? `${themeColors.primary}20` : `rgba(24, 144, 255, 0.1)`,
-                    padding: isDarkMode ? '10px' : '8px',
-                    borderRadius: '50%',
-                    transition: 'all 0.3s ease'
-                  }}
-                />
+    <div className="space-y-6 w-full min-w-0">
+      <PageHeader
+        title="Student Dashboard"
+        subtitle="Track enrolled units, recent attendance, and scan session QR codes."
+        actions={
+          <button
+            type="button"
+            onClick={() => {
+              if (activeSessionEntry?.unit?._id) {
+                handleAttendClick(activeSessionEntry.unit._id);
+              } else if (units.length > 0 && units[0]?._id) {
+                handleAttendClick(units[0]._id);
+              } else {
+                message.info("Please wait for your units to load.");
               }
-              style={{
-                borderRadius: '50%',
-                marginLeft: 16, // Add margin between toggle and profile icon
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'all 0.3s ease'
-              }}
-              onMouseEnter={(e) => {
-                const iconEl = e.currentTarget.querySelector('.anticon');
-                if (iconEl) {
-                  iconEl.style.background = isDarkMode
-                    ? `${themeColors.primary}40`
-                    : `rgba(24, 144, 255, 0.2)`;
-                }
-              }}
-              onMouseLeave={(e) => {
-                const iconEl = e.currentTarget.querySelector('.anticon');
-                if (iconEl) {
-                  iconEl.style.background = isDarkMode
-                    ? `${themeColors.primary}20`
-                    : `rgba(24, 144, 255, 0.1)`;
-                }
-              }}
-            />
-          </Dropdown>
-        </Space>
-      </Header>
-      <Layout>
-        <Sider collapsible collapsed={collapsed} onCollapse={setCollapsed} width={250} breakpoint="lg" collapsedWidth={80} style={styles.sider}>
-          <Menu
-            mode="inline"
-            defaultSelectedKeys={['1']}
-            items={[
-              { key: '1', icon: <BookOutlined style={{ color: themeColors.text }} />, label: 'My Units', onClick: () => scrollToSection('my-units') },
-              { key: '2', icon: <BarChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Overview', onClick: () => scrollToSection('attendance-overview') },
-              { key: '3', icon: <LineChartOutlined style={{ color: themeColors.text }} />, label: 'Attendance Trends', onClick: () => navigate('/student/attendance-trends') },
-            ]}
-          />
-        </Sider>
-
-        <Content style={{ ...styles.content, marginLeft: collapsed ? 88 : 258 }}>
-          <Spin
-            size="large"
-            spinning={loading}
-            tip={<span style={{ color: isDarkMode ? '#fff' : themeColors.text, fontSize: '16px', fontWeight: 500 }}>
-              Loading data...{Object.entries(loadingStates)
-                .filter(([, isLoading]) => isLoading)
-                .map(([key]) => ` ${key}`)
-                .join(',')}
-            </span>}
-            className="custom-spin"
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-slate-900 hover:bg-slate-800 text-white transition-colors"
           >
-            {dataLoadingError && !loading ? (
-              <div style={{ textAlign: 'center', margin: '20px', color: themeColors.text }}>
-                <p>Failed to load data. Please check your network and try again.</p>
-                <Button type="primary" onClick={fetchAllData}>
-                  Retry
-                </Button>
-              </div>
-            ) : (
-              <>
-                <Space direction="vertical" size="large" style={{ width: '100%' }}>
-                  {/* Welcome Section */}
-                  {(!loadingErrors.profile || username) && (
-                    <motion.div initial={{ opacity: 0, y: -20 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.5 }}>
-                      <AntTitle level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-                        {loadingStates.profile ? (
-                          <Spin size="small" />
-                        ) : (
-                          `Welcome, ${username || 'Student'}! `
-                        )}
-                      </AntTitle>
-                    </motion.div>
-                  )}
+            <QrcodeOutlined />
+            Scan QR
+          </button>
+        }
+      />
 
-                  {/* Units Overview Cards */}
-                  <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                    <Col xs={24} sm={12}>
-                      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                        <Card hoverable className="summary-card-1" style={styles.summaryCard1}>
-                          <Space direction="vertical">
-                            <BookOutlined style={{ fontSize: 28, color: '#fff' }} />
-                            <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Total Units</h3>
-                            <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
-                              {loadingErrors.units ? '?' : units.length}
-                            </h1>
-                            {loadingErrors.units && (
-                              <Button size="small" onClick={() => fetchUnitsData()} style={{ marginTop: 8 }}>
-                                Retry
-                              </Button>
-                            )}
-                          </Space>
-                        </Card>
-                      </motion.div>
-                    </Col>
-                    <Col xs={24} sm={12}>
-                      <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                        <Card hoverable className="summary-card-2" style={styles.summaryCard2}>
-                          <Space direction="vertical">
-                            <PieChartOutlined style={{ fontSize: 28, color: '#fff' }} />
-                            <h3 style={{ fontWeight: 600, margin: '8px 0', color: '#fff' }}>Attendance Rate</h3>
-                            <h1 style={{ fontSize: 32, margin: 0, color: '#fff' }}>
-                              {loadingErrors.attendance ? '?' : (
-                                attendanceRates.length ?
-                                  Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length)
-                                  : 0
-                              )}%
-                            </h1>
-                            {loadingErrors.attendance && (
-                              <Button size="small" onClick={() => fetchAttendanceData()} style={{ marginTop: 8 }}>
-                                Retry
-                              </Button>
-                            )}
-                          </Space>
-                        </Card>
-                      </motion.div>
-                    </Col>
-                  </Row>
-
-                  {/* Units Section */}
-                  <section>
-                    <AntTitle id="my-units" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-                      My Units
-                    </AntTitle>
-                    {loadingErrors.units ? (
-                      <Card style={styles.card}>
-                        <div style={{ textAlign: 'center', padding: '20px' }}>
-                          <p>Unable to load units. Please check your connection and try again.</p>
-                          <Button type="primary" onClick={() => fetchUnitsData()}>
-                            Retry Loading Units
-                          </Button>
-                        </div>
-                      </Card>
-                    ) : (
-                      <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                        {units.map((unit) => unit && unit._id ? (
-                          <Col xs={24} sm={12} md={8} lg={6} key={unit._id}>
-                            <motion.div initial="hidden" animate="visible" variants={styles.cardVariants}>
-                              <Card
-                                title={<span style={{ color: themeColors.text, fontWeight: 600 }}>{unit.name || 'Untitled Unit'}</span>}
-                                extra={<span style={{ color: `${themeColors.text}80` }}>{unit.code || 'N/A'}</span>}
-                                hoverable
-                                style={styles.card}
-                                styles={{ body: { padding: '16px' }, header: { padding: '8px 16px', whiteSpace: 'normal', wordBreak: 'break-word' } }}
-                                onClick={(e) => {
-                                  e.preventDefault(); // Prevent default behavior
-                                  try {
-                                    // Only set selected unit if it's a valid object
-                                    if (unit && typeof unit === 'object' && unit._id) {
-                                      // Create a safe copy of the unit object to avoid rendering issues
-                                      const safeUnit = {
-                                        _id: unit._id,
-                                        name: unit.name || 'Unnamed Unit',
-                                        code: unit.code || 'N/A',
-                                        // Format lecturer properly based on its type
-                                        lecturer: typeof unit.lecturer === 'object'
-                                          ? (unit.lecturer?.firstName && unit.lecturer?.lastName
-                                            ? `${unit.lecturer.firstName} ${unit.lecturer.lastName}`
-                                            : unit.lecturer?.name || 'N/A')
-                                          : (unit.lecturer || 'N/A'),
-                                        // Handle description that might be an object
-                                        description: typeof unit.description === 'object'
-                                          ? 'See course syllabus for details'
-                                          : (unit.description || 'N/A')
-                                      };
-
-                                      // Set loading state for this unit before checking active session
-                                      setActiveSessionsByUnit(prev => ({
-                                        ...prev,
-                                        [unit._id]: { loading: true }
-                                      }));
-
-                                      // Set selected unit immediately to show modal
-                                      setSelectedUnit(safeUnit);
-
-                                      // Then check for active session
-                                      checkActiveSessionForUnit(unit._id);
-                                    }
-                                  } catch (error) {
-                                    console.error("Error selecting unit:", error);
-                                    message.error("Failed to select unit. Please try again.");
-                                  }
-                                }}
-                              >
-                                <Space direction="vertical" style={{ width: '100%' }} size={16}>
-                                  {(() => {
-                                    const rate = calculateAttendanceRate(unit._id);
-                                    return rate === null ? (
-                                      <div style={{ color: `${themeColors.text}80` }}>No sessions</div>
-                                    ) : (
-                                      <div style={{ background: `${themeColors.text}20`, borderRadius: 6, overflow: 'hidden', height: 20 }}>
-                                        <div style={{
-                                          width: `${rate}%`,
-                                          minWidth: rate === '0.00' ? '20px' : '0',
-                                          background: getAttendanceColor(rate),
-                                          color: '#fff',
-                                          textAlign: 'center',
-                                          padding: '2px 0',
-                                          transition: 'width 0.5s ease',
-                                        }}>
-                                          {rate}%
-                                        </div>
-                                      </div>
-                                    );
-                                  })()}
-                                  <Row gutter={[8, 8]} justify="space-between">
-                                    <Col span={24}>
-                                      <Button
-                                        type="primary"
-                                        icon={<QrcodeOutlined style={{ color: '#fff' }} />}
-                                        block
-                                        onClick={(e) => { e.stopPropagation(); handleAttendClick(unit._id); }}
-                                        style={{ ...styles.button, color: '#fff !important' }}
-                                        className="attend-button"
-                                      >
-                                        <span style={{ color: '#fff' }}>Attend</span>
-                                      </Button>
-                                    </Col>
-                                    <Col span={24}>
-                                      <Button
-                                        block
-                                        onClick={(e) => { e.stopPropagation(); openFeedbackModal(unit._id); }}
-                                        disabled={
-                                          !attendanceData.attendanceRecords.some((rec) =>
-                                            rec.session.unit._id.toString() === unit._id.toString() &&
-                                            rec.status === 'Present'
-                                          )
-                                        }
-                                      >
-                                        {(() => {
-                                          const latestRecord = attendanceData.attendanceRecords
-                                            .filter(rec => rec.session.unit._id.toString() === unit._id.toString())
-                                            .sort((a, b) => new Date(b.session.endTime) - new Date(a.session.endTime))[0];
-                                          if (!latestRecord) return 'Feedback';
-                                          if (latestRecord.feedbackSubmitted) return 'Feedback Submitted';
-                                          if (latestRecord.session.ended) return 'Feedback Available';
-                                          return 'Feedback';
-                                        })()}
-                                      </Button>
-                                    </Col>
-                                  </Row>
-                                </Space>
-                              </Card>
-                            </motion.div>
-                          </Col>
-                        ) : null)}
-                      </Row>
-                    )}
-                  </section>
-
-                  {/* Notifications and Calendar Section */}
-                  <Row gutter={[24, 24]} style={{ marginBottom: 24 }}>
-                    <Col xs={24} md={12}>
-                      {loadingErrors.feedback ? (
-                        <Card style={styles.card}>
-                          <div style={{ textAlign: 'center', padding: '20px' }}>
-                            <p>Unable to load notifications.</p>
-                            <Button type="link" onClick={() => fetchFeedbackData()}>
-                              Retry
-                            </Button>
-                          </div>
-                        </Card>
-                      ) : (
-                        renderNotifications()
-                      )}
-                    </Col>
-                    <Col xs={24} md={12}>
-                      {loadingErrors.attendance ? (
-                        <Card style={styles.card}>
-                          <div style={{ textAlign: 'center', padding: '20px' }}>
-                            <p>Unable to load attendance events.</p>
-                            <Button type="link" onClick={() => fetchAttendanceData()}>
-                              Retry
-                            </Button>
-                          </div>
-                        </Card>
-                      ) : (
-                        renderCalendarEvents()
-                      )}
-                    </Col>
-                  </Row>
-
-                  {/* Attendance Overview Section */}
-                  <section>
-                    <AntTitle id="attendance-overview" level={2} style={{ textAlign: 'center', marginBottom: 24, color: themeColors.text }}>
-                      Attendance Overview
-                    </AntTitle>
-                    <Card style={styles.card}>
-                      {loadingErrors.attendance ? (
-                        <div style={{ textAlign: 'center', padding: '20px' }}>
-                          <p>Unable to load attendance data.</p>
-                          <Button type="primary" onClick={() => fetchAttendanceData()}>
-                            Retry Loading Data
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <div style={{ height: '400px' }}>
-                            <Bar data={chartData} options={chartOptions} />
-                          </div>
-                          <Button
-                            type="primary"
-                            style={{ ...styles.button, color: '#fff !important', marginTop: '20px' }}
-                            onClick={() => setDownloadModalVisible(true)}
-                            className="export-button"
-                          >
-                            <span style={{ color: '#fff' }}>Download Attendance Report</span>
-                          </Button>
-                        </>
-                      )}
-                    </Card>
-                  </section>
-                </Space>
-
-                <Modal
-                  open={!!selectedUnit}
-                  title={<span style={{ color: themeColors.text }}>{selectedUnit?.name}</span>}
-                  onCancel={() => setSelectedUnit(null)}
-                  footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>}
-                  centered
-                  width={Math.min(window.innerWidth * 0.9, 500)}
-                >
-                  {selectedUnit && (
-                    <Space direction="vertical" style={{ width: '100%', color: themeColors.text }}>
-                      <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
-                      <p><strong>Lecturer:</strong> {
-                        typeof selectedUnit.lecturer === 'object'
-                          ? (selectedUnit.lecturer?.firstName && selectedUnit.lecturer?.lastName
-                            ? `${selectedUnit.lecturer.firstName} ${selectedUnit.lecturer.lastName}`
-                            : selectedUnit.lecturer?.name || 'N/A')
-                          : (selectedUnit.lecturer || 'N/A')
-                      }</p>
-                      {/* Only show description if it has meaningful content */}
-                      {selectedUnit.description && selectedUnit.description !== 'N/A' && (
-                        <p><strong>Description:</strong> {
-                          typeof selectedUnit.description === 'object'
-                            ? 'See course syllabus for details'
-                            : selectedUnit.description
-                        }</p>
-                      )}
-
-                      {/* Display session status with improved loading state handling */}
-                      <div style={{
-                        marginTop: '12px',
-                        padding: '8px',
-                        borderRadius: '4px',
-                        backgroundColor: activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id].loading
-                          ? `${themeColors.secondary}20`
-                          : `${themeColors.accent}20`,
-                        borderLeft: `4px solid ${activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id].loading
-                          ? themeColors.secondary
-                          : themeColors.accent}`,
-                      }}>
-                        {activeSessionsByUnit[selectedUnit._id]?.loading ? (
-                          // Show loading state
-                          <div style={{ display: 'flex', alignItems: 'center' }}>
-                            <Spin size="small" style={{ marginRight: '10px' }} />
-                            <p style={{ margin: 0 }}>Checking session status...</p>
-                          </div>
-                        ) : (
-                          // Show session status after loading completes
-                          <>
-                            <p style={{
-                              margin: 0,
-                              fontWeight: 'bold',
-                              color: activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent
-                            }}>
-                              {activeSessionsByUnit[selectedUnit._id]
-                                ? <><span style={{ marginRight: '8px' }}>●</span> Active Session Available</>
-                                : <><span style={{ marginRight: '8px' }}>○</span> No Active Session</>}
-                            </p>
-                            {activeSessionsByUnit[selectedUnit._id] && (
-                              <>
-                                <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
-                                  Started: {moment(activeSessionsByUnit[selectedUnit._id].startTime).format('MMM D, YYYY h:mm A')}
-                                </p>
-                                <p style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
-                                  Ends: {activeSessionsByUnit[selectedUnit._id].duration
-                                    ? moment(activeSessionsByUnit[selectedUnit._id].startTime)
-                                      .add(activeSessionsByUnit[selectedUnit._id].duration, 'minutes')
-                                      .format('MMM D, YYYY h:mm A')
-                                    : 'When lecturer ends the session or by default after one hour'}
-                                </p>
-                                <p style={{
-                                  margin: '4px 0 0 0',
-                                  fontSize: '14px',
-                                  fontWeight: 'bold',
-                                  color: sessionCountdowns[selectedUnit._id] === 'Ended' ? themeColors.accent : themeColors.secondary
-                                }}>
-                                  Time remaining: {sessionCountdowns[selectedUnit._id] || 'Calculating...'}
-                                </p>
-                              </>
-                            )}
-                            <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
-                              {activeSessionsByUnit[selectedUnit._id]
-                                ? 'You can mark attendance for this session now.'
-                                : 'Check back later for the next available session.'}
-                            </p>
-                          </>
-                        )}
-                      </div>
-
-                      <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
-                        <Button
-                          type="primary"
-                          icon={<QrcodeOutlined style={{ color: '#fff' }} />}
-                          onClick={() => { handleAttendClick(selectedUnit._id); }}
-                          disabled={!activeSessionsByUnit[selectedUnit._id] || activeSessionsByUnit[selectedUnit._id]?.loading}
-                          style={{
-                            ...styles.button,
-                            color: '#fff',
-                            opacity: activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id]?.loading ? 1 : 0.6
-                          }}
-                        >
-                          <span style={{ color: '#fff' }}>Attend Session</span>
-                        </Button>
-                      </div>
-                    </Space>
-                  )}
-                </Modal>
-
-                <Modal
-                  open={feedbackModalVisible}
-                  title={<span style={{ color: themeColors.text }}>Session Feedback</span>}
-                  onCancel={() => setFeedbackModalVisible(false)}
-                  onOk={handleFeedbackSubmit}
-                  centered
-                  width={Math.min(window.innerWidth * 0.9, 600)}
-                  okButtonProps={{
-                    style: {
-                      ...styles.button,
-                      backgroundColor: themeColors.accent,
-                      borderColor: themeColors.accent,
-                      color: '#fff'
-                    }
-                  }}
-                  cancelButtonProps={{
-                    style: {
-                      backgroundColor: themeColors.accent,
-                      borderColor: themeColors.accent,
-                      color: '#fff',
-                      opacity: 1,
-                      transition: 'opacity 0.3s',
-                      '&:hover': {
-                        opacity: 0.8,
-                        backgroundColor: `${themeColors.accent} !important`,
-                        borderColor: `${themeColors.accent} !important`,
-                        color: '#fff !important',
-                      }
-                    }
-                  }}
-                >
-                  <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
-                    <div>
-                      <p>Overall Satisfaction <span style={{ color: themeColors.accent }}>*</span></p>
-                      <Rate
-                        allowHalf
-                        value={feedbackData.rating}
-                        onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
-                        style={{ color: themeColors.primary }}
-                      />
-                    </div>
-                    <div>
-                      <p>Pace of the Session (Slow to Fast) <span style={{ color: themeColors.accent }}>*</span></p>
-                      <Slider
-                        min={0}
-                        max={100}
-                        value={feedbackData.pace}
-                        onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
-                        marks={{
-                          0: 'Too Slow',
-                          25: 'Slow',
-                          50: 'Just Right',
-                          75: 'Fast',
-                          100: 'Too Fast'
-                        }}
-                        step={25}
-                        style={{ marginBottom: '24px' }}
-                      />
-                    </div>
-                    <div>
-                      <p>Interactivity Level <span style={{ color: themeColors.accent }}>*</span></p>
-                      <Rate
-                        value={feedbackData.interactivity}
-                        onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })}
-                        style={{ color: themeColors.primary }}
-                      />
-                    </div>
-                    <div>
-                      <p>Was the content clear? <span style={{ color: themeColors.accent }}>*</span></p>
-                      <Switch
-                        checked={feedbackData.clarity}
-                        onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
-                        checkedChildren="Yes"
-                        unCheckedChildren="No"
-                      />
-                    </div>
-                    <Input.TextArea
-                      rows={1}
-                      placeholder="Share your thoughts (optional)"
-                      value={feedbackData.text}
-                      onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
-                    />
-                    <Input.TextArea
-                      rows={1}
-                      placeholder="Suggestions for resources or improvements (optional)"
-                      value={feedbackData.resources}
-                      onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
-                    />
-                    <Checkbox
-                      checked={feedbackData.anonymous}
-                      onChange={(e) => setFeedbackData({ ...feedbackData, anonymous: e.target.checked })}
-                      style={{ color: themeColors.text }}
-                    >
-                      Submit anonymously
-                    </Checkbox>
-                  </Space>
-                </Modal>
-
-                <Modal
-                  title={<span style={{ color: themeColors.text }}>Device Analysis</span>}
-                  open={deviceModalVisible}
-                  onCancel={handleDeviceModalCancel}
-                  footer={[
-                    <Button
-                      key="cancel"
-                      onClick={handleDeviceModalCancel}
-                      style={{
-                        borderColor: themeColors.accent,
-                        color: themeColors.accent,
-                      }}
-                    >
-                      Cancel
-                    </Button>,
-                    <Button
-                      key="submit"
-                      type="primary"
-                      onClick={handleDeviceModalConfirm}
-                      style={{ ...styles.button, color: '#fff' }}
-                    >
-                      <span style={{ color: '#fff' }}>I Understand</span>
-                    </Button>,
-                  ]}
-                  destroyOnClose={true}
-                  maskClosable={false}
-                  centered={false}
-                >
-                  <p style={{ color: themeColors.text }}>
-                    We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.
-                    By continuing, you agree to this analysis for attendance verification purposes only.
-                  </p>
-                </Modal>
-
-                <Modal
-                  title={<span style={{ color: themeColors.text }}>Download Attendance Report</span>}
-                  open={downloadModalVisible}
-                  onCancel={() => setDownloadModalVisible(false)}
-                  onOk={handleDownloadAttendance}
-                  okText="Download"
-                  okButtonProps={{
-                    style: { ...styles.button, color: '#fff' }
-                  }}
-                >
-                  <Space direction="vertical" style={{ width: '100%' }}>
-                    <Select
-                      placeholder="Select Unit (Optional)"
-                      style={{ width: '100%' }}
-                      allowClear
-                      value={downloadFilters.unit}
-                      onChange={(value) => setDownloadFilters(prev => ({ ...prev, unit: value }))}
-                    >
-                      <Option value={null}>All Units</Option>
-                      {units.map(unit => (
-                        <Option key={unit._id} value={unit._id}>{unit.name}</Option>
-                      ))}
-                    </Select>
-
-                    <DatePicker.RangePicker
-                      style={{ width: '100%' }}
-                      onChange={(dates) => {
-                        setDownloadFilters(prev => ({
-                          ...prev,
-                          startDate: dates?.[0] || null,
-                          endDate: dates?.[1] || null
-                        }));
-                      }}
-                      popupStyle={{ position: 'fixed' }}
-                      getPopupContainer={trigger => trigger.parentNode}
-                      responsive={true}
-                      format="YYYY-MM-DD"
-                    />
-                  </Space>
-                </Modal>
-              </>
-            )}
-          </Spin>
-        </Content>
-      </Layout>
-
-      {/* Add Back to Top Button */}
-      {showBackToTop && (
-        <Button
-          type="primary"
-          icon={<ArrowUpOutlined />}
-          onClick={scrollToTop}
-          style={{
-            position: 'fixed',
-            bottom: '30px',
-            right: '30px',
-            width: '50px',
-            height: '50px',
-            borderRadius: '50%',
-            fontSize: '20px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            background: themeColors.accent,
-            border: '2px solid #fff',
-            boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-            zIndex: 9999,
-          }}
+      {/* KPI StatCards Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+        <StatCard
+          title="Total Units"
+          value={loadingErrors.units ? '?' : units.length}
+          loading={loadingStates.units}
+          subtitle="Enrolled semester units"
         />
+        <StatCard
+          title="Attendance Rate"
+          value={loadingErrors.attendance ? '?' : `${attendanceRates.length ? Math.round(attendanceRates.reduce((sum, rate) => sum + (rate.value === null ? 0 : parseFloat(rate.value)), 0) / attendanceRates.length) : 0}%`}
+          loading={loadingStates.attendance}
+          subtitle="Across all lectures"
+        />
+        <StatCard
+          title="Sessions Attended"
+          value={loadingErrors.attendance ? '?' : attendanceData.attendanceRecords.filter(r => r.status === 'Present').length}
+          loading={loadingStates.attendance}
+          subtitle="Verified present"
+        />
+        <StatCard
+          title="Pending Feedback"
+          value={loadingErrors.feedback ? '?' : pendingFeedbacks.length}
+          loading={loadingStates.feedback}
+          subtitle="Lectures awaiting review"
+        />
+      </div>
+
+      {/* Top Live Lecture Alert Banner */}
+      {activeSessionEntry && (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4 text-emerald-950 shadow-2xs">
+          <div className="flex items-center gap-3 min-w-0">
+            <span className="relative flex h-3 w-3 shrink-0">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            </span>
+            <div className="min-w-0">
+              <p className="font-semibold text-emerald-950 text-sm truncate">
+                Live Session Active: {activeSessionEntry.unit.code || 'Unit'} • {activeSessionEntry.unit.name}
+                {activeSessionEntry.session.venue ? ` (${activeSessionEntry.session.venue})` : ''}
+                {activeSessionEntry.countdown && activeSessionEntry.countdown !== 'Ended' ? ` • Closes in ${activeSessionEntry.countdown}` : ''}
+              </p>
+              <p className="text-xs text-emerald-700 mt-0.5">
+                Attendance check-in is currently open for this lecture.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleAttendClick(activeSessionEntry.unit._id)}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 text-sm font-semibold rounded-md bg-emerald-700 hover:bg-emerald-800 text-white shrink-0 transition-colors shadow-2xs"
+          >
+            <QrcodeOutlined />
+            Check In Now
+          </button>
+        </div>
       )}
-      <BackToTop />
-    </Layout>
+
+      {/* 12-Column Asymmetric Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        {/* Left: Enrolled Units & Attendance Chart (col-span-8) */}
+        <div className="lg:col-span-8 space-y-6">
+          {/* Enrolled Units Card */}
+          <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Enrolled Units</h2>
+                <p className="text-xs text-slate-500">Your registered course modules for this academic period</p>
+              </div>
+            </div>
+            <div className="p-5">
+              {loadingErrors.units ? (
+                <div className="text-center py-6 text-sm text-slate-500">
+                  <p>Unable to load units. Please check your connection and try again.</p>
+                  <button
+                    type="button"
+                    onClick={() => fetchUnitsData()}
+                    className="mt-3 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-900 text-white"
+                  >
+                    Retry Loading Units
+                  </button>
+                </div>
+              ) : units.length === 0 ? (
+                <div className="text-center py-8 text-sm text-slate-500">
+                  No enrolled units found.
+                </div>
+              ) : (
+                <div className="divide-y divide-slate-100">
+                  {units.map((unit) => {
+                    if (!unit || !unit._id) return null;
+                    const rate = calculateAttendanceRate(unit._id);
+                    const session = activeSessionsByUnit[unit._id];
+                    const isLive = session && !session.ended && !session.loading;
+                    const hasFeedbackSubmitted = attendanceData.attendanceRecords.some(
+                      (rec) => rec.session.unit._id.toString() === unit._id.toString() && rec.feedbackSubmitted
+                    );
+                    const canGiveFeedback = attendanceData.attendanceRecords.some(
+                      (rec) => rec.session.unit._id.toString() === unit._id.toString() && rec.status === 'Present'
+                    );
+
+                    const lecturerName = typeof unit.lecturer === 'object'
+                      ? (unit.lecturer?.firstName && unit.lecturer?.lastName
+                        ? `${unit.lecturer.firstName} ${unit.lecturer.lastName}`
+                        : unit.lecturer?.name || 'N/A')
+                      : (unit.lecturer || 'N/A');
+
+                    return (
+                      <div key={unit._id} className="py-4 first:pt-0 last:pb-0 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <span className="font-semibold text-slate-900 text-sm">{unit.name || 'Untitled Unit'}</span>
+                            <span className="px-2 py-0.5 text-xs font-medium bg-slate-100 text-slate-700 rounded">
+                              {unit.code || 'N/A'}
+                            </span>
+                          </div>
+                          <p className="text-xs text-slate-500 mt-1">Lecturer: {lecturerName}</p>
+                          <div className="flex items-center gap-3 mt-2 max-w-xs">
+                            <div className="flex-1 bg-slate-100 rounded-full h-2 overflow-hidden">
+                              <div
+                                className="bg-slate-900 h-full rounded-full transition-all duration-300"
+                                style={{ width: `${Math.min(100, Math.max(0, rate === null ? 0 : parseFloat(rate)))}%` }}
+                              />
+                            </div>
+                            <span className="text-xs font-medium tabular-nums text-slate-700">
+                              {rate === null ? 'No sessions' : `${rate}%`}
+                            </span>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                          {isLive ? (
+                            <button
+                              type="button"
+                              onClick={() => handleAttendClick(unit._id)}
+                              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-emerald-600 hover:bg-emerald-700 text-white transition-colors shadow-2xs"
+                            >
+                              <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-white opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-white"></span>
+                              </span>
+                              Check In
+                            </button>
+                          ) : (
+                            <button
+                              type="button"
+                              disabled
+                              className="px-3 py-1.5 text-xs font-medium rounded-md bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200"
+                            >
+                              No Active Class
+                            </button>
+                          )}
+                          <button
+                            type="button"
+                            onClick={() => openFeedbackModal(unit._id)}
+                            disabled={!canGiveFeedback}
+                            className="px-3 py-1.5 text-xs font-medium rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-40 transition-colors"
+                          >
+                            {hasFeedbackSubmitted ? 'Feedback Submitted' : 'Feedback'}
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Attendance Overview Chart */}
+          <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
+            <div className="px-5 py-4 border-b border-slate-200 flex items-center justify-between">
+              <div>
+                <h2 className="text-base font-semibold text-slate-900">Attendance Overview</h2>
+                <p className="text-xs text-slate-500">Comparative attendance performance across enrolled units</p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setDownloadModalVisible(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 transition-colors"
+              >
+                Download Report
+              </button>
+            </div>
+            <div className="p-5">
+              <div style={{ height: '320px' }}>
+                <Bar data={chartData} options={chartOptions} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Right: Notifications & Events (col-span-4) */}
+        <div className="lg:col-span-4 space-y-6">
+          {renderNotifications()}
+          {renderCalendarEvents()}
+        </div>
+      </div>
+
+      <Modal
+        open={!!selectedUnit}
+        title={<span style={{ color: themeColors.text }}>{selectedUnit?.name}</span>}
+        onCancel={() => setSelectedUnit(null)}
+        footer={<Button onClick={() => setSelectedUnit(null)}>Close</Button>}
+        centered
+        width={Math.min(window.innerWidth * 0.9, 500)}
+      >
+        {selectedUnit && (
+          <Space direction="vertical" style={{ width: '100%', color: themeColors.text }}>
+            <p><strong>Code:</strong> {selectedUnit.code || 'N/A'}</p>
+            <p><strong>Lecturer:</strong> {
+              typeof selectedUnit.lecturer === 'object'
+                ? (selectedUnit.lecturer?.firstName && selectedUnit.lecturer?.lastName
+                  ? `${selectedUnit.lecturer.firstName} ${selectedUnit.lecturer.lastName}`
+                  : selectedUnit.lecturer?.name || 'N/A')
+                : (selectedUnit.lecturer || 'N/A')
+            }</p>
+            {/* Only show description if it has meaningful content */}
+            {selectedUnit.description && selectedUnit.description !== 'N/A' && (
+              <p><strong>Description:</strong> {
+                typeof selectedUnit.description === 'object'
+                  ? 'See course syllabus for details'
+                  : selectedUnit.description
+              }</p>
+            )}
+
+            {/* Display session status with improved loading state handling */}
+            <div style={{
+              marginTop: '12px',
+              padding: '10px 14px',
+              borderRadius: '8px',
+              backgroundColor: activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id].loading
+                ? (isDarkMode ? 'rgba(34, 197, 94, 0.1)' : 'rgba(34, 197, 94, 0.08)')
+                : (isDarkMode ? 'rgba(239, 68, 68, 0.1)' : 'rgba(239, 68, 68, 0.08)'),
+              border: `1px solid ${activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id].loading
+                ? (isDarkMode ? 'rgba(34, 197, 94, 0.3)' : 'rgba(34, 197, 94, 0.2)')
+                : (isDarkMode ? 'rgba(239, 68, 68, 0.3)' : 'rgba(239, 68, 68, 0.2)')}`,
+            }}>
+              {activeSessionsByUnit[selectedUnit._id]?.loading ? (
+                // Show loading state
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Spin size="small" style={{ marginRight: '10px' }} />
+                  <p style={{ margin: 0 }}>Checking session status...</p>
+                </div>
+              ) : (
+                // Show session status after loading completes
+                <>
+                  <p style={{
+                    margin: 0,
+                    fontWeight: 'bold',
+                    color: activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent
+                  }}>
+                    {activeSessionsByUnit[selectedUnit._id]
+                      ? <><span style={{ marginRight: '8px' }}>●</span> Active Session Available</>
+                      : <><span style={{ marginRight: '8px' }}>○</span> No Active Session</>}
+                  </p>
+                  {activeSessionsByUnit[selectedUnit._id] && (
+                    <>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                        Started: {moment(activeSessionsByUnit[selectedUnit._id].startTime).format('MMM D, YYYY h:mm A')}
+                      </p>
+                      <p style={{ margin: '2px 0 0 0', fontSize: '12px' }}>
+                        Ends: {activeSessionsByUnit[selectedUnit._id].duration
+                          ? moment(activeSessionsByUnit[selectedUnit._id].startTime)
+                            .add(activeSessionsByUnit[selectedUnit._id].duration, 'minutes')
+                            .format('MMM D, YYYY h:mm A')
+                          : 'When lecturer ends the session or by default after one hour'}
+                      </p>
+                      <p style={{
+                        margin: '4px 0 0 0',
+                        fontSize: '14px',
+                        fontWeight: 'bold',
+                        color: sessionCountdowns[selectedUnit._id] === 'Ended' ? themeColors.accent : themeColors.secondary
+                      }}>
+                        Time remaining: {sessionCountdowns[selectedUnit._id] || 'Calculating...'}
+                      </p>
+                    </>
+                  )}
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px' }}>
+                    {activeSessionsByUnit[selectedUnit._id]
+                      ? 'You can mark attendance for this session now.'
+                      : 'Check back later for the next available session.'}
+                  </p>
+                </>
+              )}
+            </div>
+
+            <div style={{ marginTop: '12px', display: 'flex', justifyContent: 'center' }}>
+              <Button
+                type="primary"
+                icon={<QrcodeOutlined style={{ color: '#fff' }} />}
+                onClick={() => { handleAttendClick(selectedUnit._id); }}
+                disabled={!activeSessionsByUnit[selectedUnit._id] || activeSessionsByUnit[selectedUnit._id]?.loading}
+                style={{
+                  ...styles.button,
+                  color: '#fff',
+                  opacity: activeSessionsByUnit[selectedUnit._id] && !activeSessionsByUnit[selectedUnit._id]?.loading ? 1 : 0.6
+                }}
+              >
+                <span style={{ color: '#fff' }}>Attend Session</span>
+              </Button>
+            </div>
+          </Space>
+        )}
+      </Modal>
+
+      <Modal
+        open={feedbackModalVisible}
+        title={<span style={{ color: themeColors.text }}>Session Feedback</span>}
+        onCancel={() => setFeedbackModalVisible(false)}
+        onOk={handleFeedbackSubmit}
+        centered
+        width={Math.min(window.innerWidth * 0.9, 600)}
+        okButtonProps={{
+          style: {
+            ...styles.button,
+            backgroundColor: themeColors.accent,
+            borderColor: themeColors.accent,
+            color: '#fff'
+          }
+        }}
+        cancelButtonProps={{
+          style: {
+            backgroundColor: themeColors.accent,
+            borderColor: themeColors.accent,
+            color: '#fff',
+            opacity: 1,
+            transition: 'opacity 0.3s',
+            '&:hover': {
+              opacity: 0.8,
+              backgroundColor: `${themeColors.accent} !important`,
+              borderColor: `${themeColors.accent} !important`,
+              color: '#fff !important',
+            }
+          }
+        }}
+      >
+        <Space direction="vertical" size={16} style={{ width: '100%', color: themeColors.text }}>
+          <div>
+            <p>Overall Satisfaction <span style={{ color: themeColors.accent }}>*</span></p>
+            <Rate
+              allowHalf
+              value={feedbackData.rating}
+              onChange={(value) => setFeedbackData({ ...feedbackData, rating: value })}
+              style={{ color: themeColors.primary }}
+            />
+          </div>
+          <div>
+            <p>Pace of the Session (Slow to Fast) <span style={{ color: themeColors.accent }}>*</span></p>
+            <Slider
+              min={0}
+              max={100}
+              value={feedbackData.pace}
+              onChange={(value) => setFeedbackData({ ...feedbackData, pace: value })}
+              marks={{
+                0: 'Too Slow',
+                25: 'Slow',
+                50: 'Just Right',
+                75: 'Fast',
+                100: 'Too Fast'
+              }}
+              step={25}
+              style={{ marginBottom: '24px' }}
+            />
+          </div>
+          <div>
+            <p>Interactivity Level <span style={{ color: themeColors.accent }}>*</span></p>
+            <Rate
+              value={feedbackData.interactivity}
+              onChange={(value) => setFeedbackData({ ...feedbackData, interactivity: value })}
+              style={{ color: themeColors.primary }}
+            />
+          </div>
+          <div>
+            <p>Was the content clear? <span style={{ color: themeColors.accent }}>*</span></p>
+            <Switch
+              checked={feedbackData.clarity}
+              onChange={(checked) => setFeedbackData({ ...feedbackData, clarity: checked })}
+              checkedChildren="Yes"
+              unCheckedChildren="No"
+            />
+          </div>
+          <Input.TextArea
+            rows={1}
+            placeholder="Share your thoughts (optional)"
+            value={feedbackData.text}
+            onChange={(e) => setFeedbackData({ ...feedbackData, text: e.target.value })}
+          />
+          <Input.TextArea
+            rows={1}
+            placeholder="Suggestions for resources or improvements (optional)"
+            value={feedbackData.resources}
+            onChange={(e) => setFeedbackData({ ...feedbackData, resources: e.target.value })}
+          />
+          <Checkbox
+            checked={feedbackData.anonymous}
+            onChange={(e) => setFeedbackData({ ...feedbackData, anonymous: e.target.checked })}
+            style={{ color: themeColors.text }}
+          >
+            Submit anonymously
+          </Checkbox>
+        </Space>
+      </Modal>
+
+      <Modal
+        title={<span style={{ color: themeColors.text }}>Device Analysis</span>}
+        open={deviceModalVisible}
+        onCancel={handleDeviceModalCancel}
+        footer={[
+          <Button
+            key="cancel"
+            onClick={handleDeviceModalCancel}
+            style={{
+              borderColor: themeColors.accent,
+              color: themeColors.accent,
+            }}
+          >
+            Cancel
+          </Button>,
+          <Button
+            key="submit"
+            type="primary"
+            onClick={handleDeviceModalConfirm}
+            style={{ ...styles.button, color: '#fff' }}
+          >
+            <span style={{ color: '#fff' }}>I Understand</span>
+          </Button>,
+        ]}
+        destroyOnClose={true}
+        maskClosable={false}
+        centered={false}
+      >
+        <p style={{ color: themeColors.text }}>
+          We use anonymous device characteristics to prevent attendance fraud. No personal data is collected.
+          By continuing, you agree to this analysis for attendance verification purposes only.
+        </p>
+      </Modal>
+
+      <Modal
+        title={<span style={{ color: themeColors.text }}>Download Attendance Report</span>}
+        open={downloadModalVisible}
+        onCancel={() => setDownloadModalVisible(false)}
+        onOk={handleDownloadAttendance}
+        okText="Download"
+        okButtonProps={{
+          style: { ...styles.button, color: '#fff' }
+        }}
+      >
+        <Space direction="vertical" style={{ width: '100%' }}>
+          <Select
+            placeholder="Select Unit (Optional)"
+            style={{ width: '100%' }}
+            allowClear
+            value={downloadFilters.unit}
+            onChange={(value) => setDownloadFilters(prev => ({ ...prev, unit: value }))}
+          >
+            <Option value={null}>All Units</Option>
+            {units.map(unit => (
+              <Option key={unit._id} value={unit._id}>{unit.name}</Option>
+            ))}
+          </Select>
+
+          <DatePicker.RangePicker
+            style={{ width: '100%' }}
+            onChange={(dates) => {
+              setDownloadFilters(prev => ({
+                ...prev,
+                startDate: dates?.[0] || null,
+                endDate: dates?.[1] || null
+              }));
+            }}
+            popupStyle={{ position: 'fixed' }}
+            getPopupContainer={trigger => trigger.parentNode}
+            responsive={true}
+            format="YYYY-MM-DD"
+          />
+        </Space>
+      </Modal>
+    </div>
   );
 };
 

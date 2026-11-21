@@ -36,11 +36,19 @@ export default defineConfig({
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024, // Increase to 5MB
         runtimeCaching: [
           {
-            urlPattern: /\.(?:html|js|css)$/i,
+            urlPattern: /\.(?:html)$/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'html-cache',
+              networkTimeoutSeconds: 3,
+            },
+          },
+          {
+            urlPattern: /\.(?:js|css)$/i,
             handler: 'StaleWhileRevalidate',
             options: {
               cacheName: 'app-cache',
-              expiration: { maxEntries: 50, maxAgeSeconds: 30 * 24 * 60 * 60 },
+              expiration: { maxEntries: 50, maxAgeSeconds: 7 * 24 * 60 * 60 },
             },
           },
           {
@@ -63,7 +71,7 @@ export default defineConfig({
         ],
       },
       registerType: 'prompt',
-      devOptions: { enabled: true },
+      devOptions: { enabled: false },
     }),
     envCompatible(),
   ],

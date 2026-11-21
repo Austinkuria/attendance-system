@@ -51,7 +51,7 @@ const DebugPanel = () => {
     const checkApiConnection = async () => {
         setApiStatus('Checking...');
         try {
-            const API_URL = 'https://attendance-system-w70n.onrender.com/api';
+            const API_URL = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api';
             const response = await fetch(`${API_URL}/health`);
             if (response.ok) {
                 setApiStatus('API is online');

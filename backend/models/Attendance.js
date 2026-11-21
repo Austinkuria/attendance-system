@@ -20,36 +20,55 @@ const AttendanceSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ["Present", "Absent", "Rejected"], // Added "Rejected" status
+    enum: ["Present", "Late", "Excused", "Absent", "Rejected", "PRESENT", "LATE", "EXCUSED", "ABSENT", "REJECTED"],
     default: "Present",
     required: true
   },
+  check_in_method: {
+    type: String,
+    enum: ["QR_SCAN", "MANUAL_PIN", "LECTURER_OVERRIDE"],
+    default: "QR_SCAN",
+    index: true
+  },
+  device_fingerprint: {
+    type: String,
+    default: null
+  },
+  is_flagged: {
+    type: Boolean,
+    default: false,
+    index: true
+  },
+  flag_reason: {
+    type: String,
+    default: null
+  },
   deviceId: {
     type: String,
-    required: true,
-    index: true // Add index for faster lookups
+    default: "web-client",
+    index: true
   },
   compositeFingerprint: {
     type: String,
-    required: true,
-    index: true // Ensure unique lookups
+    default: "standard-fingerprint",
+    index: true
   },
   qrToken: {
     type: String,
-    required: true
+    default: ""
   },
   attendedAt: {
-    type: Date
+    type: Date,
+    default: Date.now
   },
   ipAddress: {
     type: String,
-    index: true // Add index for IP-based lookups
+    index: true
   },
   feedbackSubmitted: {
     type: Boolean,
     default: false
   },
-  // Fields for tracking attendance conflicts
   conflictType: {
     type: String,
     enum: ["exact", "similar", "ip", "timing", null],
@@ -68,12 +87,29 @@ const AttendanceSchema = new mongoose.Schema({
     type: String,
     default: null
   }
-}, { timestamps: true });
+}, {
+  timestamps: true,
+  toJSON: { virtuals: true },
+  toObject: { virtuals: true }
+});
 
+AttendanceSchema.virtual("session_id").get(function () {
+  return this.session;
+});
+
+AttendanceSchema.virtual("student_id").get(function () {
+  return this.student;
+});
+
+AttendanceSchema.virtual("checked_in_at").get(function () {
+  return this.attendedAt || this.timestamp || this.createdAt;
+});
+
+AttendanceSchema.index({ session: 1, student: 1 }, { unique: true });
 AttendanceSchema.index({ session: 1, status: 1 });
-AttendanceSchema.index({ session: 1, deviceId: 1 }); // Composite index for device checks
-AttendanceSchema.index({ session: 1, compositeFingerprint: 1 }); // Composite index for fingerprint checks
-AttendanceSchema.index({ session: 1, ipAddress: 1 }); // New index for IP-based detection
-AttendanceSchema.index({ ipAddress: 1, createdAt: -1 }); // For timing-based detection
+AttendanceSchema.index({ session: 1, deviceId: 1 });
+AttendanceSchema.index({ session: 1, compositeFingerprint: 1 });
+AttendanceSchema.index({ session: 1, ipAddress: 1 });
+AttendanceSchema.index({ ipAddress: 1, createdAt: -1 });
 
 module.exports = mongoose.model("Attendance", AttendanceSchema);

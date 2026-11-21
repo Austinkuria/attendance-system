@@ -52,9 +52,6 @@ export const ThemeAwareToasts = () => {
 
                     toast.info(
                         <div>
-                            <span role="img" aria-label="Update" style={{ marginRight: '8px', fontSize: '18px' }}>
-                                🔄
-                            </span>
                             <span>New version available! Refresh for latest features.</span>
                         </div>,
                         {
@@ -123,9 +120,6 @@ export const ThemeAwareToasts = () => {
                 if (!networkBannerVisibleRef.current) {
                     toast.info(
                         <div>
-                            <span role="img" aria-label="Online" style={{ marginRight: '8px', fontSize: '18px' }}>
-                                🔄
-                            </span>
                             <span>Back online. Refreshing data...</span>
                         </div>,
                         {
@@ -159,9 +153,6 @@ export const ThemeAwareToasts = () => {
             if (!networkBannerVisibleRef.current) {
                 toast.error(
                     <div>
-                        <span role="img" aria-label="Offline" style={{ marginRight: '8px', fontSize: '18px' }}>
-                            📶
-                        </span>
                         <span>You&apos;re offline. Some features may not work.</span>
                     </div>,
                     {

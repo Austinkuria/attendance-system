@@ -1,21 +1,16 @@
-import { useState, useEffect, useCallback, useMemo, useContext, useRef } from "react";
+import { useState, useEffect, useCallback, useMemo, useContext } from "react";
 import {
   Button,
   Table,
   Modal,
   Select,
   Space,
-  Card,
   Tag,
   Skeleton,
   message,
   Grid,
   Typography,
-  Statistic,
-  Row,
-  Col,
   DatePicker,
-  Tooltip,
   Spin,
 } from "antd";
 import {
@@ -23,19 +18,13 @@ import {
   DownloadOutlined,
   CalendarOutlined,
   BookOutlined,
-  TeamOutlined,
-  PercentageOutlined,
-  ScheduleOutlined,
   SyncOutlined,
   ClockCircleOutlined,
-  UserOutlined,
-  IdcardOutlined,
-  CheckCircleOutlined,
-  ScanOutlined,
 } from "@ant-design/icons";
 import PropTypes from "prop-types";
 import axios from "axios";
 import {
+  API_URL,
   getLecturerUnits,
   getDepartments,
   detectCurrentSession,
@@ -46,6 +35,8 @@ import moment from "moment";
 import { ThemeContext } from "../context/ThemeContext";
 import { useTableStyles } from './SharedTableStyles';
 import { useModalStyles } from './SharedModalStyles';
+import StatCard from './StatCard';
+import PageHeader from './PageHeader';
 
 const { Option } = Select;
 const { useBreakpoint } = Grid;
@@ -97,27 +88,6 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     year: null,
     semester: null,
   });
-
-  const cardStyle = {
-    borderRadius: screens.xs ? "12px" : "16px",
-    boxShadow: isDarkMode
-      ? "0 4px 15px rgba(0, 0, 0, 0.2)"
-      : "0 4px 15px rgba(0, 0, 0, 0.05)",
-    background: themeColors.cardBg,
-    border: `1px solid ${themeColors.border}`,
-    overflow: "hidden",
-    transition: "transform 0.3s ease, box-shadow 0.3s ease",
-    width: "100%",
-    margin: 0,
-    padding: screens.xs ? "8px" : undefined,
-  };
-
-  const summaryCardGradients = {
-    assignedUnits: themeColors.cardGradient1,
-    attendanceRate: themeColors.cardGradient2,
-    totalScans: themeColors.cardGradient3,
-    totalEnrolled: themeColors.cardGradient4,
-  };
 
   useEffect(() => {
     if (currentSession) {
@@ -268,7 +238,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
         if (!token) return;
 
         const response = await axios.get(
-          `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
+          `${API_URL}/sessions/current/${selectedUnit}`,
           { headers: { Authorization: `Bearer ${token}` } }
         );
 
@@ -302,7 +272,8 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
     // Only check for session if unit is manually selected
     checkSelectedUnitSession();
-  }, [selectedUnit, units]); // Remove dependencies that cause unnecessary reruns
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedUnit, units]);
 
   useEffect(() => {
     if (!selectedUnit || currentSession?.ended) {
@@ -312,10 +283,10 @@ const AttendanceManagement = ({ onLoadingChange }) => {
         setQrData("");
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedUnit, currentSession?.ended]);
 
   const [tableContainerHeight, setTableContainerHeight] = useState(400); // Default height
-  const tableContainerRef = useRef(null);
 
   // Add this useEffect to set the initial height based on screen size
   useEffect(() => {
@@ -345,7 +316,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
     try {
       setLoading((prev) => ({ ...prev, realTimeAttendance: true }));
       const response = await axios.get(
-        `https://attendance-system-w70n.onrender.com/api/attendance/realtime-lecturer/${currentSession._id}`,
+        `${API_URL}/attendance/realtime-lecturer/${currentSession._id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
 
@@ -424,7 +395,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       };
 
       const response = await axios.get(
-        `https://attendance-system-w70n.onrender.com/api/attendance/past-lecturer`,
+        `${API_URL}/attendance/past-lecturer`,
         {
           headers: { Authorization: `Bearer ${localStorage.getItem("token")}` },
           params,
@@ -685,7 +656,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       setLoading((prev) => ({ ...prev, qr: true }));
       const token = localStorage.getItem("token");
       const { data } = await axios.get(
-        `https://attendance-system-w70n.onrender.com/api/sessions/current/${selectedUnit}`,
+        `${API_URL}/sessions/current/${selectedUnit}`,
         { headers: { Authorization: `Bearer ${token}` } }
       );
       if (!data || !data.qrCode || data.ended) {
@@ -721,7 +692,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
           try {
             if (!currentSession?._id) throw new Error("Invalid session ID");
             const response = await axios.post(
-              "https://attendance-system-w70n.onrender.com/api/sessions/end",
+              `${API_URL}/sessions/end`,
               { sessionId: currentSession._id },
               { headers: { Authorization: `Bearer ${token}` } }
             );
@@ -745,7 +716,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
                 try {
                   // Check if there are any other active sessions
                   const verifyStatus = await axios.get(
-                    `https://attendance-system-w70n.onrender.com/api/sessions/status/${currentSession._id}`,
+                    `${API_URL}/sessions/status/${currentSession._id}`,
                     { headers: { Authorization: `Bearer ${token}` } }
                   );
 
@@ -791,7 +762,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
         try {
           const token = localStorage.getItem("token");
           await axios.put(
-            `https://attendance-system-w70n.onrender.com/api/attendance/${recordId}`,
+            `${API_URL}/attendance/${recordId}`,
             { status: newStatus },
             { headers: { Authorization: `Bearer ${token}` } }
           );
@@ -819,7 +790,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       );
 
       const response = await axios.get(
-        `https://attendance-system-w70n.onrender.com/api/attendance/realtime-lecturer/${currentSession._id}`,
+        `${API_URL}/attendance/realtime-lecturer/${currentSession._id}`,
         { headers: { Authorization: `Bearer ${localStorage.getItem("token")}` } }
       );
       const allAttendance = response.data;
@@ -838,7 +809,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
   const realTimeColumns = [
     {
-      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Reg Number</>),
+      title: "Reg Number",
       dataIndex: ["student", "regNo"],
       key: "regNo",
       sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo),
@@ -846,7 +817,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />First Name</>),
+      title: "First Name",
       dataIndex: ["student", "firstName"],
       key: "firstName",
       sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName),
@@ -854,7 +825,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />Last Name</>),
+      title: "Last Name",
       dataIndex: ["student", "lastName"],
       key: "lastName",
       sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName),
@@ -862,7 +833,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: (<><ScanOutlined style={{ marginRight: 4, color: themeColors.accent }} />Scan Time</>),
+      title: "Scan Time",
       dataIndex: "attendedAt",
       key: "attendedAt",
       render: (attendedAt) =>
@@ -879,7 +850,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       width: screens.xs ? 80 : undefined,
     },
     {
-      title: (<><CheckCircleOutlined style={{ marginRight: 4, color: themeColors.accent }} />Status</>),
+      title: "Status",
       dataIndex: "status",
       key: "status",
       render: (status) => (
@@ -918,7 +889,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
   const pastColumns = [
     {
-      title: (<><IdcardOutlined style={{ marginRight: 4, color: themeColors.accent }} />Reg Number</>),
+      title: "Reg Number",
       dataIndex: ["student", "regNo"],
       key: "regNo",
       sorter: (a, b) => a.student.regNo.localeCompare(b.student.regNo),
@@ -926,7 +897,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />First Name</>),
+      title: "First Name",
       dataIndex: ["student", "firstName"],
       key: "firstName",
       sorter: (a, b) => a.student.firstName.localeCompare(b.student.firstName),
@@ -934,7 +905,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: (<><UserOutlined style={{ marginRight: 4, color: themeColors.accent }} />Last Name</>),
+      title: "Last Name",
       dataIndex: ["student", "lastName"],
       key: "lastName",
       sorter: (a, b) => a.student.lastName.localeCompare(b.student.lastName),
@@ -942,7 +913,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       render: (text) => <span style={{ color: themeColors.text }}>{text}</span>,
     },
     {
-      title: (<><ScanOutlined style={{ marginRight: 4, color: themeColors.accent }} />Scan Time</>),
+      title: "Scan Time",
       dataIndex: "attendedAt",
       key: "attendedAt",
       render: (attendedAt) =>
@@ -959,7 +930,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
       width: screens.xs ? 80 : undefined,
     },
     {
-      title: (<><CheckCircleOutlined style={{ marginRight: 4, color: themeColors.accent }} />Status</>),
+      title: "Status",
       dataIndex: "status",
       key: "status",
       render: (status) => (
@@ -994,133 +965,32 @@ const AttendanceManagement = ({ onLoadingChange }) => {
   }, [attendance, enrolledStudents]);
 
   const summaryCards = (
-    <Row gutter={[screens.xs ? 8 : 16, screens.xs ? 8 : 16]} justify="space-between" style={{ margin: 0 }}>
-      <Col xs={12} sm={12} md={6} lg={6}>
-        <Card
-          style={{
-            ...cardStyle,
-            background: summaryCardGradients.assignedUnits,
-            border: 'none', // Explicitly remove all borders
-            height: "100%",
-            color: "#fff",
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
-            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
-          }}
-          bodyStyle={{
-            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-          hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-        >
-          <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Assigned Units</Text>}
-            value={totalAssignedUnits}
-            prefix={<TeamOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
-            loading={loading.units}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
-          />
-        </Card>
-      </Col>
-      <Col xs={12} sm={12} md={6} lg={6}>
-        <Card
-          style={{
-            ...cardStyle,
-            background: summaryCardGradients.attendanceRate,
-            border: 'none', // Explicitly remove all borders
-            height: "100%",
-            color: "#fff",
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
-            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
-          }}
-          bodyStyle={{
-            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-          hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-        >
-          <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Attendance Rate</Text>}
-            value={attendanceRate}
-            suffix="%"
-            prefix={<PercentageOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
-            loading={loading.realTimeAttendance}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
-          />
-        </Card>
-      </Col>
-      <Col xs={12} sm={12} md={6} lg={6}>
-        <Card
-          style={{
-            ...cardStyle,
-            background: summaryCardGradients.totalScans,
-            border: 'none', // Explicitly remove all borders
-            height: "100%",
-            color: "#fff",
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
-            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
-          }}
-          bodyStyle={{
-            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-          hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-        >
-          <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Total Scans</Text>}
-            value={totalScans}
-            prefix={<ScheduleOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
-            loading={loading.realTimeAttendance}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
-          />
-        </Card>
-      </Col>
-      <Col xs={12} sm={12} md={6} lg={6}>
-        <Card
-          style={{
-            ...cardStyle,
-            background: summaryCardGradients.totalEnrolled,
-            border: 'none', // Explicitly remove all borders
-            height: "100%",
-            color: "#fff",
-            boxShadow: '0 4px 12px rgba(0,0,0,0.1)', // Add shadow for depth instead of border
-            padding: screens.xs ? '8px 4px' : undefined, // Reduce padding on xs screens
-          }}
-          bodyStyle={{
-            padding: screens.xs ? '8px 4px' : '24px 12px', // Responsive padding
-            height: '100%',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'center',
-          }}
-          hoverable
-          onMouseEnter={(e) => (e.currentTarget.style.transform = "translateY(-4px)")}
-          onMouseLeave={(e) => (e.currentTarget.style.transform = "translateY(0)")}
-        >
-          <Statistic
-            title={<Text style={{ color: "#fff", fontSize: screens.xs ? 10 : 14 }}>Total Enrolled</Text>}
-            value={enrolledStudents}
-            prefix={<ScheduleOutlined style={{ fontSize: screens.xs ? 12 : 16 }} />}
-            loading={loading.units}
-            valueStyle={{ color: "#fff", fontSize: screens.xs ? 12 : 20, lineHeight: screens.xs ? '1.2' : '1.5' }}
-          />
-        </Card>
-      </Col>
-    </Row>
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 w-full">
+      <StatCard
+        title="Assigned Units"
+        value={totalAssignedUnits}
+        loading={loading.units}
+        subtitle="Assigned modules"
+      />
+      <StatCard
+        title="Attendance Rate"
+        value={`${attendanceRate}%`}
+        loading={loading.realTimeAttendance}
+        subtitle="Active attendance"
+      />
+      <StatCard
+        title="Total Scans"
+        value={totalScans}
+        loading={loading.realTimeAttendance}
+        subtitle="Verified check-ins"
+      />
+      <StatCard
+        title="Total Enrolled"
+        value={enrolledStudents}
+        loading={loading.units}
+        subtitle="Enrolled students"
+      />
+    </div>
   );
 
   useEffect(() => {
@@ -1239,7 +1109,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
       // Use the correct endpoint path for unit export
       const response = await axios({
-        url: `https://attendance-system-w70n.onrender.com/api/attendance/export/unit/${unit}`,
+        url: `${API_URL}/attendance/export/unit/${unit}`,
         method: 'GET',
         responseType: 'blob',
         headers: { Authorization: `Bearer ${token}` },
@@ -1318,7 +1188,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
 
       try {
         const response = await axios({
-          url: `https://attendance-system-w70n.onrender.com/api/attendance/export-all-sessions`,
+          url: `${API_URL}/attendance/export-all-sessions`,
           method: 'GET',
           responseType: 'blob',
           headers: {
@@ -1421,395 +1291,256 @@ const AttendanceManagement = ({ onLoadingChange }) => {
   };
 
   return (
-    <div style={{
-      padding: 0,
-      margin: 0,
-      background: isDarkMode ? themeColors.background : 'rgb(247, 249, 252)',
-      width: '100%',
-      overflowX: 'hidden',
-      paddingLeft: screens.xs ? '8px' : screens.md ? '16px' : 0,
-      paddingRight: screens.xs ? '8px' : screens.md ? '16px' : 0,
-      paddingTop: screens.xs ? '8px' : screens.md ? '16px' : 0, // Add top padding
-    }}>
-      {loadingSessionData ? (
-        <Card style={{ ...cardStyle, marginBottom: 24 }} loading>
-          <Skeleton active />
-        </Card>
-      ) : (
-        <Card
-          title={
-            <Space>
-              <ClockCircleOutlined style={{ color: currentSession && !currentSession.ended ? themeColors.primary : themeColors.textSecondary }} />
-              <Text strong style={{ color: themeColors.text }}>
-                {currentSession && !currentSession.ended
-                  ? `Active Session: ${currentSession.unit?.name || "Unknown Unit"}`
-                  : selectedUnit
-                    ? `No Active Session for ${units.find(u => u._id === selectedUnit)?.name || "Selected Unit"}`
-                    : "No Active Session"
-                }
-              </Text>
-            </Space>
-          }
-          style={{
-            ...cardStyle,
-            background: currentSession && !currentSession.ended
-              ? isDarkMode ? `${themeColors.cardGradient1}E6` : themeColors.cardGradient1
-              : themeColors.cardBg,
-            borderLeft: currentSession && !currentSession.ended
-              ? `4px solid ${isDarkMode ? `${themeColors.primary}E6` : themeColors.primary}`
-              : `4px solid ${themeColors.border}`,
-            marginBottom: 24,
-            padding: '16px',
-            boxShadow: isDarkMode
-              ? "0 4px 15px rgba(0, 0, 0, 0.3)"
-              : "0 4px 15px rgba(0, 0, 0, 0.05)",
-          }}
-          bodyStyle={{
-            padding: screens.xs ? '12px' : '16px',  // Responsive padding
-          }}
-        >
-          {currentSession && !currentSession.ended ? (
-            <Row gutter={[8, 16]}>  {/* Increase vertical spacing */}
-              <Col span={24} style={{ marginBottom: 8 }}>  {/* Add margin bottom */}
-                <Text strong style={{ color: themeColors.text, marginRight: 8 }}>  {/* Add margin right */}
-                  Time:{" "}
-                </Text>
-                <span style={{ color: themeColors.text }}>{formatSessionTime(currentSession)}</span>
-              </Col>
-              <Col span={24} style={{ marginBottom: 16 }}>  {/* Add margin bottom */}
-                <SessionTimer end={currentSession.endSession} />
-              </Col>
-              <Col span={24}>
-                <Button
-                  danger
-                  onClick={handleEndSession}
-                  loading={loading.session}
-                  style={{
-                    background: themeColors.accent,
-                    borderColor: themeColors.accent,
-                    color: themeColors.text,
-                    width: screens.xs ? "100%" : "auto",
-                    borderRadius: 8,
-                    transition: "all 0.3s",
-                    marginTop: 8,  // Add margin top
-                  }}
-                >
-                  {loading.session ? "Ending Session..." : "End Session Early"}
-                </Button>
-              </Col>
-            </Row>
-          ) : (
-            <Row gutter={[8, 8]}>
-              <Col span={24}>
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  margin: '8px 0',  // Add vertical margins
-                  padding: '0 8px',  // Add horizontal padding
-                }}>
-                  <Text style={{ color: themeColors.text }}>
-                    {selectedUnit
-                      ? `No active session found for ${units.find(u => u._id === selectedUnit)?.name || "selected unit"}.`
-                      : `Please select a unit to check for active sessions.`
-                    }
-                  </Text>
-                  {selectedUnit && (
-                    <Button
-                      type="primary"
-                      icon={<CalendarOutlined />}
-                      onClick={handleCreateSession}
-                      disabled={loading.session}
-                      loading={loading.session}
-                      style={{
-                        background: themeColors.primary,
-                        borderColor: themeColors.primary,
-                        color: themeColors.text,
-                        borderRadius: 8,
-                        transition: "all 0.3s",
-                        marginLeft: 8,
-                      }}
-                    >
-                      {loading.session ? "Creating..." : "Create Session"}
-                    </Button>
-                  )}
-                </div>
-              </Col>
-            </Row>
-          )}
-        </Card>
-      )}
-
-      <Card
-        extra={
-          <Space wrap size={screens.xs ? "small" : "middle"} style={{ justifyContent: screens.xs ? 'center' : 'flex-end' }}>
+    <div className="space-y-6 w-full min-w-0">
+      <PageHeader
+        title="Lecturer Dashboard"
+        subtitle="Manage active class sessions, live QR code check-ins, and student attendance records."
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
             <Select
               placeholder="Select Unit"
-              style={{ width: screens.xs ? "100%" : 300 }}
+              style={{ width: screens.xs ? "100%" : 260 }}
               onChange={setSelectedUnit}
               value={selectedUnit}
               loading={loading.units}
-              dropdownMatchSelectWidth={false} // Prevents dropdown from being too wide on small screens
+              dropdownMatchSelectWidth={false}
             >
               {units.map((unit) => (
                 <Option key={unit._id} value={unit._id}>
-                  <Space>
-                    <BookOutlined style={{ color: themeColors.primary }} />
-                    {unit.name}
-                    <Tag color={themeColors.secondary}>{unit.code}</Tag>
-                  </Space>
+                  {unit.name} ({unit.code})
                 </Option>
               ))}
             </Select>
-
-            {/* Place buttons on same line with responsive space between */}
-            <Space size={screens.xs ? "small" : "middle"} style={{ display: 'flex', flexWrap: 'nowrap' }}>
-              <Button
-                type="primary"
-                icon={<QrcodeOutlined />}
-                onClick={handleGenerateQR}
-                disabled={!selectedUnit || !currentSession || currentSession?.ended}
-                loading={loading.qr}
-                style={{
-                  background: themeColors.primary,
-                  borderColor: themeColors.primary,
-                  color: isDarkMode ? themeColors.text : "#fff",
-                  borderRadius: 8,
-                  transition: "all 0.3s ease",
-                  padding: screens.xs ? "0 8px" : undefined,
-                  minWidth: screens.xs ? 0 : undefined,
-                }}
-              >
-                {loading.qr ? "..." : screens.xs ? "QR" : (screens.md ? "Generate QR Code" : "QR Code")}
-              </Button>
-              <Button
-                type="primary"
-                icon={<CalendarOutlined />}
-                onClick={handleCreateSession}
-                disabled={loading.session || (currentSession && !currentSession.ended)}
-                loading={loading.session}
-                style={{
-                  background: themeColors.primary,
-                  borderColor: themeColors.primary,
-                  color: themeColors.text,
-                  borderRadius: 8,
-                  transition: "all 0.3s ease",
-                  padding: screens.xs ? "0 8px" : undefined,
-                  minWidth: screens.xs ? 0 : undefined,
-                }}
-              >
-                {loading.session ? "..." : screens.xs ? "Create" : "Create Session"}
-              </Button>
-            </Space>
-          </Space>
+            <button
+              type="button"
+              onClick={handleGenerateQR}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended}
+              className="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <QrcodeOutlined />
+              {loading.qr ? "Generating..." : "Generate QR Code"}
+            </button>
+            <button
+              type="button"
+              onClick={handleCreateSession}
+              disabled={loading.session || (currentSession && !currentSession.ended)}
+              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-md bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <CalendarOutlined />
+              {loading.session ? "Creating..." : "Create Session"}
+            </button>
+          </div>
         }
-        style={{
-          ...cardStyle,
-          marginBottom: 24, // Add margin below main card
-        }}
-      >
-        <Space direction="vertical" style={{ width: "100%", margin: 0 }} size={24}>
-          {summaryCards}
-          {/* Real-time Attendance Card */}
-          <Card
-            title={<Text strong style={{ color: themeColors.text }}>Real-time Unit Attendance</Text>}
-            size="small"
-            extra={
-              <Space>
-                <Button
-                  type="link"
-                  onClick={clearFilters}
-                  disabled={!Object.values(unitFilters).some(Boolean)}
-                  style={{ color: themeColors.secondary }}
-                >
-                  Clear Filters
-                </Button>
-                <Button
-                  onClick={handleViewAttendance}
-                  loading={loading.realTimeAttendance}
-                  disabled={!selectedUnit || !currentSession || currentSession?.ended}
-                  type="primary"
-                  icon={<SyncOutlined spin={loading.realTimeAttendance} />}
-                  size="small"
-                  style={{
-                    background: themeColors.primary,
-                    borderColor: themeColors.primary,
-                    color: themeColors.text,
-                    borderRadius: 8,
-                    transition: "all 0.3s",
-                  }}
-                >
-                  {loading.realTimeAttendance ? "Refreshing..." : "Refresh"}
-                </Button>
-              </Space>
-            }
-            style={{
-              ...cardStyle,
-              borderTop: `3px solid ${themeColors.primary}`,
-              marginTop: 16 // Add margin above real-time attendance card
-            }}
-            className="no-hover"
-          >
-            <div
-              ref={tableContainerRef}
-              style={{
-                height: tableContainerHeight,
-                overflow: "auto",
-                position: "relative",
-                transition: "none", // Prevent transition animations
-              }}
-              className="attendance-table-container"
-            >
-              {loading.realTimeAttendance && !attendance.length ? (
-                <Skeleton active />
-              ) : (
-                <Table
-                  columns={realTimeColumns}
-                  dataSource={attendance}
-                  rowKey="_id"
-                  scroll={{ x: 'max-content' }} // Better mobile scrolling
-                  pagination={{
-                    pageSize: screens.xs ? 5 : 8,
-                    responsive: true,
-                    showSizeChanger: false,
-                    showTotal: (total) => `Total ${total} students`,
-                    size: screens.xs ? "small" : "default",
-                    simple: screens.xs, // Use simple pagination on mobile
-                  }}
-                  locale={{ emptyText: "No active session attendance records found" }}
-                  bordered
-                  size={screens.xs ? "small" : "middle"}
-                  rowClassName={getRowClassName}
-                  components={{
-                    body: {
-                      wrapper: ({ children, ...props }) => (
-                        <tbody {...props}>{children}</tbody>
-                      ),
-                      row: ({ children, className, ...props }) => (
-                        <tr {...props} className={className}>{children}</tr>
-                      ),
-                    },
-                  }}
-                />
-              )}
-            </div>
-          </Card>
+      />
 
-          {/* Report Attendance Card */}
-          <Card
-            title={<Text strong style={{ color: themeColors.text }}>Attendance Records for Past Sessions</Text>}
-            size="small"
-            style={{
-              ...cardStyle,
-              borderTop: `3px solid ${themeColors.primary}`,
-              marginTop: 16 // Add margin above past sessions card
-            }}
-            className="no-hover"
-          >
-            <Tooltip title="Download attendance report for the selected session">
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={() => handleDownloadReport(selectedUnit)}
-                disabled={!selectedUnit}
-                loading={loading.stats}
-                style={{
-                  color: themeColors.primary,
-                  borderColor: themeColors.primary,
-                  width: screens.xs ? "100%" : "auto",
-                  marginBottom: screens.xs ? 0 : 4,
-                  borderRadius: 8,
-                  transition: "all 0.3s",
-                }}
-              >
-                {loading.stats ? "Exporting..." : screens.md ? "Download Session Report" : "Export Session"}
-              </Button>
-            </Tooltip>
-            <Tooltip title="Download a comprehensive attendance report for all sessions within a date range">
-              <Button
-                icon={<DownloadOutlined />}
-                onClick={handleDownloadFullReport}
-                loading={loading.stats}
-                style={{
-                  color: themeColors.primary,
-                  borderColor: themeColors.primary,
-                  width: screens.xs ? "100%" : "auto",
-                  marginBottom: screens.xs ? 0 : 4,
-                  borderRadius: 8,
-                  transition: "all 0.3s",
-                }}
-              >
-                {loading.stats ? "Exporting..." : "Download Full Report"}
-              </Button>
-            </Tooltip>
-            <Space
-              wrap
-              style={{ width: "100%", marginTop: screens.xs ? 0 : 4 }}
-              size={screens.xs ? "small" : "middle"}
+      {/* Session Status Banner */}
+      {loadingSessionData ? (
+        <div className="p-4 bg-white border border-slate-200 rounded-lg animate-pulse">
+          <div className="h-4 bg-slate-200 rounded w-1/3" />
+        </div>
+      ) : currentSession && !currentSession.ended ? (
+        <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-emerald-950">
+          <div>
+            <div className="flex items-center gap-2 font-medium text-emerald-900">
+              <ClockCircleOutlined className="text-emerald-600" />
+              <span>Active Session: {currentSession.unit?.name || "Selected Unit"}</span>
+            </div>
+            <div className="text-xs text-emerald-700 mt-1 flex items-center gap-3">
+              <span>Time: {formatSessionTime(currentSession)}</span>
+              <SessionTimer end={currentSession.endSession} />
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => window.open(`/lecturer/session/${currentSession._id}`, '_blank')}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-md bg-slate-900 hover:bg-slate-800 text-white transition-colors cursor-pointer"
             >
-              <Select
-                placeholder="Select Unit"
-                style={{ width: screens.xs ? "100%" : 240 }}
-                onChange={(value) =>
-                  setPastFilters((prev) => ({ ...prev, unit: value, sessionId: null }))
-                }
-                allowClear
-                value={pastFilters.unit}
-                className="themed-select"
-              >
-                {units.map((unit) => (
-                  <Option key={unit._id} value={unit._id}>
-                    {unit.name}
+              <QrcodeOutlined />
+              Projector Mode
+            </button>
+            <button
+              type="button"
+              onClick={handleEndSession}
+              disabled={loading.session}
+              className="px-3 py-1.5 text-xs font-medium rounded-md bg-red-600 hover:bg-red-700 text-white transition-colors cursor-pointer"
+            >
+              {loading.session ? "Ending..." : "End Session Early"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="bg-white border border-slate-200 rounded-lg px-4 py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-sm text-slate-600">
+          <div className="flex items-center gap-2">
+            <ClockCircleOutlined className="text-slate-400" />
+            <span>
+              {selectedUnit
+                ? `No active session found for ${units.find((u) => u._id === selectedUnit)?.name || "selected unit"}.`
+                : "No active session. Select a unit from the top header to begin."}
+            </span>
+          </div>
+          {selectedUnit && (
+            <button
+              type="button"
+              onClick={handleCreateSession}
+              disabled={loading.session}
+              className="text-xs font-medium text-slate-900 hover:text-slate-700 underline text-left sm:text-right"
+            >
+              Start session now →
+            </button>
+          )}
+        </div>
+      )}
+
+      {/* Metric Cards */}
+      {summaryCards}
+
+      {/* Real-time Attendance Card */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-slate-200">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Real-time Unit Attendance</h2>
+            <p className="text-xs text-slate-500">Live student check-ins for the active unit</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={clearFilters}
+              disabled={!Object.values(unitFilters).some(Boolean)}
+              className="text-xs font-medium text-slate-500 hover:text-slate-800 disabled:opacity-40"
+            >
+              Clear Filters
+            </button>
+            <button
+              type="button"
+              onClick={handleViewAttendance}
+              disabled={!selectedUnit || !currentSession || currentSession?.ended}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-50 transition-colors"
+            >
+              <SyncOutlined spin={loading.realTimeAttendance} />
+              {loading.realTimeAttendance ? "Refreshing..." : "Refresh"}
+            </button>
+          </div>
+        </div>
+        <div className="w-full overflow-x-auto p-4">
+          {loading.realTimeAttendance && !attendance.length ? (
+            <Skeleton active />
+          ) : (
+            <Table
+              columns={realTimeColumns}
+              dataSource={attendance}
+              rowKey="_id"
+              scroll={{ x: 700 }}
+              pagination={{
+                pageSize: screens.xs ? 5 : 8,
+                responsive: true,
+                showSizeChanger: false,
+                showTotal: (total) => `Total ${total} students`,
+                size: screens.xs ? "small" : "default",
+                simple: screens.xs,
+              }}
+              locale={{ emptyText: "No active session attendance records found" }}
+              bordered
+              size={screens.xs ? "small" : "middle"}
+              rowClassName={getRowClassName}
+            />
+          )}
+        </div>
+      </div>
+
+      {/* Past Sessions Card */}
+      <div className="bg-white border border-slate-200 rounded-lg shadow-2xs overflow-hidden">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 px-5 py-4 border-b border-slate-200">
+          <div>
+            <h2 className="text-base font-semibold text-slate-900">Attendance Records for Past Sessions</h2>
+            <p className="text-xs text-slate-500">Historical records and reporting</p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <button
+              type="button"
+              onClick={() => handleDownloadReport(selectedUnit)}
+              disabled={!selectedUnit}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md border border-slate-300 bg-white hover:bg-slate-50 text-slate-700 disabled:opacity-50 transition-colors"
+            >
+              <DownloadOutlined />
+              {loading.stats ? "Exporting..." : "Download Session Report"}
+            </button>
+            <button
+              type="button"
+              onClick={handleDownloadFullReport}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md bg-slate-900 hover:bg-slate-800 text-white disabled:opacity-50 transition-colors"
+            >
+              <DownloadOutlined />
+              Download Full Report
+            </button>
+          </div>
+        </div>
+        <div className="p-4 space-y-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <Select
+              placeholder="Select Unit"
+              style={{ width: screens.xs ? "100%" : 240 }}
+              onChange={(value) =>
+                setPastFilters((prev) => ({ ...prev, unit: value, sessionId: null }))
+              }
+              allowClear
+              value={pastFilters.unit}
+              className="themed-select"
+            >
+              {units.map((unit) => (
+                <Option key={unit._id} value={unit._id}>
+                  {unit.name}
+                </Option>
+              ))}
+            </Select>
+            <DatePicker
+              defaultValue={moment()}
+              placeholder="Select Date"
+              style={{ width: screens.xs ? "100%" : 150 }}
+              onChange={(_, dateString) =>
+                setPastFilters((prev) => ({
+                  ...prev,
+                  date: dateString,
+                  sessionId: null,
+                }))
+              }
+              allowClear
+              className="themed-datepicker"
+            />
+            <Select
+              placeholder="Select Session"
+              style={{ width: screens.xs ? "100%" : 300 }}
+              onChange={(value) =>
+                setPastFilters((prev) => ({ ...prev, sessionId: value }))
+              }
+              allowClear
+              value={pastFilters.sessionId}
+              className="themed-select"
+            >
+              {pastSessions
+                .filter(
+                  (session) =>
+                    moment(session.startTime).format("YYYY-MM-DD") ===
+                    pastFilters.date
+                )
+                .map((session) => (
+                  <Option key={session.sessionId} value={session.sessionId}>
+                    {`${session.unitName} - ${moment(session.startTime).format(
+                      "hh:mm A"
+                    )} - ${moment(session.endTime).format("hh:mm A")} (${moment(
+                      session.startTime
+                    ).format("DD/MM/YYYY")})`}
                   </Option>
                 ))}
-              </Select>
-              <DatePicker
-                defaultValue={moment()}
-                placeholder="Select Date"
-                style={{ width: screens.xs ? "100%" : 150 }}
-                onChange={(_, dateString) =>
-                  setPastFilters((prev) => ({
-                    ...prev,
-                    date: dateString,
-                    sessionId: null,
-                  }))
-                }
-                allowClear
-                className="themed-datepicker"
-              />
-              <Select
-                placeholder="Select Session"
-                style={{ width: screens.xs ? "100%" : 300 }}
-                onChange={(value) =>
-                  setPastFilters((prev) => ({ ...prev, sessionId: value }))
-                }
-                allowClear
-                value={pastFilters.sessionId}
-                className="themed-select"
-              >
-                {pastSessions
-                  .filter(
-                    (session) =>
-                      moment(session.startTime).format("YYYY-MM-DD") ===
-                      pastFilters.date
-                  )
-                  .map((session) => (
-                    <Option key={session.sessionId} value={session.sessionId}>
-                      {`${session.unitName} - ${moment(session.startTime).format(
-                        "hh:mm A"
-                      )} - ${moment(session.endTime).format("hh:mm A")} (${moment(
-                        session.startTime
-                      ).format("DD/MM/YYYY")})`}
-                    </Option>
-                  ))}
-              </Select>
-            </Space>
+            </Select>
+          </div>
+          <div className="w-full overflow-x-auto">
             <Skeleton active loading={loading.pastAttendance}>
               <Table
                 columns={pastColumns}
                 dataSource={pastAttendance}
                 rowKey="_id"
-                scroll={{ x: true }}
+                scroll={{ x: 700 }}
                 pagination={{
                   pageSize: screens.xs ? 5 : 8,
                   responsive: true,
@@ -1824,9 +1555,9 @@ const AttendanceManagement = ({ onLoadingChange }) => {
                 }
               />
             </Skeleton>
-          </Card>
-        </Space>
-      </Card>
+          </div>
+        </div>
+      </div>
 
       <Modal
         title={

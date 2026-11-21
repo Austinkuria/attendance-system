@@ -25,7 +25,7 @@ const authenticate = async (req, res, next) => {
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
       // Check if user still exists and is active
-      const user = await User.findById(decoded.userId).select('_id role email isActive');
+      const user = await User.findById(decoded.userId).select('_id role email isActive department managedDepartments isSuperAdmin');
       
       if (!user || user.isActive === false) {
         return res.status(401).json({
@@ -34,11 +34,17 @@ const authenticate = async (req, res, next) => {
         });
       }
 
+      const activeDeptId = user.department || (user.managedDepartments && user.managedDepartments[0]) || null;
+
       // Add user info to request object
       req.user = {
         userId: decoded.userId,
         email: decoded.email,
-        role: decoded.role
+        role: decoded.role,
+        department: activeDeptId,
+        departmentId: activeDeptId,
+        managedDepartments: user.managedDepartments || (user.department ? [user.department] : []),
+        isSuperAdmin: user.role === 'super_admin' || user.isSuperAdmin === true
       };
 
       // Check if token is about to expire (within 30 minutes)
