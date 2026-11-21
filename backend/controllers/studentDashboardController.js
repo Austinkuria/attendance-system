@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const User = require("../models/User");
 const Session = require("../models/Session");
 const Attendance = require("../models/Attendance");
@@ -490,14 +491,37 @@ exports.submitLectureFeedback = async (req, res) => {
       session = await Session.findById(sessionId);
     }
     if (!session && unitId && mongoose.isValidObjectId(unitId)) {
-      session = await Session.findOne({ unit: unitId }).sort({ createdAt: -1 });
+      // Find the most recent ended session for this specific unit
+      session = await Session.findOne({
+        unit: unitId,
+        $or: [{ ended: true }, { status: "ENDED" }, { endTime: { $lte: new Date() } }]
+      }).sort({ endTime: -1, createdAt: -1 });
     }
     if (!session) {
-      session = await Session.findOne().sort({ createdAt: -1 });
+      // Find the most recent ended session overall
+      session = await Session.findOne({
+        $or: [{ ended: true }, { status: "ENDED" }, { endTime: { $lte: new Date() } }]
+      }).sort({ endTime: -1, createdAt: -1 });
     }
 
-    const resolvedSessionId = session?._id || new mongoose.Types.ObjectId();
-    const finalUnitId = unitId || session?.unit;
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "No concluded lecture session was found to submit feedback for."
+      });
+    }
+
+    // Ensure feedback is submitted strictly after the session has ended
+    const isEnded = session.ended === true || session.status === "ENDED" || (session.endTime && new Date(session.endTime) <= new Date());
+    if (!isEnded) {
+      return res.status(400).json({
+        success: false,
+        message: "Lecture feedback can only be submitted after the lecture session has ended."
+      });
+    }
+
+    const resolvedSessionId = session._id;
+    const finalUnitId = unitId || session.unit;
     const finalRating = overallRating || rating || 5;
     const finalClear = isClear !== undefined ? isClear : (clarity !== undefined ? clarity : true);
     const finalComments = comments || feedbackText || "";

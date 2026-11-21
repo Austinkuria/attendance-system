@@ -25,6 +25,13 @@ const FeedbackModal = ({ isOpen, onClose, activeSession, session: sessionProp, o
   const [errorMessage, setErrorMessage] = useState('');
   const [submitted, setSubmitted] = useState(false);
 
+  // Check if session is currently live (feedback only allowed after session concludes)
+  const isSessionLive = Boolean(
+    session &&
+    (session.status === 'LIVE' || session.ended === false) &&
+    (!session.endTime || new Date(session.endTime) > new Date())
+  );
+
   useEffect(() => {
     try {
       const user = JSON.parse(localStorage.getItem('userData') || '{}');
@@ -38,6 +45,10 @@ const FeedbackModal = ({ isOpen, onClose, activeSession, session: sessionProp, o
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (isSessionLive) {
+      setErrorMessage('Lecture is currently in progress. Feedback opens once the session ends.');
+      return;
+    }
     setSubmitting(true);
     setErrorMessage('');
 
@@ -132,6 +143,11 @@ const FeedbackModal = ({ isOpen, onClose, activeSession, session: sessionProp, o
           </div>
         ) : (
           <form id="feedback-form" onSubmit={handleSubmit} className="overflow-y-auto px-5 py-4 space-y-3.5 flex-1 min-h-0">
+            {isSessionLive && (
+              <div className="p-2.5 rounded-md border text-xs font-medium text-amber-700 dark:text-amber-300 bg-amber-500/10 border-amber-500/30">
+                Lecture in progress. Anonymous feedback can be submitted once this session concludes.
+              </div>
+            )}
             {errorMessage && (
               <div className="p-2.5 rounded-md bg-rose-500/10 border border-rose-500/30 text-rose-500 dark:text-rose-300 text-xs text-center font-medium">
                 {errorMessage}
@@ -320,14 +336,14 @@ const FeedbackModal = ({ isOpen, onClose, activeSession, session: sessionProp, o
             <button
               type="submit"
               form="feedback-form"
-              disabled={submitting}
-              className="h-9 px-4 rounded-md font-semibold text-xs transition-colors cursor-pointer"
+              disabled={submitting || isSessionLive}
+              className="h-9 px-4 rounded-md font-semibold text-xs transition-colors cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               style={{
                 backgroundColor: isDarkMode ? '#D4FF5E' : '#131926',
                 color: isDarkMode ? '#131926' : '#FFFFFF',
               }}
             >
-              {submitting ? 'Submitting...' : 'Send feedback'}
+              {submitting ? 'Submitting...' : isSessionLive ? 'Session in progress' : 'Send feedback'}
             </button>
           </div>
         )}

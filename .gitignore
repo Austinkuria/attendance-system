@@ -26,5 +26,8 @@ dist-ssr
 *.env
 frontend/.env
 .vercel
-.AGENTS.
-.UI_DESIGN_RULES.md
+# Agent instructions and rules
+AGENTS.md
+UI_DESIGN_RULES.md
+*.AGENTS.md
+*.UI_DESIGN_RULES.md
