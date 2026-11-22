@@ -88,9 +88,6 @@ export const ThemeAwareToasts = () => {
 
             toast.info(
                 <div>
-                    <span role="img" aria-label="Update" style={{ marginRight: '8px', fontSize: '18px' }}>
-                        ⚡
-                    </span>
                     <span>New version installed! Page will reload.</span>
                 </div>,
                 {
