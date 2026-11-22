@@ -24,7 +24,9 @@ import ThemeToggle from '../../components/ThemeToggle';
 const Login = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isDarkMode, getInputStyle } = useContext(ThemeContext);
+  const themeContext = useContext(ThemeContext) || {};
+  const isDarkMode = themeContext.isDarkMode ?? false;
+  const getInputStyle = themeContext.getInputStyle || (() => ({}));
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -262,7 +264,7 @@ const Login = () => {
             {/* Header */}
             <div>
               <h1 className="text-3xl sm:text-4xl font-bold tracking-tight" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
-                Welcome back
+                Welcome Back!
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
                 Sign in to check in to your classes.
@@ -278,13 +280,14 @@ const Login = () => {
               }}
             >
               <span className="block text-[11px] font-medium text-slate-500 dark:text-slate-400 mb-2.5">
-                Demo accounts
+                Quick Demo Access: Demo accounts
               </span>
 
               <div className="grid grid-cols-2 gap-2.5">
                 {/* Student Demo */}
                 <button
                   type="button"
+                  aria-label="Student Demo"
                   disabled={demoLoading !== null}
                   onClick={() => handleDemoLogin('student')}
                   className="h-9 px-3 rounded-md border text-xs font-semibold cursor-pointer transition-colors flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -300,6 +303,7 @@ const Login = () => {
                 {/* Lecturer Demo */}
                 <button
                   type="button"
+                  aria-label="Lecturer Demo"
                   disabled={demoLoading !== null}
                   onClick={() => handleDemoLogin('lecturer')}
                   className="h-9 px-3 rounded-md border text-xs font-semibold cursor-pointer transition-colors flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -315,6 +319,7 @@ const Login = () => {
                 {/* Dept Admin Demo */}
                 <button
                   type="button"
+                  aria-label="Admin Demo"
                   disabled={demoLoading !== null}
                   onClick={() => handleDemoLogin('department_admin')}
                   className="h-9 px-3 rounded-md border text-xs font-semibold cursor-pointer transition-colors flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -330,6 +335,7 @@ const Login = () => {
                 {/* Super Admin Demo */}
                 <button
                   type="button"
+                  aria-label="Super Admin"
                   disabled={demoLoading !== null}
                   onClick={() => handleDemoLogin('super_admin')}
                   className="h-9 px-3 rounded-md border text-xs font-semibold cursor-pointer transition-colors flex items-center justify-center hover:bg-slate-50 dark:hover:bg-slate-800"
@@ -362,7 +368,7 @@ const Login = () => {
                   autoComplete="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@university.ac.ke"
+                  placeholder="Email address (you@university.ac.ke)"
                   className="w-full text-xs sm:text-sm h-10 px-3.5 rounded-md border font-medium focus:outline-hidden transition-colors"
                   style={getInputStyle()}
                 />

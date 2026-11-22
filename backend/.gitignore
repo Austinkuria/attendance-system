@@ -1,1 +1,5 @@
 .env
+# logs folder
+logs/
+**/logs/
+*.log

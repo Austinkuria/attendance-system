@@ -1,6 +1,9 @@
 # Logs
-logs
+logs/
+**/logs/
 *.log
+backend/logs/
+combined.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
@@ -26,8 +29,7 @@ dist-ssr
 *.env
 frontend/.env
 .vercel
+combined.log
 # Agent instructions and rules
 AGENTS.md
 UI_DESIGN_RULES.md
-*.AGENTS.md
-*.UI_DESIGN_RULES.md

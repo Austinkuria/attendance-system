@@ -14,7 +14,10 @@ const mockThemeContext = {
     inputBg: '#ffffff',
     inputBorder: '#d9d9d9'
   },
-  isDarkMode: false
+  isDarkMode: false,
+  getInputStyle: vi.fn(() => ({})),
+  getCardStyle: vi.fn(() => ({})),
+  getSubtleStyle: vi.fn(() => ({}))
 };
 
 describe('Login Component Tests', () => {
@@ -34,7 +37,7 @@ describe('Login Component Tests', () => {
     expect(screen.getByText(/Quick Demo Access:/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Student Demo/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Lecturer Demo/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Admin Demo/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^Admin Demo$/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Super Admin/i })).toBeInTheDocument();
 
     // Assert form input fields exist
