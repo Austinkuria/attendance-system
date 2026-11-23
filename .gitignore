@@ -26,10 +26,39 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment & Secrets (NEVER commit live configs)
+.env
+.env.*
 *.env
-frontend/.env
+*.env.*
+**/.env
+**/.env.*
+!.env.example
+!.env.sample
+!**/.env.example
+!**/.env.sample
+
+# Keys, certificates, and credentials
+*.pem
+*.key
+*.cert
+*.crt
+*.pfx
+*.p12
+*serviceAccount*.json
+*firebase-adminsdk*.json
+*credential*.json
+secrets/
+
 .vercel
-combined.log
+
 # Agent instructions and rules
 AGENTS.md
 UI_DESIGN_RULES.md
+*.AGENTS.md
+*.UI_DESIGN_RULES.md
+AGENT.md
+CLAUDE.md
+.cursorrules
+.agent/
+.agents/

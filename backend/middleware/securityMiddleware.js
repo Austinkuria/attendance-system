@@ -15,20 +15,47 @@ const generateNonce = (req, res, next) => {
 };
 
 /**
- * Sanitize user input to prevent XSS attacks
- * Removes potentially dangerous HTML/script tags
+ * Sanitize user input to prevent XSS and NoSQL injection
+ * Neutralises dangerous HTML angle brackets and strips MongoDB query operators
  */
-const sanitizeInput = (req, res, next) => {
-    if (req.body) {
-        Object.keys(req.body).forEach(key => {
-            if (typeof req.body[key] === 'string') {
-                // Remove script tags and event handlers
-                req.body[key] = req.body[key]
-                    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-                    .replace(/on\w+\s*=\s*["'][^"']*["']/gi, '')
-                    .replace(/javascript:/gi, '');
+const sanitizeString = (str) => {
+    if (typeof str !== 'string') return str;
+    return str
+        .replace(/javascript\s*:/gi, '')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;');
+};
+
+const sanitizeValue = (val) => {
+    if (typeof val === 'string') {
+        return sanitizeString(val);
+    }
+    if (Array.isArray(val)) {
+        return val.map(sanitizeValue);
+    }
+    if (val !== null && typeof val === 'object') {
+        const sanitizedObj = {};
+        for (const [key, value] of Object.entries(val)) {
+            // Drop NoSQL operator keys
+            if (key.startsWith('$') || key.includes('.')) {
+                continue;
             }
-        });
+            sanitizedObj[key] = sanitizeValue(value);
+        }
+        return sanitizedObj;
+    }
+    return val;
+};
+
+const sanitizeInput = (req, res, next) => {
+    if (req.body && typeof req.body === 'object') {
+        req.body = sanitizeValue(req.body);
+    }
+    if (req.query && typeof req.query === 'object') {
+        req.query = sanitizeValue(req.query);
+    }
+    if (req.params && typeof req.params === 'object') {
+        req.params = sanitizeValue(req.params);
     }
     next();
 };

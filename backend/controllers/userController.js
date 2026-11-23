@@ -13,6 +13,7 @@ const transporter = require("../config/emailConfig");
 const path = require('path');
 const Unit = require('../models/Unit');
 const RosterIngestionService = require('../services/rosterIngestionService');
+const { getSafeFileBuffer, safeUnlink } = require('../utils/securityUtils');
 const {
   generateAccessToken,
   generateRefreshToken,
@@ -542,7 +543,7 @@ const importStudents = async (req, res) => {
       return res.status(400).json({ success: false, error: "Spreadsheet file (.xlsx or .csv) is required" });
     }
 
-    const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+    const buffer = getSafeFileBuffer(req.file);
     if (!buffer) {
       return res.status(400).json({ success: false, error: "File buffer could not be read" });
     }
@@ -556,8 +557,8 @@ const importStudents = async (req, res) => {
     const result = await RosterIngestionService.ingestStudents(rows, creatorId);
 
     // Clean up temporary file if disk storage was used
-    if (req.file.path && fs.existsSync(req.file.path)) {
-      try { fs.unlinkSync(req.file.path); } catch (e) { /* ignore */ }
+    if (req.file.path) {
+      safeUnlink(req.file.path);
     }
 
     res.json({
@@ -776,7 +777,7 @@ const importLecturers = async (req, res) => {
       return res.status(400).json({ success: false, error: "Spreadsheet file (.xlsx or .csv) is required" });
     }
 
-    const buffer = req.file.buffer || (req.file.path ? fs.readFileSync(req.file.path) : null);
+    const buffer = getSafeFileBuffer(req.file);
     if (!buffer) {
       return res.status(400).json({ success: false, error: "File buffer could not be read" });
     }
@@ -789,8 +790,8 @@ const importLecturers = async (req, res) => {
     const creatorId = req.user ? req.user.userId : null;
     const result = await RosterIngestionService.ingestLecturers(rows, creatorId);
 
-    if (req.file.path && fs.existsSync(req.file.path)) {
-      try { fs.unlinkSync(req.file.path); } catch (e) { console.warn("Failed to delete temp file:", e.message); }
+    if (req.file.path) {
+      safeUnlink(req.file.path);
     }
 
     res.status(200).json({

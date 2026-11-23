@@ -4,6 +4,7 @@ const Course = require("../models/Course");
 const authenticate = require("../middleware/authMiddleware");
 const router = require("express").Router();
 const mongoose = require("mongoose");
+const { getSafeFileBuffer } = require("../utils/securityUtils");
 
 // Add a new unit (supports multi-course cross-listing and shared lecturers)
 const addUnit = async (req, res) => {
@@ -360,7 +361,7 @@ const bulkUploadUnits = async (req, res) => {
       return res.status(400).json({ success: false, message: "Spreadsheet file (.xlsx or .csv) is required" });
     }
     const RosterIngestionService = require('../services/rosterIngestionService');
-    const buffer = req.file.buffer || (req.file.path ? require('fs').readFileSync(req.file.path) : null);
+    const buffer = getSafeFileBuffer(req.file);
     if (!buffer) {
       return res.status(400).json({ success: false, message: "File buffer could not be read" });
     }

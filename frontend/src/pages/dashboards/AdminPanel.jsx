@@ -660,7 +660,13 @@ const AdminPanel = () => {
             </Form.Item>
             <button
               type="button"
-              onClick={() => lecturerForm.setFieldsValue({ temporaryPassword: Math.random().toString(36).slice(-8) + 'A1!' })}
+              onClick={() => {
+                const charset = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnpqrstuvwxyz23456789!@#$%';
+                const array = new Uint8Array(10);
+                window.crypto.getRandomValues(array);
+                const password = Array.from(array, byte => charset[byte % charset.length]).join('') + 'A1!';
+                lecturerForm.setFieldsValue({ temporaryPassword: password });
+              }}
               className="h-9 px-3 rounded-md border text-xs font-medium cursor-pointer shrink-0 mt-6"
             >
               Generate

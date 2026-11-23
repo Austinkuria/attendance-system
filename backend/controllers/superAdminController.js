@@ -16,6 +16,7 @@ const crypto = require('crypto');
 const { validationResult } = require('express-validator');
 const ExcelJS = require('exceljs');
 const RosterIngestionService = require('../services/rosterIngestionService');
+const { getSafeFileBuffer, escapeRegex } = require('../utils/securityUtils');
 
 /**
  * Create a new department admin
@@ -124,7 +125,7 @@ const createDepartmentAdmin = async (req, res) => {
  */
 const getDepartmentAdmins = async (req, res) => {
     try {
-        const admins = await User.find({ role: 'department_admin' })
+        const admins = await User.find({ role: { $in: ['department_admin', 'admin'] } })
             .populate('managedDepartments', 'name code')
             .populate('department', 'name code')
             .select('firstName lastName email isActive managedDepartments department createdAt lastLogin');
@@ -474,7 +475,7 @@ const createDepartment = async (req, res) => {
 
         // Check if department already exists
         const existingDept = await Department.findOne({
-            name: { $regex: new RegExp(`^${name}$`, 'i') }
+            name: { $regex: new RegExp(`^${escapeRegex(String(name).trim())}$`, 'i') }
         });
 
         if (existingDept) {
@@ -528,7 +529,7 @@ const getAllDepartments = async (req, res) => {
             .sort({ name: 1 });
 
         // Retrieve all department admins in one query to avoid N+1 queries
-        const allAdmins = await User.find({ role: 'department_admin' })
+        const allAdmins = await User.find({ role: { $in: ['department_admin', 'admin'] } })
             .select('firstName lastName email managedDepartments department');
 
         // Aggregate student and lecturer counts grouped by department
@@ -549,12 +550,18 @@ const getAllDepartments = async (req, res) => {
         // Attach populated admin and accurate stats to each department
         const departmentsWithStats = departments.map((dept) => {
             const deptIdStr = dept._id.toString();
+            const deptNameLower = (dept.name || '').trim().toLowerCase();
 
             // Match admins assigned via managedDepartments array or primary department
             const deptAdmins = allAdmins.filter(admin => {
                 const isManaged = Array.isArray(admin.managedDepartments) &&
-                    admin.managedDepartments.some(d => (d?._id || d)?.toString() === deptIdStr);
-                const isPrimary = (admin.department?._id || admin.department)?.toString() === deptIdStr;
+                    admin.managedDepartments.some(d => {
+                        const idOrStr = (d?._id || d)?.toString();
+                        return idOrStr === deptIdStr || (typeof d === 'string' && d.trim().toLowerCase() === deptNameLower);
+                    });
+                const primaryStr = (admin.department?._id || admin.department)?.toString();
+                const isPrimary = primaryStr === deptIdStr ||
+                    (typeof admin.department === 'string' && admin.department.trim().toLowerCase() === deptNameLower);
                 return isManaged || isPrimary;
             });
 
@@ -636,7 +643,7 @@ const updateDepartment = async (req, res) => {
         // Check if new name conflicts with existing department
         if (name && name !== department.name) {
             const existingDept = await Department.findOne({
-                name: { $regex: new RegExp(`^${name}$`, 'i') },
+                name: { $regex: new RegExp(`^${escapeRegex(String(name).trim())}$`, 'i') },
                 _id: { $ne: id }
             });
 
@@ -915,7 +922,7 @@ const bulkUploadAdmins = async (req, res) => {
             return res.status(400).json({ success: false, message: "Spreadsheet file (.xlsx or .csv) is required" });
         }
         const RosterIngestionService = require('../services/rosterIngestionService');
-        const buffer = req.file.buffer || (req.file.path ? require('fs').readFileSync(req.file.path) : null);
+        const buffer = getSafeFileBuffer(req.file);
         if (!buffer) {
             return res.status(400).json({ success: false, message: "File buffer could not be read" });
         }
@@ -968,7 +975,7 @@ const getAllUsers = async (req, res) => {
         }
 
         if (search && search.trim()) {
-            const regex = new RegExp(search.trim(), 'i');
+            const regex = new RegExp(escapeRegex(search.trim()), 'i');
             query.$or = [
                 { firstName: regex },
                 { lastName: regex },
@@ -1260,7 +1267,7 @@ const getAllCourses = async (req, res) => {
         }
 
         if (search && search.trim()) {
-            const regex = new RegExp(search.trim(), 'i');
+            const regex = new RegExp(escapeRegex(search.trim()), 'i');
             query.$or = [{ name: regex }, { code: regex }];
         }
 
@@ -1412,7 +1419,7 @@ const exportData = async (req, res) => {
             if (departmentId && departmentId !== 'all') query.department = departmentId;
             if (status && status !== 'all') query.isActive = status === 'active';
             if (search && search.trim()) {
-                const regex = new RegExp(search.trim(), 'i');
+                const regex = new RegExp(escapeRegex(search.trim()), 'i');
                 query.$or = [
                     { firstName: regex },
                     { lastName: regex },
@@ -1456,7 +1463,7 @@ const exportData = async (req, res) => {
             const query = {};
             if (departmentId && departmentId !== 'all') query.department = departmentId;
             if (search && search.trim()) {
-                const regex = new RegExp(search.trim(), 'i');
+                const regex = new RegExp(escapeRegex(search.trim()), 'i');
                 query.$or = [{ name: regex }, { code: regex }];
             }
 
@@ -1669,7 +1676,10 @@ const importSpreadsheet = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Please upload an Excel (.xlsx) or CSV file' });
         }
 
-        const buffer = req.file.buffer || require('fs').readFileSync(req.file.path);
+        const buffer = getSafeFileBuffer(req.file);
+        if (!buffer) {
+            return res.status(400).json({ success: false, message: 'Could not process spreadsheet file buffer' });
+        }
         const rows = await RosterIngestionService.parseBuffer(buffer, req.file.originalname || 'import.xlsx');
 
         if (!rows || rows.length === 0) {

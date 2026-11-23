@@ -10,6 +10,7 @@ const logger = require('../utils/logger');
 const crypto = require('crypto');
 const { computeSignature } = require('../utils/session.utils');
 const { verifyRotatingQrPayload } = require('../utils/dynamicQrUtils');
+const { escapeRegex } = require('../utils/securityUtils');
 
 exports.checkIn = async (req, res) => {
   try {
@@ -2820,10 +2821,11 @@ exports.manualRecordAttendance = async (req, res) => {
     if (studentId && mongoose.isValidObjectId(studentId)) {
       student = await User.findById(studentId);
     } else if (regNumber) {
+      const escapedReg = escapeRegex(String(regNumber).trim());
       student = await User.findOne({
         $or: [
-          { regNo: new RegExp(`^${regNumber.trim()}$`, 'i') },
-          { reg_number: new RegExp(`^${regNumber.trim()}$`, 'i') }
+          { regNo: new RegExp(`^${escapedReg}$`, 'i') },
+          { reg_number: new RegExp(`^${escapedReg}$`, 'i') }
         ]
       });
     }

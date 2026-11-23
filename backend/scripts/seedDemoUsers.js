@@ -138,7 +138,7 @@ const seedDemoAccounts = async () => {
     }
 
     console.log('Demo accounts seeded successfully!');
-    console.log(`Default password for all demo accounts: ${DEMO_PASSWORD}`);
+    console.log('Default credentials configured for demo accounts.');
     process.exit(0);
   } catch (error) {
     console.error('Failed to seed demo accounts:', error);

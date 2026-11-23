@@ -8,6 +8,7 @@ const Attendance = require('../models/Attendance');
 const Department = require('../models/Department');
 const { dispatchWebhook } = require('../utils/webhookUtils');
 const logger = require('../utils/logger');
+const { escapeRegex } = require('../utils/securityUtils');
 
 /**
  * POST /api/v1/integrations/roster/sync
@@ -38,8 +39,9 @@ const syncRoster = async (req, res) => {
     // 1. Resolve or create Department
     let department = null;
     if (department_name) {
+      const safeDeptName = escapeRegex(String(department_name).trim());
       department = await Department.findOne({
-        name: { $regex: new RegExp(`^${department_name.trim()}$`, 'i') }
+        name: { $regex: new RegExp(`^${safeDeptName}$`, 'i') }
       });
       if (!department) {
         department = await Department.create({
@@ -211,11 +213,12 @@ const getStudentExamEligibility = async (req, res) => {
     }
 
     const trimmedIdentifier = decodeURIComponent(regNumber).trim();
+    const safeIdentifier = escapeRegex(trimmedIdentifier);
 
     // Find student
     const student = await User.findOne({
       $or: [
-        { regNo: { $regex: new RegExp(`^${trimmedIdentifier}$`, 'i') } },
+        { regNo: { $regex: new RegExp(`^${safeIdentifier}$`, 'i') } },
         { external_id: trimmedIdentifier }
       ],
       role: 'student'

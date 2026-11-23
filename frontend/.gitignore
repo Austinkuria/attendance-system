@@ -1,5 +1,6 @@
 # Logs
-logs
+logs/
+**/logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -23,8 +24,17 @@ dist-ssr
 *.sln
 *.sw?
 
+# Environment & Secrets
 .env
-frontend/.env
-frontend/qr-attendance-123-firebase-adminsdk-123.json
+.env.*
+*.env
+*.env.*
+!.env.example
+!.env.sample
+
+# Service accounts & Credentials
+*firebase-adminsdk*.json
+*serviceAccount*.json
+*credential*.json
+
 .vercel
-backend/.env

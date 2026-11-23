@@ -1,6 +1,7 @@
 const Course = require('../models/Course');
 const Unit = require('../models/Unit'); //  Import the Unit model
 const mongoose = require('mongoose');
+const { getSafeFileBuffer } = require('../utils/securityUtils');
 
 // Create a new course
 const createCourse = async (req, res) => {
@@ -295,7 +296,7 @@ const bulkUploadCourses = async (req, res) => {
       return res.status(400).json({ success: false, message: "Spreadsheet file (.xlsx or .csv) is required" });
     }
     const RosterIngestionService = require('../services/rosterIngestionService');
-    const buffer = req.file.buffer || (req.file.path ? require('fs').readFileSync(req.file.path) : null);
+    const buffer = getSafeFileBuffer(req.file);
     if (!buffer) {
       return res.status(400).json({ success: false, message: "File buffer could not be read" });
     }

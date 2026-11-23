@@ -1,6 +1,7 @@
 const crypto = require('crypto');
 const axios = require('axios');
 const logger = require('./logger');
+const { isSafeWebhookUrl } = require('./securityUtils');
 
 /**
  * Signs a webhook payload using HMAC-SHA256
@@ -48,6 +49,11 @@ const verifyWebhookSignature = (payload, signature, secret) => {
  */
 const dispatchWebhook = async (event, data, destinationUrl, secret) => {
   if (!destinationUrl) return null;
+
+  if (!isSafeWebhookUrl(destinationUrl)) {
+    logger.warn(`Webhook dispatch blocked to unsafe destination URL: ${destinationUrl}`);
+    return { success: false, error: 'Destination URL rejected by security policy' };
+  }
 
   const timestamp = Math.floor(Date.now() / 1000);
   const payload = {

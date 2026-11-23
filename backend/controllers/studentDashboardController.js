@@ -488,12 +488,13 @@ exports.submitLectureFeedback = async (req, res) => {
 
     let session = null;
     if (sessionId && mongoose.isValidObjectId(sessionId)) {
-      session = await Session.findById(sessionId);
+      session = await Session.findById(new mongoose.Types.ObjectId(String(sessionId)));
     }
     if (!session && unitId && mongoose.isValidObjectId(unitId)) {
       // Find the most recent ended session for this specific unit
+      const cleanUnitId = new mongoose.Types.ObjectId(String(unitId));
       session = await Session.findOne({
-        unit: unitId,
+        unit: cleanUnitId,
         $or: [{ ended: true }, { status: "ENDED" }, { endTime: { $lte: new Date() } }]
       }).sort({ endTime: -1, createdAt: -1 });
     }

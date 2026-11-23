@@ -63,6 +63,7 @@ router.use("/attendance/", authLimiter, authenticate, attendanceRoutes);
 
 // Session routes
 router.use("/sessions", sessionRoutes);
+router.use("/session", sessionRoutes);
 
 // Versioned External SIS / LMS Integration API
 router.use('/v1/integrations', integrationRoutes);
