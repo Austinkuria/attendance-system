@@ -110,9 +110,23 @@ const safeUnlink = (filePath) => {
   }
 };
 
+/**
+ * Sanitizes a filename for use in HTTP Content-Disposition headers.
+ * Strips path traversal, quotes, control characters, and characters that break HTTP header attributes.
+ * @param {string} filename
+ * @returns {string} Safe ASCII filename
+ */
+const sanitizeHeaderFilename = (filename) => {
+  if (!filename || typeof filename !== 'string') return 'download';
+  const base = path.basename(filename);
+  const sanitized = base.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_');
+  return sanitized || 'download';
+};
+
 module.exports = {
   escapeRegex,
   isSafeWebhookUrl,
   getSafeFileBuffer,
-  safeUnlink
+  safeUnlink,
+  sanitizeHeaderFilename
 };

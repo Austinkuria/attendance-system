@@ -16,7 +16,7 @@ const crypto = require('crypto');
 const { validationResult } = require('express-validator');
 const ExcelJS = require('exceljs');
 const RosterIngestionService = require('../services/rosterIngestionService');
-const { getSafeFileBuffer, escapeRegex } = require('../utils/securityUtils');
+const { getSafeFileBuffer, escapeRegex, sanitizeHeaderFilename } = require('../utils/securityUtils');
 
 /**
  * Create a new department admin
@@ -1409,7 +1409,10 @@ const exportData = async (req, res) => {
         workbook.creator = 'QRollCall University Attendance System';
         workbook.created = new Date();
 
-        let filename = `QRollCall_${entity}_${new Date().toISOString().split('T')[0]}`;
+        const allowedEntities = ['users', 'courses', 'departments', 'admins', 'logs'];
+        const resolvedEntity = allowedEntities.includes(String(entity).toLowerCase()) ? String(entity).toLowerCase() : 'export';
+        const dateStr = new Date().toISOString().split('T')[0];
+        let filename = sanitizeHeaderFilename(`QRollCall_${resolvedEntity}_${dateStr}`);
         let columns = [];
         let rows = [];
 
@@ -1655,7 +1658,7 @@ const downloadTemplate = async (req, res) => {
         }
 
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${sanitizeHeaderFilename(filename)}"`);
         res.send(buffer);
     } catch (error) {
         console.error('Template download error:', error);

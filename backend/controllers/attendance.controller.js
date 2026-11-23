@@ -10,7 +10,7 @@ const logger = require('../utils/logger');
 const crypto = require('crypto');
 const { computeSignature } = require('../utils/session.utils');
 const { verifyRotatingQrPayload } = require('../utils/dynamicQrUtils');
-const { escapeRegex } = require('../utils/securityUtils');
+const { escapeRegex, sanitizeHeaderFilename } = require('../utils/securityUtils');
 
 exports.checkIn = async (req, res) => {
   try {
@@ -1888,7 +1888,8 @@ exports.exportUnitAttendance = async (req, res) => {
     });
 
     // Generate filename
-    const filename = `${unit.code}_${unit.name.replace(/\s+/g, '_')}_attendance_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const rawFilename = `${unit.code}_${unit.name.replace(/\s+/g, '_')}_attendance_${new Date().toISOString().split('T')[0]}.xlsx`;
+    const filename = sanitizeHeaderFilename(rawFilename);
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -2034,7 +2035,7 @@ exports.exportSessionAttendance = async (req, res) => {
     // Generate filename
     const sessionDate = new Date(session.startTime).toISOString().split('T')[0];
     const sessionTime = new Date(session.startTime).toTimeString().split(' ')[0].replace(/:/g, '-');
-    const filename = `${session.unit.code}_${sessionDate}_${sessionTime}_attendance.xlsx`;
+    const filename = sanitizeHeaderFilename(`${session.unit.code}_${sessionDate}_${sessionTime}_attendance.xlsx`);
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
@@ -2377,28 +2378,30 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     let filename = 'complete_attendance_report';
     let reportTitle = 'Comprehensive Attendance Report';
     if (startDate && endDate) {
-      filename = `attendance_report_${startDate}_to_${endDate}`;
-      reportTitle = `Attendance Report (${startDate} to ${endDate})`;
+      const safeStartDate = String(startDate).replace(/[^a-zA-Z0-9-]/g, '');
+      const safeEndDate = String(endDate).replace(/[^a-zA-Z0-9-]/g, '');
+      filename = `attendance_report_${safeStartDate}_to_${safeEndDate}`;
+      reportTitle = `Attendance Report (${safeStartDate} to ${safeEndDate})`;
     } else {
       filename = `complete_attendance_report_${today}`;
     }
 
     // Append unit names to filename
     if (units.length === 1) {
-      // If only one unit is selected, add its name
-      filename += `_${units[0].code}_${units[0].name.replace(/\s+/g, '_')}`;
+      const safeCode = String(units[0].code || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      const safeName = String(units[0].name || '').replace(/[^a-zA-Z0-9_-]/g, '_');
+      filename += `_${safeCode}_${safeName}`;
     } else {
-      // If multiple units are selected, indicate "all_units"
       filename += '_all_units';
     }
-    filename += '.xlsx';
+    const safeFilename = sanitizeHeaderFilename(filename) + '.xlsx';
 
     // Update title in the Excel file
     titleCell.value = reportTitle;
 
     // Set response headers with correct content type
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${safeFilename}"`);
 
     // Send the workbook
     await workbook.xlsx.write(res);
@@ -2790,7 +2793,7 @@ exports.exportFilteredAttendance = async (req, res) => {
     );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename=${filename}.xlsx`
+      `attachment; filename="${sanitizeHeaderFilename(filename)}.xlsx"`
     );
 
     // Write to response
@@ -2813,13 +2816,16 @@ exports.exportFilteredAttendance = async (req, res) => {
 exports.manualRecordAttendance = async (req, res) => {
   try {
     const { sessionId, regNumber, studentId, status = 'Present', remarks } = req.body;
-    if (!sessionId) {
-      return res.status(400).json({ success: false, message: 'Session ID is required' });
+    if (!sessionId || !mongoose.isValidObjectId(sessionId)) {
+      return res.status(400).json({ success: false, message: 'Valid Session ID is required' });
     }
+
+    const cleanSessionId = new mongoose.Types.ObjectId(String(sessionId));
 
     let student = null;
     if (studentId && mongoose.isValidObjectId(studentId)) {
-      student = await User.findById(studentId);
+      const cleanStudentId = new mongoose.Types.ObjectId(String(studentId));
+      student = await User.findById(cleanStudentId);
     } else if (regNumber) {
       const escapedReg = escapeRegex(String(regNumber).trim());
       student = await User.findOne({
@@ -2834,12 +2840,12 @@ exports.manualRecordAttendance = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Student with specified registration number or ID not found' });
     }
 
-    const session = await Session.findById(sessionId);
+    const session = await Session.findById(cleanSessionId);
     if (!session) {
       return res.status(404).json({ success: false, message: 'Session not found' });
     }
 
-    let record = await Attendance.findOne({ session: sessionId, student: student._id });
+    let record = await Attendance.findOne({ session: cleanSessionId, student: student._id });
     if (record) {
       record.status = status;
       record.check_in_method = 'LECTURER_OVERRIDE';
@@ -2848,7 +2854,7 @@ exports.manualRecordAttendance = async (req, res) => {
       await record.save();
     } else {
       record = new Attendance({
-        session: sessionId,
+        session: cleanSessionId,
         student: student._id,
         status: status,
         check_in_method: 'LECTURER_OVERRIDE',
