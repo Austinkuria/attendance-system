@@ -1571,8 +1571,9 @@ const exportData = async (req, res) => {
 
         // CSV Export Format
         if (format.toLowerCase() === 'csv') {
+            const cleanFilename = String(filename).replace(/"/g, '');
             res.setHeader('Content-Type', 'text/csv; charset=utf-8');
-            res.setHeader('Content-Disposition', `attachment; filename="${filename}.csv"`);
+            res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}.csv"`);
 
             const headerLine = columns.map(c => `"${c.header}"`).join(',');
             const dataLines = rows.map(r =>
@@ -1610,8 +1611,9 @@ const exportData = async (req, res) => {
         // Freeze top header row
         worksheet.views = [{ state: 'frozen', ySplit: 1 }];
 
+        const cleanFilename = String(filename).replace(/"/g, '');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${filename}.xlsx"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}.xlsx"`);
 
         await workbook.xlsx.write(res);
         res.end();
@@ -1657,8 +1659,9 @@ const downloadTemplate = async (req, res) => {
                 break;
         }
 
+        const cleanFilename = String(filename).replace(/"/g, '');
         res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        res.setHeader('Content-Disposition', `attachment; filename="${sanitizeHeaderFilename(filename)}"`);
+        res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"`);
         res.send(buffer);
     } catch (error) {
         console.error('Template download error:', error);

@@ -119,8 +119,9 @@ const safeUnlink = (filePath) => {
 const sanitizeHeaderFilename = (filename) => {
   if (!filename || typeof filename !== 'string') return 'download';
   const base = path.basename(filename);
-  const sanitized = base.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_');
-  return sanitized || 'download';
+  const noQuotes = base.replace(/"/g, '').replace(/'/g, '').replace(/\\/g, '');
+  const sanitized = noQuotes.replace(/[^a-zA-Z0-9._-]/g, '_').replace(/_{2,}/g, '_');
+  return sanitized.replace(/"/g, '') || 'download';
 };
 
 module.exports = {

@@ -62,3 +62,13 @@ CLAUDE.md
 .cursorrules
 .agent/
 .agents/
+
+# Local scripts and scratchpads
+scripts/local/
+backend/scripts/local/
+scratch/
+**/scratch/
+scripts/audit-*
+.security-audit-cache.json
+*.audit.json
+security-audit-report*

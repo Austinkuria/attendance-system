@@ -22,3 +22,12 @@ node_modules
 logs/
 **/logs/
 *.log
+
+# Local scripts and scratchpads
+scripts/local/
+scratch/
+**/scratch/
+scripts/audit-*
+.security-audit-cache.json
+*.audit.json
+security-audit-report*

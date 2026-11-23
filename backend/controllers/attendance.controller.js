@@ -1889,11 +1889,11 @@ exports.exportUnitAttendance = async (req, res) => {
 
     // Generate filename
     const rawFilename = `${unit.code}_${unit.name.replace(/\s+/g, '_')}_attendance_${new Date().toISOString().split('T')[0]}.xlsx`;
-    const filename = sanitizeHeaderFilename(rawFilename);
+    const cleanFilename = String(sanitizeHeaderFilename(rawFilename)).replace(/"/g, '');
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"`);
 
     // Send the workbook
     await workbook.xlsx.write(res);
@@ -2035,11 +2035,11 @@ exports.exportSessionAttendance = async (req, res) => {
     // Generate filename
     const sessionDate = new Date(session.startTime).toISOString().split('T')[0];
     const sessionTime = new Date(session.startTime).toTimeString().split(' ')[0].replace(/:/g, '-');
-    const filename = sanitizeHeaderFilename(`${session.unit.code}_${sessionDate}_${sessionTime}_attendance.xlsx`);
+    const cleanFilename = String(sanitizeHeaderFilename(`${session.unit.code}_${sessionDate}_${sessionTime}_attendance.xlsx`)).replace(/"/g, '');
 
     // Set response headers
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="${cleanFilename}"`);
 
     // Send the workbook
     await workbook.xlsx.write(res);
@@ -2394,7 +2394,7 @@ exports.exportAllSessionsAttendance = async (req, res) => {
     } else {
       filename += '_all_units';
     }
-    const safeFilename = sanitizeHeaderFilename(filename) + '.xlsx';
+    const safeFilename = String(sanitizeHeaderFilename(filename)).replace(/"/g, '') + '.xlsx';
 
     // Update title in the Excel file
     titleCell.value = reportTitle;
@@ -2787,13 +2787,14 @@ exports.exportFilteredAttendance = async (req, res) => {
     }
 
     // Set response headers
+    const cleanFilename = String(sanitizeHeaderFilename(filename)).replace(/"/g, '');
     res.setHeader(
       'Content-Type',
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     );
     res.setHeader(
       'Content-Disposition',
-      `attachment; filename="${sanitizeHeaderFilename(filename)}.xlsx"`
+      `attachment; filename="${cleanFilename}.xlsx"`
     );
 
     // Write to response
