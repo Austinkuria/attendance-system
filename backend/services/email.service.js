@@ -106,7 +106,7 @@ const sendVerificationEmail = async (email, token, firstName = 'User') => {
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">📋 QRollCall</div>
+            <div class="logo">QRollCall</div>
             <h2 style="margin: 0; color: #333;">Email Verification</h2>
           </div>
           
@@ -126,7 +126,7 @@ const sendVerificationEmail = async (email, token, firstName = 'User') => {
             </div>
             
             <div class="warning">
-              <strong>⚠️ Important:</strong>
+              <strong>Important:</strong>
               <ul style="margin: 10px 0; padding-left: 20px;">
                 <li>This link will expire in 24 hours</li>
                 <li>If you didn't create this account, please ignore this email</li>
@@ -136,10 +136,10 @@ const sendVerificationEmail = async (email, token, firstName = 'User') => {
             
             <p>Once verified, you'll be able to:</p>
             <ul>
-              <li>✅ Access your dashboard</li>
-              <li>✅ Mark attendance using QR codes</li>
-              <li>✅ View your attendance records</li>
-              <li>✅ Receive notifications about your courses</li>
+              <li>Access your dashboard</li>
+              <li>Mark attendance using QR codes</li>
+              <li>View your attendance records</li>
+              <li>Receive notifications about your courses</li>
             </ul>
           </div>
           
@@ -163,7 +163,7 @@ To complete your registration and activate your account, please verify your emai
 
 ${verificationLink}
 
-⚠️ Important:
+Important:
 - This link will expire in 24 hours
 - If you didn't create this account, please ignore this email
 - For security, do not share this link with anyone
@@ -215,7 +215,7 @@ const sendVerificationSuccessEmail = async (email, firstName = 'User') => {
       </head>
       <body>
         <div class="container">
-          <div class="success-icon">✅</div>
+          <div class="success-icon">✓</div>
           <h2 style="text-align: center; color: #52c41a;">Email Verified Successfully!</h2>
           
           <p>Hello <strong>${firstName}</strong>,</p>
@@ -268,7 +268,7 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
   const roleMessages = {
     super_admin: {
       title: 'Super Administrator Account Created',
-      icon: '👑',
+      icon: '',
       description: 'You have been granted super administrator privileges on QRollCall.',
       permissions: [
         'Manage all departments and users',
@@ -280,7 +280,7 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
     },
     department_admin: {
       title: 'Department Administrator Account Created',
-      icon: '🎓',
+      icon: '',
       description: `You have been appointed as an administrator for the ${additionalInfo.departmentName || 'department'}.`,
       permissions: [
         'Manage lecturers and students in your department',
@@ -292,7 +292,7 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
     },
     lecturer: {
       title: 'Lecturer Account Created',
-      icon: '👨‍🏫',
+      icon: '',
       description: 'Welcome to QRollCall! Your lecturer account has been created.',
       permissions: [
         'Create and manage class sessions',
@@ -304,7 +304,7 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
     },
     student: {
       title: 'Student Account Created',
-      icon: '🎒',
+      icon: '',
       description: `Welcome to QRollCall! You have been enrolled as a student${additionalInfo.courseName ? ` in ${additionalInfo.courseName}` : ''}.`,
       permissions: [
         'Mark attendance using QR codes',
@@ -428,8 +428,8 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
       <body>
         <div class="container">
           <div class="header">
-            <div class="logo">📋 QRollCall</div>
-            <div class="role-icon">${roleInfo.icon}</div>
+            <div class="logo">QRollCall</div>
+            ${roleInfo.icon ? `<div class="role-icon">${roleInfo.icon}</div>` : ''}
             <h2 style="margin: 0; color: #333;">${roleInfo.title}</h2>
           </div>
           
@@ -441,7 +441,7 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
             <p>Your account has been successfully created. Below are your login credentials:</p>
             
             <div class="credentials-box">
-              <h3 style="margin-top: 0; color: #1890ff;">🔐 Login Credentials</h3>
+              <h3 style="margin-top: 0; color: #1890ff;">Login Credentials</h3>
               
               <div class="credential-row">
                 <span class="credential-label">Email:</span>
@@ -469,7 +469,7 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
             </div>
             
             <div class="warning">
-              <strong>⚠️ Important Security Instructions:</strong>
+              <strong>Important Security Instructions:</strong>
               <ul style="margin: 10px 0; padding-left: 20px;">
                 <li><strong>Change your password immediately</strong> after first login</li>
                 <li>Do not share your credentials with anyone</li>
@@ -483,7 +483,7 @@ const sendWelcomeEmail = async (email, firstName, role, temporaryPassword, addit
             </p>
             
             <div class="permissions-list">
-              <h4 style="margin-top: 0; color: #52c41a;">✅ Your Permissions</h4>
+              <h4 style="margin-top: 0; color: #52c41a;">Your Permissions</h4>
               <ul style="margin: 10px 0; padding-left: 20px;">
                 ${roleInfo.permissions.map(perm => `<li>${perm}</li>`).join('')}
               </ul>
@@ -527,7 +527,7 @@ Temporary Password: ${temporaryPassword}
 ${additionalInfo.regNo ? `Registration No: ${additionalInfo.regNo}` : ''}
 ${additionalInfo.departmentName ? `Department: ${additionalInfo.departmentName}` : ''}
 
-⚠️ IMPORTANT SECURITY INSTRUCTIONS:
+IMPORTANT SECURITY INSTRUCTIONS:
 - Change your password immediately after first login
 - Do not share your credentials with anyone
 - Use a strong, unique password
@@ -603,7 +603,7 @@ const sendPasswordResetEmail = async (email, token, firstName = 'User') => {
           </p>
           
           <div class="warning">
-            <strong>⚠️ Security Notice:</strong>
+            <strong>Security Notice:</strong>
             <ul>
               <li>This link will expire in 1 hour</li>
               <li>If you didn't request this, please ignore this email</li>

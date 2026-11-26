@@ -276,7 +276,7 @@ const registerUser = async (req, res) => {
     // Save user to database
     await newUser.save();
 
-    // 🎓 AUTO-ENROLL STUDENTS IN UNITS
+    // AUTO-ENROLL STUDENTS IN UNITS
     if (role === "student") {
       try {
         const enrollmentResult = await autoEnrollStudent(
@@ -286,7 +286,7 @@ const registerUser = async (req, res) => {
           Number(semester) || 1
         );
 
-        console.log(`✅ Auto-enrollment complete:`, enrollmentResult);
+        console.log(`Auto-enrollment complete:`, enrollmentResult);
 
         return res.status(201).json({
           success: true,
@@ -305,7 +305,7 @@ const registerUser = async (req, res) => {
         });
 
       } catch (enrollmentError) {
-        console.error('⚠️ User created but enrollment failed:', enrollmentError);
+        console.error('User created but enrollment failed:', enrollmentError);
 
         // User was created but enrollment failed - still return success
         return res.status(201).json({
@@ -907,8 +907,8 @@ const sendResetLink = async (req, res) => {
             <!-- Details Section -->
             <div style="margin: 25px 0; padding: 15px; background-color: #f8fafc; border-radius: 8px;">
               <p style="margin: 0; color: #64748b; font-size: 14px;">
-                ⏳ Link expires in: <strong>1 hour</strong><br>
-                🔒 Not your request? Ignore this email
+                Link expires in: <strong>1 hour</strong><br>
+                If you did not request this, please ignore this email.
               </p>
             </div>
     
@@ -927,7 +927,7 @@ const sendResetLink = async (req, res) => {
               </p>
               
               <p style="margin: 0; color: #64748b; font-size: 12px; font-style: italic;">
-                ⚠️ Please note: This is an automated message. Do not reply to this email. 
+                Please note: This is an automated message. Do not reply to this email. 
                 For assistance, please contact us using the information in the footer below.
               </p>
             </div>
@@ -944,8 +944,7 @@ const sendResetLink = async (req, res) => {
             <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
               <p style="margin: 5px 0;">12 Main Street, Kutus, Kenya</p>
               <p style="margin: 5px 0;">
-                📧 <a href="mailto:kuriaaustin125@gmail.com" style="color: #cbd5e1; text-decoration: none;">Email Support</a> | 
-                📞 <a href="tel:+254798765432" style="color: #cbd5e1; text-decoration: none;">+254 797 561978</a>
+                <a href="mailto:support@qrollcall.austinmaina.co.ke" style="color: #cbd5e1; text-decoration: none;">Email Support</a>
               </p>
               <p style="margin: 15px 0 0; color: #94a3b8;">
                 © ${new Date().getFullYear()} Smart QR Code based Student Attendance System. All rights reserved

@@ -87,7 +87,7 @@ const createDepartmentAdmin = async (req, res) => {
 
         await newAdmin.save();
 
-        console.log(`✅ Department admin created by super admin ${req.user.userId}`);
+        console.log(`Department admin created by super admin ${req.user.userId}`);
         console.log(`   Admin: ${newAdmin.email}`);
         console.log(`   Manages: ${departments.map(d => d.name).join(', ')}`);
 
@@ -110,7 +110,7 @@ const createDepartmentAdmin = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error creating department admin:', error);
+        console.error('Error creating department admin:', error);
         res.status(500).json({
             success: false,
             message: "Error creating department admin",
@@ -146,7 +146,7 @@ const getDepartmentAdmins = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error fetching department admins:', error);
+        console.error('Error fetching department admins:', error);
         res.status(500).json({
             success: false,
             message: "Error fetching department admins",
@@ -199,7 +199,7 @@ const getDepartmentAdminById = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error fetching department admin:', error);
+        console.error('Error fetching department admin:', error);
         res.status(500).json({
             success: false,
             message: "Error fetching department admin",
@@ -274,7 +274,7 @@ const updateDepartmentAdmin = async (req, res) => {
             .populate('managedDepartments', 'name code')
             .populate('department', 'name code');
 
-        console.log(`✅ Department admin updated by super admin ${req.user.userId}`);
+        console.log(`Department admin updated by super admin ${req.user.userId}`);
         console.log(`   Admin: ${updatedAdmin.email}`);
 
         res.json({
@@ -290,7 +290,7 @@ const updateDepartmentAdmin = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error updating department admin:', error);
+        console.error('Error updating department admin:', error);
         res.status(500).json({
             success: false,
             message: "Error updating department admin",
@@ -328,7 +328,7 @@ const deleteDepartmentAdmin = async (req, res) => {
         admin.isActive = false;
         await admin.save();
 
-        console.log(`✅ Department admin deactivated by super admin ${req.user.userId}`);
+        console.log(`Department admin deactivated by super admin ${req.user.userId}`);
         console.log(`   Admin: ${admin.email}`);
 
         res.json({
@@ -337,7 +337,7 @@ const deleteDepartmentAdmin = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error deleting department admin:', error);
+        console.error('Error deleting department admin:', error);
         res.status(500).json({
             success: false,
             message: "Error deleting department admin",
@@ -408,7 +408,7 @@ const assignDepartments = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error assigning departments:', error);
+        console.error('Error assigning departments:', error);
         res.status(500).json({
             success: false,
             message: "Error assigning departments",
@@ -447,7 +447,7 @@ const getDepartmentAdminStats = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error fetching admin stats:', error);
+        console.error('Error fetching admin stats:', error);
         res.status(500).json({
             success: false,
             message: "Error fetching statistics",
@@ -495,7 +495,7 @@ const createDepartment = async (req, res) => {
 
         await department.save();
 
-        console.log(`✅ Super admin ${req.user.email} created department: ${name}`);
+        console.log(`Super admin ${req.user.email} created department: ${name}`);
 
         res.status(201).json({
             success: true,
@@ -509,7 +509,7 @@ const createDepartment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error creating department:', error);
+        console.error('Error creating department:', error);
         res.status(500).json({
             success: false,
             message: "Error creating department",
@@ -604,7 +604,7 @@ const getAllDepartments = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error fetching departments:', error);
+        console.error('Error fetching departments:', error);
         res.status(500).json({
             success: false,
             message: "Error fetching departments",
@@ -663,7 +663,7 @@ const updateDepartment = async (req, res) => {
 
         await department.save();
 
-        console.log(`✅ Super admin ${req.user.email} updated department: ${department.name}`);
+        console.log(`Super admin ${req.user.email} updated department: ${department.name}`);
 
         res.json({
             success: true,
@@ -677,7 +677,7 @@ const updateDepartment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error updating department:', error);
+        console.error('Error updating department:', error);
         res.status(500).json({
             success: false,
             message: "Error updating department",
@@ -729,7 +729,7 @@ const deleteDepartment = async (req, res) => {
 
         await department.deleteOne();
 
-        console.log(`✅ Super admin ${req.user.email} deleted department: ${department.name}`);
+        console.log(`Super admin ${req.user.email} deleted department: ${department.name}`);
 
         res.json({
             success: true,
@@ -737,7 +737,7 @@ const deleteDepartment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error deleting department:', error);
+        console.error('Error deleting department:', error);
         res.status(500).json({
             success: false,
             message: "Error deleting department",
@@ -802,7 +802,7 @@ const assignAdminToDepartment = async (req, res) => {
                 admin.department = departmentId;
             }
             await admin.save();
-            console.log(`✅ Assigned ${admin.email} to department: ${department.name}`);
+            console.log(`Assigned ${admin.email} to department: ${department.name}`);
         }
 
         res.json({
@@ -819,7 +819,7 @@ const assignAdminToDepartment = async (req, res) => {
         });
 
     } catch (error) {
-        console.error('❌ Error assigning admin to department:', error);
+        console.error('Error assigning admin to department:', error);
         res.status(500).json({
             success: false,
             message: "Error assigning admin",

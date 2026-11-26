@@ -17,7 +17,7 @@ const Course = require('../models/Course');
  */
 const autoEnrollStudent = async (studentId, courseId, year, semester) => {
     try {
-        console.log(`🎓 Auto-enrolling student ${studentId} in units for course ${courseId}, Year ${year}, Semester ${semester}`);
+        console.log(`Auto-enrolling student ${studentId} in units for course ${courseId}, Year ${year}, Semester ${semester}`);
 
         // Find all units that match the student's academic profile
         const matchingUnits = await Unit.find({
@@ -27,7 +27,7 @@ const autoEnrollStudent = async (studentId, courseId, year, semester) => {
         }).select('_id name code');
 
         if (matchingUnits.length === 0) {
-            console.log(`⚠️ No units found for course ${courseId}, Year ${year}, Semester ${semester}`);
+            console.log(`No units found for course ${courseId}, Year ${year}, Semester ${semester}`);
             return {
                 success: true,
                 enrolledCount: 0,
@@ -63,7 +63,7 @@ const autoEnrollStudent = async (studentId, courseId, year, semester) => {
             );
         }
 
-        console.log(`✅ Successfully enrolled student in ${newUnits.length} units`);
+        console.log(`Successfully enrolled student in ${newUnits.length} units`);
 
         return {
             success: true,
@@ -74,7 +74,7 @@ const autoEnrollStudent = async (studentId, courseId, year, semester) => {
         };
 
     } catch (error) {
-        console.error('❌ Auto-enrollment error:', error);
+        console.error('Auto-enrollment error:', error);
         throw new Error(`Failed to auto-enroll student: ${error.message}`);
     }
 };
@@ -114,7 +114,7 @@ const unenrollStudentFromAllUnits = async (studentId) => {
         };
 
     } catch (error) {
-        console.error('❌ Unenrollment error:', error);
+        console.error('Unenrollment error:', error);
         throw new Error(`Failed to unenroll student: ${error.message}`);
     }
 };
@@ -142,7 +142,7 @@ const reEnrollStudent = async (studentId, newCourseId, newYear, newSemester) => 
         };
 
     } catch (error) {
-        console.error('❌ Re-enrollment error:', error);
+        console.error('Re-enrollment error:', error);
         throw new Error(`Failed to re-enroll student: ${error.message}`);
     }
 };
@@ -190,7 +190,7 @@ const getEnrollmentStats = async (courseId, year, semester) => {
         };
 
     } catch (error) {
-        console.error('❌ Error getting enrollment stats:', error);
+        console.error('Error getting enrollment stats:', error);
         throw new Error(`Failed to get enrollment statistics: ${error.message}`);
     }
 };
@@ -240,7 +240,7 @@ const bulkEnrollStudents = async (students) => {
         };
 
     } catch (error) {
-        console.error('❌ Bulk enrollment error:', error);
+        console.error('Bulk enrollment error:', error);
         throw new Error(`Failed to bulk enroll students: ${error.message}`);
     }
 };

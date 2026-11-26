@@ -332,5 +332,33 @@ module.exports = {
     validateTokenFormat,
     trackFailedLogin,
     resetFailedLogin,
-    getFailedLoginCount
+    getFailedLoginCount,
+    stackAlignedFilter
 };
+
+/**
+ * Stack-Aligned Request Filtering
+ * Drops probes for technologies not in this stack (PHP, WordPress, ASP, Java, environment dumps)
+ * and disallows unexpected HTTP methods.
+ */
+function stackAlignedFilter(req, res, next) {
+    const disallowedMethods = ['TRACE', 'TRACK', 'CONNECT'];
+    if (disallowedMethods.includes(req.method.toUpperCase())) {
+        return res.status(405).json({
+            success: false,
+            message: 'Method Not Allowed'
+        });
+    }
+
+    const pathToCheck = (req.path || '').toLowerCase();
+    const stackMismatchPattern = /(\.(php|asp|aspx|jsp|cfm|sql|bak|env|git)($|\?|\/))|(\/(wp-admin|wp-login|wp-content|wp-includes|xmlrpc\.php|phpmyadmin|_ignition|actuator)($|\/))/i;
+
+    if (stackMismatchPattern.test(pathToCheck)) {
+        return res.status(404).json({
+            success: false,
+            message: 'Not Found'
+        });
+    }
+
+    next();
+}

@@ -39,7 +39,7 @@ const authController = {
         }
 
         try {
-            console.log('🔍 Login attempt for email:', email);
+            console.log('Login attempt for email:', email);
 
             // Find user and populate necessary fields
             const user = await User.findOne({ email, isActive: true })
@@ -47,10 +47,10 @@ const authController = {
                 .populate('course', 'name code')
                 .select('+password');
 
-            console.log('👤 User found:', user ? `Yes (${user._id})` : 'No');
+            console.log('User found:', user ? `Yes (${user._id})` : 'No');
 
             if (!user) {
-                console.log('❌ Login failed: User not found or inactive');
+                console.log('Login failed: User not found or inactive');
                 return res.status(401).json({
                     success: false,
                     message: 'Invalid email or password'
@@ -640,7 +640,7 @@ const authController = {
             user.verificationTokenExpiry = undefined;
             await user.save();
 
-            console.log(`✅ Email manually verified for: ${email}`);
+            console.log(`Email manually verified for: ${email}`);
 
             return res.json({
                 success: true,

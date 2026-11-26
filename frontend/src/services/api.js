@@ -1740,7 +1740,7 @@ export const checkSessionStatus = async (sessionId) => {
   }
 };
 
-// ✅ End Session (Lecturer Ends the Attendance Session)
+// End Session (Lecturer Ends the Attendance Session)
 export const endSession = async (sessionId) => {
   try {
     // Remove the setLoading call that's causing the error
@@ -1765,7 +1765,7 @@ export const endSession = async (sessionId) => {
   }
 };
 
-// ✅ Mark Absent Students (After Session Ends)
+// Mark Absent Students (After Session Ends)
 export const markAbsent = async (sessionId) => {
   try {
     const response = await axios.post(`${API_URL}/attendance/mark-absent`, {

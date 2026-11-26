@@ -6,7 +6,7 @@ require('dotenv').config();
 async function updateToSuperAdmin() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to database');
+    console.log('Connected to database');
 
     const email = 'kuriaaustin125@gmail.com';
 
@@ -14,11 +14,11 @@ async function updateToSuperAdmin() {
     const existingUser = await User.findOne({ email });
     
     if (!existingUser) {
-      console.log('\n❌ User not found. Run seedSuperAdmin.js instead.');
+      console.log('\nUser not found. Run seedSuperAdmin.js instead.');
       process.exit(1);
     }
 
-    console.log('\n📋 Current user details:');
+    console.log('\nCurrent user details:');
     console.log('Email:', existingUser.email);
     console.log('Current Role:', existingUser.role);
     console.log('Is Super Admin:', existingUser.isSuperAdmin || false);
@@ -35,19 +35,19 @@ async function updateToSuperAdmin() {
 
     await existingUser.save();
 
-    console.log('\n🎉 User updated to super admin successfully!\n');
+    console.log('\nUser updated to super admin successfully!\n');
     console.log('═══════════════════════════════════════');
     console.log('Email:    ', existingUser.email);
     console.log('Password: ', password);
     console.log('Role:     ', existingUser.role);
     console.log('═══════════════════════════════════════');
-    console.log('\n⚠️  IMPORTANT:');
+    console.log('\nIMPORTANT:');
     console.log('1. You MUST change password on first login');
     console.log('2. Login at: http://localhost:5173/auth/login\n');
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Update failed:', error);
+    console.error('\nUpdate failed:', error);
     process.exit(1);
   }
 }

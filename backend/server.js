@@ -27,7 +27,8 @@ const {
   preventParameterPollution,
   additionalSecurityHeaders,
   activityMonitor,
-  enforceHTTPS
+  enforceHTTPS,
+  stackAlignedFilter
 } = require("./middleware/securityMiddleware");
 
 dotenv.config();
@@ -35,6 +36,9 @@ const app = express();
 
 // Configure Express to trust proxy headers (important for rate limiting and IP detection)
 app.set("trust proxy", 1);
+
+// Stack-aligned request filtering (reject non-stack probes early)
+app.use(stackAlignedFilter);
 
 // Define the upload directory path
 const uploadDir = path.join(__dirname, "uploads");
@@ -108,6 +112,8 @@ const allowedOrigins = [
   'http://localhost:3000',
   'https://attendance-system123.vercel.app',
   'https://attendance-system-w70n.onrender.com',
+  'https://qrollcall.austinmaina.co.ke',
+  'https://attendance.austinmaina.co.ke',
   process.env.CLIENT_URL_DEV,
   process.env.CLIENT_URL_PROD,
   process.env.FRONTEND_URL
@@ -172,7 +178,7 @@ app.use("/api", apiLimiter);
 // Serve static assets
 app.use("/assets", express.static(path.join(__dirname, "public/assets")));
 
-// ✅ MongoDB Connection with Retry Logic
+// MongoDB Connection with Retry Logic
 const connectDB = async (retries = 5) => {
   try {
     console.log('Attempting to connect to MongoDB...');
@@ -183,20 +189,20 @@ const connectDB = async (retries = 5) => {
       socketTimeoutMS: 45000,
     });
 
-    logger.info("✅ MongoDB Connected Successfully");
+    logger.info("MongoDB Connected Successfully");
     console.log('MongoDB connection state:', mongoose.connection.readyState); // 1 = connected
 
   } catch (error) {
-    logger.error(`❌ MongoDB Connection Error: ${error.message}`);
+    logger.error(`MongoDB Connection Error: ${error.message}`);
     console.error('Full error:', error);
 
     if (retries > 0) {
-      logger.warn(`⏳ Retrying MongoDB connection in 5 seconds... (${retries} retries left)`);
+      logger.warn(`Retrying MongoDB connection in 5 seconds... (${retries} retries left)`);
       await new Promise((resolve) => setTimeout(resolve, 5000));
       return connectDB(retries - 1);
     }
 
-    logger.error('❌ Failed to connect to MongoDB after all retries');
+    logger.error('Failed to connect to MongoDB after all retries');
     process.exit(1);
   }
 };

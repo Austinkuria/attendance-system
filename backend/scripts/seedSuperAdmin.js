@@ -6,13 +6,13 @@ require('dotenv').config();
 async function seedSuperAdmin() {
   try {
     await mongoose.connect(process.env.MONGO_URI);
-    console.log('✅ Connected to database');
+    console.log('Connected to database');
 
     // Check if super admin already exists
     const existingAdmin = await User.findOne({ isSuperAdmin: true });
 
     if (existingAdmin) {
-      console.log('\n⚠️  Super admin already exists!');
+      console.log('\nSuper admin already exists!');
       console.log('Email:', existingAdmin.email);
       console.log('Role:', existingAdmin.role);
       console.log('\nTo reset password, delete this user from database and run script again.');
@@ -37,13 +37,13 @@ async function seedSuperAdmin() {
 
     await superAdmin.save();
 
-    console.log('\n🎉 Super admin created successfully!\n');
+    console.log('\nSuper admin created successfully!\n');
     console.log('═══════════════════════════════════════');
     console.log('Email:    ', superAdmin.email);
     console.log('Password: ', password);
     console.log('Role:     ', superAdmin.role);
     console.log('═══════════════════════════════════════');
-    console.log('\n⚠️  IMPORTANT SECURITY NOTES:');
+    console.log('\nIMPORTANT SECURITY NOTES:');
     console.log('1. Save these credentials securely');
     console.log('2. You MUST change password on first login');
     console.log('3. Never share these credentials');
@@ -52,7 +52,7 @@ async function seedSuperAdmin() {
 
     process.exit(0);
   } catch (error) {
-    console.error('\n❌ Seeding failed:', error);
+    console.error('\nSeeding failed:', error);
 
     if (error.code === 11000) {
       console.error('\nDuplicate key error - user with this email already exists');

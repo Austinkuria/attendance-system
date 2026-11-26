@@ -80,14 +80,14 @@ const requireDepartmentAccess = async (req, res, next) => {
         const hasAccess = await hasDepartmentAccess(req, departmentId);
 
         if (!hasAccess) {
-            console.log(`🚫 Department access denied for user ${req.user.userId} to department ${departmentId}`);
+            console.log(`Department access denied for user ${req.user.userId} to department ${departmentId}`);
             return res.status(403).json({
                 success: false,
                 message: "Access denied: You don't have permission to access this department's data"
             });
         }
 
-        console.log(`✅ Department access granted for user ${req.user.userId} to department ${departmentId}`);
+        console.log(`Department access granted for user ${req.user.userId} to department ${departmentId}`);
         next();
 
     } catch (error) {
@@ -189,7 +189,7 @@ const requireSuperAdmin = async (req, res, next) => {
             });
         }
 
-        console.log(`✅ Super admin access granted for user ${req.user.userId}`);
+        console.log(`Super admin access granted for user ${req.user.userId}`);
         next();
 
     } catch (error) {

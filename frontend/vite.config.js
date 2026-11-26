@@ -1,5 +1,5 @@
 import { defineConfig } from 'vite';
-import react from '@vitejs/plugin-react-swc';
+import react from '@vitejs/plugin-react';
 import { VitePWA } from 'vite-plugin-pwa';
 import envCompatible from 'vite-plugin-env-compatible';
 
@@ -76,6 +76,7 @@ export default defineConfig({
     envCompatible(),
   ],
   build: {
+    sourcemap: false,
     rollupOptions: {
       output: {
         manualChunks: {
