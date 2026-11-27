@@ -1,6 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
+import { Check } from 'lucide-react';
 import { ThemeContext } from '../../context/ThemeContext';
 import BrandLogo from '../../components/BrandLogo';
 import QrBrandGraphic from '../../components/QrBrandGraphic';
@@ -283,8 +284,8 @@ const RequestAccess = () => {
             <form onSubmit={handleFormSubmit} className="space-y-4 pt-1">
               {submitted ? (
                 <div className="rounded-lg border p-5 text-center space-y-3" style={getCardStyle()}>
-                  <div className="w-9 h-9 rounded-full bg-emerald-600 text-white mx-auto flex items-center justify-center font-bold">
-                    ✓
+                  <div className="w-9 h-9 rounded-full bg-emerald-600 text-white mx-auto flex items-center justify-center">
+                    <Check className="w-5 h-5 text-white" />
                   </div>
                   <h3 className="text-sm font-semibold" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
                     Request Submitted

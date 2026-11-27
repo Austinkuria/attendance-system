@@ -1386,7 +1386,7 @@ const AttendanceManagement = ({ onLoadingChange }) => {
               disabled={loading.session}
               className="text-xs font-medium text-slate-900 hover:text-slate-700 underline text-left sm:text-right"
             >
-              Start session now →
+              Start session now
             </button>
           )}
         </div>

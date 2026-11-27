@@ -215,7 +215,7 @@ const sendVerificationSuccessEmail = async (email, firstName = 'User') => {
       </head>
       <body>
         <div class="container">
-          <div class="success-icon">✓</div>
+          <div class="success-icon">&#10003;</div>
           <h2 style="text-align: center; color: #52c41a;">Email Verified Successfully!</h2>
           
           <p>Hello <strong>${firstName}</strong>,</p>

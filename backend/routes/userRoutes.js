@@ -52,7 +52,7 @@ router.post("/auth/login", [
   // .withMessage("Password must contain at least one special character (@$!%*?&)"),
 ], login);
 
-// ⚠️ PUBLIC SELF-REGISTRATION DISABLED FOR SECURITY REASONS
+// [SECURITY] Public self-registration disabled for security reasons
 // Students MUST be created by administrators to ensure proper:
 //   - Department/course assignment
 //   - Unit enrollment

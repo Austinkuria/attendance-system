@@ -32,7 +32,8 @@ class ErrorBoundary extends Component {
     // Ignore benign Vercel Analytics noise
     if (error?.message && (
       error.message.includes('Vercel Analytics') ||
-      error.message.includes('attendance-system123.vercel.app')
+      error.message.includes('attendance-system123.vercel.app') ||
+      error.message.includes('qrollcall.austinmaina.co.ke')
     )) {
       console.warn('Analytics warning suppressed:', error);
       return null;
@@ -45,7 +46,8 @@ class ErrorBoundary extends Component {
   componentDidCatch(error, errorInfo) {
     if (error?.message && (
       error.message.includes('Vercel Analytics') ||
-      error.message.includes('attendance-system123.vercel.app')
+      error.message.includes('attendance-system123.vercel.app') ||
+      error.message.includes('qrollcall.austinmaina.co.ke')
     )) {
       return;
     }

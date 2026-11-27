@@ -68,7 +68,7 @@ app.use(helmet({
       scriptSrc: ["'self'", "'unsafe-inline'"],
       styleSrc: ["'self'", "'unsafe-inline'", "https://fonts.googleapis.com"],
       imgSrc: ["'self'", "data:", "https:"],
-      connectSrc: ["'self'", "https://attendance-system-w70n.onrender.com"],
+      connectSrc: ["'self'", "https://attendance-system-w70n.onrender.com", "https://qrollcall.austinmaina.co.ke"],
       fontSrc: ["'self'", "https://fonts.gstatic.com"],
       objectSrc: ["'none'"],
       mediaSrc: ["'self'"],

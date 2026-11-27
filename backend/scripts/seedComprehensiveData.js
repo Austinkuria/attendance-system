@@ -218,24 +218,24 @@ const STUDENTS_DATA = [
 async function connectDB() {
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log('✅ Connected to MongoDB');
+        console.log('Connected to MongoDB');
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error.message);
+        console.error('MongoDB connection error:', error.message);
         process.exit(1);
     }
 }
 
 async function clearDatabase() {
-    console.log('\n🗑️  Clearing existing data...');
+    console.log('\nClearing existing data...');
     await Department.deleteMany({});
     await Course.deleteMany({});
     await Unit.deleteMany({});
     await User.deleteMany({ role: { $in: ['lecturer', 'student'] } });
-    console.log('✅ Database cleared');
+    console.log('Database cleared');
 }
 
 async function seedDepartments() {
-    console.log('\n🏢 Seeding departments, courses, and units...');
+    console.log('\nSeeding departments, courses, and units...');
     const departmentMap = {};
 
     for (const deptData of DEPARTMENTS_DATA) {
@@ -246,7 +246,7 @@ async function seedDepartments() {
         });
         await department.save();
         departmentMap[deptData.name] = department._id;
-        console.log(`  ✓ Created department: ${deptData.name}`);
+        console.log(`  - Created department: ${deptData.name}`);
 
         // Create courses for this department
         for (const courseData of deptData.courses) {
@@ -258,7 +258,7 @@ async function seedDepartments() {
                 units: []
             });
             await course.save();
-            console.log(`    ✓ Created course: ${courseData.name} (${courseData.code})`);
+            console.log(`    - Created course: ${courseData.name} (${courseData.code})`);
 
             // Add course to department
             department.courses.push(course._id);
@@ -274,7 +274,7 @@ async function seedDepartments() {
                     studentsEnrolled: []
                 });
                 await unit.save();
-                console.log(`      ✓ Created unit: ${unitData.code} - ${unitData.name}`);
+                console.log(`      - Created unit: ${unitData.code} - ${unitData.name}`);
 
                 // Add unit to course
                 course.units.push(unit._id);
@@ -286,19 +286,19 @@ async function seedDepartments() {
         await department.save();
     }
 
-    console.log('✅ Departments, courses, and units seeded successfully');
+    console.log('Departments, courses, and units seeded successfully');
     return departmentMap;
 }
 
 async function seedLecturers(departmentMap) {
-    console.log('\n👨‍🏫 Seeding lecturers...');
+    console.log('\nSeeding lecturers...');
     const hashedPassword = await bcrypt.hash('Lecturer@123', 10);
 
     for (const lecturerData of LECTURERS_DATA) {
         const departmentId = departmentMap[lecturerData.department];
 
         if (!departmentId) {
-            console.log(`  ⚠️  Department not found: ${lecturerData.department}`);
+            console.log(`  Department not found: ${lecturerData.department}`);
             continue;
         }
 
@@ -314,14 +314,14 @@ async function seedLecturers(departmentMap) {
         });
 
         await lecturer.save();
-        console.log(`  ✓ Created lecturer: ${lecturerData.firstName} ${lecturerData.lastName}`);
+        console.log(`  - Created lecturer: ${lecturerData.firstName} ${lecturerData.lastName}`);
     }
 
-    console.log('✅ Lecturers seeded successfully');
+    console.log('Lecturers seeded successfully');
 }
 
 async function seedStudents(departmentMap) {
-    console.log('\n👨‍🎓 Seeding students with auto-enrollment...');
+    console.log('\nSeeding students with auto-enrollment...');
     const hashedPassword = await bcrypt.hash('Student@123', 10);
     const { autoEnrollStudent } = require('../utils/enrollment.utils');
 
@@ -331,7 +331,7 @@ async function seedStudents(departmentMap) {
         const departmentId = departmentMap[studentData.department];
 
         if (!departmentId) {
-            console.log(`  ⚠️  Department not found: ${studentData.department}`);
+            console.log(`  [WARN] Department not found: ${studentData.department}`);
             continue;
         }
 
@@ -342,7 +342,7 @@ async function seedStudents(departmentMap) {
         });
 
         if (!course) {
-            console.log(`  ⚠️  Course not found: ${studentData.course} in ${studentData.department}`);
+            console.log(`  [WARN] Course not found: ${studentData.course} in ${studentData.department}`);
             continue;
         }
 
@@ -377,19 +377,19 @@ async function seedStudents(departmentMap) {
                 studentData.semester
             );
 
-            console.log(`  ✓ Created student: ${studentData.firstName} ${studentData.lastName} (${regNo}) - Enrolled in ${enrollmentResult.enrolledCount} units`);
+            console.log(`  - Created student: ${studentData.firstName} ${studentData.lastName} (${regNo}) - Enrolled in ${enrollmentResult.enrolledCount} units`);
         } catch (error) {
-            console.log(`  ⚠️  Student created but enrollment failed: ${studentData.firstName} ${studentData.lastName}`);
+            console.log(`  Student created but enrollment failed: ${studentData.firstName} ${studentData.lastName}`);
             console.log(`     Error: ${error.message}`);
         }
     }
 
-    console.log('✅ Students seeded successfully');
+    console.log('Students seeded successfully');
 }
 
 async function displaySummary() {
     console.log('\n' + '='.repeat(60));
-    console.log('📊 SEEDING SUMMARY');
+    console.log('SEEDING SUMMARY');
     console.log('='.repeat(60));
 
     const departments = await Department.countDocuments();
@@ -398,18 +398,18 @@ async function displaySummary() {
     const lecturers = await User.countDocuments({ role: 'lecturer' });
     const students = await User.countDocuments({ role: 'student' });
 
-    console.log(`\n📚 Departments: ${departments}`);
-    console.log(`📖 Courses: ${courses}`);
-    console.log(`📝 Units: ${units}`);
-    console.log(`👨‍🏫 Lecturers: ${lecturers}`);
-    console.log(`👨‍🎓 Students: ${students}`);
+    console.log(`\nDepartments: ${departments}`);
+    console.log(`Courses: ${courses}`);
+    console.log(`Units: ${units}`);
+    console.log(`Lecturers: ${lecturers}`);
+    console.log(`Students: ${students}`);
 
-    console.log('\n🔐 Default Credentials:');
+    console.log('\nDefault Credentials:');
     console.log('   Lecturers: Lecturer@123');
     console.log('   Students: Student@123');
     console.log('   Note: Users must change password on first login');
 
-    console.log('\n📋 Department Breakdown:');
+    console.log('\nDepartment Breakdown:');
     const depts = await Department.find().populate('courses');
     for (const dept of depts) {
         const deptLecturers = await User.countDocuments({ departmentId: dept._id, role: 'lecturer' });
@@ -429,7 +429,7 @@ async function displaySummary() {
 
 async function main() {
     try {
-        console.log('\n🚀 Starting comprehensive database seeding...\n');
+        console.log('\nStarting comprehensive database seeding...\n');
 
         await connectDB();
         await clearDatabase();
@@ -440,10 +440,10 @@ async function main() {
 
         await displaySummary();
 
-        console.log('\n✅ Database seeding completed successfully!\n');
+        console.log('\nDatabase seeding completed successfully!\n');
         process.exit(0);
     } catch (error) {
-        console.error('\n❌ Seeding failed:', error.message);
+        console.error('\nSeeding failed:', error.message);
         console.error(error.stack);
         process.exit(1);
     }

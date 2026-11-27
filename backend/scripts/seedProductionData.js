@@ -13,51 +13,56 @@ const Course = require('../models/Course');
 const Unit = require('../models/Unit');
 const { autoEnrollStudent } = require('../utils/enrollment.utils');
 
-// Real emails using aliasing technique
+// Base email configuration using aliasing (+tag)
+// Configurable via SEED_BASE_EMAIL to prevent exposing personal emails in repository code
+const BASE_TEST_EMAIL = process.env.SEED_BASE_EMAIL || 'test.admin@qrollcall.ac.ke';
+const [localPart, domain] = BASE_TEST_EMAIL.includes('@') ? BASE_TEST_EMAIL.split('@') : ['test.admin', 'qrollcall.ac.ke'];
+const makeAlias = (tag) => `${localPart}+${tag}@${domain}`;
+
 const REAL_EMAILS = {
-    superAdmin: 'devhubmailer@gmail.com',
+    superAdmin: process.env.SEED_SUPERADMIN_EMAIL || `superadmin@${domain}`,
     departmentAdmins: [
-        'austinmaina.dev+admin@gmail.com',
-        'anonymousismyname321+admin@gmail.com',
-        'kuriaaustin12+admin@gmail.com',
-        'kuriaaustine125+admin@gmail.com'
+        makeAlias('admin1'),
+        makeAlias('admin2'),
+        makeAlias('admin3'),
+        makeAlias('admin4')
     ],
     lecturers: [
-        'austinmaina.dev+lecturer@gmail.com',
-        'anonymousismyname321+lecturer@gmail.com',
-        'kuriaaustin12+lecturer@gmail.com',
-        'kuriaaustine125+lecturer@gmail.com'
+        makeAlias('lecturer1'),
+        makeAlias('lecturer2'),
+        makeAlias('lecturer3'),
+        makeAlias('lecturer4')
     ],
     students: [
-        'austinmaina.dev+student1@gmail.com',
-        'austinmaina.dev+student2@gmail.com',
-        'anonymousismyname321+student1@gmail.com',
-        'anonymousismyname321+student2@gmail.com',
-        'kuriaaustin12+student1@gmail.com',
-        'kuriaaustin12+student2@gmail.com',
-        'kuriaaustine125+student1@gmail.com',
-        'kuriaaustine125+student2@gmail.com'
+        makeAlias('student1'),
+        makeAlias('student2'),
+        makeAlias('student3'),
+        makeAlias('student4'),
+        makeAlias('student5'),
+        makeAlias('student6'),
+        makeAlias('student7'),
+        makeAlias('student8')
     ]
 };
 
 async function connectDB() {
     try {
         await mongoose.connect(process.env.MONGO_URI);
-        console.log('✅ Connected to MongoDB');
+        console.log('Connected to MongoDB');
     } catch (error) {
-        console.error('❌ MongoDB connection error:', error.message);
+        console.error('MongoDB connection error:', error.message);
         process.exit(1);
     }
 }
 
 async function seedProductionData() {
     try {
-        console.log('\n🚀 Starting production data seeding with real emails...\n');
+        console.log('\nStarting production data seeding...\n');
 
         await connectDB();
 
-        // Clear existing test data (CAREFUL!)
-        console.log('⚠️  Clearing existing test user data...');
+        // Clear existing test data
+        console.log('Clearing existing test user data...');
         await User.deleteMany({
             email: {
                 $in: [
@@ -67,10 +72,10 @@ async function seedProductionData() {
                 ]
             }
         });
-        console.log('✅ Test user data cleared\n');
+        console.log('Test user data cleared\n');
 
         // ===== STEP 1: CREATE/UPDATE SUPER ADMIN =====
-        console.log('👑 Creating/Updating Super Admin...');
+        console.log('Creating/Updating Super Admin...');
 
         const superAdminPassword = await bcrypt.hash('SuperAdmin@2025', 12);
         const superAdmin = await User.findOneAndUpdate(
@@ -91,20 +96,20 @@ async function seedProductionData() {
             { upsert: true, new: true }
         );
 
-        console.log(`✅ Super Admin ready: ${REAL_EMAILS.superAdmin}\n`);
+        console.log(`Super Admin ready: ${REAL_EMAILS.superAdmin}\n`);
 
         // ===== STEP 2: GET EXISTING DEPARTMENTS =====
-        console.log('📚 Fetching departments...');
+        console.log('Fetching departments...');
         const departments = await Department.find().sort({ name: 1 });
-        console.log(`✅ Found ${departments.length} departments\n`);
+        console.log(`Found ${departments.length} departments\n`);
 
         if (departments.length === 0) {
-            console.log('❌ No departments found. Please run seedComprehensiveData.js first!');
+            console.log('No departments found. Please run seedComprehensiveData.js first!');
             process.exit(1);
         }
 
         // ===== STEP 3: CREATE DEPARTMENT ADMINS =====
-        console.log('👨‍💼 Creating Department Admins with real emails...');
+        console.log('Creating Department Admins with real emails...');
 
         const departmentAdmins = [];
         const adminPassword = await bcrypt.hash('Admin@2025', 12);
@@ -134,13 +139,13 @@ async function seedProductionData() {
             );
 
             departmentAdmins.push(admin);
-            console.log(`   ✓ ${dept.name} Admin: ${email}`);
+            console.log(`   - ${dept.name} Admin: ${email}`);
         }
 
-        console.log(`\n✅ Created ${departmentAdmins.length} department admins\n`);
+        console.log(`\nCreated ${departmentAdmins.length} department admins\n`);
 
         // ===== STEP 4: CREATE LECTURERS =====
-        console.log('👨‍🏫 Creating Lecturers with real emails...');
+        console.log('Creating Lecturers with real emails...');
 
         const lecturers = [];
         const lecturerPassword = await bcrypt.hash('Lecturer@2025', 12);
@@ -177,13 +182,13 @@ async function seedProductionData() {
             );
 
             lecturers.push(lecturer);
-            console.log(`   ✓ ${data.firstName} ${data.lastName}: ${email}`);
+            console.log(`   - ${data.firstName} ${data.lastName}: ${email}`);
         }
 
-        console.log(`\n✅ Created ${lecturers.length} lecturers\n`);
+        console.log(`\nCreated ${lecturers.length} lecturers\n`);
 
         // ===== STEP 5: CREATE STUDENTS & AUTO-ENROLL =====
-        console.log('👨‍🎓 Creating Students with real emails and auto-enrolling...');
+        console.log('Creating Students with real emails and auto-enrolling...');
 
         const students = [];
         const studentPassword = await bcrypt.hash('Student@2025', 12);
@@ -192,7 +197,7 @@ async function seedProductionData() {
         const courses = await Course.find().populate('department');
 
         if (courses.length === 0) {
-            console.log('⚠️  No courses found. Students will be created without course assignment.');
+            console.log('No courses found. Students will be created without course assignment.');
         }
 
         const studentData = [
@@ -212,7 +217,7 @@ async function seedProductionData() {
             const email = REAL_EMAILS.students[i];
 
             if (!course) {
-                console.log(`   ⚠️  Skipping ${data.firstName} ${data.lastName} - No courses available`);
+                console.log(`   Skipping ${data.firstName} ${data.lastName} - No courses available`);
                 continue;
             }
 
@@ -251,23 +256,23 @@ async function seedProductionData() {
                     data.semester
                 );
 
-                console.log(`   ✓ ${data.firstName} ${data.lastName}: ${email}`);
+                console.log(`   - ${data.firstName} ${data.lastName}: ${email}`);
                 console.log(`      Reg: ${student.regNo} | Enrolled in ${enrollmentResult.enrolledCount} units`);
             } catch (error) {
-                console.log(`   ✓ ${data.firstName} ${data.lastName}: ${email}`);
+                console.log(`   - ${data.firstName} ${data.lastName}: ${email}`);
                 console.log(`      Reg: ${student.regNo} | No units available`);
             }
 
             students.push(student);
         }
 
-        console.log(`\n✅ Created ${students.length} students with auto-enrollment\n`);
+        console.log(`\nCreated ${students.length} students with auto-enrollment\n`);
 
         // ===== FINAL SUMMARY =====
         console.log('\n' + '='.repeat(70));
-        console.log('🎉 PRODUCTION DATA SEEDING COMPLETE!');
+        console.log('PRODUCTION DATA SEEDING COMPLETE!');
         console.log('='.repeat(70));
-        console.log('\n📊 SUMMARY:');
+        console.log('\nSUMMARY:');
         console.log(`   Super Admins:      1`);
         console.log(`   Department Admins: ${departmentAdmins.length}`);
         console.log(`   Lecturers:         ${lecturers.length}`);
@@ -275,33 +280,33 @@ async function seedProductionData() {
         console.log(`   Total Users:       ${1 + departmentAdmins.length + lecturers.length + students.length}`);
 
         console.log('\n' + '='.repeat(70));
-        console.log('🔑 LOGIN CREDENTIALS');
+        console.log('LOGIN CREDENTIALS');
         console.log('='.repeat(70));
 
-        console.log('\n👑 SUPER ADMIN:');
+        console.log('\nSUPER ADMIN:');
         console.log(`   Email:    ${REAL_EMAILS.superAdmin}`);
         console.log(`   Password: SuperAdmin@2025`);
 
-        console.log('\n👨‍💼 DEPARTMENT ADMINS:');
+        console.log('\nDEPARTMENT ADMINS:');
         departmentAdmins.forEach((admin, index) => {
             console.log(`   ${index + 1}. ${admin.email}`);
         });
         console.log(`   Password: Admin@2025`);
 
-        console.log('\n👨‍🏫 LECTURERS:');
+        console.log('\nLECTURERS:');
         lecturers.forEach((lecturer, index) => {
             console.log(`   ${index + 1}. ${lecturer.email}`);
         });
         console.log(`   Password: Lecturer@2025`);
 
-        console.log('\n👨‍🎓 STUDENTS:');
+        console.log('\nSTUDENTS:');
         students.forEach((student, index) => {
             console.log(`   ${index + 1}. ${student.email} (${student.regNo})`);
         });
         console.log(`   Password: Student@2025`);
 
         console.log('\n' + '='.repeat(70));
-        console.log('⚠️  IMPORTANT NOTES:');
+        console.log('IMPORTANT NOTES:');
         console.log('='.repeat(70));
         console.log('1. All accounts are pre-verified (isVerified: true)');
         console.log('2. Email aliasing used (user+tag@gmail.com)');
@@ -311,21 +316,21 @@ async function seedProductionData() {
         console.log('6. Account lockout: 5 failed attempts = 15 min lock');
         console.log('='.repeat(70));
 
-        console.log('\n✅ Database seeding completed successfully!\n');
+        console.log('\nDatabase seeding completed successfully!\n');
 
         // Close MongoDB connection gracefully
         await mongoose.connection.close();
-        console.log('📤 MongoDB connection closed\n');
+        console.log('MongoDB connection closed\n');
         process.exit(0);
 
     } catch (error) {
-        console.error('\n❌ Error seeding data:', error);
+        console.error('\nError seeding data:', error);
         console.error(error.stack);
 
         // Close MongoDB connection on error
         try {
             await mongoose.connection.close();
-            console.log('📤 MongoDB connection closed\n');
+            console.log('MongoDB connection closed\n');
         } catch (closeError) {
             console.error('Error closing MongoDB connection:', closeError.message);
         }

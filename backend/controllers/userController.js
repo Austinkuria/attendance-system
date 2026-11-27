@@ -936,7 +936,7 @@ const sendResetLink = async (req, res) => {
           <!-- Footer -->
           <div style="padding: 25px 20px; background-color: #2d3956; color: #ffffff; text-align: center;">
             <div style="margin-bottom: 15px;">
-              <a href="https://attendance-system123.vercel.app/" style="color: #ffffff; text-decoration: none; font-weight: 500;">
+              <a href="${clientUrl || 'https://qrollcall.austinmaina.co.ke'}" style="color: #ffffff; text-decoration: none; font-weight: 500;">
                 Smart QR Code based Student Attendance System
               </a>
             </div>

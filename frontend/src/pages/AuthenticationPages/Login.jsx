@@ -100,10 +100,10 @@ const Login = () => {
 
       // Pre-fill fields for visual feedback
       const roleEmailMap = {
-        student: 'alice.williams@student.edu',
-        lecturer: 'john.doe@university.edu',
-        department_admin: 'austinmaina.dev+admin@gmail.com',
-        super_admin: 'superadmin@qrollcall.ac.ke',
+        student: 'student@demo.ac.ke',
+        lecturer: 'lecturer@demo.ac.ke',
+        department_admin: 'admin@demo.ac.ke',
+        super_admin: 'superadmin@demo.ac.ke',
       };
 
       if (roleEmailMap[demoKey]) {
@@ -119,10 +119,10 @@ const Login = () => {
       } else {
         // Fallback standard credentials submit if demo-login endpoint requires fallback
         const fallbackCreds = {
-          student: { email: 'alice.williams@student.edu', password: 'Password@2025' },
-          lecturer: { email: 'john.doe@university.edu', password: 'Password@2025' },
-          department_admin: { email: 'austinmaina.dev+admin@gmail.com', password: 'Admin@2025' },
-          super_admin: { email: 'superadmin@qrollcall.ac.ke', password: 'SuperAdmin@2025' },
+          student: { email: 'student@demo.ac.ke', password: 'DemoPassword123!' },
+          lecturer: { email: 'lecturer@demo.ac.ke', password: 'DemoPassword123!' },
+          department_admin: { email: 'admin@demo.ac.ke', password: 'DemoPassword123!' },
+          super_admin: { email: 'superadmin@demo.ac.ke', password: 'DemoPassword123!' },
         };
 
         const cred = fallbackCreds[demoKey];
@@ -139,10 +139,10 @@ const Login = () => {
     } catch (err) {
       console.warn('Demo login failed, trying fallback credentials:', err);
       const fallbackCreds = {
-        student: { email: 'alice.williams@student.edu', password: 'Password@2025' },
-        lecturer: { email: 'john.doe@university.edu', password: 'Password@2025' },
-        department_admin: { email: 'austinmaina.dev+admin@gmail.com', password: 'Admin@2025' },
-        super_admin: { email: 'superadmin@qrollcall.ac.ke', password: 'SuperAdmin@2025' },
+        student: { email: 'student@demo.ac.ke', password: 'DemoPassword123!' },
+        lecturer: { email: 'lecturer@demo.ac.ke', password: 'DemoPassword123!' },
+        department_admin: { email: 'admin@demo.ac.ke', password: 'DemoPassword123!' },
+        super_admin: { email: 'superadmin@demo.ac.ke', password: 'DemoPassword123!' },
       };
       try {
         const directRes = await loginUser(fallbackCreds[demoKey]);

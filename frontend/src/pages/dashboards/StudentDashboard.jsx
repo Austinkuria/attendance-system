@@ -1854,8 +1854,8 @@ const StudentDashboard = () => {
                     color: activeSessionsByUnit[selectedUnit._id] ? themeColors.secondary : themeColors.accent
                   }}>
                     {activeSessionsByUnit[selectedUnit._id]
-                      ? <><span style={{ marginRight: '8px' }}>●</span> Active Session Available</>
-                      : <><span style={{ marginRight: '8px' }}>○</span> No Active Session</>}
+                      ? <><span className="inline-block w-2 h-2 rounded-full bg-emerald-500 mr-2 align-middle" /> Active Session Available</>
+                      : <><span className="inline-block w-2 h-2 rounded-full border border-slate-400 mr-2 align-middle" /> No Active Session</>}
                   </p>
                   {activeSessionsByUnit[selectedUnit._id] && (
                     <>

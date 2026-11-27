@@ -14,12 +14,13 @@ const generateCsrfToken = () => {
 const setCsrfToken = (req, res, next) => {
   // Generate a new CSRF token
   const csrfToken = generateCsrfToken();
+  const isProduction = process.env.NODE_ENV === 'production';
   
   // Set CSRF token in a cookie
   res.cookie('XSRF-TOKEN', csrfToken, {
     httpOnly: false, // Must be readable by JavaScript for client to send in headers
-    secure: process.env.NODE_ENV === 'production',
-    sameSite: 'strict',
+    secure: isProduction,
+    sameSite: isProduction ? 'none' : 'lax',
     maxAge: 4 * 60 * 60 * 1000 // 4 hours
   });
   
