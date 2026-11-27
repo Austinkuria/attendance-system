@@ -119,6 +119,8 @@ const ResponsiveText = styled(Text)`
   color: ${props => props.theme.placeholder} !important;
 `;
 
+import { API_URL } from "../../services/api";
+
 const ResetPasswordRequest = () => {
   const [email, setEmail] = useState("");
   const { isDarkMode, themeColors } = useContext(ThemeContext);
@@ -156,7 +158,7 @@ const ResetPasswordRequest = () => {
 
     try {
       const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api'}/auth/reset-password`,
+        `${API_URL}/auth/reset-password`,
         { email }
       );
 

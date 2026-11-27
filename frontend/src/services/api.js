@@ -2,7 +2,12 @@ import axios from "axios";
 import { openDB } from 'idb';
 
 // Export API_URL for use in other files
-export const API_URL = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api';
+export const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? 'http://localhost:5000/api' : 'https://attendance-system-w70n.onrender.com/api');
+
+// Log runtime environment target cleanly in browser devtools
+if (typeof window !== 'undefined') {
+  console.info(`[Environment] Mode: ${import.meta.env.MODE} | Target API: ${API_URL}`);
+}
 
 // Use environment variable for base URL, with fallback
 const api = axios.create({

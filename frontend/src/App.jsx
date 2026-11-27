@@ -44,6 +44,7 @@ import PastAttendance from './pages/dashboards/PastAttendance';
 import { ThemeProvider } from './context/ThemeContext';
 import { AuthProvider } from './context/AuthContext';
 import { ThemeAwareToasts } from './components/ThemeAwareToasts';
+import EnvironmentBadge from './components/EnvironmentBadge';
 import SystemFeedbackList from './pages/admin/SystemFeedbackList';
 import { ErrorBoundary } from './components';
 import NetworkStatus from './components/NetworkStatus';
@@ -214,6 +215,7 @@ function App() {
                   <Route path="/qr-scanner/:selectedUnit" element={<QRScanner />} />
                 </Route>
               </Routes>
+              <EnvironmentBadge />
             </Router>
           </AuthProvider>
         </ThemeProvider>

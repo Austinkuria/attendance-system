@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { API_URL } from '../services/api';
 import { jwtDecode } from 'jwt-decode';
 import { Card, Typography, Collapse, Switch, Button, Divider } from 'antd';
 
@@ -51,7 +52,6 @@ const DebugPanel = () => {
     const checkApiConnection = async () => {
         setApiStatus('Checking...');
         try {
-            const API_URL = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api';
             const response = await fetch(`${API_URL}/health`);
             if (response.ok) {
                 setApiStatus('API is online');

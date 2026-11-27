@@ -3,8 +3,7 @@ import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Card, Result, Button, Spin, message } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, LoadingOutlined } from '@ant-design/icons';
 import axios from 'axios';
-
-const API_URL = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api';
+import { API_URL } from '../../services/api';
 
 const VerifyEmail = () => {
     const { token } = useParams();

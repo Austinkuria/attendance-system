@@ -91,6 +91,8 @@ const StyledButton = styled(Button)`
   }
 `;
 
+import { API_URL } from "../../services/api";
+
 const ResetPassword = () => {
   const { token } = useParams();
   const { themeColors, isDarkMode } = useContext(ThemeContext);
@@ -120,9 +122,8 @@ const ResetPassword = () => {
 
     try {
       const response = await axios.put(
-        `${import.meta.env.VITE_API_URL}/auth/reset-password/${token}`,
+        `${API_URL}/auth/reset-password/${token}`,
         { token, newPassword: password }
-
       );
 
       setMessage({

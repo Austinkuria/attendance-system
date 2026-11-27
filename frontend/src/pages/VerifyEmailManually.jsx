@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card, Form, Input, Button, Alert, Typography, Space } from 'antd';
 import { MailOutlined, CheckCircleOutlined } from '@ant-design/icons';
 import axios from 'axios';
+import { API_URL } from '../services/api';
 
 const { Title, Paragraph, Text } = Typography;
 
@@ -15,8 +16,7 @@ const VerifyEmailManually = () => {
         setResult(null);
 
         try {
-            const apiUrl = import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api';
-            const response = await axios.post(`${apiUrl}/auth/manual-verify-email`, {
+            const response = await axios.post(`${API_URL}/auth/manual-verify-email`, {
                 email: values.email
             });
 
@@ -69,7 +69,7 @@ const VerifyEmailManually = () => {
                         message="API Endpoint"
                         description={
                             <Text code style={{ wordBreak: 'break-all' }}>
-                                {import.meta.env.VITE_API_URL || 'https://attendance-system-w70n.onrender.com/api'}/auth/manual-verify-email
+                                {API_URL}/auth/manual-verify-email
                             </Text>
                         }
                         type="info"
