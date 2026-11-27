@@ -27,7 +27,7 @@ async function seedSuperAdmin() {
       role: 'super_admin',
       firstName: 'System',
       lastName: 'Administrator',
-      email: 'kuriaaustin125@gmail.com', // Your email from .env
+      email: process.env.SEED_SUPERADMIN_EMAIL || 'superadmin@qrollcall.ac.ke',
       password: hashedPassword,
       isSuperAdmin: true,
       isActive: true,

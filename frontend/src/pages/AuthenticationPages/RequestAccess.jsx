@@ -1,7 +1,7 @@
 import { useState, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { message } from 'antd';
-import { Check } from 'lucide-react';
+import { CheckOutlined } from '@ant-design/icons';
 import { ThemeContext } from '../../context/ThemeContext';
 import BrandLogo from '../../components/BrandLogo';
 import QrBrandGraphic from '../../components/QrBrandGraphic';
@@ -39,6 +39,12 @@ const RequestAccess = () => {
     e.preventDefault();
     if (!formData.fullName || !formData.email) {
       message.error('Please provide your full name and university email address.');
+      return;
+    }
+
+    // Silent honeypot trap: if populated, discard submission silently
+    if (formData.hp_auth_trap) {
+      setSubmitted(true);
       return;
     }
 
@@ -285,7 +291,7 @@ const RequestAccess = () => {
               {submitted ? (
                 <div className="rounded-lg border p-5 text-center space-y-3" style={getCardStyle()}>
                   <div className="w-9 h-9 rounded-full bg-emerald-600 text-white mx-auto flex items-center justify-center">
-                    <Check className="w-5 h-5 text-white" />
+                    <CheckOutlined className="text-white text-base" />
                   </div>
                   <h3 className="text-sm font-semibold" style={{ color: isDarkMode ? '#FFFFFF' : '#0F172A' }}>
                     Request Submitted
@@ -307,6 +313,18 @@ const RequestAccess = () => {
                 </div>
               ) : (
                 <>
+                  {/* Invisible Honeypot Field to trap automated spam bots */}
+                  <div style={{ position: 'absolute', left: '-9999px', opacity: 0, height: 0, overflow: 'hidden' }} aria-hidden="true">
+                    <input
+                      type="text"
+                      name="hp_auth_trap"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      value={formData.hp_auth_trap || ''}
+                      onChange={(e) => setFormData({ ...formData, hp_auth_trap: e.target.value })}
+                    />
+                  </div>
+
                   <div>
                     <label className="block text-xs font-semibold mb-1" style={{ color: isDarkMode ? '#CBD5E1' : '#334155' }}>
                       Full Name <span className="text-rose-500">*</span>

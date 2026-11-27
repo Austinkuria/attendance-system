@@ -309,7 +309,7 @@ async function seedProductionData() {
         console.log('IMPORTANT NOTES:');
         console.log('='.repeat(70));
         console.log('1. All accounts are pre-verified (isVerified: true)');
-        console.log('2. Email aliasing used (user+tag@gmail.com)');
+        console.log('2. Email aliasing used (local+tag@domain)');
         console.log('3. All emails arrive at the base email address');
         console.log('4. Passwords can be changed after first login');
         console.log('5. Students are auto-enrolled in matching units');

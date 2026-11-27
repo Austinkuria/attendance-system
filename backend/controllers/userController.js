@@ -944,7 +944,7 @@ const sendResetLink = async (req, res) => {
             <div style="font-size: 12px; line-height: 1.6; color: #cbd5e1;">
               <p style="margin: 5px 0;">12 Main Street, Kutus, Kenya</p>
               <p style="margin: 5px 0;">
-                <a href="mailto:support@qrollcall.austinmaina.co.ke" style="color: #cbd5e1; text-decoration: none;">Email Support</a>
+                <a href="${clientUrl || 'https://qrollcall.austinmaina.co.ke'}/request-access" style="color: #cbd5e1; text-decoration: none;">Support & Contact Form</a>
               </p>
               <p style="margin: 15px 0 0; color: #94a3b8;">
                 © ${new Date().getFullYear()} Smart QR Code based Student Attendance System. All rights reserved

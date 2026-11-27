@@ -187,6 +187,9 @@ const additionalSecurityHeaders = (req, res, next) => {
     // Control DNS prefetching
     res.setHeader('X-DNS-Prefetch-Control', 'off');
 
+    // Prevent search indexing on API routes
+    res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
     // Disable client-side caching for sensitive routes
     if (req.path.includes('/api/auth') || req.path.includes('/api/admin')) {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');

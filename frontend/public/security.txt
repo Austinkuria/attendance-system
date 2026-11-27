@@ -1,0 +1,6 @@
+Contact: https://qrollcall.austinmaina.co.ke/request-access
+Expires: 2027-11-27T00:00:00.000Z
+Preferred-Languages: en
+Canonical: https://qrollcall.austinmaina.co.ke/.well-known/security.txt
+Policy: https://qrollcall.austinmaina.co.ke/request-access
+Acknowledgments: https://qrollcall.austinmaina.co.ke/request-access

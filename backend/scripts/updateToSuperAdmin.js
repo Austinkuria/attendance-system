@@ -8,7 +8,7 @@ async function updateToSuperAdmin() {
     await mongoose.connect(process.env.MONGO_URI);
     console.log('Connected to database');
 
-    const email = 'kuriaaustin125@gmail.com';
+    const email = process.env.SEED_SUPERADMIN_EMAIL || 'superadmin@qrollcall.ac.ke';
 
     // Find existing user
     const existingUser = await User.findOne({ email });

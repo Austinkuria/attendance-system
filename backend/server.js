@@ -30,12 +30,22 @@ const {
   enforceHTTPS,
   stackAlignedFilter
 } = require("./middleware/securityMiddleware");
+const { honeypotBanMiddleware } = require("./middleware/honeypotBanMiddleware");
 
 dotenv.config();
 const app = express();
 
 // Configure Express to trust proxy headers (important for rate limiting and IP detection)
 app.set("trust proxy", 1);
+
+// Honeypot auto-ban trap (imposes 2-hour IP strike ban on scanner probes)
+app.use(honeypotBanMiddleware);
+
+// RFC 9116 Security Contact Declaration
+const securityTxtContent = `Contact: https://qrollcall.austinmaina.co.ke/request-access\nExpires: 2027-11-27T00:00:00.000Z\nPreferred-Languages: en\nCanonical: https://qrollcall.austinmaina.co.ke/.well-known/security.txt\nPolicy: https://qrollcall.austinmaina.co.ke/request-access\nAcknowledgments: https://qrollcall.austinmaina.co.ke/request-access\n`;
+app.get(['/.well-known/security.txt', '/security.txt'], (req, res) => {
+  res.type('text/plain').send(securityTxtContent);
+});
 
 // Stack-aligned request filtering (reject non-stack probes early)
 app.use(stackAlignedFilter);
