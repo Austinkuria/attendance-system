@@ -9,7 +9,7 @@ const { parse } = require('json2csv');
 const logger = require('../utils/logger');
 const crypto = require('crypto');
 const { computeSignature } = require('../utils/session.utils');
-const { verifyRotatingQrPayload } = require('../utils/dynamicQrUtils');
+const { verifyRotatingQrPayload, verifySessionPin, calculateHaversineDistance } = require('../utils/dynamicQrUtils');
 const { escapeRegex, sanitizeHeaderFilename } = require('../utils/securityUtils');
 
 exports.checkIn = async (req, res) => {
@@ -76,12 +76,46 @@ exports.checkIn = async (req, res) => {
       });
     }
 
+    // Geofence boundary verification (when enabled on lecture session)
+    if (session.geofence_enabled && session.geofence_lat && session.geofence_lng) {
+      const studentLat = parseFloat(req.body.latitude || req.body.lat);
+      const studentLng = parseFloat(req.body.longitude || req.body.lng);
+
+      if (isNaN(studentLat) || isNaN(studentLng)) {
+        return res.status(400).json({
+          success: false,
+          message: "Location verification required: please enable GPS location to check in to this session."
+        });
+      }
+
+      const distanceMeters = calculateHaversineDistance(
+        session.geofence_lat,
+        session.geofence_lng,
+        studentLat,
+        studentLng
+      );
+      const maxRadius = session.radius_meters || 100;
+
+      if (distanceMeters > maxRadius) {
+        return res.status(403).json({
+          success: false,
+          message: `Location verification failed: you are ${Math.round(distanceMeters)}m away from the lecture venue (allowed radius: ${maxRadius}m).`
+        });
+      }
+    }
+
     let checkInMethod = "QR_SCAN";
+    let isFlagged = false;
+    let flagReason = null;
+
     if (manualPin) {
-      if (!session.manual_pin || session.manual_pin.trim().toUpperCase() !== manualPin.trim().toUpperCase()) {
-        return res.status(400).json({ success: false, message: "Incorrect manual PIN for this session" });
+      const pinResult = verifySessionPin(session, manualPin);
+      if (!pinResult.valid) {
+        return res.status(400).json({ success: false, message: pinResult.reason });
       }
       checkInMethod = "MANUAL_PIN";
+      isFlagged = true;
+      flagReason = "Manual PIN check-in (requires physical presence review)";
     } else if (qrToken) {
       const qrResult = verifyRotatingQrPayload(session, qrToken);
       if (!qrResult.valid) {
@@ -89,7 +123,7 @@ exports.checkIn = async (req, res) => {
       }
       checkInMethod = "QR_SCAN";
     } else {
-      return res.status(400).json({ success: false, message: "Provide either a valid QR token or manual PIN" });
+      return res.status(400).json({ success: false, message: "Provide either a valid QR token or session PIN" });
     }
 
     const checkInTime = new Date();
@@ -105,6 +139,8 @@ exports.checkIn = async (req, res) => {
           student: student._id,
           status: attendanceStatus,
           check_in_method: checkInMethod,
+          is_flagged: isFlagged,
+          flag_reason: flagReason,
           device_fingerprint: deviceFingerprint || "browser-session",
           deviceId: deviceFingerprint || "browser-client",
           compositeFingerprint: deviceFingerprint || "browser-fingerprint",

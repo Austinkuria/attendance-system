@@ -32,6 +32,7 @@ const LecturerLiveSessionProjector = () => {
   const [countdown, setCountdown] = useState(30);
   const [ending, setEnding] = useState(false);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [showPin, setShowPin] = useState(false);
 
   // Synthesised web audio chime on new student scan
   const playCheckInChime = useCallback(() => {
@@ -68,7 +69,7 @@ const LecturerLiveSessionProjector = () => {
             unitName: res.unitName,
             classSize: res.classSize,
             checkedInCount: res.checkedInCount,
-            manualPin: res.manualPin,
+            manualPin: res.rotatingPin || res.manualPin,
             secondsRemaining: res.secondsRemaining,
             attendees: res.attendees || [],
           };
@@ -236,26 +237,46 @@ const LecturerLiveSessionProjector = () => {
               Dynamic QR token refreshes in <strong className="font-mono text-sm" style={{ color: isDarkMode ? '#D4FF5E' : '#0F172A' }}>{countdown}s</strong>
             </p>
 
-            {/* Manual PIN Fallback */}
+            {/* Lecturer Gate: Manual PIN Fallback (Hidden by default to prevent unauthorized sharing) */}
             {sessionData.manualPin && (
-              <button
-                type="button"
-                onClick={handleCopyPin}
-                className="mt-2.5 h-9 px-3.5 rounded-md border flex items-center gap-2 cursor-pointer transition-colors"
-                style={getSubtleStyle()}
-                title="Click to copy manual backup PIN"
-              >
-                <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Backup PIN:</span>
-                <span
-                  className="text-sm font-mono font-semibold tracking-widest"
-                  style={{ color: isDarkMode ? '#D4FF5E' : '#0F172A' }}
-                >
-                  {sessionData.manualPin}
-                </span>
-                <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
-                </svg>
-              </button>
+              <div className="mt-2.5 flex items-center gap-2">
+                {showPin ? (
+                  <button
+                    type="button"
+                    onClick={handleCopyPin}
+                    className="h-9 px-3.5 rounded-md border flex items-center gap-2 cursor-pointer transition-colors"
+                    style={getSubtleStyle()}
+                    title="Click to copy rotating backup PIN"
+                  >
+                    <span className="text-xs font-medium text-slate-500 dark:text-slate-400">Rotating PIN (30s):</span>
+                    <span
+                      className="text-sm font-mono font-semibold tracking-widest text-amber-500"
+                    >
+                      {sessionData.manualPin}
+                    </span>
+                    <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                    </svg>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(true)}
+                    className="h-9 px-3.5 rounded-md border border-slate-700 bg-slate-800/60 hover:bg-slate-800 text-xs font-medium text-slate-300 transition-colors cursor-pointer"
+                  >
+                    Reveal Backup PIN
+                  </button>
+                )}
+                {showPin && (
+                  <button
+                    type="button"
+                    onClick={() => setShowPin(false)}
+                    className="h-9 px-2 text-xs text-slate-400 hover:text-slate-200 underline cursor-pointer"
+                  >
+                    Hide
+                  </button>
+                )}
+              </div>
             )}
           </div>
 
@@ -349,12 +370,18 @@ const LecturerLiveSessionProjector = () => {
                       <span className="text-[11px] font-mono block text-slate-400">
                         {new Date(attendee.checkedInAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                       </span>
-                      <span
-                        className="text-[10px] font-semibold uppercase tracking-wider"
-                        style={{ color: isDarkMode ? '#D4FF5E' : '#10B981' }}
-                      >
-                        {attendee.checkInMethod === 'MANUAL_PIN' ? 'PIN' : 'Scanned'}
-                      </span>
+                      {attendee.checkInMethod === 'MANUAL_PIN' ? (
+                        <span className="text-[9px] font-bold uppercase tracking-wider text-amber-500 bg-amber-500/10 border border-amber-500/30 px-1.5 py-0.5 rounded">
+                          Manual PIN
+                        </span>
+                      ) : (
+                        <span
+                          className="text-[10px] font-semibold uppercase tracking-wider"
+                          style={{ color: isDarkMode ? '#D4FF5E' : '#10B981' }}
+                        >
+                          Scanned
+                        </span>
+                      )}
                     </div>
                   </div>
                 ))}

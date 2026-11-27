@@ -10,6 +10,71 @@ const generateManualPin = () => {
   return pin;
 };
 
+/**
+ * Generate 30-second rotating TOTP session PIN
+ * Derived deterministically from session secret and current time slot
+ */
+const generateRotatingPin = (session, slotOffset = 0) => {
+  const secret = getSecretForSession(session);
+  const now = Date.now();
+  const slot = Math.floor(now / 30000) + slotOffset;
+  const hash = crypto.createHmac("sha256", secret)
+    .update(`PIN:${session._id}:${slot}`)
+    .digest("hex");
+
+  const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  let pin = "";
+  for (let i = 0; i < 6; i++) {
+    const idx = parseInt(hash.substr(i * 4, 4), 16) % chars.length;
+    pin += chars.charAt(idx);
+  }
+  return pin;
+};
+
+/**
+ * Verify input PIN against rotating TOTP slots and optional static session fallback
+ */
+const verifySessionPin = (session, inputPin) => {
+  if (!inputPin || typeof inputPin !== 'string') {
+    return { valid: false, reason: "Manual PIN required" };
+  }
+  const cleanPin = inputPin.trim().toUpperCase();
+
+  // 1. Check current 30s rotating TOTP PIN
+  const currentPin = generateRotatingPin(session, 0);
+  if (cleanPin === currentPin) {
+    return { valid: true, type: "ROTATING_TOTP" };
+  }
+
+  // 2. Check previous 30s rotating TOTP PIN (clock skew grace window)
+  const prevPin = generateRotatingPin(session, -1);
+  if (cleanPin === prevPin) {
+    return { valid: true, type: "ROTATING_TOTP" };
+  }
+
+  // 3. Fallback to session static manual_pin if configured
+  if (session.manual_pin && cleanPin === session.manual_pin.trim().toUpperCase()) {
+    return { valid: true, type: "STATIC_PIN" };
+  }
+
+  return { valid: false, reason: "Invalid or expired session PIN" };
+};
+
+/**
+ * Calculate distance between two coordinates using the Haversine formula (meters)
+ */
+const calculateHaversineDistance = (lat1, lon1, lat2, lon2) => {
+  const R = 6371e3; // Earth radius in meters
+  const toRad = deg => (deg * Math.PI) / 180;
+  const dLat = toRad(lat2 - lat1);
+  const dLon = toRad(lon2 - lon1);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 const getSecretForSession = (session) => {
   return session.qr_secret || process.env.QR_SECRET_KEY || process.env.JWT_SECRET || "qrollcall_session_secret";
 };
@@ -106,6 +171,9 @@ const verifyRotatingQrPayload = (session, rawToken) => {
 
 module.exports = {
   generateManualPin,
+  generateRotatingPin,
+  verifySessionPin,
+  calculateHaversineDistance,
   generateRotatingQrPayload,
   verifyRotatingQrPayload
 };

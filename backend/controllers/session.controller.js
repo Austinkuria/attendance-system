@@ -3,7 +3,7 @@ const Attendance = require('../models/Attendance');
 const User = require('../models/User');
 const Unit = require('../models/Unit');
 const generateQRToken = require('../utils/session.utils');
-const { generateManualPin, generateRotatingQrPayload } = require('../utils/dynamicQrUtils');
+const { generateManualPin, generateRotatingPin, generateRotatingQrPayload } = require('../utils/dynamicQrUtils');
 const crypto = require('crypto');
 const schedule = require("node-schedule");
 const { markAbsentees } = require("../controllers/attendance.controller");
@@ -154,7 +154,9 @@ exports.getRotatingQrToken = async (req, res) => {
       regNumber: rec.student?.regNo || rec.student?.reg_number || "REG",
       checkedInAt: rec.attendedAt || rec.timestamp,
       status: rec.status,
-      checkInMethod: rec.check_in_method || "QR_SCAN"
+      checkInMethod: rec.check_in_method || "QR_SCAN",
+      isFlagged: rec.is_flagged || rec.check_in_method === "MANUAL_PIN",
+      flagReason: rec.flag_reason || (rec.check_in_method === "MANUAL_PIN" ? "Manual PIN check-in" : null)
     }));
 
     res.status(200).json({
@@ -165,6 +167,7 @@ exports.getRotatingQrToken = async (req, res) => {
       slot: rotating.slot,
       secondsRemaining: rotating.secondsRemaining,
       manualPin: session.manual_pin,
+      rotatingPin: generateRotatingPin(session),
       unitCode: session.unit?.code || "SE301",
       unitName: session.unit?.name || "Mobile and Web Application Architecture",
       classSize: session.class_size || 30,

@@ -108,11 +108,29 @@ const CheckInModal = ({ isOpen, onClose, liveSession, onCheckInSuccess }) => {
       liveSession?._id ||
       checkInData.sessionId;
 
+    // Retrieve GPS position if available for geofenced session validation
+    let coords = null;
+    if (navigator?.geolocation) {
+      try {
+        coords = await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition(
+            (pos) => resolve({ latitude: pos.coords.latitude, longitude: pos.coords.longitude }),
+            () => resolve(null),
+            { timeout: 2500, maximumAge: 60000 }
+          );
+        });
+      } catch {
+        coords = null;
+      }
+    }
+
     const payload = {
       sessionId: resolvedSessionId,
       qrToken: checkInData.qrToken,
       manualPin: checkInData.pin,
       checkInMethod: checkInData.pin ? 'MANUAL_PIN' : 'QR_SCAN',
+      latitude: coords?.latitude,
+      longitude: coords?.longitude,
     };
 
     try {
