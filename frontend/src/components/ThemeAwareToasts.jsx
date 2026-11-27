@@ -96,7 +96,7 @@ export const ThemeAwareToasts = () => {
                     position: position,
                     style: {
                         backgroundColor: themeColors.primary || '#4285f4',
-                        color: 'white', // Always white text
+                        color: 'black',
                         fontWeight: 'bold',
                     },
                 }
